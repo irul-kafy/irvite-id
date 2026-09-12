@@ -84,7 +84,7 @@ export class GuestsService {
         where: { eventId },
         skip,
         take: limit,
-        select: this.safeGuestSelect(),
+        select: this.safeGuestListSelect(),
       }),
     ]);
 
@@ -186,6 +186,12 @@ export class GuestsService {
       category: true,
       maxPax: true,
       createdAt: true,
+    };
+  }
+
+  private safeGuestListSelect(): Prisma.GuestSelect {
+    return {
+      ...this.safeGuestSelect(),
       invitation: {
         select: {
           uniqueCode: true,
