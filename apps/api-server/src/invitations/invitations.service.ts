@@ -47,44 +47,35 @@ export class InvitationsService {
     return crypto.randomBytes(16).toString('base64url');
   }
 
-  async create(
-    eventId: string,
-    guestId: string,
-    currentUserId: string,
-    role: Role,
-    createInvitationDto: CreateInvitationDto,
+  async createInvitationWithRetry(
+    prismaClient: Prisma.TransactionClient | PrismaService,
+    data: {
+      eventId: string;
+      guestId: string;
+      customMessage?: string | null;
+      status?: InvitationStatus;
+    },
   ) {
-    await this.assertEventAccessible(eventId, currentUserId, role);
-
-    // Verify Guest belongs to this Event
-    const guest = await this.prisma.guest.findFirst({
-      where: { id: guestId, eventId },
-      select: { id: true },
-    });
-
-    if (!guest) {
-      throw new NotFoundException(
-        'Guest not found or does not belong to this Event',
-      );
-    }
-
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const uniqueCode = this.generateSecureCode();
 
-      const data: Prisma.InvitationUncheckedCreateInput = {
-        eventId,
-        guestId,
+      const createData: Prisma.InvitationUncheckedCreateInput = {
+        eventId: data.eventId,
+        guestId: data.guestId,
         uniqueCode,
       };
 
-      if (createInvitationDto.customMessage !== undefined) {
-        data.customMessage = createInvitationDto.customMessage;
+      if (data.customMessage !== undefined) {
+        createData.customMessage = data.customMessage;
+      }
+      if (data.status !== undefined) {
+        createData.status = data.status;
       }
 
       try {
-        const invitation = await this.prisma.invitation.create({
-          data,
+        const invitation = await prismaClient.invitation.create({
+          data: createData,
           select: this.safeSelect(),
         });
         return invitation;
@@ -95,8 +86,6 @@ export class InvitationsService {
         ) {
           const target = error.meta?.target;
 
-          // Prisma typically formats MySQL targets as arrays (e.g., ['guest_id'] or ['unique_code']) or strings
-          // We inspect it defensively
           let isGuestConflict = false;
           let isCodeConflict = false;
 
@@ -133,8 +122,6 @@ export class InvitationsService {
             continue; // Retry
           }
 
-          // If we couldn't confidently determine target, throw internal server error to be safe
-          // without leaking raw Prisma details or accidentally looping
           throw new InternalServerErrorException(
             'Database constraint violation',
           );
@@ -142,6 +129,37 @@ export class InvitationsService {
         throw error;
       }
     }
+    throw new InternalServerErrorException(
+      'Failed to generate unique code after maximum retries',
+    );
+  }
+
+  async create(
+    eventId: string,
+    guestId: string,
+    currentUserId: string,
+    role: Role,
+    createInvitationDto: CreateInvitationDto,
+  ) {
+    await this.assertEventAccessible(eventId, currentUserId, role);
+
+    // Verify Guest belongs to this Event
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, eventId },
+      select: { id: true },
+    });
+
+    if (!guest) {
+      throw new NotFoundException(
+        'Guest not found or does not belong to this Event',
+      );
+    }
+
+    return this.createInvitationWithRetry(this.prisma, {
+      eventId,
+      guestId,
+      customMessage: createInvitationDto.customMessage,
+    });
   }
 
   async findAll(
