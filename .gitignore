@@ -1,0 +1,70 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+logs
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+
+# Secrets / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local databases / dumps
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+
+# Temporary files
+tmp/
+temp/
+
+# Runtime uploads / private storage
+uploads/
+storage/
+# Database backup files only
+*.dump
+*.bak
+*.sql.gz
+backups/
+
+*.log
+
+# TypeScript generated metadata
+*.tsbuildinfo
+
+# Local scratch / temporary scripts
+scratch/
+
+# Generated audit / repository snapshots
+repomix-output.xml
+audit-source.txt
+audit_report_*.md
+
+# Local verification output
+api-build*.txt
+api-e2e*.txt
+api-lint*.txt
+api-unit*.txt
+web-build*.txt
+web-lint*.txt
+prisma-migrate.txt
+prisma-validate.txt
+smoke-result*.txt
+test-results.txt
+
+# Ad-hoc local diagnostic files
+/check-db3.js
+/db-count.js
+/search-transcript.js
+/smoke-7a.js
+/query

@@ -1,0 +1,191 @@
+.scanner-page-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.scanner-header h1 {
+  text-align: center;
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.scanner-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.scanner-viewport-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  pointer-events: none;
+}
+
+.scanner-overlay p {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.scanner-error {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.scanner-manual-input form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scanner-manual-input input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.scanner-manual-input button {
+  padding: 0.75rem 1.5rem;
+  background: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.scanner-manual-input button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.scanner-error-message {
+  padding: 1rem;
+  background: #ffe5e5;
+  color: #d32f2f;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.scanner-card {
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+}
+
+.scanner-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.pax-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1rem 0;
+}
+
+.pax-controls button {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pax-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pax-value {
+  font-size: 2rem;
+  font-weight: bold;
+  min-width: 2rem;
+}
+
+.checkin-btn {
+  padding: 1rem;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  padding: 1rem;
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.reset-btn {
+  padding: 1rem;
+  background: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.success-card {
+  border-top: 4px solid #28a745;
+}
+
+.warning-card {
+  border-top: 4px solid #ffc107;
+}
+
+.scanned-info {
+  font-size: 1rem;
+  color: #555;
+}
