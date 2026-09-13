@@ -258,10 +258,7 @@ export default function TemplateCatalogPage() {
 
           {filteredCatalog.length === 0 ? (
             <div className="catalog-empty">
-              <p>
-                No templates found matching &quot;{searchQuery}&quot;. Try a
-                different search term or category.
-              </p>
+              <p>No templates found matching "{searchQuery}". Try a different search term or category.</p>
               <button
                 type="button"
                 className="studio-btn studio-btn--secondary"

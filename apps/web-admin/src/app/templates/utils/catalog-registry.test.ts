@@ -8,8 +8,6 @@ import {
 } from './catalog-registry';
 import { ALLOWED_FONTS, SECTION_IDS, isValidHexColor } from './template-studio-model';
 
-type AllowedFont = (typeof ALLOWED_FONTS)[number];
-
 test('Fixed Catalog Registry', async (t) => {
   await t.test('1. Catalog categories are defined and include essential tags', () => {
     assert.ok(CATALOG_CATEGORIES.includes('All'));
@@ -44,11 +42,11 @@ test('Fixed Catalog Registry', async (t) => {
       // Typography
       const { typography } = tpl.config;
       assert.ok(
-        ALLOWED_FONTS.includes(typography.headingFont as AllowedFont),
+        ALLOWED_FONTS.includes(typography.headingFont as any),
         `Invalid headingFont for ${tpl.id}: ${typography.headingFont}`
       );
       assert.ok(
-        ALLOWED_FONTS.includes(typography.bodyFont as AllowedFont),
+        ALLOWED_FONTS.includes(typography.bodyFont as any),
         `Invalid bodyFont for ${tpl.id}: ${typography.bodyFont}`
       );
 
