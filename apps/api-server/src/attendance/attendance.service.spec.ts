@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+﻿/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { AttendanceService } from './attendance.service';
 import { PrismaService } from '../database/prisma.service';
@@ -8,6 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Role, Prisma } from '@prisma/client';
+import { ReportsService } from '../reports/reports.service';
 
 describe('AttendanceService', () => {
   let service: AttendanceService;
@@ -26,6 +27,7 @@ describe('AttendanceService', () => {
             attendance: { create: jest.fn(), findUnique: jest.fn() },
           },
         },
+        { provide: ReportsService, useValue: {} },
       ],
     }).compile();
 

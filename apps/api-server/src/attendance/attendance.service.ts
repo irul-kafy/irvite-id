@@ -1,18 +1,24 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Role } from 'database';
 import { Prisma, Event, StaffEvent } from '@prisma/client';
+import { ReportsService } from '../reports/reports.service';
+import { ExportQueryDto } from '../reports/dto/export-query.dto';
 
 type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly db: PrismaService) {}
+  constructor(
+    private readonly db: PrismaService,
+    private readonly reportsService: ReportsService,
+  ) {}
 
   private async authorizeEvent(
     eventId: string,
@@ -57,6 +63,42 @@ export class AttendanceService {
     }
 
     return event;
+  }
+
+  async exportAttendanceReport(
+    eventId: string,
+    currentUserId: string,
+    role: Role,
+    query: ExportQueryDto,
+  ) {
+    if (role === Role.STAFF) {
+      throw new ForbiddenException(
+        'Staff is not authorized to export attendance reports',
+      );
+    }
+
+    const whereScope: Prisma.EventWhereInput =
+      role === Role.SUPER_ADMIN
+        ? { id: eventId }
+        : { id: eventId, userId: currentUserId };
+
+    const event = await this.db.event.findFirst({
+      where: whereScope,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        eventDate: true,
+        locationDetails: true,
+        status: true,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    return this.reportsService.exportAttendanceReport(eventId, event, query);
   }
 
   async resolve(eventId: string, userId: string, _role: Role, code: string) {
