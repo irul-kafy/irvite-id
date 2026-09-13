@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import GenericTheme from './themes/generic';
+import IvoryGarden from './themes/ivory-garden';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
 export type RendererData = Partial<PublicInvitationResponse> & {
@@ -22,6 +23,7 @@ export type RendererComponent = React.ComponentType<RendererProps>;
 
 // The trusted renderer registry
 const renderers: Record<string, RendererComponent> = {
+  IVORY_GARDEN: IvoryGarden,
   GENERIC: GenericTheme,
   VERDANT: GenericTheme,
   MIDNIGHT: GenericTheme,

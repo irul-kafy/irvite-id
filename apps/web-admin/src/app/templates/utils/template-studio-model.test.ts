@@ -228,6 +228,7 @@ test('Template Studio Pure Model', async (t) => {
     assert.strictEqual(msg.type, 'TEMPLATE_PREVIEW_UPDATE');
     assert.strictEqual(msg.version, 1);
     assert.strictEqual(msg.payload.name, 'Garden Dream');
+    assert.strictEqual(msg.payload.themeCode, 'GENERIC');
     assert.strictEqual(msg.payload.config.version, 1);
     assert.strictEqual(msg.payload.config.theme.primaryColor, '#881337');
     assert.strictEqual(msg.payload.config.typography.headingFont, 'PLAYFAIR_DISPLAY');
@@ -236,5 +237,12 @@ test('Template Studio Pure Model', async (t) => {
     // Section ordering is normalized 1..9
     const orders = msg.payload.config.sections.map((s) => s.order);
     assert.deepStrictEqual(orders, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  await t.test('10. buildPreviewMessage forwards a selected renderer code', () => {
+    const snapshot = createEditorSnapshot('Ivory Garden', createPresetConfig('classic-elegance'));
+    const msg = buildPreviewMessage(snapshot, 'IVORY_GARDEN');
+
+    assert.strictEqual(msg.payload.themeCode, 'IVORY_GARDEN');
   });
 });

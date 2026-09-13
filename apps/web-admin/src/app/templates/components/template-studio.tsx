@@ -82,16 +82,19 @@ export function TemplateStudio({ mode, templateId, initialData }: TemplateStudio
       if (!iframe || !iframe.contentWindow || iframeStatus !== 'ready') return;
       if (!invitationOrigin) return;
 
+      const selectedCatalog = getCatalogTemplateById(selectedCatalogId);
+      const themeCode = selectedCatalog?.themeCode || initialData?.themeCode || 'GENERIC';
+
       try {
         iframe.contentWindow.postMessage(
-          buildPreviewMessage(snapshot),
+          buildPreviewMessage(snapshot, themeCode),
           invitationOrigin // Exact targetOrigin — NEVER '*'
         );
       } catch {
         // Silently swallow cross-origin postMessage errors
       }
     },
-    [iframeRef, invitationOrigin, iframeStatus]
+    [iframeRef, invitationOrigin, iframeStatus, initialData?.themeCode, selectedCatalogId]
   );
 
   // Listen for PREVIEW_READY from the iframe, then send initial state
@@ -182,7 +185,7 @@ export function TemplateStudio({ mode, templateId, initialData }: TemplateStudio
         throw new Error(errData.message || 'Failed to save template');
       }
 
-      const savedData = await res.json();
+      await res.json();
       setToastMessage({
         text: mode === 'create' ? 'Template published successfully!' : 'Template updated!',
         type: 'success',

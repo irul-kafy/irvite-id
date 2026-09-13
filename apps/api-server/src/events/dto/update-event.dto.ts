@@ -6,10 +6,20 @@ import {
   MaxLength,
   IsIn,
   ValidateIf,
+  IsObject,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { EventContentDto } from './event-content.dto';
 import { EVENT_STATUS } from '../event-status';
 
 export class UpdateEventDto {
+  @ValidateIf((o: UpdateEventDto) => o.content !== undefined)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => EventContentDto)
+  content?: EventContentDto;
+
   @IsOptional()
   @IsString()
   @MaxLength(255)

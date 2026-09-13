@@ -27,6 +27,8 @@ export interface PreviewMessagePayload {
   config: TemplateConfigV1;
   /** Display name for context only. */
   name: string;
+  /** Renderer selector. Omitted by older senders and resolved to GENERIC. */
+  themeCode: string;
 }
 
 export interface PreviewMessage {
@@ -56,6 +58,15 @@ export function parsePreviewMessage(data: unknown): PreviewMessage | null {
 
   // name: must be a non-empty string (or at least a string)
   if (typeof p.name !== 'string') return null;
+
+  // `themeCode` was added after the initial protocol. Preserve older previews
+  // by selecting the generic renderer when it is absent, but do not accept
+  // non-string payloads as a renderer selector.
+  let themeCode = 'GENERIC';
+  if (p.themeCode !== undefined) {
+    if (typeof p.themeCode !== 'string') return null;
+    themeCode = p.themeCode.trim() || 'GENERIC';
+  }
 
   // config: structural check — must be an object with version:1
   const config = p.config;
@@ -91,6 +102,7 @@ export function parsePreviewMessage(data: unknown): PreviewMessage | null {
     version: PREVIEW_PROTOCOL_VERSION,
     payload: {
       name: p.name as string,
+      themeCode,
       config: config as TemplateConfigV1,
     },
   };

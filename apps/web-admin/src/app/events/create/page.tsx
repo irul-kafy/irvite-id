@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { EventContentForm, eventTimeIso, cleanEventContent, type EventContent } from '../components/event-content-form';
 import { FIXED_CATALOG_TEMPLATES } from '../../templates/utils/catalog-registry';
 
 interface TemplateOption {
@@ -41,6 +42,7 @@ function CreateEventForm() {
   const preselectedTemplateParam = searchParams.get('template') || searchParams.get('templateId') || '';
 
   const [loading, setLoading] = useState(false);
+  const [content, setContent] = useState<EventContent>({ timeZone: 'Asia/Jakarta', galleryMediaIds: [] });
   const [error, setError] = useState('');
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
@@ -147,7 +149,7 @@ function CreateEventForm() {
       return;
     }
 
-    const dateParsed = new Date(formData.eventDate);
+    const dateParsed = new Date(eventTimeIso(formData.eventDate, content.timeZone));
     if (isNaN(dateParsed.getTime())) {
       setError('Format tanggal dan waktu acara tidak valid.');
       return;
@@ -163,8 +165,10 @@ function CreateEventForm() {
         description?: string;
         locationDetails?: string;
         templateId?: string;
+        content: EventContent;
       } = {
         title: cleanTitle,
+        content: cleanEventContent(content),
         slug: cleanSlug,
         eventDate: dateParsed.toISOString(),
       };
@@ -200,7 +204,7 @@ function CreateEventForm() {
       const created = await res.json();
       const newEventId = created.data?.id || created.id;
       if (newEventId) {
-        router.push(`/events/${newEventId}`);
+        router.push(`/events/${newEventId}/edit`);
       } else {
         router.push('/events');
       }
@@ -362,6 +366,7 @@ function CreateEventForm() {
           </div>
         </div>
 
+        <EventContentForm value={content} onChange={setContent} />
         {/* Section 3: Template Undangan */}
         <div className="card">
           <div className="card-header flex-between">

@@ -19,6 +19,8 @@ export interface CatalogTemplate {
   id: string;
   name: string;
   themeCode: string;
+  /** Same-origin artwork used only as the curated catalog card thumbnail. */
+  previewImageUrl?: string;
   category: CatalogCategory;
   tags: string[];
   description: string;
@@ -38,6 +40,42 @@ export const CATALOG_CATEGORIES: CatalogCategory[] = [
 ];
 
 export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
+  {
+    id: 'ivory-garden',
+    name: 'Ivory Garden',
+    themeCode: 'IVORY_GARDEN',
+    previewImageUrl: '/templates/ivory-garden/garden.png',
+    category: 'Painting',
+    tags: ['Floral', 'Elegant', 'Classic', 'Non-Foto'],
+    description:
+      'A hand-painted ivory garden with graceful foliage, muted olive tones, and timeless wedding stationery details.',
+    badge: 'New',
+    isPhotoOptional: true,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#4A5741',
+        secondaryColor: '#A38A59',
+        backgroundColor: '#F8F4EB',
+        textColor: '#343B30',
+      },
+      typography: {
+        headingFont: 'PLAYFAIR_DISPLAY',
+        bodyFont: 'LORA',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
   {
     id: 'verdant-estate',
     name: 'Verdant Estate',

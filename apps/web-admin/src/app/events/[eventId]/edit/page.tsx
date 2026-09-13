@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { FIXED_CATALOG_TEMPLATES } from '@/app/templates/utils/catalog-registry';
 import { getCanonicalPublicEventUrl } from '@/utils/url';
+import { EventContentForm, eventTimeIso, localEventTime, cleanEventContent, type EventContent } from '../../components/event-content-form';
 
 interface TemplateOption {
   id: string;
@@ -55,6 +56,8 @@ export default function EditEventPage({
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [content, setContent] = useState<EventContent>({});
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [copied, setCopied] = useState(false);
@@ -97,9 +100,9 @@ export default function EditEventPage({
         const eventData = await eventRes.json();
 
         // Timezone-safe local datetime string conversion (YYYY-MM-DDThh:mm)
-        const d = new Date(eventData.eventDate);
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        const datetimeLocalStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const loadedContent: EventContent = eventData.content || {};
+        setContent(loadedContent);
+        const datetimeLocalStr = localEventTime(eventData.eventDate, loadedContent.timeZone);
 
         const loadedTplId = eventData.templateId || '';
         setInitialTemplateId(loadedTplId);
@@ -175,7 +178,8 @@ export default function EditEventPage({
       return;
     }
 
-    const dateParsed = new Date(formData.eventDate);
+    if (uploading) return;
+    const dateParsed = new Date(eventTimeIso(formData.eventDate, content.timeZone));
     if (isNaN(dateParsed.getTime())) {
       setError('Format tanggal dan waktu acara tidak valid.');
       return;
@@ -192,8 +196,10 @@ export default function EditEventPage({
         description?: string;
         locationDetails?: string;
         templateId?: string;
+        content: EventContent;
       } = {
         title: cleanTitle,
+        content: cleanEventContent(content),
         slug: cleanSlug,
         eventDate: dateParsed.toISOString(),
         status: formData.status,
@@ -511,6 +517,7 @@ export default function EditEventPage({
           </div>
         </div>
 
+        <EventContentForm value={content} onChange={setContent} eventId={eventId} onBusyChange={setUploading} />
         {/* Section 4: Template Undangan */}
         <div className="card">
           <div className="card-header flex-between">
@@ -605,7 +612,7 @@ export default function EditEventPage({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={saving}
+            disabled={saving || uploading}
             id="edit-event-submit-btn"
           >
             {saving ? (

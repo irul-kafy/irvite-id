@@ -73,6 +73,7 @@ model Event {
   description     String?
   eventDate       DateTime @map("event_date")
   locationDetails String?  @map("location_details")
+  content         Json?
   status          String   @default("DRAFT")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -115,6 +116,9 @@ model Invitation {
   status        InvitationStatus @default(PENDING)
   rsvpPax       Int?             @map("rsvp_pax")
   customMessage String?          @map("custom_message")
+  wishName      String?          @db.VarChar(80) @map("wish_name")
+  wishMessage   String?          @db.VarChar(1000) @map("wish_message")
+  wishedAt      DateTime?        @map("wished_at")
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
 

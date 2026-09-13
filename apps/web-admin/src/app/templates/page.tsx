@@ -6,7 +6,6 @@ import { TemplateCard, TemplateCardItem } from './components/template-card';
 import {
   CATALOG_CATEGORIES,
   CatalogCategory,
-  FIXED_CATALOG_TEMPLATES,
   filterCatalogTemplates,
 } from './utils/catalog-registry';
 import { TemplateConfigV1, buildPreviewMessage } from './utils/template-studio-model';
@@ -25,6 +24,7 @@ export default function TemplateCatalogPage() {
   const [previewTemplate, setPreviewTemplate] = useState<{
     name: string;
     config: TemplateConfigV1;
+    themeCode: string;
   } | null>(null);
   const [iframeReady, setIframeReady] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -93,14 +93,14 @@ export default function TemplateCatalogPage() {
 
   // Send postMessage to preview iframe when template changes or iframe is ready
   const sendPreviewUpdate = useCallback(
-    (name: string, config: TemplateConfigV1) => {
+    (name: string, config: TemplateConfigV1, themeCode: string = 'GENERIC') => {
       const iframe = iframeRef.current;
       if (!iframe || !iframe.contentWindow || !iframeReady) return;
       if (!invitationOrigin) return;
 
       try {
         iframe.contentWindow.postMessage(
-          buildPreviewMessage({ name, config }),
+          buildPreviewMessage({ name, config }, themeCode),
           invitationOrigin
         );
       } catch {
@@ -113,7 +113,11 @@ export default function TemplateCatalogPage() {
   // When preview template or iframe readiness changes, push update
   useEffect(() => {
     if (previewTemplate && iframeReady) {
-      sendPreviewUpdate(previewTemplate.name, previewTemplate.config);
+      sendPreviewUpdate(
+        previewTemplate.name,
+        previewTemplate.config,
+        previewTemplate.themeCode,
+      );
     }
   }, [previewTemplate, iframeReady, sendPreviewUpdate]);
 
@@ -121,17 +125,15 @@ export default function TemplateCatalogPage() {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.origin !== invitationOrigin) return;
-      if (e.data?.type === 'PREVIEW_RECEIVER_READY') {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      if (e.data?.type === 'PREVIEW_READY' && e.data?.version === 1) {
         setIframeReady(true);
-        if (previewTemplate) {
-          sendPreviewUpdate(previewTemplate.name, previewTemplate.config);
-        }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [invitationOrigin, previewTemplate, sendPreviewUpdate]);
+  }, [invitationOrigin]);
 
   // Filter Catalog Templates
   const filteredCatalog = filterCatalogTemplates(selectedCategory, searchQuery).map(
@@ -141,8 +143,12 @@ export default function TemplateCatalogPage() {
     })
   );
 
-  const handleOpenPreview = (config: TemplateConfigV1, name: string) => {
-    setPreviewTemplate({ name, config });
+  const handleOpenPreview = (
+    config: TemplateConfigV1,
+    name: string,
+    themeCode: string = 'GENERIC',
+  ) => {
+    setPreviewTemplate({ name, config, themeCode });
     setIframeReady(false);
   };
 
@@ -241,6 +247,17 @@ export default function TemplateCatalogPage() {
         </div>
       </div>
 
+      {error && (
+        <p className="catalog-status catalog-status--error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && (
+        <p className="catalog-status" role="status">
+          Loading curated templates…
+        </p>
+      )}
+
       {/* Main Content Area */}
       <main className="catalog-main">
         {/* Curated Fixed Templates Section */}
@@ -258,7 +275,7 @@ export default function TemplateCatalogPage() {
 
           {filteredCatalog.length === 0 ? (
             <div className="catalog-empty">
-              <p>No templates found matching "{searchQuery}". Try a different search term or category.</p>
+              <p>No templates found matching &quot;{searchQuery}&quot;. Try a different search term or category.</p>
               <button
                 type="button"
                 className="studio-btn studio-btn--secondary"
@@ -392,10 +409,6 @@ export default function TemplateCatalogPage() {
                   className="studio-preview__iframe"
                   title="Live Invitation Template Preview"
                   sandbox="allow-scripts allow-same-origin"
-                  onLoad={() => {
-                    setIframeReady(true);
-                    sendPreviewUpdate(previewTemplate.name, previewTemplate.config);
-                  }}
                 />
               </div>
             </div>

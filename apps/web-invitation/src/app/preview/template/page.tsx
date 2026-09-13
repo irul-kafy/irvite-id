@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import GenericTheme from '../../../renderers/themes/generic';
+import { RenderTheme } from '../../../renderers/registry';
 import { normalizeConfig } from '../../../utils/config-normalizer';
 import { buildPreviewData, PREVIEW_UNIQUE_CODE } from '../../../preview/preview-sample-data';
+import { buildIvoryGardenPreviewData } from '../../../preview/ivory-garden-preview-data';
 import {
   parsePreviewMessage,
   isTrustedOrigin,
@@ -34,8 +35,9 @@ export default function PreviewTemplatePage() {
         return;
       }
 
-      // 2. Source check — must be our parent window
-      if (event.source !== window.parent) {
+      // 2. Source check — must be the parent window captured for this iframe.
+      // A standalone preview page has no trusted parent and accepts no updates.
+      if (!expectedSourceRef.current || event.source !== expectedSourceRef.current) {
         return;
       }
 
@@ -50,17 +52,21 @@ export default function PreviewTemplatePage() {
       //    degrades gracefully to defaults without throwing.
       const safeConfig = normalizeConfig(msg.payload.config);
 
+      const nextSampleData =
+        msg.payload.themeCode === 'IVORY_GARDEN'
+          ? buildIvoryGardenPreviewData()
+          : buildPreviewData();
+
       setPreviewData({
-        ...sampleData,
+        ...nextSampleData,
         template: {
-          themeCode: 'GENERIC',
+          themeCode: msg.payload.themeCode,
           config: safeConfig,
         },
       });
 
       setStatus('ready');
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
@@ -101,13 +107,14 @@ export default function PreviewTemplatePage() {
         </div>
       )}
 
-      {/* GenericTheme is always rendered so the DOM is ready before the first message */}
+      {/* RenderTheme keeps preview renderer selection aligned with public invitations. */}
       <div
         className="preview-renderer"
         style={{ opacity: status === 'ready' ? 1 : 0, transition: 'opacity 0.3s ease' }}
         aria-hidden={status !== 'ready'}
       >
-        <GenericTheme
+        <RenderTheme
+          themeCode={previewData.template?.themeCode}
           data={previewData}
           uniqueCode={PREVIEW_UNIQUE_CODE}
           isPreview={true}

@@ -42,11 +42,11 @@ test('Fixed Catalog Registry', async (t) => {
       // Typography
       const { typography } = tpl.config;
       assert.ok(
-        ALLOWED_FONTS.includes(typography.headingFont as any),
+        ALLOWED_FONTS.includes(typography.headingFont as (typeof ALLOWED_FONTS)[number]),
         `Invalid headingFont for ${tpl.id}: ${typography.headingFont}`
       );
       assert.ok(
-        ALLOWED_FONTS.includes(typography.bodyFont as any),
+        ALLOWED_FONTS.includes(typography.bodyFont as (typeof ALLOWED_FONTS)[number]),
         `Invalid bodyFont for ${tpl.id}: ${typography.bodyFont}`
       );
 
@@ -66,6 +66,25 @@ test('Fixed Catalog Registry', async (t) => {
   });
 
   await t.test('3. Key target templates are present', () => {
+    const ivoryGarden = getCatalogTemplateById('ivory-garden');
+    assert.ok(ivoryGarden, 'Ivory Garden must exist');
+    assert.equal(ivoryGarden.themeCode, 'IVORY_GARDEN');
+    assert.equal(ivoryGarden.category, 'Painting');
+    assert.equal(ivoryGarden.previewImageUrl, '/templates/ivory-garden/garden.png');
+    assert.deepEqual(ivoryGarden.tags, ['Floral', 'Elegant', 'Classic', 'Non-Foto']);
+    assert.deepEqual(ivoryGarden.config.theme, {
+      primaryColor: '#4A5741',
+      secondaryColor: '#A38A59',
+      backgroundColor: '#F8F4EB',
+      textColor: '#343B30',
+    });
+    assert.equal(ivoryGarden.config.typography.headingFont, 'PLAYFAIR_DISPLAY');
+    assert.equal(ivoryGarden.config.typography.bodyFont, 'LORA');
+    assert.equal(
+      ivoryGarden.config.sections.find((section) => section.id === 'guestQr')?.enabled,
+      false,
+    );
+
     const verdant = getCatalogTemplateById('verdant-estate');
     assert.ok(verdant, 'Verdant Estate must exist');
     assert.equal(verdant.themeCode, 'VERDANT');

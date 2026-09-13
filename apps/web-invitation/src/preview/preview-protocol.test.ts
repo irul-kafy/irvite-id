@@ -66,7 +66,22 @@ test('Preview Protocol', async (t) => {
     assert.strictEqual(result!.type, 'TEMPLATE_PREVIEW_UPDATE');
     assert.strictEqual(result!.version, 1);
     assert.strictEqual(result!.payload.name, 'Classic Elegance');
+    assert.strictEqual(result!.payload.themeCode, 'GENERIC');
     assert.strictEqual(result!.payload.config.version, 1);
+  });
+
+  await t.test('1b. Renderer selector is preserved and non-string values are rejected', () => {
+    const ivory = {
+      ...validMessage(),
+      payload: { ...validMessage().payload, themeCode: 'IVORY_GARDEN' },
+    };
+    assert.strictEqual(parsePreviewMessage(ivory)?.payload.themeCode, 'IVORY_GARDEN');
+
+    const invalid = {
+      ...validMessage(),
+      payload: { ...validMessage().payload, themeCode: ['IVORY_GARDEN'] },
+    };
+    assert.strictEqual(parsePreviewMessage(invalid), null);
   });
 
   await t.test('2. null input returns null', () => {

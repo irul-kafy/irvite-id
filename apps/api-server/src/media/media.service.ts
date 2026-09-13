@@ -4,6 +4,7 @@ import {
   BadRequestException,
   PayloadTooLargeException,
   Logger,
+  StreamableFile,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { MediaStorageService } from './media-storage.service';
@@ -13,9 +14,40 @@ import { Role, MediaType, Prisma } from 'database';
 import { detectSignature } from './media-signature';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TYPE_SIZE_LIMITS } from './media.constants';
+import * as path from 'path';
 
 @Injectable()
 export class MediaService {
+  async previewFile(
+    eventId: string,
+    mediaId: string,
+    userId: string,
+    role: Role,
+  ) {
+    const media = await this.findOne(eventId, mediaId, userId, role);
+    if (media.type !== MediaType.PHOTO && media.type !== MediaType.THUMBNAIL)
+      throw new NotFoundException('Image not found');
+    const types: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+    };
+    const type = types[path.extname(media.url).toLowerCase()];
+    if (!type) throw new NotFoundException('Image not found');
+    try {
+      const stat = await this.storageService.getFileStat(media.url);
+      return new StreamableFile(
+        this.storageService.createReadStream(media.url),
+        { type, length: stat.size, disposition: 'inline' },
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+        throw new NotFoundException('Image not found');
+      throw error;
+    }
+  }
+
   private readonly logger = new Logger(MediaService.name);
 
   constructor(

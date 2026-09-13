@@ -2,12 +2,14 @@ import {
   Controller,
   Get,
   Patch,
+  Post,
   Body,
   Param,
   Header,
   NotFoundException,
 } from '@nestjs/common';
 import { PublicRsvpDto } from './dto/public-rsvp.dto';
+import { PublicWishDto } from './dto/public-wish.dto';
 import { InvitationsService } from './invitations.service';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -16,6 +18,16 @@ import { Public } from '../auth/decorators/public.decorator';
   version: '1',
 })
 export class PublicInvitationsController {
+  @Public()
+  @Post(':uniqueCode/wishes')
+  @Header('Cache-Control', 'no-store')
+  async saveWish(
+    @Param('uniqueCode') uniqueCode: string,
+    @Body() dto: PublicWishDto,
+  ) {
+    return this.invitationsService.savePublicWish(uniqueCode, dto);
+  }
+
   constructor(private readonly invitationsService: InvitationsService) {}
 
   @Public()

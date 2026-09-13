@@ -10,6 +10,7 @@ export interface TemplateCardItem {
   id: string;
   name: string;
   themeCode: string;
+  previewImageUrl?: string;
   category?: CatalogCategory | string;
   tags?: string[];
   description?: string;
@@ -26,7 +27,7 @@ export type TemplateListItem = TemplateCardItem;
 interface TemplateCardProps {
   template: TemplateCardItem;
   canEdit?: boolean;
-  onPreview?: (config: TemplateConfigV1, name: string) => void;
+  onPreview?: (config: TemplateConfigV1, name: string, themeCode?: string) => void;
   onUseTemplate?: (template: TemplateCardItem) => void;
 }
 
@@ -55,11 +56,14 @@ export function TemplateCard({
 
   const enabledSectionCount =
     config?.sections?.filter((s) => s.enabled)?.length ?? 0;
+  // Only curated catalog entries may provide artwork. Database template metadata
+  // is not used as a CSS URL here, so the catalog remains a same-origin surface.
+  const catalogArtworkUrl = template.isCatalog ? template.previewImageUrl : undefined;
 
   const handlePreviewClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (config && onPreview) {
-      onPreview(config, template.name);
+      onPreview(config, template.name, template.themeCode);
     }
   };
 
@@ -76,9 +80,17 @@ export function TemplateCard({
     <div className="template-card" tabIndex={0} role="article" aria-label={template.name}>
       {/* Visual Header / Color Signature */}
       <div
-        className="template-card__header-preview"
+        className={`template-card__header-preview${catalogArtworkUrl ? ' template-card__header-preview--artwork' : ''}`}
         style={{
-          background: `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor} 60%, ${primaryColor}15 100%)`,
+          ...(catalogArtworkUrl
+            ? {
+                backgroundImage: `linear-gradient(135deg, ${backgroundColor}e8 0%, ${backgroundColor}a8 58%, ${primaryColor}b8 100%), url("${catalogArtworkUrl}")`,
+                backgroundPosition: 'center',
+                backgroundSize: 'cover',
+              }
+            : {
+                background: `linear-gradient(135deg, ${backgroundColor} 0%, ${backgroundColor} 60%, ${primaryColor}15 100%)`,
+              }),
           borderBottom: `2px solid ${primaryColor}25`,
         }}
       >

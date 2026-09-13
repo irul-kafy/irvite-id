@@ -14,6 +14,7 @@ import {
   ParseUUIDPipe,
   UseGuards,
   Query,
+  Header,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -32,6 +33,17 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 @Roles(Role.SUPER_ADMIN, Role.ADMIN)
 @Controller('api/v1/events/:eventId/media')
 export class MediaController {
+  @Get(':mediaId/file')
+  @Header('Cache-Control', 'no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  async previewFile(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('mediaId', ParseUUIDPipe) mediaId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.mediaService.previewFile(eventId, mediaId, user.id, user.role);
+  }
+
   constructor(private readonly mediaService: MediaService) {}
 
   @Post()

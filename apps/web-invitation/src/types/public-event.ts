@@ -1,7 +1,8 @@
 import { PublicMediaDescriptor } from './public-invitation';
+import type { PublicEventContent } from './event-content';
 
 export interface PublicEventResponse {
-  event: {
+  event: PublicEventContent & {
     title: string;
     description: string | null;
     eventDate: string;

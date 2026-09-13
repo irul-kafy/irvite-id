@@ -1,3 +1,5 @@
+import type { PublicEventContent } from './event-content';
+
 export interface PublicMediaDescriptor {
   type: 'PHOTO' | 'VIDEO' | 'AUDIO' | 'THUMBNAIL';
   order: number;
@@ -13,7 +15,7 @@ export interface PublicInvitationResponse {
     customGreeting: string | null;
     maxPax: number;
   };
-  event: {
+  event: PublicEventContent & {
     title: string;
     description: string | null;
     eventDate: string;

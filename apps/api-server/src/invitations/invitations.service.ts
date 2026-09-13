@@ -4,11 +4,17 @@ import {
   ConflictException,
   InternalServerErrorException,
   BadRequestException,
+  HttpException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { PublicRsvpDto } from './dto/public-rsvp.dto';
+import { PublicWishDto } from './dto/public-wish.dto';
+import {
+  projectEventContent,
+  projectWishes,
+} from '../events/public-event-content';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role, Prisma, InvitationStatus } from 'database';
 import * as crypto from 'crypto';
@@ -293,6 +299,13 @@ export class InvitationsService {
             description: true,
             eventDate: true,
             locationDetails: true,
+            content: true,
+            invitations: {
+              where: { wishedAt: { not: null } },
+              select: { wishName: true, wishMessage: true, wishedAt: true },
+              orderBy: [{ wishedAt: 'desc' }, { id: 'asc' }],
+              take: 20,
+            },
             template: {
               select: {
                 themeCode: true,
@@ -314,11 +327,21 @@ export class InvitationsService {
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
-    const mediaDescriptors = medias.map((m) => ({
-      type: m.type,
-      order: m.order,
-      src: `/invitations/public/${uniqueCode}/media/${m.id}`,
-    }));
+    const presentation = projectEventContent(
+      invitation.event.content,
+      medias,
+      `/invitations/public/${uniqueCode}/media`,
+    );
+    const mediaDescriptors = medias
+      .filter((m) => presentation.galleryMedia.some((item) => item.id === m.id))
+      .map((m) => ({
+        type: m.type,
+        order:
+          m.type === 'PHOTO'
+            ? (presentation.galleryOrder.get(m.id) ?? m.order)
+            : m.order,
+        src: `/invitations/public/${uniqueCode}/media/${m.id}`,
+      }));
 
     const canRespond = new Date() < context.eventDate;
 
@@ -336,6 +359,9 @@ export class InvitationsService {
         description: invitation.event.description,
         eventDate: invitation.event.eventDate,
         locationDetails: invitation.event.locationDetails,
+        content: presentation.content,
+        giftQr: presentation.giftQr,
+        wishes: projectWishes(invitation.event.invitations ?? []),
       },
       template: invitation.event.template
         ? {
@@ -411,6 +437,37 @@ export class InvitationsService {
         pax:
           updated.status === InvitationStatus.RSVP_YES ? updated.rsvpPax : null,
         canRespond: true, // we just validated this above
+      },
+    };
+  }
+
+  async savePublicWish(uniqueCode: string, dto: PublicWishDto) {
+    const context =
+      await this.publicAccessService.getEligibleContext(uniqueCode);
+    const now = new Date();
+    // Persisted, atomic cooldown works across API instances and concurrent requests.
+    const result = await this.prisma.invitation.updateMany({
+      where: {
+        id: context.invitationId,
+        eventId: context.eventId,
+        event: { status: 'PUBLISHED' },
+        OR: [
+          { wishedAt: null },
+          { wishedAt: { lte: new Date(now.getTime() - 30_000) } },
+        ],
+      },
+      data: { wishName: dto.name, wishMessage: dto.message, wishedAt: now },
+    });
+    if (result.count === 0)
+      throw new HttpException(
+        'Please wait 30 seconds before updating your wish',
+        429,
+      );
+    return {
+      wish: {
+        name: dto.name,
+        message: dto.message,
+        createdAt: now.toISOString(),
       },
     };
   }

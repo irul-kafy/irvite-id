@@ -52,6 +52,8 @@ export interface UpdatePayload {
 export interface PreviewMessagePayload {
   name: string;
   config: TemplateConfigV1;
+  /** Optional for protocol compatibility; receivers default omitted values to GENERIC. */
+  themeCode?: string;
 }
 
 export interface PreviewMessage {
@@ -329,12 +331,16 @@ export function buildTemplatePayload(
   };
 }
 
-export function buildPreviewMessage(snapshot: EditorSnapshot): PreviewMessage {
+export function buildPreviewMessage(
+  snapshot: EditorSnapshot,
+  themeCode: string = 'GENERIC',
+): PreviewMessage {
   return {
     type: 'TEMPLATE_PREVIEW_UPDATE',
     version: 1,
     payload: {
       name: snapshot.name,
+      themeCode: themeCode.trim() || 'GENERIC',
       config: {
         ...snapshot.config,
         sections: normalizeSectionOrder(

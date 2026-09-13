@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role, Prisma } from 'database';
+import { projectEventContent, projectWishes } from './public-event-content';
 
 @Injectable()
 export class EventsService {
@@ -23,6 +25,7 @@ export class EventsService {
       description: true,
       eventDate: true,
       locationDetails: true,
+      content: true,
       status: true,
       createdAt: true,
       updatedAt: true,
@@ -40,6 +43,15 @@ export class EventsService {
   }
 
   async create(userId: string, createEventDto: CreateEventDto) {
+    const { content, ...eventData } = createEventDto;
+    if (
+      createEventDto.content?.giftQrMediaId ||
+      createEventDto.content?.galleryMediaIds?.length
+    ) {
+      throw new BadRequestException(
+        'Upload and select gift QR after creating the event',
+      );
+    }
     if (createEventDto.templateId) {
       await this.verifyTemplateExists(createEventDto.templateId);
     }
@@ -47,7 +59,10 @@ export class EventsService {
     try {
       const newEvent = await this.prisma.event.create({
         data: {
-          ...createEventDto,
+          ...eventData,
+          ...(content !== undefined
+            ? { content: content as Prisma.InputJsonObject }
+            : {}),
           userId, // Ownership forced from JWT context
         },
         select: this.selectSafeEvent(),
@@ -117,13 +132,48 @@ export class EventsService {
       await this.verifyTemplateExists(updateEventDto.templateId);
     }
 
-    const { ...safeUpdateData } = updateEventDto;
+    const { content, ...safeUpdateData } = updateEventDto;
     const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+    if (updateEventDto.content?.giftQrMediaId) {
+      await this.findOne(id, userId, role);
+      const gift = await this.prisma.media.findFirst({
+        where: {
+          id: updateEventDto.content.giftQrMediaId,
+          eventId: id,
+          type: 'PHOTO',
+        },
+        select: { id: true },
+      });
+      if (!gift)
+        throw new BadRequestException(
+          'Gift QR must be a photo belonging to this event',
+        );
+    }
+    if (updateEventDto.content?.galleryMediaIds?.length) {
+      await this.findOne(id, userId, role);
+      const photos = await this.prisma.media.findMany({
+        where: {
+          id: { in: updateEventDto.content.galleryMediaIds },
+          eventId: id,
+          type: 'PHOTO',
+        },
+        select: { id: true },
+      });
+      if (photos.length !== updateEventDto.content.galleryMediaIds.length)
+        throw new BadRequestException(
+          'Gallery photos must belong to this event',
+        );
+    }
 
     try {
       const updatedEvent = await this.prisma.event.update({
         where: whereScope,
-        data: safeUpdateData,
+        data: {
+          ...safeUpdateData,
+          ...(content !== undefined
+            ? { content: content as Prisma.InputJsonObject }
+            : {}),
+        },
         select: this.selectSafeEvent(),
       });
       return updatedEvent;
@@ -154,6 +204,13 @@ export class EventsService {
         description: true,
         eventDate: true,
         locationDetails: true,
+        content: true,
+        invitations: {
+          where: { wishedAt: { not: null } },
+          select: { wishName: true, wishMessage: true, wishedAt: true },
+          orderBy: [{ wishedAt: 'desc' }, { id: 'asc' }],
+          take: 20,
+        },
         status: true,
         slug: true,
         template: {
@@ -188,11 +245,21 @@ export class EventsService {
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
 
-    const mediaDescriptors = medias.map((m) => ({
-      type: m.type,
-      order: m.order,
-      src: `/events/public/${slug}/media/${m.id}`,
-    }));
+    const presentation = projectEventContent(
+      event.content,
+      medias,
+      `/events/public/${slug}/media`,
+    );
+    const mediaDescriptors = medias
+      .filter((m) => presentation.galleryMedia.some((item) => item.id === m.id))
+      .map((m) => ({
+        type: m.type,
+        order:
+          m.type === 'PHOTO'
+            ? (presentation.galleryOrder.get(m.id) ?? m.order)
+            : m.order,
+        src: `/events/public/${slug}/media/${m.id}`,
+      }));
 
     return {
       event: {
@@ -200,6 +267,9 @@ export class EventsService {
         description: event.description,
         eventDate: event.eventDate,
         locationDetails: event.locationDetails,
+        content: presentation.content,
+        giftQr: presentation.giftQr,
+        wishes: projectWishes(event.invitations ?? []),
         slug: event.slug,
       },
       template: event.template

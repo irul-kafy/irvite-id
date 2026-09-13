@@ -5,9 +5,20 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  IsObject,
+  ValidateNested,
+  ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { EventContentDto } from './event-content.dto';
 
 export class CreateEventDto {
+  @ValidateIf((o: CreateEventDto) => o.content !== undefined)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => EventContentDto)
+  content?: EventContentDto;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
