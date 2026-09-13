@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateGuestDto } from './dto/create-guest.dto';
 import { UpdateGuestDto } from './dto/update-guest.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role, Prisma } from 'database';
+import { ReportsService } from '../reports/reports.service';
+import { ExportQueryDto } from '../reports/dto/export-query.dto';
 
 @Injectable()
 export class GuestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reportsService: ReportsService,
+  ) {}
 
   private async assertEventAccessible(
     eventId: string,
@@ -27,6 +36,40 @@ export class GuestsService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+  }
+
+  async exportGuests(
+    eventId: string,
+    currentUserId: string,
+    role: Role,
+    query: ExportQueryDto,
+  ) {
+    if (role === Role.STAFF) {
+      throw new ForbiddenException(
+        'Staff is not authorized to export guest data',
+      );
+    }
+
+    const whereScope: Prisma.EventWhereInput =
+      role === Role.SUPER_ADMIN
+        ? { id: eventId }
+        : { id: eventId, userId: currentUserId };
+
+    const event = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: {
+        title: true,
+        slug: true,
+        eventDate: true,
+        locationDetails: true,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    return this.reportsService.exportGuestData(eventId, event, query);
   }
 
   async create(

@@ -1,9 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuestsService } from './guests.service';
 import { PrismaService } from '../database/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { Role, Prisma } from 'database';
+import { ReportsService } from '../reports/reports.service';
 
 describe('GuestsService', () => {
   let service: GuestsService;
@@ -27,6 +28,7 @@ describe('GuestsService', () => {
       providers: [
         GuestsService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: ReportsService, useValue: {} },
       ],
     }).compile();
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { join } from 'path';
@@ -18,6 +18,7 @@ import { TemplatesModule } from './templates/templates.module';
 import { StaffEventsModule } from './staff-events/staff-events.module';
 import { ScannerModule } from './scanner/scanner.module';
 import { StaffModule } from './staff/staff.module';
+import { ReportsModule } from './reports/reports.module';
 
 function validateEnv(config: Record<string, unknown>) {
   if (
@@ -65,6 +66,7 @@ function validateEnv(config: Record<string, unknown>) {
     StaffEventsModule,
     ScannerModule,
     StaffModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

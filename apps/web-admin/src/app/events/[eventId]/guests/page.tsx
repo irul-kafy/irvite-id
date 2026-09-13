@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { buildExportUrl } from '../../utils/export-url-builder';
 
 interface AttendanceRecord {
   scannedAt: string;
@@ -108,6 +109,23 @@ function IconExternal() {
   );
 }
 
+
+function IconDownload() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 3v10m0 0l-4-4m4 4l4-4M3 17h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconChevronDown() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function IconEdit() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -154,6 +172,19 @@ export default function GuestListPage({
   const [error, setError] = useState<string>('');
   const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+  const [exportFilters, setExportFilters] = useState<{
+    rsvp: 'all' | 'yes' | 'no' | 'pending';
+    attendance: 'all' | 'checked-in' | 'not-checked-in';
+    category: string;
+  }>({
+    rsvp: 'all',
+    attendance: 'all',
+    category: '',
+  });
+
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const invitationOrigin =
@@ -249,6 +280,67 @@ export default function GuestListPage({
       ignore = true;
     };
   }, [eventId, router]);
+
+
+  const handleExport = async (
+    target: 'guests' | 'attendance',
+    format: 'xlsx' | 'csv',
+  ) => {
+    setIsExporting(`${target}-${format}`);
+    setActionMessage(null);
+
+    const endpoint = buildExportUrl(eventId, target, {
+      format,
+      rsvp: exportFilters.rsvp,
+      attendance: exportFilters.attendance,
+      category: exportFilters.category,
+    });
+
+    try {
+      const res = await fetch(endpoint, { cache: 'no-store' });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mengekspor berkas.');
+      }
+
+      const blob = await res.blob();
+      const contentDisposition = res.headers.get('content-disposition');
+      let filename = target === 'guests' ? `data-tamu.${format}` : `laporan-kehadiran.${format}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^";]+)"?/);
+        if (match && match[1]) {
+          filename = match[1];
+        }
+      }
+
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(objectUrl);
+
+      setActionMessage({
+        type: 'success',
+        text: `Berkas "${filename}" berhasil diunduh.`,
+      });
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal mengekspor data.',
+      });
+    } finally {
+      setIsExporting(null);
+    }
+  };
 
   const handleGenerateInvitation = async (guestId: string) => {
     if (generatingGuestId) return;
@@ -402,7 +494,212 @@ export default function GuestListPage({
           </p>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            id="guests-import-btn"
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => router.push(`/events/${eventId}/guests/import`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontWeight: 600,
+              padding: '0.625rem 1.125rem',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <IconUpload />
+            Impor Tamu
+          </button>
+
+          {/* Ekspor Data Dropdown */}
+          <div style={{ position: 'relative' }}>
+            <button
+              id="guests-export-btn"
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontWeight: 600,
+                padding: '0.625rem 1.125rem',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <IconDownload />
+              Ekspor Data
+              <IconChevronDown />
+            </button>
+
+            {exportDropdownOpen && (
+              <div
+                id="guests-export-menu"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  right: 0,
+                  width: '320px',
+                  background: 'var(--admin-surface, #ffffff)',
+                  border: '1px solid var(--admin-border, #E2D9CE)',
+                  borderRadius: 'var(--radius-lg, 12px)',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                  zIndex: 50,
+                  padding: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', borderBottom: '1px solid var(--admin-border, #E2D9CE)', paddingBottom: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                    Filter & Opsi Ekspor
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setExportDropdownOpen(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1.125rem',
+                      color: 'var(--text-tertiary)',
+                      lineHeight: 1,
+                    }}
+                  >
+                    �
+                  </button>
+                </div>
+
+                {/* Filter RSVP */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="export-filter-rsvp" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                    Status RSVP
+                  </label>
+                  <select
+                    id="export-filter-rsvp"
+                    value={exportFilters.rsvp}
+                    onChange={(e) => setExportFilters({ ...exportFilters, rsvp: e.target.value as 'all' | 'yes' | 'no' | 'pending' })}
+                    style={{
+                      width: '100%',
+                      padding: '0.375rem 0.5rem',
+                      fontSize: '0.8125rem',
+                      border: '1px solid var(--admin-border, #E2D9CE)',
+                      borderRadius: '6px',
+                      background: 'var(--admin-bg, #F8F6F1)',
+                    }}
+                  >
+                    <option value="all">Semua</option>
+                    <option value="yes">Hadir</option>
+                    <option value="no">Tidak Hadir</option>
+                    <option value="pending">Belum RSVP</option>
+                  </select>
+                </div>
+
+                {/* Filter Kehadiran */}
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <label htmlFor="export-filter-attendance" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                    Status Kehadiran
+                  </label>
+                  <select
+                    id="export-filter-attendance"
+                    value={exportFilters.attendance}
+                    onChange={(e) => setExportFilters({ ...exportFilters, attendance: e.target.value as 'all' | 'checked-in' | 'not-checked-in' })}
+                    style={{
+                      width: '100%',
+                      padding: '0.375rem 0.5rem',
+                      fontSize: '0.8125rem',
+                      border: '1px solid var(--admin-border, #E2D9CE)',
+                      borderRadius: '6px',
+                      background: 'var(--admin-bg, #F8F6F1)',
+                    }}
+                  >
+                    <option value="all">Semua</option>
+                    <option value="checked-in">Sudah Check-in</option>
+                    <option value="not-checked-in">Belum Check-in</option>
+                  </select>
+                </div>
+
+                {/* Filter Kategori */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label htmlFor="export-filter-category" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                    Kategori (Opsional, Maks. 50 Karakter)
+                  </label>
+                  <input
+                    id="export-filter-category"
+                    type="text"
+                    placeholder="Contoh: VIP"
+                    maxLength={50}
+                    value={exportFilters.category}
+                    onChange={(e) => setExportFilters({ ...exportFilters, category: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.375rem 0.5rem',
+                      fontSize: '0.8125rem',
+                      border: '1px solid var(--admin-border, #E2D9CE)',
+                      borderRadius: '6px',
+                      background: 'var(--admin-bg, #F8F6F1)',
+                    }}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--admin-border, #E2D9CE)', paddingTop: '0.75rem' }}>
+                  <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Pilih Berkas Ekspor
+                  </div>
+
+                  <button
+                    id="export-guests-xlsx-btn"
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isExporting !== null}
+                    onClick={() => void handleExport('guests', 'xlsx')}
+                    style={{ justifyContent: 'flex-start', padding: '0.5rem 0.75rem', fontSize: '0.8125rem' }}
+                  >
+                    <IconDownload />
+                    {isExporting === 'guests-xlsx' ? 'Mengekspor...' : 'Data Tamu (.xlsx)'}
+                  </button>
+
+                  <button
+                    id="export-guests-csv-btn"
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isExporting !== null}
+                    onClick={() => void handleExport('guests', 'csv')}
+                    style={{ justifyContent: 'flex-start', padding: '0.5rem 0.75rem', fontSize: '0.8125rem' }}
+                  >
+                    <IconDownload />
+                    {isExporting === 'guests-csv' ? 'Mengekspor...' : 'Data Tamu (.csv)'}
+                  </button>
+
+                  <button
+                    id="export-attendance-xlsx-btn"
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isExporting !== null}
+                    onClick={() => void handleExport('attendance', 'xlsx')}
+                    style={{ justifyContent: 'flex-start', padding: '0.5rem 0.75rem', fontSize: '0.8125rem' }}
+                  >
+                    <IconDownload />
+                    {isExporting === 'attendance-xlsx' ? 'Mengekspor...' : 'Laporan Kehadiran (.xlsx)'}
+                  </button>
+
+                  <button
+                    id="export-attendance-csv-btn"
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isExporting !== null}
+                    onClick={() => void handleExport('attendance', 'csv')}
+                    style={{ justifyContent: 'flex-start', padding: '0.5rem 0.75rem', fontSize: '0.8125rem' }}
+                  >
+                    <IconDownload />
+                    {isExporting === 'attendance-csv' ? 'Mengekspor...' : 'Laporan Kehadiran (.csv)'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             id="guests-add-btn"
             type="button"
