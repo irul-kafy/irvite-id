@@ -14,6 +14,7 @@ import { Role, Prisma, InvitationStatus } from 'database';
 import * as crypto from 'crypto';
 
 import { PublicInvitationAccessService } from './public-invitation-access.service';
+import { validateEventContent } from '../templates/definitions';
 import { mapRsvpStatus } from './public-invitation-rsvp';
 
 @Injectable()
@@ -293,6 +294,7 @@ export class InvitationsService {
             description: true,
             eventDate: true,
             locationDetails: true,
+            content: true,
             template: {
               select: {
                 themeCode: true,
@@ -310,17 +312,45 @@ export class InvitationsService {
 
     const medias = await this.prisma.media.findMany({
       where: { eventId: context.eventId },
-      select: { id: true, type: true, order: true },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, type: true, slot: true, order: true },
+      orderBy: [
+        { slot: 'asc' },
+        { order: 'asc' },
+        { createdAt: 'asc' },
+        { id: 'asc' },
+      ],
     });
 
     const mediaDescriptors = medias.map((m) => ({
+      id: m.id,
       type: m.type,
+      slot: m.slot,
       order: m.order,
       src: `/invitations/public/${uniqueCode}/media/${m.id}`,
     }));
 
+    const mediaBySlot: Record<string, typeof mediaDescriptors> = {};
+    for (const m of mediaDescriptors) {
+      if (!mediaBySlot[m.slot]) {
+        mediaBySlot[m.slot] = [];
+      }
+      mediaBySlot[m.slot].push(m);
+    }
+
     const canRespond = new Date() < context.eventDate;
+
+    let publicContent: Record<string, unknown> | null = null;
+    if (invitation.event.content) {
+      try {
+        publicContent = validateEventContent(
+          invitation.event.content,
+          invitation.event.template?.themeCode,
+        );
+      } catch {
+        // Fail closed: do not expose malformed or unvalidated content publicly
+        publicContent = null;
+      }
+    }
 
     return {
       invitation: {
@@ -336,6 +366,7 @@ export class InvitationsService {
         description: invitation.event.description,
         eventDate: invitation.event.eventDate,
         locationDetails: invitation.event.locationDetails,
+        content: publicContent,
       },
       template: invitation.event.template
         ? {
@@ -344,6 +375,7 @@ export class InvitationsService {
           }
         : null,
       media: mediaDescriptors,
+      mediaBySlot,
       rsvp: {
         response: mapRsvpStatus(invitation.status),
         pax:

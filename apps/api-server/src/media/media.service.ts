@@ -2,17 +2,21 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   PayloadTooLargeException,
   Logger,
+  StreamableFile,
 } from '@nestjs/common';
+import * as path from 'path';
 import { PrismaService } from '../database/prisma.service';
 import { MediaStorageService } from './media-storage.service';
-import { CreateMediaDto } from './dto/create-media.dto';
+import { CreateMediaDto, SLOT_REGEX } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
 import { Role, MediaType, Prisma } from 'database';
 import { detectSignature } from './media-signature';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TYPE_SIZE_LIMITS } from './media.constants';
+import { getTemplateDefinition } from '../templates/definitions';
 
 @Injectable()
 export class MediaService {
@@ -27,7 +31,7 @@ export class MediaService {
     eventId: string,
     currentUserId: string,
     role: Role,
-  ): Promise<void> {
+  ) {
     const where: Prisma.EventWhereInput =
       role === Role.SUPER_ADMIN
         ? { id: eventId }
@@ -35,23 +39,88 @@ export class MediaService {
 
     const event = await this.prisma.event.findFirst({
       where,
-      select: { id: true },
+      select: {
+        id: true,
+        template: {
+          select: {
+            themeCode: true,
+          },
+        },
+      },
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+
+    return event;
   }
 
   private safeSelect(): Prisma.MediaSelect {
     return {
       id: true,
       eventId: true,
+      slot: true,
       url: true,
       type: true,
       order: true,
       createdAt: true,
     };
+  }
+
+  async previewFile(
+    eventId: string,
+    mediaId: string,
+    userId: string,
+    role: Role,
+  ) {
+    await this.assertEventAccessible(eventId, userId, role);
+
+    const media = await this.prisma.media.findFirst({
+      where: {
+        id: mediaId,
+        eventId,
+      },
+      select: {
+        id: true,
+        url: true,
+        type: true,
+      },
+    });
+
+    if (!media) {
+      throw new NotFoundException('Media not found');
+    }
+
+    if (media.type !== MediaType.PHOTO && media.type !== MediaType.THUMBNAIL) {
+      throw new NotFoundException('Image not found');
+    }
+
+    const types: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+    };
+
+    const ext = path.extname(media.url).toLowerCase();
+    const type = types[ext];
+    if (!type) {
+      throw new NotFoundException('Image not found');
+    }
+
+    try {
+      const stat = await this.storageService.getFileStat(media.url);
+      return new StreamableFile(
+        this.storageService.createReadStream(media.url),
+        { type, length: stat.size, disposition: 'inline' },
+      );
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new NotFoundException('Image not found');
+      }
+      throw error;
+    }
   }
 
   async create(
@@ -61,10 +130,75 @@ export class MediaService {
     currentUserId: string,
     role: Role,
   ) {
-    await this.assertEventAccessible(eventId, currentUserId, role);
+    const event = await this.assertEventAccessible(
+      eventId,
+      currentUserId,
+      role,
+    );
 
     if (file.size === 0) {
       throw new BadRequestException('File is empty');
+    }
+
+    // Normalize and validate slot
+    const slot = dto.slot && dto.slot.trim() ? dto.slot.trim() : 'general';
+    if (!SLOT_REGEX.test(slot)) {
+      throw new BadRequestException(
+        'slot must start with a lowercase letter and contain only lowercase alphanumeric characters and hyphens (max 50 chars)',
+      );
+    }
+
+    const definition = getTemplateDefinition(event.template?.themeCode);
+
+    if (definition) {
+      if (slot !== 'general') {
+        const slotDef = definition.mediaSlots.find((s) => s.key === slot);
+        if (!slotDef) {
+          throw new BadRequestException(
+            `Slot '${slot}' is not declared in template definition`,
+          );
+        }
+
+        if (dto.type !== slotDef.mediaType) {
+          throw new BadRequestException(
+            `Media type '${dto.type}' does not match slot '${slot}' type '${slotDef.mediaType}'`,
+          );
+        }
+
+        if (slotDef.maxSizeBytes && file.size > slotDef.maxSizeBytes) {
+          throw new PayloadTooLargeException(
+            `File exceeds size limit for slot '${slot}'`,
+          );
+        }
+
+        if (!slotDef.multiple) {
+          const existingCount = await this.prisma.media.count({
+            where: { eventId, slot },
+          });
+          if (existingCount > 0) {
+            throw new ConflictException(
+              `Slot '${slot}' already has media. Delete existing media first.`,
+            );
+          }
+        } else {
+          if (slotDef.maxItems !== undefined) {
+            const existingCount = await this.prisma.media.count({
+              where: { eventId, slot },
+            });
+            if (existingCount >= slotDef.maxItems) {
+              throw new BadRequestException(
+                `Slot '${slot}' exceeds limit of ${slotDef.maxItems} items`,
+              );
+            }
+          }
+        }
+      }
+    } else {
+      if (slot !== 'general') {
+        throw new BadRequestException(
+          'Template does not support custom media slots',
+        );
+      }
     }
 
     const typeResult = detectSignature(file.buffer);
@@ -121,6 +255,7 @@ export class MediaService {
       const media = await this.prisma.media.create({
         data: {
           eventId,
+          slot,
           url: key,
           type: dto.type,
           order: dto.order ?? 0,
@@ -162,7 +297,12 @@ export class MediaService {
         skip,
         take: limit,
         select: this.safeSelect(),
-        orderBy: [{ order: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+        orderBy: [
+          { slot: 'asc' },
+          { order: 'asc' },
+          { createdAt: 'asc' },
+          { id: 'asc' },
+        ],
       }),
     ]);
 
@@ -209,7 +349,100 @@ export class MediaService {
     currentUserId: string,
     role: Role,
   ) {
-    await this.assertEventAccessible(eventId, currentUserId, role);
+    const event = await this.assertEventAccessible(
+      eventId,
+      currentUserId,
+      role,
+    );
+
+    const currentMedia = await this.prisma.media.findFirst({
+      where: {
+        id: mediaId,
+        eventId,
+      },
+      select: {
+        id: true,
+        slot: true,
+        type: true,
+        url: true,
+      },
+    });
+
+    if (!currentMedia) {
+      throw new NotFoundException('Media not found');
+    }
+
+    const dataToUpdate: Prisma.MediaUpdateInput = {};
+
+    if (dto.order !== undefined) {
+      dataToUpdate.order = dto.order;
+    }
+
+    if (dto.slot !== undefined) {
+      const newSlot = dto.slot.trim() || 'general';
+      if (!SLOT_REGEX.test(newSlot)) {
+        throw new BadRequestException(
+          'slot must start with a lowercase letter and contain only lowercase alphanumeric characters and hyphens (max 50 chars)',
+        );
+      }
+
+      if (newSlot !== currentMedia.slot) {
+        const definition = getTemplateDefinition(event.template?.themeCode);
+        if (definition) {
+          if (newSlot !== 'general') {
+            const slotDef = definition.mediaSlots.find(
+              (s) => s.key === newSlot,
+            );
+            if (!slotDef) {
+              throw new BadRequestException(
+                `Slot '${newSlot}' is not declared in template definition`,
+              );
+            }
+            if (currentMedia.type !== slotDef.mediaType) {
+              throw new BadRequestException(
+                `Media type '${currentMedia.type}' does not match slot '${newSlot}' type '${slotDef.mediaType}'`,
+              );
+            }
+            if (slotDef.maxSizeBytes) {
+              const stat = await this.storageService.getFileStat(
+                currentMedia.url,
+              );
+              if (stat.size > slotDef.maxSizeBytes) {
+                throw new BadRequestException(
+                  `Existing file size (${stat.size} bytes) exceeds target slot maximum size of ${slotDef.maxSizeBytes} bytes`,
+                );
+              }
+            }
+            if (!slotDef.multiple) {
+              const existingCount = await this.prisma.media.count({
+                where: { eventId, slot: newSlot },
+              });
+              if (existingCount > 0) {
+                throw new ConflictException(
+                  `Slot '${newSlot}' already has media. Delete existing media first.`,
+                );
+              }
+            } else if (slotDef.maxItems !== undefined) {
+              const existingCount = await this.prisma.media.count({
+                where: { eventId, slot: newSlot },
+              });
+              if (existingCount >= slotDef.maxItems) {
+                throw new BadRequestException(
+                  `Slot '${newSlot}' exceeds limit of ${slotDef.maxItems} items`,
+                );
+              }
+            }
+          }
+        } else {
+          if (newSlot !== 'general') {
+            throw new BadRequestException(
+              'Template does not support custom media slots',
+            );
+          }
+        }
+        dataToUpdate.slot = newSlot;
+      }
+    }
 
     try {
       const media = await this.prisma.media.update({
@@ -217,9 +450,7 @@ export class MediaService {
           id: mediaId,
           eventId,
         },
-        data: {
-          order: dto.order,
-        },
+        data: dataToUpdate,
         select: this.safeSelect(),
       });
       return media;
@@ -282,7 +513,6 @@ export class MediaService {
         `Failed to delete physical media file ${key} after DB deletion`,
         error instanceof Error ? error.stack : String(error),
       );
-      // We still return success (204) because the logical record was deleted
     }
   }
 }

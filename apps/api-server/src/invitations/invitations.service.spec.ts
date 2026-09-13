@@ -187,4 +187,96 @@ describe('InvitationsService', () => {
       });
     });
   });
+
+  describe('resolvePublic', () => {
+    it('resolves public invitation with event content, slot-aware media, and mediaBySlot', async () => {
+      mockPublicAccessService.getEligibleContext.mockResolvedValue({
+        invitationId: 'inv-1',
+        eventId: 'event-1',
+        eventDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      });
+
+      mockPrisma.invitation.findUnique.mockResolvedValue({
+        customMessage: 'Welcome!',
+        status: 'OPENED',
+        rsvpPax: null,
+        guest: {
+          name: 'Budi Santoso',
+          customGreeting: 'Keluarga',
+          maxPax: 2,
+        },
+        event: {
+          title: 'Aditya & Citra',
+          description: 'Wedding',
+          eventDate: new Date('2026-10-15'),
+          locationDetails: 'Grand Ballroom',
+          content: {
+            partnerOneName: 'Aditya',
+            partnerTwoName: 'Citra',
+            _schemaVersion: 1,
+          },
+          template: {
+            themeCode: 'IVORY_GARDEN',
+            config: { version: 1 },
+          },
+        },
+      });
+
+      mockPrisma.media.findMany.mockResolvedValue([
+        { id: 'media-1', type: 'PHOTO', slot: 'hero', order: 0 },
+        { id: 'media-2', type: 'PHOTO', slot: 'gallery', order: 0 },
+      ]);
+
+      const res = await service.resolvePublic('test-code-1234');
+
+      expect(res.guest.name).toBe('Budi Santoso');
+      expect(res.event.content).toEqual({
+        partnerOneName: 'Aditya',
+        partnerTwoName: 'Citra',
+        _schemaVersion: 1,
+      });
+      expect(res.media).toHaveLength(2);
+      expect(res.media[0]).toEqual({
+        id: 'media-1',
+        type: 'PHOTO',
+        slot: 'hero',
+        order: 0,
+        src: '/invitations/public/test-code-1234/media/media-1',
+      });
+      expect(res.mediaBySlot).toBeDefined();
+      expect(res.mediaBySlot?.hero).toHaveLength(1);
+      expect(res.mediaBySlot?.gallery).toHaveLength(1);
+    });
+
+    it('fails closed (content null) when persisted invitation event content is malformed', async () => {
+      mockPublicAccessService.getEligibleContext.mockResolvedValue({
+        invitationId: 'inv-1',
+        eventId: 'event-1',
+        eventDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      });
+
+      mockPrisma.invitation.findUnique.mockResolvedValue({
+        customMessage: 'Welcome!',
+        status: 'OPENED',
+        rsvpPax: null,
+        guest: { name: 'Budi', customGreeting: null, maxPax: 1 },
+        event: {
+          title: 'Aditya & Citra',
+          description: 'Wedding',
+          eventDate: new Date('2026-10-15'),
+          locationDetails: 'Grand Ballroom',
+          content: {
+            malformedField: 'bad',
+            __proto__: { poisoned: true },
+          },
+          template: { themeCode: 'IVORY_GARDEN', config: { version: 1 } },
+        },
+      });
+
+      mockPrisma.media.findMany.mockResolvedValue([]);
+
+      const res = await service.resolvePublic('test-code-1234');
+      expect(res.event.content).toBeNull();
+    });
+  });
 });

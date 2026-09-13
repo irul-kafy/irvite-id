@@ -36,6 +36,9 @@ export class UpdateEventDto {
   @IsUUID()
   templateId?: string;
 
+  @IsOptional()
+  content?: unknown;
+
   @ValidateIf((o: UpdateEventDto) => o.status !== undefined)
   @IsIn([EVENT_STATUS.DRAFT, EVENT_STATUS.PUBLISHED])
   status?: string;
