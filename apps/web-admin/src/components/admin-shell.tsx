@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,6 +49,14 @@ function IconScanner({ className }: { className?: string }) {
       <path d="M2 13.5V16a2 2 0 0 0 2 2h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
       <path d="M18 13.5V16a2 2 0 0 1-2 2h-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
       <line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function IconStaff({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 17.5a7 7 0 0 1 14 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -108,11 +115,10 @@ function ThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
 
   useEffect(() => {
-    if (document.documentElement.classList.contains('dark')) {
-      setTheme('dark');
-    } else {
-      setTheme('light');
-    }
+    const isDark = document.documentElement.classList.contains('dark');
+    queueMicrotask(() => {
+      setTheme(isDark ? 'dark' : 'light');
+    });
   }, []);
 
   const toggle = () => {
@@ -177,6 +183,12 @@ const NAV_ITEMS = [
     icon: IconTemplates,
   },
   {
+    id: 'staff',
+    label: 'Staff',
+    href: '/staff',
+    icon: IconStaff,
+  },
+  {
     id: 'scanner',
     label: 'Scanner',
     href: '/events',
@@ -204,12 +216,39 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const breadcrumbs = useBreadcrumb(pathname);
 
-  // Close sidebar on route change
   useEffect(() => {
+    let isMounted = true;
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.user?.role) {
+          setUserRole(data.user.role);
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const navItems = NAV_ITEMS.filter((item) => {
+    if (item.id === 'staff') {
+      return userRole === 'SUPER_ADMIN';
+    }
+    return true;
+  });
+
+  // Close sidebar on route change
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   // Close sidebar on ESC
   useEffect(() => {
@@ -263,7 +302,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         <nav className="admin-sidebar__nav" aria-label="Sidebar navigation">
           <div className="admin-sidebar__section-label">Navigation</div>
 
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
