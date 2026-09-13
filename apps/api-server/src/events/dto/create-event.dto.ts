@@ -33,4 +33,7 @@ export class CreateEventDto {
   @IsOptional()
   @IsUUID()
   templateId?: string;
+
+  @IsOptional()
+  content?: unknown;
 }
