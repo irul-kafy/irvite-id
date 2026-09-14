@@ -4,6 +4,7 @@ import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { validateTemplateConfig } from './utils/config-validator';
+import { getTemplateDefinition } from './definitions';
 
 @Injectable()
 export class TemplatesService {
@@ -84,5 +85,31 @@ export class TemplatesService {
     });
 
     return updatedTemplate;
+  }
+
+  async getDefinition(id: string) {
+    const template = await this.prisma.template.findUnique({
+      where: { id },
+      select: { id: true, themeCode: true },
+    });
+
+    if (!template) {
+      throw new NotFoundException(`Template with ID ${id} not found`);
+    }
+
+    const definition = getTemplateDefinition(template.themeCode);
+    if (!definition) {
+      throw new NotFoundException(
+        `No structured definition found for template theme "${template.themeCode}"`,
+      );
+    }
+
+    return {
+      templateId: template.id,
+      themeCode: definition.themeCode,
+      schemaVersion: definition.schemaVersion,
+      contentFields: definition.contentFields,
+      mediaSlots: definition.mediaSlots,
+    };
   }
 }

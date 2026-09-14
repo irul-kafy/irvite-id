@@ -1,8 +1,11 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublicAvailabilityState } from '@/utils/event-availability';
+import { TemplateContentEditor } from './components/template-content-editor';
+import { MediaManager } from './components/media-manager';
+import { EventPreviewTab } from './components/event-preview-tab';
 
 interface EventData {
   id: string;
@@ -14,6 +17,7 @@ interface EventData {
   description?: string | null;
   eventDate: string;
   locationDetails?: string | null;
+  content?: Record<string, unknown> | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -62,6 +66,15 @@ function IconUsers() {
   );
 }
 
+function IconEnvelope() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
+      <path d="M3 6l7 5 7-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function IconScan() {
   return (
     <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -89,49 +102,32 @@ function IconEdit() {
   );
 }
 
-function IconExternal() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function IconCheck() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 10l4 4 8-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function IconCopy() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-
-function IconEnvelope() {
+function IconDocument() {
   return (
     <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M2 6l8 5 8-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M4 3h8l4 4v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 3v4h4M7 9h6M7 13h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
     </svg>
   );
 }
-function isLocalhostUrl(urlStr?: string | null): boolean {
-  if (!urlStr) return false;
-  try {
-    const parsed = new URL(urlStr);
-    const h = parsed.hostname.toLowerCase();
-    return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]';
-  } catch {
-    return false;
-  }
+
+function IconPhoto() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.6"/>
+      <circle cx="7.5" cy="7.5" r="1.5" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M17 13l-4-4-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M1 10s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="10" cy="10" r="3" stroke="currentColor" strokeWidth="1.6"/>
+    </svg>
+  );
 }
 
 export default function EventDetailPage({
@@ -140,97 +136,68 @@ export default function EventDetailPage({
   params: Promise<{ eventId: string }>;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { eventId } = use(params);
 
   const [event, setEvent] = useState<EventData | null>(null);
   const [templateName, setTemplateName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
+
+  // Pure URL-derived activeTab without state cascade
+  const tabParam = searchParams.get('tab');
+  const activeTab: 'overview' | 'content' | 'media' | 'preview' =
+    tabParam === 'content' || tabParam === 'media' || tabParam === 'preview'
+      ? tabParam
+      : 'overview';
 
   useEffect(() => {
-    const fetchEventAndTemplate = async () => {
+    const fetchEventData = async () => {
       try {
-        const [eventRes, tplRes] = await Promise.all([
-          fetch(`/api/events/${eventId}`),
-          fetch('/api/templates'),
-        ]);
-
-        if (eventRes.status === 401) {
+        const res = await fetch(`/api/events/${eventId}`);
+        if (res.status === 401) {
           router.push('/login');
           return;
         }
-
-        if (!eventRes.ok) {
-          throw new Error('Gagal memuat detail event.');
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Gagal memuat data event');
         }
+        const data = await res.json();
+        setEvent(data);
 
-        const eventJson: EventData = await eventRes.json();
-        setEvent(eventJson);
-
-        if (tplRes.ok && eventJson.templateId) {
-          const tplJson = await tplRes.json();
-          const tpls: TemplateData[] = tplJson.data || [];
-          const found = tpls.find((t) => t.id === eventJson.templateId);
-          if (found) {
-            setTemplateName(`${found.name}${found.themeCode ? ` (${found.themeCode})` : ''}`);
+        // Fetch template details if templateId is set
+        if (data.templateId) {
+          try {
+            const tplRes = await fetch(`/api/templates/${data.templateId}`);
+            if (tplRes.ok) {
+              const tplData: TemplateData = await tplRes.json();
+              setTemplateName(tplData.name);
+            }
+          } catch {
+            // Non-blocking
           }
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Terjadi kesalahan sistem');
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
       } finally {
         setLoading(false);
       }
     };
-    void fetchEventAndTemplate();
+
+    void fetchEventData();
   }, [eventId, router]);
 
-  const availabilityState = event ? getPublicAvailabilityState(event.status, event.eventDate) : 'DRAFT';
-
-  const handleCopyPublicUrl = () => {
-    if (!event?.canonicalUrl) return;
-    void navigator.clipboard.writeText(event.canonicalUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleTabChange = (tab: 'overview' | 'content' | 'media' | 'preview') => {
+    router.replace(`/events/${eventId}?tab=${tab}`, { scroll: false });
   };
 
   if (loading) {
     return (
-      <div style={{ maxWidth: '1024px', margin: '0 auto', paddingBottom: '3rem' }}>
-        <div
-          style={{
-            height: '32px',
-            width: '180px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--admin-surface)',
-            border: '1px solid var(--admin-border)',
-            animation: 'admin-skeleton-pulse 1.5s ease-in-out infinite',
-            marginBottom: '1rem',
-          }}
-        />
-        <div
-          style={{
-            height: '140px',
-            borderRadius: 'var(--radius-lg)',
-            background: 'var(--admin-surface)',
-            border: '1px solid var(--admin-border)',
-            animation: 'admin-skeleton-pulse 1.5s ease-in-out infinite',
-            marginBottom: '1.5rem',
-          }}
-        />
-        <div className="grid-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: '120px',
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--admin-surface)',
-                border: '1px solid var(--admin-border)',
-                animation: 'admin-skeleton-pulse 1.5s ease-in-out infinite',
-              }}
-            />
-          ))}
+      <div className="card">
+        <div className="card-body flex-center gap-2" style={{ padding: '3rem' }}>
+          <span className="spinner" style={{ width: 20, height: 20 }} />
+          <span className="text-sm text-muted">Memuat data acara...</span>
         </div>
       </div>
     );
@@ -238,22 +205,28 @@ export default function EventDetailPage({
 
   if (error || !event) {
     return (
-      <div style={{ maxWidth: '820px', margin: '0 auto', padding: '2rem 0' }}>
-        <div className="alert alert--error mb-4" role="alert">
-          {error || 'Event tidak ditemukan.'}
+      <div className="card">
+        <div className="card-body" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem', color: 'var(--danger)' }}>⚠️</div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+            Data Acara Tidak Ditemukan
+          </h2>
+          <p className="text-sm text-muted" style={{ maxWidth: '400px', margin: '0 auto 1.5rem auto' }}>
+            {error || 'Acara yang Anda cari tidak tersedia atau Anda tidak memiliki hak akses.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push('/events')}
+            className="btn btn-secondary btn-sm"
+          >
+            &larr; Kembali ke Daftar Acara
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push('/events')}
-          className="btn btn-secondary"
-        >
-          <IconArrowLeft />
-          Kembali ke Daftar Events
-        </button>
       </div>
     );
   }
 
+  const availability = getPublicAvailabilityState(event.status, event.eventDate);
   const formattedDate = new Date(event.eventDate).toLocaleDateString('id-ID', {
     weekday: 'long',
     year: 'numeric',
@@ -264,386 +237,422 @@ export default function EventDetailPage({
   });
 
   return (
-    <div style={{ maxWidth: '1024px', margin: '0 auto', paddingBottom: '3rem' }}>
-      {/* Back button */}
-      <button
-        type="button"
-        onClick={() => router.push('/events')}
-        className="btn btn-ghost btn-sm mb-3"
-        id="detail-back-btn"
-      >
-        <IconArrowLeft />
-        Semua Events
-      </button>
-
-      {/* Main Header */}
-      <div className="flex-between mb-6" style={{ flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <div className="flex-center gap-2 mb-1">
-            <h1 className="admin-page__title" style={{ margin: 0 }}>
-              {event.title}
-            </h1>
-            <span className={event.status === 'PUBLISHED' ? 'badge badge--success' : 'badge badge--neutral'}>
-              {event.status}
-            </span>
+    <div>
+      {/* Top Breadcrumb & Actions Bar */}
+      <div className="flex-between mb-4">
+        <div className="flex-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/events')}
+            className="btn btn-secondary btn-sm flex-center gap-1"
+            title="Kembali ke Daftar Acara"
+          >
+            <IconArrowLeft />
+            <span>Kembali</span>
+          </button>
+          <div>
+            <div className="flex-center gap-2">
+              <h1 className="page-title" style={{ margin: 0, fontSize: '1.375rem' }}>
+                {event.title}
+              </h1>
+              <span className={`badge ${event.status === 'PUBLISHED' ? 'badge--success' : 'badge--warning'}`}>
+                {event.status}
+              </span>
+            </div>
           </div>
-          <p className="admin-page__subtitle">
-            ID: <code style={{ fontSize: '0.8125rem', padding: '0.125rem 0.375rem', background: 'var(--admin-bg)', borderRadius: 'var(--radius-sm)' }}>{event.id}</code>
-          </p>
         </div>
 
-        <div className="flex-center gap-2" style={{ flexWrap: 'wrap' }}>
+        <div className="flex-center gap-2">
           <button
             type="button"
             onClick={() => router.push(`/events/${event.id}/edit`)}
             className="btn btn-secondary btn-sm flex-center gap-1"
-            id="detail-edit-btn"
+            id="btn-edit-event"
           >
             <IconEdit />
-            Edit Acara
+            <span>Edit Detail Acara</span>
           </button>
-          {availabilityState === 'ACTIVE' && event.canonicalUrl && (
-            <a
-              href={event.canonicalUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-success btn-sm flex-center gap-1"
-              id="detail-public-btn"
-            >
-              <IconExternal />
-              Lihat Undangan Publik
-            </a>
-          )}
         </div>
       </div>
 
-      {/* Dedicated Public Invitation Panel */}
-      <div className="card mb-6" id="hub-public-invitation-panel">
-        <div className="card-header flex-between" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
-            <h2 className="card-header__title">Undangan Publik (Umum)</h2>
-            <p className="text-sm text-muted mt-1" style={{ margin: '0.25rem 0 0 0' }}>
-              Tautan umum tanpa nama tamu personal dan tanpa QR check-in.
-            </p>
-          </div>
-          {availabilityState === 'ACTIVE' ? (
-            <span className="badge badge--success">Aktif</span>
-          ) : availabilityState === 'EXPIRED' ? (
-            <span className="badge badge--neutral" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }}>
-              Kedaluwarsa
-            </span>
-          ) : (
-            <span className="badge badge--neutral">Draft - Belum Dipublikasikan</span>
-          )}
-        </div>
-        <div className="card-body">
-          {availabilityState === 'ACTIVE' ? (
-            event.canonicalUrl ? (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <code
-                    id="hub-public-url-display"
-                    style={{
-                      fontSize: '0.9375rem',
-                      padding: '0.5rem 0.75rem',
-                      background: 'var(--admin-bg)',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--admin-border)',
-                      flex: '1 1 300px',
-                      wordBreak: 'break-all',
-                      color: 'var(--text-primary)',
-                    }}
-                  >
-                    {event.canonicalUrl}
-                  </code>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={handleCopyPublicUrl}
-                      className="btn btn-secondary btn-sm flex-center gap-1"
-                      id="hub-copy-public-url-btn"
-                      title="Salin tautan undangan publik"
-                    >
-                      {copied ? <IconCheck /> : <IconCopy />}
-                      {copied ? 'Tersalin!' : 'Salin Link'}
-                    </button>
-                    <a
-                      href={event.canonicalUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-primary btn-sm flex-center gap-1"
-                      id="hub-view-public-url-btn"
-                      title="Lihat undangan publik di tab baru"
-                    >
-                      <IconExternal />
-                      Lihat Undangan
-                    </a>
-                  </div>
-                </div>
+      {/* Segmented Sub-Navigation Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          borderBottom: '1px solid var(--admin-border)',
+          marginBottom: '1.5rem',
+          overflowX: 'auto',
+          paddingBottom: '0.25rem',
+        }}
+        role="tablist"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'overview'}
+          className={`btn btn-sm ${activeTab === 'overview' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('overview')}
+          id="tab-overview-btn"
+        >
+          Ringkasan
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'content'}
+          className={`btn btn-sm ${activeTab === 'content' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('content')}
+          id="tab-content-btn"
+        >
+          Konten Template
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'media'}
+          className={`btn btn-sm ${activeTab === 'media' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('media')}
+          id="tab-media-btn"
+        >
+          Media Template
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost"
+          onClick={() => router.push(`/events/${event.id}/guests`)}
+        >
+          Tamu Undangan &rarr;
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'preview'}
+          className={`btn btn-sm ${activeTab === 'preview' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('preview')}
+          id="tab-preview-btn"
+        >
+          Pratinjau
+        </button>
+      </div>
 
-                {isLocalhostUrl(event.canonicalUrl) && (
-                  <div
-                    className="alert alert--warning mt-3 flex-center gap-2"
-                    style={{ fontSize: '0.8125rem', padding: '0.5rem 0.75rem' }}
-                    id="hub-localhost-warning"
-                    role="status"
-                  >
-                    <span aria-hidden="true">&#9888;</span>
-                    <span>
-                      <strong>Peringatan Lingkungan Lokal:</strong> Tautan menggunakan alamat localhost ({event.canonicalUrl}) dan hanya dapat diakses pada mesin lokal ini. Tautan belum dapat dibagikan ke publik internet.
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: '1rem',
-                  background: 'var(--admin-bg)',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px dashed var(--admin-border)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.875rem',
-                }}
-                id="hub-config-missing-notice"
-              >
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                  Konfigurasi URL Belum Tersedia
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Availability Advisory Banner */}
+          {availability === 'EXPIRED' && (
+            <div
+              className="card mb-4"
+              style={{
+                background: 'var(--danger-soft, #fef2f2)',
+                borderColor: 'var(--danger-border, #fecaca)',
+                borderLeft: '4px solid var(--danger, #ef4444)',
+              }}
+            >
+              <div className="card-body" style={{ padding: '1rem 1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span className="badge badge--danger">Tautan Kadaluarsa</span>
+                  <strong style={{ color: 'var(--danger, #b91c1c)', fontSize: '0.875rem' }}>
+                    Masa Berlaku Akses Publik Telah Berakhir
+                  </strong>
                 </div>
-                <p style={{ margin: 0 }}>
-                  Tautan kanonikal publik belum dapat dibuat karena origin undangan publik belum terkonfigurasi pada sistem.
+                <p className="text-sm" style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                  Halaman publik undangan acara ini tidak lagi dapat diakses tamu karena telah melewati batas masa aktif 30 hari sejak pelaksanaan acara.
                 </p>
               </div>
-            )
-          ) : availabilityState === 'EXPIRED' ? (
-            <div
-              style={{
-                padding: '1rem',
-                background: 'var(--admin-bg)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px dashed var(--admin-border)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.875rem',
-              }}
-              id="hub-expired-notice"
-            >
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                Undangan Publik Telah Kedaluwarsa
-              </div>
-              <p style={{ margin: 0 }}>
-                Masa aktif publikasi untuk acara ini telah berakhir (melewati batas 30 hari setelah tanggal acara). Tautan publik umum sudah dinonaktifkan dan tidak lagi dapat diakses oleh publik.
-              </p>
-            </div>
-          ) : (
-            <div
-              style={{
-                padding: '1rem',
-                background: 'var(--admin-bg)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px dashed var(--admin-border)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.875rem',
-              }}
-              id="hub-draft-notice"
-            >
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                Draft - Belum Dipublikasikan
-              </div>
-              <p style={{ margin: 0 }}>
-                Tautan publik umum akan aktif dan siap dibagikan setelah status acara diubah menjadi <strong>PUBLISHED</strong> melalui menu Edit Acara.
-              </p>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Core Summary Card */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <h2 className="card-header__title">Ringkasan Informasi Acara</h2>
-        </div>
-        <div className="card-body">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div>
-              <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                Waktu Pelaksanaan
-              </span>
-              <div className="flex-center gap-2 mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
-                <IconCalendar />
-                <span>{formattedDate}</span>
+          {/* Core Summary Card */}
+          <div className="card mb-6">
+            <div className="card-header">
+              <h2 className="card-header__title">Ringkasan Informasi Acara</h2>
+            </div>
+            <div className="card-body">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                <div>
+                  <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    Waktu Pelaksanaan
+                  </span>
+                  <div className="flex-center gap-2 mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
+                    <IconCalendar />
+                    <span>{formattedDate}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    Lokasi / Tempat
+                  </span>
+                  <div className="flex-center gap-2 mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
+                    <IconLocation />
+                    <span>{event.locationDetails || '-'}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    URL Slug Publik
+                  </span>
+                  <div className="flex-center gap-2 mt-1">
+                    <code style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem', background: 'var(--admin-bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--admin-border)' }}>
+                      /e/{event.slug}
+                    </code>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    Template Digunakan
+                  </span>
+                  <div className="mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
+                    {templateName || (event.templateId ? 'Template Kustom' : 'Tema Standar (Default)')}
+                  </div>
+                </div>
+              </div>
+
+              {event.description && (
+                <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--admin-border)' }}>
+                  <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+                    Pesan / Deskripsi Pembuka
+                  </span>
+                  <p style={{ margin: '0.375rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                    {event.description}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Operational Modules Section */}
+          <div className="mb-4">
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+              Modul Operasional Acara
+            </h2>
+            <p className="text-sm text-muted">
+              Pusat kendali operasional untuk mengelola konten template, media, tamu, staff, scanner, dan konfigurasi acara.
+            </p>
+          </div>
+
+          <div className="grid-2" style={{ gap: '1rem' }}>
+            {/* Module: Template Content */}
+            <div
+              className="action-card"
+              onClick={() => handleTabChange('content')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTabChange('content'); }}
+              id="hub-content-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--amber">
+                <IconDocument />
+              </div>
+              <div>
+                <div className="action-card__title">Konten Spesifik Template</div>
+                <div className="action-card__desc">
+                  Isi data mempelai, nama orang tua, jadwal rangkaian acara, peta lokasi, dan rekening hadiah sesuai template.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Edit Konten Template &rarr;
               </div>
             </div>
 
-            <div>
-              <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                Lokasi / Tempat
-              </span>
-              <div className="flex-center gap-2 mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
-                <IconLocation />
-                <span>{event.locationDetails || '-'}</span>
+            {/* Module: Media Manager */}
+            <div
+              className="action-card"
+              onClick={() => handleTabChange('media')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTabChange('media'); }}
+              id="hub-media-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--rose">
+                <IconPhoto />
+              </div>
+              <div>
+                <div className="action-card__title">Media Foto & Musik Latar</div>
+                <div className="action-card__desc">
+                  Kelola foto utama (hero), galeri foto rangkaian acara, serta musik latar (background music).
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Kelola Media &rarr;
               </div>
             </div>
 
-            <div>
-              <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                URL Slug Publik
-              </span>
-              <div className="flex-center gap-2 mt-1">
-                <code style={{ fontSize: '0.875rem', padding: '0.25rem 0.5rem', background: 'var(--admin-bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--admin-border)' }}>
-                  /e/{event.slug}
-                </code>
+            {/* Module: Guests & Invitations */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/guests`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/guests`); }}
+              id="hub-guests-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--indigo">
+                <IconUsers />
+              </div>
+              <div>
+                <div className="action-card__title">Kelola Tamu & Undangan</div>
+                <div className="action-card__desc">
+                  Input data tamu undangan, atur kategori, kuota kehadiran (max pax), dan generate tautan undangan personal ber-QR unik.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Daftar Tamu &rarr;
               </div>
             </div>
 
-            <div>
-              <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                Template Digunakan
-              </span>
-              <div className="mt-1" style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9375rem' }}>
-                {templateName || (event.templateId ? 'Template Kustom' : 'Tema Standar (Default)')}
+            {/* Module: Invitation Distribution */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/invitations`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/invitations`); }}
+              id="hub-distribution-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--rose">
+                <IconEnvelope />
+              </div>
+              <div>
+                <div className="action-card__title">Undangan & Distribusi</div>
+                <div className="action-card__desc">
+                  Kelola tautan undangan personal dan respons tamu.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Distribusi Undangan &rarr;
+              </div>
+            </div>
+
+            {/* Module: QR Scanner */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/scanner`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/scanner`); }}
+              id="hub-scanner-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--emerald">
+                <IconScan />
+              </div>
+              <div>
+                <div className="action-card__title">Scanner Kehadiran QR</div>
+                <div className="action-card__desc">
+                  Buka kamera scanner check-in untuk memverifikasi QR Code tamu undangan di pintu masuk acara secara real-time.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Scanner QR &rarr;
+              </div>
+            </div>
+
+            {/* Module: Staff Assignment */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/staff`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/staff`); }}
+              id="hub-staff-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--amber">
+                <IconStaff />
+              </div>
+              <div>
+                <div className="action-card__title">Tim Staff Acara</div>
+                <div className="action-card__desc">
+                  Tugaskan akun operator / staff scanner yang berwenang melakukan pemindaian kehadiran pada acara ini.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Kelola Tim Staff &rarr;
+              </div>
+            </div>
+
+            {/* Module: Preview */}
+            <div
+              className="action-card"
+              onClick={() => handleTabChange('preview')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTabChange('preview'); }}
+              id="hub-preview-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--indigo">
+                <IconEye />
+              </div>
+              <div>
+                <div className="action-card__title">Pratinjau Undangan</div>
+                <div className="action-card__desc">
+                  Lihat kesiapan data dan buka tautan halaman publik acara yang telah dipublikasikan.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Pratinjau &rarr;
+              </div>
+            </div>
+
+            {/* Module: Edit Event */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/edit`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/edit`); }}
+              id="hub-edit-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--violet">
+                <IconEdit />
+              </div>
+              <div>
+                <div className="action-card__title">Edit Detail Acara</div>
+                <div className="action-card__desc">
+                  Perbarui judul acara, waktu pelaksanaan, detail lokasi, template yang digunakan, atau status publikasi undangan.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Edit Acara &rarr;
               </div>
             </div>
           </div>
+        </>
+      )}
 
-          {event.description && (
-            <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--admin-border)' }}>
-              <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
-                Pesan / Deskripsi Pembuka
-              </span>
-              <p style={{ margin: '0.375rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {event.description}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* TAB 2: TEMPLATE CONTENT */}
+      {activeTab === 'content' && (
+        <TemplateContentEditor
+          eventId={event.id}
+          templateId={event.templateId}
+          initialContent={event.content}
+          onContentSaved={(saved) => {
+            setEvent((prev) => (prev ? { ...prev, content: saved } : prev));
+          }}
+        />
+      )}
 
-      {/* Operational Modules Section */}
-      <div className="mb-4">
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-          Modul Operasional Acara
-        </h2>
-        <p className="text-sm text-muted">
-          Pusat kendali operasional untuk mengelola tamu, staff, scanner kehadiran, dan konfigurasi acara.
-        </p>
-      </div>
+      {/* TAB 3: MEDIA MANAGER */}
+      {activeTab === 'media' && (
+        <MediaManager
+          eventId={event.id}
+          templateId={event.templateId}
+        />
+      )}
 
-      <div className="grid-2">
-        {/* Module 1: Guests & Invitations */}
-        <div
-          className="action-card"
-          onClick={() => router.push(`/events/${event.id}/guests`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/guests`); }}
-          id="hub-guests-card"
-        >
-          <div className="action-card__icon-wrap stat-card__icon-wrap--indigo">
-            <IconUsers />
-          </div>
-          <div>
-            <div className="action-card__title">Kelola Tamu & Undangan</div>
-            <div className="action-card__desc">
-              Input data tamu undangan, atur kategori, kuota kehadiran (max pax), dan generate tautan undangan personal ber-QR unik.
-            </div>
-          </div>
-          <div className="action-card__arrow">
-            Buka Daftar Tamu &rarr;
-          </div>
-        </div>
-
-        {/* Module 2: Invitation Distribution */}
-        <div
-          className="action-card"
-          onClick={() => router.push(`/events/${event.id}/invitations`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/invitations`); }}
-          id="hub-distribution-card"
-        >
-          <div className="action-card__icon-wrap stat-card__icon-wrap--rose">
-            <IconEnvelope />
-          </div>
-          <div>
-            <div className="action-card__title">Undangan & Distribusi</div>
-            <div className="action-card__desc">
-              Kelola tautan undangan personal dan respons tamu.
-            </div>
-          </div>
-          <div className="action-card__arrow">
-            Buka Distribusi Undangan &rarr;
-          </div>
-        </div>
-
-        {/* Module 3: QR Scanner */}
-        <div
-          className="action-card"
-          onClick={() => router.push(`/events/${event.id}/scanner`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/scanner`); }}
-          id="hub-scanner-card"
-        >
-          <div className="action-card__icon-wrap stat-card__icon-wrap--emerald">
-            <IconScan />
-          </div>
-          <div>
-            <div className="action-card__title">Scanner Kehadiran QR</div>
-            <div className="action-card__desc">
-              Buka kamera scanner check-in untuk memverifikasi QR Code tamu undangan di pintu masuk acara secara real-time.
-            </div>
-          </div>
-          <div className="action-card__arrow">
-            Buka Scanner QR &rarr;
-          </div>
-        </div>
-
-        {/* Module 4: Staff Assignment */}
-        <div
-          className="action-card"
-          onClick={() => router.push(`/events/${event.id}/staff`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/staff`); }}
-          id="hub-staff-card"
-        >
-          <div className="action-card__icon-wrap stat-card__icon-wrap--amber">
-            <IconStaff />
-          </div>
-          <div>
-            <div className="action-card__title">Tim Staff Acara</div>
-            <div className="action-card__desc">
-              Tugaskan akun operator / staff scanner yang berwenang melakukan pemindaian kehadiran pada acara ini.
-            </div>
-          </div>
-          <div className="action-card__arrow">
-            Kelola Tim Staff &rarr;
-          </div>
-        </div>
-
-        {/* Module 5: Edit Event */}
-        <div
-          className="action-card"
-          onClick={() => router.push(`/events/${event.id}/edit`)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/edit`); }}
-          id="hub-edit-card"
-        >
-          <div className="action-card__icon-wrap stat-card__icon-wrap--violet">
-            <IconEdit />
-          </div>
-          <div>
-            <div className="action-card__title">Edit Detail Acara</div>
-            <div className="action-card__desc">
-              Perbarui judul acara, waktu pelaksanaan, detail lokasi, template yang digunakan, atau status publikasi undangan.
-            </div>
-          </div>
-          <div className="action-card__arrow">
-            Edit Acara &rarr;
-          </div>
-        </div>
-      </div>
+      {/* TAB 4: PREVIEW */}
+      {activeTab === 'preview' && (
+        <EventPreviewTab
+          eventId={event.id}
+          status={event.status}
+          slug={event.slug}
+          canonicalUrl={event.canonicalUrl}
+          hasTemplate={Boolean(event.templateId)}
+          hasContent={Boolean(event.content && Object.keys(event.content).length > 0)}
+        />
+      )}
     </div>
   );
 }

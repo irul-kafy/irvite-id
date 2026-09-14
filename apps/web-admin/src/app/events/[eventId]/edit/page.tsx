@@ -225,6 +225,14 @@ export default function EditEventPage({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          if (errData.message?.includes('Clear event content') || errData.message?.includes('Remove template-specific media')) {
+            throw new Error('Kosongkan konten template dan hapus media khusus template sebelum mengganti template.');
+          }
+          if (errData.message?.includes('published')) {
+            throw new Error('Template tidak dapat diubah pada acara yang sudah dipublikasikan.');
+          }
+        }
         throw new Error(errData.message || 'Gagal menyimpan perubahan event');
       }
 
@@ -534,6 +542,7 @@ export default function EditEventPage({
               <select
                 id="edit-event-template"
                 className="form-select"
+                disabled={formData.status === 'PUBLISHED'}
                 value={formData.templateId}
                 onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
               >
@@ -546,7 +555,27 @@ export default function EditEventPage({
               </select>
               <span className="form-hint">
                 Setiap event menggunakan satu template tetap. Tampilan visual akan mengikuti konfigurasi tema yang dipilih.
+                {formData.status === 'PUBLISHED' && (
+                  <strong style={{ display: 'block', color: 'var(--danger, #b91c1c)', marginTop: '0.25rem' }}>
+                    🔒 Template terkunci dan tidak dapat diganti pada acara yang sudah dipublikasikan.
+                  </strong>
+                )}
               </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <a
+                href={`/events/${eventId}?tab=content`}
+                className="btn btn-secondary btn-sm"
+              >
+                📝 Buka Editor Konten Template
+              </a>
+              <a
+                href={`/events/${eventId}?tab=media`}
+                className="btn btn-secondary btn-sm"
+              >
+                🖼️ Buka Pengelola Media Template
+              </a>
             </div>
 
             {/* Quick Preview Card */}

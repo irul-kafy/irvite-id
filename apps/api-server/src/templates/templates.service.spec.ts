@@ -123,4 +123,74 @@ describe('TemplatesService', () => {
       await expect(service.findOne('999')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('getDefinition', () => {
+    it('should return safe metadata for template with registered definition', async () => {
+      mockPrismaService.template.findUnique.mockResolvedValue({
+        id: 'tpl-ivory-uuid',
+        themeCode: 'IVORY_GARDEN',
+      });
+
+      const result = await service.getDefinition('tpl-ivory-uuid');
+
+      expect(result).toBeDefined();
+      expect(result.templateId).toBe('tpl-ivory-uuid');
+      expect(result.themeCode).toBe('IVORY_GARDEN');
+      expect(result.schemaVersion).toBe(1);
+      expect(Array.isArray(result.contentFields)).toBe(true);
+      expect(Array.isArray(result.mediaSlots)).toBe(true);
+
+      // Verify no executable functions or server internal paths
+      const jsonStr = JSON.stringify(result);
+      expect(jsonStr).not.toContain('function');
+      expect(jsonStr).not.toContain('/storage');
+      expect(jsonStr).not.toContain('\\storage');
+
+      // Verify exact IVORY_GARDEN media definition slots and limits
+      expect(result.mediaSlots).toHaveLength(3);
+      expect(result.mediaSlots.map((s) => s.key)).toEqual([
+        'hero',
+        'gallery',
+        'bg-music',
+      ]);
+      const heroSlot = result.mediaSlots.find((s) => s.key === 'hero');
+      expect(heroSlot?.maxItems).toBe(1);
+      expect(heroSlot?.mediaType).toBe('PHOTO');
+
+      const gallerySlot = result.mediaSlots.find((s) => s.key === 'gallery');
+      expect(gallerySlot?.maxItems).toBe(6);
+      expect(gallerySlot?.multiple).toBe(true);
+      expect(gallerySlot?.mediaType).toBe('PHOTO');
+
+      const bgMusicSlot = result.mediaSlots.find((s) => s.key === 'bg-music');
+      expect(bgMusicSlot?.maxItems).toBe(1);
+      expect(bgMusicSlot?.mediaType).toBe('AUDIO');
+
+      expect(
+        result.mediaSlots.find((s) => s.key === 'bride-photo'),
+      ).toBeUndefined();
+      expect(
+        result.mediaSlots.find((s) => s.key === 'groom-photo'),
+      ).toBeUndefined();
+    });
+
+    it('should throw NotFoundException if template does not exist', async () => {
+      mockPrismaService.template.findUnique.mockResolvedValue(null);
+
+      await expect(service.getDefinition('non-existent-uuid')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException if template has unsupported/legacy themeCode', async () => {
+      mockPrismaService.template.findUnique.mockResolvedValue({
+        id: 'tpl-legacy-uuid',
+        themeCode: 'LEGACY_UNSUPPORTED_THEME',
+      });
+
+      await expect(service.getDefinition('tpl-legacy-uuid')).rejects.toThrow(
+        /No structured definition found/,
+      );
+    });
+  });
 });

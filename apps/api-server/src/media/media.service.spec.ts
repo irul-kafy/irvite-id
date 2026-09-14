@@ -251,4 +251,42 @@ describe('MediaService', () => {
       expect(storage.deleteFile).toHaveBeenCalled();
     });
   });
+  describe('Safe metadata projection (no raw storage keys)', () => {
+    it('findAll does not select or expose raw url/storage key to clients', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({ id: 'evt1' });
+      (prisma.media.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'm1',
+          eventId: 'evt1',
+          slot: 'hero',
+          type: MediaType.PHOTO,
+          order: 0,
+          createdAt: new Date(),
+        },
+      ]);
+      (prisma.media.count as jest.Mock).mockResolvedValue(1);
+
+      const result = (await service.findAll(
+        'evt1',
+        { page: 1, limit: 10 },
+        'usr1',
+        Role.ADMIN,
+      )) as unknown as { data: Record<string, unknown>[] };
+
+      expect(prisma.media.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { eventId: 'evt1' },
+          select: {
+            id: true,
+            eventId: true,
+            slot: true,
+            type: true,
+            order: true,
+            createdAt: true,
+          },
+        }),
+      );
+      expect(result.data[0]).not.toHaveProperty('url');
+    });
+  });
 });
