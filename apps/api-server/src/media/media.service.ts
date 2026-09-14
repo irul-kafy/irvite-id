@@ -61,7 +61,6 @@ export class MediaService {
       id: true,
       eventId: true,
       slot: true,
-      url: true,
       type: true,
       order: true,
       createdAt: true,

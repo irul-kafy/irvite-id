@@ -45,4 +45,10 @@ export class TemplatesController {
   ) {
     return this.templatesService.update(id, updateTemplateDto);
   }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get(':id/definition')
+  getDefinition(@Param('id', ParseUUIDPipe) id: string) {
+    return this.templatesService.getDefinition(id);
+  }
 }
