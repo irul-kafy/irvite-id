@@ -100,3 +100,33 @@ export function parseEventLocalDateTime(
     fullFormatted,
   };
 }
+
+export function formatCeremonyDate(dateTimeStr: string | null | undefined, timeZone?: string | null): string {
+  const parsed = parseEventLocalDateTime(dateTimeStr, timeZone);
+  return parsed ? parsed.formattedDate : '';
+}
+
+export function formatCeremonyTime(dateTimeStr: string | null | undefined, timeZone?: string | null): string {
+  const parsed = parseEventLocalDateTime(dateTimeStr, timeZone);
+  return parsed ? parsed.formattedTime : '';
+}
+
+/**
+ * Derives the absolute epoch millisecond timestamp for countdown calculations.
+ * Appends the explicit offset corresponding to the event's IANA timezone (+07:00, +08:00, +09:00)
+ * so that no browser-local timezone conversion occurs.
+ */
+export function parseTargetEpoch(dateTimeStr: string | null | undefined, timeZone?: string | null): number | null {
+  if (!dateTimeStr || typeof dateTimeStr !== 'string') return null;
+  const trimmed = dateTimeStr.trim();
+  if (/[Z+-]\d{2}(?::?\d{2})?$/i.test(trimmed)) {
+    const epoch = Date.parse(trimmed);
+    return Number.isFinite(epoch) ? epoch : null;
+  }
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)/.exec(trimmed);
+  if (!match) return null;
+  const offset = timeZone === 'Asia/Makassar' ? '+08:00' : timeZone === 'Asia/Jayapura' ? '+09:00' : '+07:00';
+  const isoWithOffset = `${match[1].length === 16 ? match[1] + ':00' : match[1]}${offset}`;
+  const epoch = Date.parse(isoWithOffset);
+  return Number.isFinite(epoch) ? epoch : null;
+}

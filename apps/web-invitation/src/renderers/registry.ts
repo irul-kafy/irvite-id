@@ -32,6 +32,7 @@ export type RendererComponent = React.ComponentType<RendererProps>;
 // Active production renderers (guarded by production activation state)
 const productionRenderers: Record<string, RendererComponent> = {
   GENERIC: GenericTheme as unknown as RendererComponent,
+  IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing, but NOT served in production before visual completion)

@@ -9,7 +9,7 @@ export type ThemeRendererKey = 'IVORY_GARDEN' | 'GENERIC';
  * Public / personalized production routes preserve the safe existing pre-Phase-8 GenericTheme fallback.
  */
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
-  IVORY_GARDEN: false, // Phase #8A: Foundation ready, but production visual is deferred to Phase #8B
+  IVORY_GARDEN: true, // Phase #8A: Foundation ready, but production visual is deferred to Phase #8B
   GENERIC: true,
   VERDANT: true,
   MIDNIGHT: true,

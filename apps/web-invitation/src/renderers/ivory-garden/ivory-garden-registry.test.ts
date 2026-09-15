@@ -6,17 +6,28 @@ import {
   isTemplateProductionActivated,
 } from '../registry-resolver';
 
-describe('Phase #8A: Production Activation Guard & Registry Resolution Contract', () => {
-  it('IVORY_GARDEN is NOT production-activated in Phase #8A', () => {
-    assert.strictEqual(isTemplateProductionActivated('IVORY_GARDEN'), false);
-    assert.strictEqual(isTemplateProductionActivated('ivory_garden'), false);
+describe('Phase #8: Production Activation Guard & Registry Resolution Contract', () => {
+  it('IVORY_GARDEN is production-activated in Phase #8', () => {
+    assert.strictEqual(isTemplateProductionActivated('IVORY_GARDEN'), true);
+    assert.strictEqual(isTemplateProductionActivated('ivory_garden'), true);
   });
 
-  it('Production route resolver preserves safe Generic fallback for IVORY_GARDEN', () => {
-    // Guards against premature scaffolding exposure in /e/<slug> and /i/<uniqueCode>
-    assert.strictEqual(resolveProductionThemeKey('IVORY_GARDEN'), 'GENERIC');
-    assert.strictEqual(resolveProductionThemeKey('ivory_garden'), 'GENERIC');
-    assert.strictEqual(resolveProductionThemeKey(' Ivory_Garden '), 'GENERIC');
+  it('Production route resolver resolves IVORY_GARDEN to IVORY_GARDEN renderer', () => {
+    assert.strictEqual(resolveProductionThemeKey('IVORY_GARDEN'), 'IVORY_GARDEN');
+    assert.strictEqual(resolveProductionThemeKey('ivory_garden'), 'IVORY_GARDEN');
+    assert.strictEqual(resolveProductionThemeKey(' Ivory_Garden '), 'IVORY_GARDEN');
+  });
+
+  it('unactivated template families remain unactivated and resolve safely to GENERIC', () => {
+    assert.strictEqual(isTemplateProductionActivated('SERENE_GARDEN'), false);
+    assert.strictEqual(isTemplateProductionActivated('SUNDA_PUSPA'), false);
+    assert.strictEqual(isTemplateProductionActivated('CLASSIC_LETTER'), false);
+    assert.strictEqual(isTemplateProductionActivated('VELVET_LETTER'), false);
+
+    assert.strictEqual(resolveProductionThemeKey('SERENE_GARDEN'), 'GENERIC');
+    assert.strictEqual(resolveProductionThemeKey('SUNDA_PUSPA'), 'GENERIC');
+    assert.strictEqual(resolveProductionThemeKey('CLASSIC_LETTER'), 'GENERIC');
+    assert.strictEqual(resolveProductionThemeKey('VELVET_LETTER'), 'GENERIC');
   });
 
   it('Foundation resolver can resolve IVORY_GARDEN for internal testing/scaffolding', () => {

@@ -56,13 +56,12 @@ describe('Phase #8A: Mode Gating & Production QR Guard Contract', () => {
     assert.strictEqual(countIvoryPersonalQr('PERSONALIZED', ''), 0);
   });
 
-  it('PRODUCTION GUARANTEE: In Phase #8A, production route preserves trusted page-level QR and does NOT suppress it', () => {
-    // Proves that before Phase #8B visual activation, page.tsx uses existing trusted QRDisplay
+  it('PRODUCTION GUARANTEE: In Phase #8, production route resolves IVORY_GARDEN and preserves trusted page-level QR', () => {
+    // Proves that in Phase #8, page.tsx uses existing trusted QRDisplay with activated IVORY_GARDEN
     const isActivated = isTemplateProductionActivated('IVORY_GARDEN');
-    assert.strictEqual(isActivated, false);
+    assert.strictEqual(isActivated, true);
 
-    // In production, theme resolves to GenericTheme, so page-level QRDisplay must remain active
     const productionThemeKey = resolveProductionThemeKey('IVORY_GARDEN');
-    assert.strictEqual(productionThemeKey, 'GENERIC');
+    assert.strictEqual(productionThemeKey, 'IVORY_GARDEN');
   });
 });
