@@ -1,6 +1,7 @@
 import React from 'react';
 import GenericTheme from './themes/generic';
 import IvoryGardenRenderer from './ivory-garden/ivory-garden';
+import SereneGardenRenderer from './serene-garden/serene-garden';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -33,17 +34,19 @@ export type RendererComponent = React.ComponentType<RendererProps>;
 const productionRenderers: Record<string, RendererComponent> = {
   GENERIC: GenericTheme as unknown as RendererComponent,
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
+  SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
 };
 
-// Internal foundation renderers (available for testing, but NOT served in production before visual completion)
+// Internal foundation renderers (available for testing)
 export const foundationRenderers: Record<string, RendererComponent> = {
   GENERIC: GenericTheme as unknown as RendererComponent,
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
+  SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
 };
 
 /**
  * Production renderer resolver used by /e/[slug] and /i/[uniqueCode].
- * Guards unactivated templates (like IVORY_GARDEN in Phase #8A) from exposing scaffolding to public users.
+ * Guards unactivated templates (like SERENE_GARDEN in Phase #9B) from exposing unreviewed templates to public users.
  */
 export function getRenderer(themeCode: string | null | undefined): RendererComponent {
   const key = resolveProductionThemeKey(themeCode);

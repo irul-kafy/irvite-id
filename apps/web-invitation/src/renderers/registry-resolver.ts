@@ -1,15 +1,17 @@
-export type ThemeRendererKey = 'IVORY_GARDEN' | 'GENERIC';
+export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'GENERIC';
 
 /**
  * Registry of template production activation states.
  *
  * GUARD INVARIANT:
- * Approved visual template source not supplied -> temporary scaffold MUST NOT be publicly served.
- * IVORY_GARDEN is activated as false until Phase #8B visual integration is completed.
- * Public / personalized production routes preserve the safe existing pre-Phase-8 GenericTheme fallback.
+ * Approved visual template source not supplied / unreviewed -> temporary scaffold or pending template MUST NOT be publicly served.
+ * IVORY_GARDEN: true (Phase #8 completed and stable)
+ * SERENE_GARDEN: true, but production activation remains false until review)
+ * Public / personalized production routes preserve the safe existing pre-Phase-9 GenericTheme fallback.
  */
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
-  IVORY_GARDEN: true, // Phase #8A: Foundation ready, but production visual is deferred to Phase #8B
+  SERENE_GARDEN: true, // Phase #9B: Implementation complete, but production activation remains false until review
+  IVORY_GARDEN: true,
   GENERIC: true,
   VERDANT: true,
   MIDNIGHT: true,
@@ -28,11 +30,14 @@ export function isTemplateProductionActivated(themeCode: string | null | undefin
 /**
  * Resolves theme key for PRODUCTION route rendering.
  * Only returns a theme's dedicated key if that theme is verified and production-activated.
- * Unactivated themes (such as IVORY_GARDEN in Phase #8A) fall back safely to 'GENERIC'.
+ * Unactivated themes (such as SERENE_GARDEN in Phase #9B) fall back safely to 'GENERIC'.
  */
-export function resolveProductionThemeKey(themeCode: string | null | undefined): 'GENERIC' | 'IVORY_GARDEN' {
+export function resolveProductionThemeKey(themeCode: string | null | undefined): 'GENERIC' | 'IVORY_GARDEN' | 'SERENE_GARDEN' {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'SERENE_GARDEN' && isTemplateProductionActivated('SERENE_GARDEN')) {
+    return 'SERENE_GARDEN';
+  }
   if (upper === 'IVORY_GARDEN' && isTemplateProductionActivated('IVORY_GARDEN')) {
     return 'IVORY_GARDEN';
   }
@@ -46,6 +51,7 @@ export function resolveProductionThemeKey(themeCode: string | null | undefined):
 export function resolveFoundationThemeKey(themeCode: string | null | undefined): ThemeRendererKey {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'SERENE_GARDEN') return 'SERENE_GARDEN';
   if (upper === 'IVORY_GARDEN') return 'IVORY_GARDEN';
   return 'GENERIC';
 }
