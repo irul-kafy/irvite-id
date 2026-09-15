@@ -1,0 +1,886 @@
+/* Serene Garden CSS Module */
+
+.container {
+  --paper: #f6f3eb;
+  --ivory: #ede8db;
+  --ink: #3b4134;
+  --muted: #737969;
+  --accent: #545e46;
+  --line: #a7a89159;
+  --gold: #a08d60;
+  --serif: GardenSerif, 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --sans: 'Segoe UI', Arial, sans-serif;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Cover (Opening Envelope) */
+.cover {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--paper);
+  overflow-y: auto;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.coverLeaving {
+  opacity: 0;
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+.coverArt {
+  position: absolute;
+  inset: 0;
+  background: url('/templates/serene-garden/garden.png') center 58% / cover no-repeat;
+}
+
+.coverArt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 35%, #f6f2e570 59%, #f6f2e56b 70%, transparent 86%);
+}
+
+.coverContent {
+  position: relative;
+  z-index: 1;
+  padding: 44px 22px 84px;
+  width: min(100%, 620px);
+  margin: auto;
+}
+
+.coverTitle {
+  font-family: var(--serif);
+  font-size: clamp(56px, 7vw, 100px);
+  font-weight: 400;
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  margin: 23px 0 24px;
+  overflow-wrap: anywhere;
+}
+
+.coverTitle em {
+  font-size: 0.58em;
+  font-weight: 400;
+  color: var(--gold);
+  display: inline-block;
+  margin: 0 14px;
+  font-style: normal;
+}
+
+.coverDate {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  margin: 26px 0 32px;
+  color: var(--ink);
+}
+
+.guestCard {
+  margin: 0 auto 23px;
+  line-height: 1.8;
+}
+
+.guestCard p {
+  font-size: 11px;
+  margin: 0 0 7px;
+  color: #656b59;
+}
+
+.guestCard strong {
+  font-family: var(--serif);
+  font-size: 25px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.guestCard small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 11px;
+  color: #444d3c;
+}
+
+.coverFooter {
+  position: absolute;
+  bottom: 22px;
+  left: 20px;
+  right: 20px;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: #394332;
+  text-transform: uppercase;
+}
+
+.coverFooter span {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--serif);
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* Layout: Desktop Scenic Split */
+.invitationWrapper {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+.desktopScene {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: calc(100% - 510px);
+  background: url('/templates/serene-garden/garden.png') center 68% / cover no-repeat;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 9vh 6vw 30px;
+  text-align: center;
+  z-index: 1;
+}
+
+.sceneHeading h2 {
+  font-family: var(--serif);
+  font-size: clamp(50px, 6vw, 95px);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 1.15;
+  margin: 22px 0;
+  overflow-wrap: anywhere;
+}
+
+.sceneHeading h2 em {
+  color: var(--gold);
+  font-weight: 400;
+  font-size: 0.65em;
+  font-style: normal;
+}
+
+.sceneHeading p:last-child {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.sceneFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: #333d2c;
+  padding-bottom: 30px;
+}
+
+.sceneFooter .brand {
+  font-style: normal;
+  font-size: 20px;
+}
+
+.invitationScroll {
+  width: 510px;
+  margin-left: auto;
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+  position: relative;
+  z-index: 2;
+  overflow-x: hidden;
+}
+
+/* Common Section Styles */
+.section {
+  text-align: center;
+  padding: 78px 44px;
+  position: relative;
+  scroll-margin-top: 14px;
+}
+
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  line-height: 1.8;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.sectionTitle {
+  font-family: var(--serif);
+  font-size: 37px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  margin: 16px 0 24px;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.sprig {
+  width: 65px;
+  height: 34px;
+  color: #8a9176;
+  stroke-width: 0.8;
+  margin: 0 auto 27px;
+  display: block;
+}
+
+.sectionIcon {
+  width: 27px;
+  height: 27px;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+
+.bodyCopy {
+  font-size: 12px;
+  line-height: 2;
+  color: var(--muted);
+  max-width: 360px;
+  margin: 0 auto 27px;
+  white-space: pre-line;
+}
+
+/* Opening / Monogram Section */
+.opening {
+  min-height: 100vh;
+  padding-top: 48px;
+  padding-bottom: 36px;
+  background: linear-gradient(180deg, transparent 33%, #f6f3eb55 58%, #f6f3eb88 78%, #f6f3eb33), url('/templates/serene-garden/garden.png') center / cover;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.monogram {
+  width: 69px;
+  height: 90px;
+  border: 1px solid #8f947777;
+  border-radius: 50% 50% 5% 5%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-family: var(--serif);
+  font-size: 30px;
+  margin: 24px 0 40px;
+  color: var(--ink);
+}
+
+.monogram i {
+  font-size: 17px;
+  color: var(--gold);
+  align-self: flex-end;
+  margin-bottom: 19px;
+  font-style: normal;
+}
+
+.displayNames {
+  font-family: var(--serif);
+  font-size: 76px;
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  margin: 30px 0;
+  color: var(--ink);
+}
+
+.displayNames span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.displayNames em {
+  display: block;
+  font-size: 40px;
+  color: var(--gold);
+  font-weight: 400;
+  line-height: 1.4;
+  font-style: normal;
+}
+
+.dateDivider {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 3px 0 18px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+}
+
+.dateDivider span {
+  width: 34px;
+  height: 1px;
+  background: var(--gold);
+}
+
+.scrollLink {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 10px;
+  margin-top: 35px;
+  letter-spacing: 0.045em;
+  color: var(--ink);
+}
+
+.scrollLink span {
+  font-size: 24px;
+}
+
+/* Blessing Section */
+.blessing {
+  border-bottom: 1px solid var(--line);
+}
+
+.arabic {
+  font-size: 29px;
+  margin: 30px 0;
+  color: var(--accent);
+  font-family: 'Traditional Arabic', 'Times New Roman', serif;
+}
+
+.serifIntro {
+  font-family: var(--serif);
+  font-size: 25px;
+  line-height: 1.45;
+  color: var(--ink);
+  margin-bottom: 24px;
+}
+
+/* Couple Section */
+.couple {
+  border-bottom: 1px solid var(--line);
+}
+
+.coupleProfile {
+  margin-top: 35px;
+}
+
+.portrait {
+  width: 178px;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 100px 100px 3px 3px;
+  border: 1px solid var(--line);
+  padding: 6px;
+  margin: 0 auto 25px;
+  background: #fffef8;
+}
+
+.portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+.smallItalic {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--gold);
+  font-size: 19px;
+}
+
+.coupleProfile h3 {
+  font-family: var(--serif);
+  font-size: 31px;
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 12px 0;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.coupleProfile p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+  white-space: pre-line;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.coupleAmp {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--gold);
+  font-size: 49px;
+  line-height: 1;
+  margin: 25px 0 -12px;
+}
+
+/* Day & Ceremonies Section */
+.daySection {
+  background: #eeeee4;
+}
+
+.eventDate {
+  font-family: var(--serif);
+  font-size: 19px;
+  margin-top: -5px;
+  color: var(--ink);
+}
+
+/* Countdown */
+.countdown {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 18px;
+  margin: 32px 0 20px;
+}
+
+.countdown strong {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 400;
+  display: block;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.countdown span {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.countdown b {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 400;
+  padding-top: 5px;
+  color: #9ba089;
+}
+
+.countdownMessage {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--accent);
+  margin-top: 15px;
+}
+
+/* Event Details Repeater */
+.eventDetails {
+  margin: 40px 0 28px;
+  padding: 30px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.ceremonyCard {
+  text-align: center;
+}
+
+.eventNumber {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--gold);
+}
+
+.ceremonyCard h3 {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  margin: 10px 0 8px;
+  color: var(--ink);
+}
+
+.ceremonyTime {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.ceremonyVenue {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.ceremonyAddress {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+  max-width: 320px;
+  margin: 0 auto 15px;
+  white-space: pre-line;
+}
+
+.ceremonyDivider {
+  height: 1px;
+  background: var(--line);
+  width: 80px;
+  margin: 0 auto;
+}
+
+/* Buttons */
+.button {
+  min-height: 48px;
+  padding: 14px 23px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 12px;
+  letter-spacing: 0.045em;
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+.primary {
+  background: var(--accent);
+  color: #fffef8;
+}
+
+.primary:hover {
+  filter: brightness(1.12);
+}
+
+.outline {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.outline:hover {
+  background: #e7e6d9;
+}
+
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  padding: 7px 0;
+  color: var(--ink);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Prayer Section */
+.prayerSection {
+  background: var(--accent);
+  color: #f5f1e7;
+  padding-top: 64px;
+  padding-bottom: 64px;
+}
+
+.prayerSection .sprig {
+  color: #d1cfad;
+}
+
+.prayerSection .eyebrow {
+  font-size: 8px;
+  color: #e2e1d1;
+}
+
+.prayerSection .sectionTitle {
+  color: #fffef8;
+}
+
+.prayerSection blockquote {
+  font-size: 12px;
+  line-height: 2.1;
+  color: #efeee3;
+  margin: 0 5px 23px;
+  white-space: pre-line;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.prayerSection .smallItalic {
+  color: #dfd4b5;
+  font-size: 17px;
+}
+
+/* Gift Section */
+.giftSection {
+  border-bottom: 1px solid var(--line);
+}
+
+.giftPanel {
+  margin: 28px auto 0;
+  border: 1px solid var(--line);
+  padding: 32px 22px 24px;
+  max-width: 360px;
+  background: #fbfaf6;
+  border-radius: 8px;
+}
+
+.bankCard {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  background: #fffef8;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.bankCard:last-child {
+  margin-bottom: 0;
+}
+
+.bankName {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.accountNumber {
+  font-family: var(--serif);
+  font-size: 20px;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.accountHolder {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.copyButton:hover {
+  background: #e7e6d9;
+}
+
+/* RSVP Section (PERSONALIZED) */
+.rsvpSection {
+  background: #eeeee4;
+  border-bottom: 1px solid var(--line);
+}
+
+.rsvpWrapper {
+  max-width: 400px;
+  margin: 24px auto 0;
+  text-align: left;
+}
+
+/* Closing Section */
+.closing {
+  padding: 85px 40px 115px;
+  background: linear-gradient(#f6f3eb, #f6f3ebcb 60%, #f6f3eb77), url('/templates/serene-garden/garden.png') center bottom / cover;
+}
+
+.closingNames {
+  font-family: var(--serif);
+  font-size: 38px;
+  margin: 35px 0;
+  color: var(--ink);
+}
+
+.closingNames em {
+  font-size: 28px;
+  color: var(--gold);
+  font-style: normal;
+}
+
+.madeWith {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.madeWith span {
+  display: block;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  margin-top: 7px;
+  text-transform: none;
+}
+
+/* Bottom Navigation */
+.bottomNav {
+  position: fixed;
+  z-index: 30;
+  right: 22px;
+  bottom: 15px;
+  width: 466px;
+  padding: 11px 12px;
+  display: flex;
+  justify-content: space-around;
+  border: 1px solid #d4d6c7;
+  background: #f9f8f0ed;
+  border-radius: 7px;
+  backdrop-filter: blur(12px);
+}
+
+.bottomNav a {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+  text-decoration: none;
+  color: var(--muted);
+  width: 20%;
+  font-size: 8px;
+  letter-spacing: 0.025em;
+  transition: color 0.15s ease;
+}
+
+.bottomNav a:hover,
+.bottomNav a.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.bottomNav svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* Responsive Rules */
+@media (max-width: 900px) {
+  .desktopScene {
+    display: none;
+  }
+
+  .invitationScroll {
+    width: 100%;
+    max-width: 560px;
+    margin: auto;
+    border: 0;
+  }
+
+  .bottomNav {
+    right: 50%;
+    transform: translateX(50%);
+    width: calc(100% - 32px);
+    max-width: 470px;
+  }
+
+  .coverTitle {
+    font-size: 72px;
+  }
+
+  .coverTitle span {
+    display: block;
+  }
+
+  .coverTitle em {
+    display: block;
+    margin: 8px 0;
+    font-size: 36px;
+  }
+
+  .coverContent {
+    padding-top: 60px;
+    padding-bottom: 72px;
+  }
+
+  .displayNames {
+    font-size: 68px;
+  }
+
+  .section {
+    padding-left: 30px;
+    padding-right: 30px;
+  }
+}
+
+@media (max-width: 370px) {
+  .section {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .coverTitle {
+    font-size: 56px;
+  }
+
+  .displayNames {
+    font-size: 54px;
+  }
+
+  .sectionTitle {
+    font-size: 28px;
+  }
+
+  .countdown {
+    gap: 12px;
+  }
+
+  .countdown strong {
+    font-size: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .cover {
+    transition: none !important;
+    animation: none !important;
+  }
+}
