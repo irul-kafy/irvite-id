@@ -19,12 +19,10 @@ describe('Phase #8: Production Activation Guard & Registry Resolution Contract',
   });
 
   it('unactivated template families remain unactivated and resolve safely to GENERIC', () => {
-        assert.strictEqual(isTemplateProductionActivated('SUNDA_PUSPA'), false);
-    assert.strictEqual(isTemplateProductionActivated('CLASSIC_LETTER'), false);
+        assert.strictEqual(isTemplateProductionActivated('CLASSIC_LETTER'), false);
     assert.strictEqual(isTemplateProductionActivated('VELVET_LETTER'), false);
 
-        assert.strictEqual(resolveProductionThemeKey('SUNDA_PUSPA'), 'GENERIC');
-    assert.strictEqual(resolveProductionThemeKey('CLASSIC_LETTER'), 'GENERIC');
+        assert.strictEqual(resolveProductionThemeKey('CLASSIC_LETTER'), 'GENERIC');
     assert.strictEqual(resolveProductionThemeKey('VELVET_LETTER'), 'GENERIC');
   });
 

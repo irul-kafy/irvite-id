@@ -2,6 +2,7 @@ import React from 'react';
 import GenericTheme from './themes/generic';
 import IvoryGardenRenderer from './ivory-garden/ivory-garden';
 import SereneGardenRenderer from './serene-garden/serene-garden';
+import SundaPuspaRenderer from './sunda-puspa/sunda-puspa';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -35,6 +36,7 @@ const productionRenderers: Record<string, RendererComponent> = {
   GENERIC: GenericTheme as unknown as RendererComponent,
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
+  SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing)
@@ -42,11 +44,12 @@ export const foundationRenderers: Record<string, RendererComponent> = {
   GENERIC: GenericTheme as unknown as RendererComponent,
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
+  SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
 };
 
 /**
  * Production renderer resolver used by /e/[slug] and /i/[uniqueCode].
- * Guards unactivated templates (like SERENE_GARDEN in Phase #9B) from exposing unreviewed templates to public users.
+ * Guards unactivated templates (like SUNDA_PUSPA in Phase #10B) from exposing unreviewed templates to public users.
  */
 export function getRenderer(themeCode: string | null | undefined): RendererComponent {
   const key = resolveProductionThemeKey(themeCode);
