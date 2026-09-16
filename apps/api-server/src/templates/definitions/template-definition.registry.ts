@@ -355,9 +355,197 @@ export const SERENE_GARDEN_DEFINITION: TemplateDefinition = {
   ],
 };
 
+export const SUNDA_PUSPA_DEFINITION: TemplateDefinition = {
+  themeCode: 'SUNDA_PUSPA',
+  schemaVersion: 1,
+  contentFields: [
+    {
+      key: 'partnerOneName',
+      label: 'Nama Pasangan 1',
+      type: 'text',
+      required: true,
+      maxLength: 50,
+    },
+    {
+      key: 'partnerTwoName',
+      label: 'Nama Pasangan 2',
+      type: 'text',
+      required: true,
+      maxLength: 50,
+    },
+    {
+      key: 'partnerOneFullName',
+      label: 'Nama Lengkap Pasangan 1',
+      type: 'text',
+      maxLength: 120,
+    },
+    {
+      key: 'partnerTwoFullName',
+      label: 'Nama Lengkap Pasangan 2',
+      type: 'text',
+      maxLength: 120,
+    },
+    {
+      key: 'partnerOneParents',
+      label: 'Orang Tua / Keluarga Pasangan 1',
+      type: 'textarea',
+      maxLength: 300,
+    },
+    {
+      key: 'partnerTwoParents',
+      label: 'Orang Tua / Keluarga Pasangan 2',
+      type: 'textarea',
+      maxLength: 300,
+    },
+    {
+      key: 'coupleGreeting',
+      label: 'Salam / Pesan Pasangan',
+      type: 'text',
+      maxLength: 120,
+    },
+    {
+      key: 'openingText',
+      label: 'Teks Pembuka / Pengantar',
+      type: 'textarea',
+      maxLength: 1500,
+    },
+    {
+      key: 'prayerText',
+      label: 'Teks Doa / Ayat',
+      type: 'textarea',
+      maxLength: 1500,
+    },
+    {
+      key: 'prayerSource',
+      label: 'Sumber Doa / Surat',
+      type: 'text',
+      maxLength: 120,
+    },
+    {
+      key: 'closingText',
+      label: 'Teks Penutup',
+      type: 'textarea',
+      maxLength: 1500,
+    },
+    {
+      key: 'timeZone',
+      label: 'Zona Waktu',
+      type: 'select',
+      required: true,
+      options: [
+        { label: 'WIB', value: 'Asia/Jakarta' },
+        { label: 'WITA', value: 'Asia/Makassar' },
+        { label: 'WIT', value: 'Asia/Jayapura' },
+      ],
+    },
+    {
+      key: 'ceremonies',
+      label: 'Rangkaian Acara',
+      type: 'repeater',
+      maxItems: 2,
+      fields: [
+        {
+          key: 'title',
+          label: 'Nama Acara',
+          type: 'text',
+          required: true,
+          maxLength: 80,
+        },
+        {
+          key: 'startDateTime',
+          label: 'Waktu Mulai',
+          type: 'datetime',
+          required: true,
+        },
+        {
+          key: 'endDateTime',
+          label: 'Waktu Selesai',
+          type: 'datetime',
+        },
+        {
+          key: 'venue',
+          label: 'Tempat Acara',
+          type: 'text',
+          required: true,
+          maxLength: 255,
+        },
+        {
+          key: 'address',
+          label: 'Alamat Acara',
+          type: 'textarea',
+          maxLength: 500,
+        },
+        {
+          key: 'mapsUrl',
+          label: 'Tautan Google Maps',
+          type: 'url',
+          urlPolicy: 'google-maps',
+          maxLength: 2048,
+        },
+      ],
+    },
+    {
+      key: 'story',
+      label: 'Cerita Kisah Cinta',
+      type: 'repeater',
+      maxItems: 5,
+      fields: [
+        {
+          key: 'year',
+          label: 'Tahun / Waktu',
+          type: 'text',
+          required: true,
+          maxLength: 20,
+        },
+        {
+          key: 'title',
+          label: 'Judul Cerita',
+          type: 'text',
+          required: true,
+          maxLength: 100,
+        },
+        {
+          key: 'text',
+          label: 'Isi Cerita',
+          type: 'textarea',
+          required: true,
+          maxLength: 500,
+        },
+      ],
+    },
+  ],
+  mediaSlots: [
+    {
+      key: 'couple-photo',
+      label: 'Foto Bersama Pasangan',
+      mediaType: 'PHOTO',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
+      key: 'gallery',
+      label: 'Galeri Foto',
+      mediaType: 'PHOTO',
+      multiple: true,
+      maxItems: 2,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
+      key: 'bg-music',
+      label: 'Musik Latar',
+      mediaType: 'AUDIO',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 10 * 1024 * 1024,
+    },
+  ],
+};
+
 const builtInDefinitions: Record<string, TemplateDefinition> = {
   IVORY_GARDEN: IVORY_GARDEN_DEFINITION,
   SERENE_GARDEN: SERENE_GARDEN_DEFINITION,
+  SUNDA_PUSPA: SUNDA_PUSPA_DEFINITION,
 };
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
