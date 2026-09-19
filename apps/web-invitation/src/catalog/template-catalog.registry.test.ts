@@ -11,10 +11,10 @@ import {
 } from './template-catalog.registry';
 
 test('Template Catalog Registry', async (t) => {
-  await t.test('contains exactly the 3 approved production templates', () => {
-    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 3);
+  await t.test('contains exactly the 4 approved production templates', () => {
+    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 4);
     const themeCodes = APPROVED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
-    assert.deepEqual(themeCodes, ['IVORY_GARDEN', 'SERENE_GARDEN', 'SUNDA_PUSPA']);
+    assert.deepEqual(themeCodes, ['IVORY_GARDEN', 'SERENE_GARDEN', 'SUNDA_PUSPA', 'CLASSIC_LETTER']);
   });
 
   await t.test('has unique slugs and unique themeCodes', () => {
@@ -27,13 +27,15 @@ test('Template Catalog Registry', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 3);
+    assert.equal(templates.length, 4);
     assert.equal(templates[0].sortOrder, 1);
     assert.equal(templates[1].sortOrder, 2);
     assert.equal(templates[2].sortOrder, 3);
     assert.equal(templates[0].themeCode, 'IVORY_GARDEN');
     assert.equal(templates[1].themeCode, 'SERENE_GARDEN');
     assert.equal(templates[2].themeCode, 'SUNDA_PUSPA');
+    assert.equal(templates[3].sortOrder, 4);
+    assert.equal(templates[3].themeCode, 'CLASSIC_LETTER');
   });
 
   await t.test('all AVAILABLE entries have valid thumbnailPath and demoPath', () => {
@@ -63,6 +65,7 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(getCatalogTemplateBySlug('ivory-garden')?.themeCode, 'IVORY_GARDEN');
     assert.equal(getCatalogTemplateBySlug('serene-garden')?.themeCode, 'SERENE_GARDEN');
     assert.equal(getCatalogTemplateBySlug('sunda-puspa')?.themeCode, 'SUNDA_PUSPA');
+    assert.equal(getCatalogTemplateBySlug('classic-letter')?.themeCode, 'CLASSIC_LETTER');
   });
 
   await t.test('supports case-insensitive slug and themeCode lookup', () => {
@@ -71,6 +74,30 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(getCatalogTemplateByThemeCode('ivory_garden')?.slug, 'ivory-garden');
     assert.equal(getCatalogTemplateByThemeCode('SERENE_GARDEN')?.slug, 'serene-garden');
     assert.equal(getCatalogTemplateByThemeCode('SUNDA_PUSPA')?.slug, 'sunda-puspa');
+    assert.equal(getCatalogTemplateByThemeCode('CLASSIC_LETTER')?.slug, 'classic-letter');
+  });
+
+
+  await t.test('Classic Letter thumbnail exists and is distinct from other template thumbnails', () => {
+    const publicDir = fs.existsSync(path.resolve(process.cwd(), 'public'))
+      ? path.resolve(process.cwd(), 'public')
+      : path.resolve(process.cwd(), 'apps/web-invitation/public');
+
+    const classicPath = path.join(publicDir, 'templates/classic-letter/thumbnail.webp');
+    const ivoryPath = path.join(publicDir, 'templates/ivory-garden/thumbnail.webp');
+    const serenePath = path.join(publicDir, 'templates/serene-garden/thumbnail.webp');
+    const sundaPath = path.join(publicDir, 'templates/sunda-puspa/thumbnail.webp');
+
+    assert.ok(fs.existsSync(classicPath), 'Classic thumbnail must exist on disk');
+    const classicBuf = fs.readFileSync(classicPath);
+    const ivoryBuf = fs.readFileSync(ivoryPath);
+    const sereneBuf = fs.readFileSync(serenePath);
+    const sundaBuf = fs.readFileSync(sundaPath);
+
+    assert.ok(classicBuf.length > 1000, 'Classic thumbnail size must be non-trivial');
+    assert.notEqual(classicBuf.compare(ivoryBuf), 0, 'Classic thumbnail must not be byte-identical to Ivory');
+    assert.notEqual(classicBuf.compare(sereneBuf), 0, 'Classic thumbnail must not be byte-identical to Serene');
+    assert.notEqual(classicBuf.compare(sundaBuf), 0, 'Classic thumbnail must not be byte-identical to Sunda');
   });
 
   await t.test('returns undefined and false for unknown slugs (fail closed)', () => {

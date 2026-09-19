@@ -7,13 +7,13 @@ import { getCatalogTemplates } from '../../catalog';
 test('Public Catalog UI & Landing Integration Contract', async (t) => {
   const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
 
-  await t.test('public catalog contains exactly the 3 AVAILABLE approved templates', () => {
-    assert.equal(templates.length, 3);
+  await t.test('public catalog contains exactly the 4 AVAILABLE approved templates', () => {
+    assert.equal(templates.length, 4);
     const names = templates.map((t) => t.displayName);
-    assert.deepEqual(names, ['Ivory Garden', 'Serene Garden', 'Sunda Puspa']);
+    assert.deepEqual(names, ['Ivory Garden', 'Serene Garden', 'Sunda Puspa', 'Classic Letter']);
 
     const themeCodes = templates.map((t) => t.themeCode);
-    assert.deepEqual(themeCodes, ['IVORY_GARDEN', 'SERENE_GARDEN', 'SUNDA_PUSPA']);
+    assert.deepEqual(themeCodes, ['IVORY_GARDEN', 'SERENE_GARDEN', 'SUNDA_PUSPA', 'CLASSIC_LETTER']);
   });
 
   await t.test('Ivory, Serene, and Sunda are all visible with required metadata', () => {
@@ -33,6 +33,11 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
 
     assert.equal(sunda?.thumbnailPath, '/templates/sunda-puspa/thumbnail.webp');
     assert.equal(sunda?.demoPath, '/templates/sunda-puspa/demo');
+
+    const classic = templates.find((t) => t.themeCode === 'CLASSIC_LETTER');
+    assert.ok(classic, 'Classic Letter must be present');
+    assert.equal(classic?.thumbnailPath, '/templates/classic-letter/thumbnail.webp');
+    assert.equal(classic?.demoPath, '/templates/classic-letter/demo');
   });
 
   await t.test('legacy placeholder marketing cards are strictly absent from active catalog', () => {

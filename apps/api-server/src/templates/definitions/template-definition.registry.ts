@@ -1,4 +1,5 @@
 import { TemplateDefinition } from './template-definition.types';
+import { CLASSIC_LETTER_DEFINITION } from './classic-letter.definition';
 
 export const IVORY_GARDEN_DEFINITION: TemplateDefinition = {
   themeCode: 'IVORY_GARDEN',
@@ -546,6 +547,7 @@ const builtInDefinitions: Record<string, TemplateDefinition> = {
   IVORY_GARDEN: IVORY_GARDEN_DEFINITION,
   SERENE_GARDEN: SERENE_GARDEN_DEFINITION,
   SUNDA_PUSPA: SUNDA_PUSPA_DEFINITION,
+  CLASSIC_LETTER: CLASSIC_LETTER_DEFINITION,
 };
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
@@ -583,3 +585,5 @@ export function getAllTemplateDefinitions(): TemplateDefinition[] {
     ...Object.values(customDefinitions),
   ];
 }
+
+export { CLASSIC_LETTER_DEFINITION } from './classic-letter.definition';

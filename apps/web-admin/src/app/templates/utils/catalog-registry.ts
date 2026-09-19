@@ -174,6 +174,47 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
       ],
     },
   },
+  {
+    id: 'classic-letter',
+    slug: 'classic-letter',
+    themeCode: 'CLASSIC_LETTER',
+    name: 'Classic Letter',
+    displayName: 'Classic Letter',
+    category: 'Classic',
+    tags: ['Classic', 'Letter', 'Stationery', 'Wax Seal', 'Elegant'],
+    description: 'Undangan bernuansa surat klasik elegan bertekstur kertas ivory, aksen emas antik, dan segel lilin.',
+    shortDescription: 'Undangan bernuansa surat klasik elegan bertekstur kertas ivory, aksen emas antik, dan segel lilin.',
+    thumbnailPath: '/templates/classic-letter/thumbnail.webp',
+    demoPath: '/templates/classic-letter/demo',
+    sortOrder: 4,
+    availability: 'AVAILABLE',
+    badge: 'Artisanal',
+    isPhotoOptional: true,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#785A3A',
+        secondaryColor: '#B89758',
+        backgroundColor: '#FAF7F2',
+        textColor: '#2C2621',
+      },
+      typography: {
+        headingFont: 'CORMORANT_GARAMOND',
+        bodyFont: 'DM_SANS',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
 ] as const;
 
 export function getCatalogTemplates(): CatalogTemplate[] {

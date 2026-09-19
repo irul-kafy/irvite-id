@@ -37,6 +37,18 @@ export const APPROVED_CATALOG_TEMPLATES: readonly CatalogTemplateItem[] = [
     sortOrder: 3,
     availability: 'AVAILABLE',
   },
+  {
+    themeCode: 'CLASSIC_LETTER',
+    slug: 'classic-letter',
+    displayName: 'Classic Letter',
+    category: 'Classic',
+    shortDescription:
+      'Undangan bernuansa surat klasik elegan bertekstur kertas ivory, aksen emas antik, dan segel lilin.',
+    thumbnailPath: '/templates/classic-letter/thumbnail.webp',
+    demoPath: '/templates/classic-letter/demo',
+    sortOrder: 4,
+    availability: 'AVAILABLE',
+  },
 ] as const;
 
 /**

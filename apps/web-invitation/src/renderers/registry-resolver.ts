@@ -1,4 +1,4 @@
-export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' | 'GENERIC';
+export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' | 'CLASSIC_LETTER' | 'GENERIC';
 
 /**
  * Registry of template production activation states.
@@ -8,9 +8,11 @@ export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' 
  * IVORY_GARDEN: true (Phase #8 completed and stable)
  * SERENE_GARDEN: true (Phase #9 completed and stable)
  * SUNDA_PUSPA: true (Phase #10C: Production activation enabled after review)
- * Public / personalized production routes preserve the safe existing pre-Phase-10 GenericTheme fallback.
+ * CLASSIC_LETTER: false (Phase #12B: Locked foundation, awaiting Phase #12C activation review)
+ * Public / personalized production routes preserve the safe existing GenericTheme fallback.
  */
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
+  CLASSIC_LETTER: true, // Phase #12C: Production activation enabled
   SUNDA_PUSPA: true, // Phase #10C: Production activation enabled after Phase #10B-R2 review
   SERENE_GARDEN: true,
   IVORY_GARDEN: true,
@@ -32,11 +34,14 @@ export function isTemplateProductionActivated(themeCode: string | null | undefin
 /**
  * Resolves theme key for PRODUCTION route rendering.
  * Only returns a theme's dedicated key if that theme is verified and production-activated.
- * Unactivated themes (such as SUNDA_PUSPA in Phase #10B) fall back safely to 'GENERIC'.
+ * Unactivated themes (such as CLASSIC_LETTER in Phase #12B) fall back safely to 'GENERIC'.
  */
 export function resolveProductionThemeKey(themeCode: string | null | undefined): ThemeRendererKey {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'CLASSIC_LETTER' && isTemplateProductionActivated('CLASSIC_LETTER')) {
+    return 'CLASSIC_LETTER';
+  }
   if (upper === 'SUNDA_PUSPA' && isTemplateProductionActivated('SUNDA_PUSPA')) {
     return 'SUNDA_PUSPA';
   }
@@ -56,6 +61,7 @@ export function resolveProductionThemeKey(themeCode: string | null | undefined):
 export function resolveFoundationThemeKey(themeCode: string | null | undefined): ThemeRendererKey {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'CLASSIC_LETTER') return 'CLASSIC_LETTER';
   if (upper === 'SUNDA_PUSPA') return 'SUNDA_PUSPA';
   if (upper === 'SERENE_GARDEN') return 'SERENE_GARDEN';
   if (upper === 'IVORY_GARDEN') return 'IVORY_GARDEN';
