@@ -2,17 +2,20 @@ import type { RendererData } from '../renderers/registry';
 import { IVORY_GARDEN_DEMO_FIXTURE } from './fixtures/ivory-garden.fixture';
 import { SERENE_GARDEN_DEMO_FIXTURE } from './fixtures/serene-garden.fixture';
 import { SUNDA_PUSPA_DEMO_FIXTURE } from './fixtures/sunda-puspa.fixture';
+import { CLASSIC_LETTER_DEMO_FIXTURE } from './fixtures/classic-letter.fixture';
 
 export {
   IVORY_GARDEN_DEMO_FIXTURE,
   SERENE_GARDEN_DEMO_FIXTURE,
   SUNDA_PUSPA_DEMO_FIXTURE,
+  CLASSIC_LETTER_DEMO_FIXTURE,
 };
 
 const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
   IVORY_GARDEN: IVORY_GARDEN_DEMO_FIXTURE,
   SERENE_GARDEN: SERENE_GARDEN_DEMO_FIXTURE,
   SUNDA_PUSPA: SUNDA_PUSPA_DEMO_FIXTURE,
+  CLASSIC_LETTER: CLASSIC_LETTER_DEMO_FIXTURE,
 };
 
 /**

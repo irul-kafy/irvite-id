@@ -22,6 +22,11 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     themeCode: 'SUNDA_PUSPA',
     previewImageUrl: '/templates/sunda-puspa/thumbnail.webp',
   },
+  {
+    name: 'Classic Letter',
+    themeCode: 'CLASSIC_LETTER',
+    previewImageUrl: '/templates/classic-letter/thumbnail.webp',
+  },
 ];
 
 export interface SyncResultItem {

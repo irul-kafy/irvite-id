@@ -3,6 +3,7 @@ import GenericTheme from './themes/generic';
 import IvoryGardenRenderer from './ivory-garden/ivory-garden';
 import SereneGardenRenderer from './serene-garden/serene-garden';
 import SundaPuspaRenderer from './sunda-puspa/sunda-puspa';
+import ClassicLetterRenderer from './classic-letter/classic-letter';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -37,6 +38,7 @@ const productionRenderers: Record<string, RendererComponent> = {
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
   SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
+  CLASSIC_LETTER: ClassicLetterRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing)
@@ -45,11 +47,12 @@ export const foundationRenderers: Record<string, RendererComponent> = {
   IVORY_GARDEN: IvoryGardenRenderer as unknown as RendererComponent,
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
   SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
+  CLASSIC_LETTER: ClassicLetterRenderer as unknown as RendererComponent,
 };
 
 /**
  * Production renderer resolver used by /e/[slug] and /i/[uniqueCode].
- * Guards unactivated templates (like SUNDA_PUSPA in Phase #10B) from exposing unreviewed templates to public users.
+ * Guards unactivated templates (like CLASSIC_LETTER in Phase #12B) from exposing unreviewed templates to public users.
  */
 export function getRenderer(themeCode: string | null | undefined): RendererComponent {
   const key = resolveProductionThemeKey(themeCode);

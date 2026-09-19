@@ -28,6 +28,18 @@ describe('syncTemplateIdentities', () => {
     };
   });
 
+  it('includes CLASSIC_LETTER in approved seeds matching contract', () => {
+    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(4);
+    const classic = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'CLASSIC_LETTER',
+    );
+    expect(classic).toBeDefined();
+    expect(classic?.name).toBe('Classic Letter');
+    expect(classic?.previewImageUrl).toBe(
+      '/templates/classic-letter/thumbnail.webp',
+    );
+  });
+
   it('creates Template records when 0 matching records exist', async () => {
     mockPrisma.template.findMany.mockResolvedValue([]);
 

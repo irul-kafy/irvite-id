@@ -66,10 +66,10 @@ describe('Phase #9: Serene Garden Production Activation & Registry Resolution Co
   });
 
   it('unactivated future templates remain unactivated and resolve safely to GENERIC', () => {
-    assert.strictEqual(isTemplateProductionActivated('CLASSIC_LETTER'), false);
+
     assert.strictEqual(isTemplateProductionActivated('VELVET_LETTER'), false);
 
-    assert.strictEqual(resolveProductionThemeKey('CLASSIC_LETTER'), 'GENERIC');
+
     assert.strictEqual(resolveProductionThemeKey('VELVET_LETTER'), 'GENERIC');
   });
 
