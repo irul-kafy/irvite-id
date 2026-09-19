@@ -29,7 +29,7 @@ describe('syncTemplateIdentities', () => {
   });
 
   it('includes CLASSIC_LETTER in approved seeds matching contract', () => {
-    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(4);
+    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(5);
     const classic = APPROVED_TEMPLATE_SEEDS.find(
       (s) => s.themeCode === 'CLASSIC_LETTER',
     );
@@ -37,6 +37,17 @@ describe('syncTemplateIdentities', () => {
     expect(classic?.name).toBe('Classic Letter');
     expect(classic?.previewImageUrl).toBe(
       '/templates/classic-letter/thumbnail.webp',
+    );
+  });
+
+  it('includes VELVET_LETTER in approved seeds matching contract', () => {
+    const velvet = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'VELVET_LETTER',
+    );
+    expect(velvet).toBeDefined();
+    expect(velvet?.name).toBe('Velvet Letter');
+    expect(velvet?.previewImageUrl).toBe(
+      '/templates/velvet-letter/thumbnail.webp',
     );
   });
 

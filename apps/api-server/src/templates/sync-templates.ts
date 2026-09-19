@@ -27,6 +27,11 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     themeCode: 'CLASSIC_LETTER',
     previewImageUrl: '/templates/classic-letter/thumbnail.webp',
   },
+  {
+    name: 'Velvet Letter',
+    themeCode: 'VELVET_LETTER',
+    previewImageUrl: '/templates/velvet-letter/thumbnail.webp',
+  },
 ];
 
 export interface SyncResultItem {

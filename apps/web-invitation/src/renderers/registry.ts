@@ -4,6 +4,7 @@ import IvoryGardenRenderer from './ivory-garden/ivory-garden';
 import SereneGardenRenderer from './serene-garden/serene-garden';
 import SundaPuspaRenderer from './sunda-puspa/sunda-puspa';
 import ClassicLetterRenderer from './classic-letter/classic-letter';
+import VelvetLetterRenderer from './velvet-letter/velvet-letter';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -39,6 +40,7 @@ const productionRenderers: Record<string, RendererComponent> = {
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
   SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
   CLASSIC_LETTER: ClassicLetterRenderer as unknown as RendererComponent,
+  VELVET_LETTER: VelvetLetterRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing)
@@ -48,6 +50,7 @@ export const foundationRenderers: Record<string, RendererComponent> = {
   SERENE_GARDEN: SereneGardenRenderer as unknown as RendererComponent,
   SUNDA_PUSPA: SundaPuspaRenderer as unknown as RendererComponent,
   CLASSIC_LETTER: ClassicLetterRenderer as unknown as RendererComponent,
+  VELVET_LETTER: VelvetLetterRenderer as unknown as RendererComponent,
 };
 
 /**

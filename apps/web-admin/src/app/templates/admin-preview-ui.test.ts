@@ -37,6 +37,12 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
       themeCode: 'CLASSIC_LETTER',
       previewImageUrl: '/templates/classic-letter/thumbnail.webp',
     },
+    {
+      id: 'db-uuid-velvet',
+      name: 'Velvet Letter',
+      themeCode: 'VELVET_LETTER',
+      previewImageUrl: '/templates/velvet-letter/thumbnail.webp',
+    },
   ];
 
   t.afterEach(() => {
@@ -50,7 +56,7 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://invitation.example.test';
 
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, mockDbTemplates);
-    assert.equal(joined.length, 4);
+    assert.equal(joined.length, 5);
 
     for (const item of joined) {
       const demoUrl = getCanonicalTemplateDemoUrl(item.catalogItem.demoPath);
@@ -75,7 +81,7 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
     delete process.env.PUBLIC_INVITATION_URL;
 
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, mockDbTemplates);
-    assert.equal(joined.length, 4);
+    assert.equal(joined.length, 5);
 
     for (const item of joined) {
       const demoUrl = getCanonicalTemplateDemoUrl(item.catalogItem.demoPath);
