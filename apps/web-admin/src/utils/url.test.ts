@@ -4,6 +4,7 @@ import {
   getCanonicalPublicInvitationUrl,
   getCanonicalPublicEventUrl,
   getTrustedInvitationOrigin,
+  getCanonicalTemplateDemoUrl,
 } from './url';
 
 test('getCanonicalPublicInvitationUrl', async (t) => {
@@ -154,5 +155,61 @@ test('getTrustedInvitationOrigin', async (t) => {
     process.env.NODE_ENV = 'production';
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'http://localhost:3002';
     assert.strictEqual(getTrustedInvitationOrigin(), 'http://localhost:3002');
+  });
+});
+
+test('getCanonicalTemplateDemoUrl', async (t) => {
+  const originalOrigin = process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
+  const originalUrl = process.env.PUBLIC_INVITATION_URL;
+  const originalEnv = process.env.NODE_ENV;
+
+  t.afterEach(() => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = originalOrigin;
+    process.env.PUBLIC_INVITATION_URL = originalUrl;
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = originalEnv;
+  });
+
+  await t.test('trusted invitation origin: https://example-invitation.test + /templates/ivory-garden/demo -> https://example-invitation.test/templates/ivory-garden/demo', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://example-invitation.test';
+    assert.strictEqual(
+      getCanonicalTemplateDemoUrl('/templates/ivory-garden/demo'),
+      'https://example-invitation.test/templates/ivory-garden/demo'
+    );
+  });
+
+  await t.test('normalizes missing leading slash in demoPath', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'http://localhost:3002';
+    assert.strictEqual(
+      getCanonicalTemplateDemoUrl('templates/serene-garden/demo'),
+      'http://localhost:3002/templates/serene-garden/demo'
+    );
+  });
+
+  await t.test('missing invitation origin: returns null (fails closed, NOT admin-relative fallback)', () => {
+    delete process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
+    delete process.env.PUBLIC_INVITATION_URL;
+    assert.strictEqual(
+      getCanonicalTemplateDemoUrl('/templates/sunda-puspa/demo'),
+      null
+    );
+  });
+
+  await t.test('unsafe or malformed origin handling continues following security rules (returns null)', () => {
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'production';
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'http://insecure-in-prod.test';
+    assert.strictEqual(getCanonicalTemplateDemoUrl('/templates/ivory-garden/demo'), null);
+
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'not-a-valid-url';
+    assert.strictEqual(getCanonicalTemplateDemoUrl('/templates/ivory-garden/demo'), null);
+  });
+
+  await t.test('fails safely with null for empty, whitespace, or non-string input', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://example-invitation.test';
+    assert.strictEqual(getCanonicalTemplateDemoUrl(''), null);
+    assert.strictEqual(getCanonicalTemplateDemoUrl('   '), null);
+    assert.strictEqual(getCanonicalTemplateDemoUrl(null), null);
+    assert.strictEqual(getCanonicalTemplateDemoUrl(undefined), null);
   });
 });

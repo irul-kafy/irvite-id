@@ -1,21 +1,18 @@
  'use client';
 
+import Link from 'next/link';
+import { getCatalogTemplates } from '../catalog';
+
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '../components/theme-toggle';
 import './landing.css';
 
-// ── WhatsApp config ────────────────────────────────────────────────────────────
-const WA_NUMBER = '6281234567890';
-const WA_MSG_GENERAL = encodeURIComponent(
-  'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.'
-);
-const WA_MSG_BASIC = encodeURIComponent(
-  'Halo IRVITE.ID, saya ingin memesan Paket Umum untuk undangan digital.'
-);
-const WA_MSG_PREMIUM = encodeURIComponent(
-  'Halo IRVITE.ID, saya ingin memesan Paket Eksklusif dengan Tim Scanner di venue.'
-);
-const waLink  = (msg: string) => `https://wa.me/${WA_NUMBER}?text=${msg}`;
+import { getTemplateOrderUrl, getGeneralContactUrl } from '../utils/contact';
+
+// ── Contact Messages ─────────────────────────────────────────────────────────
+const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
+const MSG_BASIC = 'Halo IRVITE.ID, saya ingin memesan Paket Umum untuk undangan digital.';
+const MSG_PREMIUM = 'Halo IRVITE.ID, saya ingin memesan Paket Eksklusif dengan Tim Scanner di venue.';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 
@@ -129,64 +126,9 @@ function IconReport({ className }: { className?: string }) {
   );
 }
 
-// ── Template catalog data ──────────────────────────────────────────────────────
+// ── Template catalog data (consumed from typed catalog registry) ──
 
-const TEMPLATES = [
-  {
-    id: 'verdant',
-    name: 'Verdant Estate',
-    desc: 'Elegan emerald & gold. Cocok untuk pernikahan mewah di kebun atau ballroom.',
-    badge: 'Paling Populer',
-    bg: 'linear-gradient(160deg, #1e3a2f 0%, #2d5a3d 50%, #1a2f25 100%)',
-    accentBg: 'rgba(180,151,90,0.4)',
-    archBg: 'rgba(180,151,90,0.2)',
-  },
-  {
-    id: 'midnight',
-    name: 'Midnight Editorial',
-    desc: 'Obsidian slate & champagne. Dramatis dan modern untuk venue eksklusif.',
-    badge: 'Premium Dark',
-    bg: 'linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #0c1320 100%)',
-    accentBg: 'rgba(148,163,184,0.3)',
-    archBg: 'rgba(148,163,184,0.15)',
-  },
-  {
-    id: 'botanical',
-    name: 'Botanical Romance',
-    desc: 'Kain linen & terrakota. Natural, hangat, penuh karakter botanis.',
-    badge: 'Artisan',
-    bg: 'linear-gradient(160deg, #7c4522 0%, #a05c2d 50%, #6b3a1a 100%)',
-    accentBg: 'rgba(196,139,88,0.4)',
-    archBg: 'rgba(196,139,88,0.2)',
-  },
-  {
-    id: 'classic',
-    name: 'Classic Elegance',
-    desc: 'Warm stone & ivory. Timeless dan mudah dicintai semua kalangan.',
-    badge: 'Terlaris',
-    bg: 'linear-gradient(160deg, #4a3728 0%, #6b4f3a 50%, #3d2c20 100%)',
-    accentBg: 'rgba(200,170,130,0.35)',
-    archBg: 'rgba(200,170,130,0.2)',
-  },
-  {
-    id: 'minimal',
-    name: 'Modern Minimal',
-    desc: 'Putih bersih & geometris. Kontemporer, fresh, dan sangat estetik.',
-    badge: 'Baru',
-    bg: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-    accentBg: 'rgba(100,149,237,0.3)',
-    archBg: 'rgba(100,149,237,0.15)',
-  },
-  {
-    id: 'romantic',
-    name: 'Romantic Garden',
-    desc: 'Rose blush & crimson. Lembut, romantis, sempurna untuk taman bunga.',
-    badge: 'Favorit',
-    bg: 'linear-gradient(160deg, #4a1028 0%, #6d1a38 50%, #3d0d20 100%)',
-    accentBg: 'rgba(244,63,94,0.35)',
-    archBg: 'rgba(244,63,94,0.2)',
-  },
-] as const;
+
 
 // ── Testimonials ───────────────────────────────────────────────────────────────
 
@@ -255,6 +197,7 @@ function Navbar() {
   return (
     <nav className={`lp-nav${scrolled ? ' lp-nav--scrolled' : ''}`} aria-label="Main navigation">
       <div className="lp-nav__brand">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="IRVITE" className="lp-nav__logo-img" />
       </div>
       <ul className="lp-nav__links">
@@ -264,16 +207,28 @@ function Navbar() {
       </ul>
       <div className="lp-nav__actions">
         <ThemeToggle />
-        <a
-          id="nav-wa-cta"
-          href={waLink(WA_MSG_GENERAL)}
-          target="_blank"
-          rel="noreferrer"
-          className="lp-nav__cta"
-        >
-          <IconWA style={{ width: 15, height: 15 }} />
-          WhatsApp Kami
-        </a>
+        {getGeneralContactUrl(MSG_GENERAL) ? (
+          <a
+            id="nav-wa-cta"
+            href={getGeneralContactUrl(MSG_GENERAL)!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="lp-nav__cta"
+          >
+            <IconWA style={{ width: 15, height: 15 }} />
+            WhatsApp Kami
+          </a>
+        ) : (
+          <span
+            id="nav-wa-cta"
+            className="lp-nav__cta"
+            style={{ opacity: 0.5, cursor: 'not-allowed' }}
+            title="Kontak belum dikonfigurasi"
+          >
+            <IconWA style={{ width: 15, height: 15 }} />
+            WhatsApp Kami
+          </span>
+        )}
       </div>
     </nav>
   );
@@ -310,16 +265,30 @@ function HeroSection() {
             </svg>
             Lihat Katalog Desain
           </a>
-          <a
-            id="hero-wa-btn"
-            href={waLink(WA_MSG_GENERAL)}
-            target="_blank"
-            rel="noreferrer"
-            className="lp-btn lp-btn--outline"
-          >
-            <IconWA className="lp-btn__icon" />
-            Konsultasi via WhatsApp
-          </a>
+          {getGeneralContactUrl(MSG_GENERAL) ? (
+            <a
+              id="hero-wa-btn"
+              href={getGeneralContactUrl(MSG_GENERAL)!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lp-btn lp-btn--outline"
+            >
+              <IconWA className="lp-btn__icon" />
+              Konsultasi via WhatsApp
+            </a>
+          ) : (
+            <button
+              type="button"
+              id="hero-wa-btn"
+              disabled
+              className="lp-btn lp-btn--outline"
+              style={{ opacity: 0.5, cursor: 'not-allowed' }}
+              title="Kontak belum dikonfigurasi"
+            >
+              <IconWA className="lp-btn__icon" />
+              Konsultasi via WhatsApp
+            </button>
+          )}
         </div>
       </div>
 
@@ -410,16 +379,30 @@ function PackagesSection() {
                 </li>
               ))}
             </ul>
-            <a
-              id="pkg-basic-wa"
-              href={waLink(WA_MSG_BASIC)}
-              target="_blank"
-              rel="noreferrer"
-              className="lp-btn lp-btn--outline-silver lp-package__cta"
-            >
-              <IconWA className="lp-btn__icon" />
-              Pesan Paket Ini
-            </a>
+            {getGeneralContactUrl(MSG_BASIC) ? (
+              <a
+                id="pkg-basic-wa"
+                href={getGeneralContactUrl(MSG_BASIC)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lp-btn lp-btn--outline-silver lp-package__cta"
+              >
+                <IconWA className="lp-btn__icon" />
+                Pesan Paket Ini
+              </a>
+            ) : (
+              <button
+                type="button"
+                id="pkg-basic-wa"
+                disabled
+                className="lp-btn lp-btn--outline-silver lp-package__cta"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                title="Kontak belum dikonfigurasi"
+              >
+                <IconWA className="lp-btn__icon" />
+                Pesan Paket Ini
+              </button>
+            )}
           </div>
 
           {/* Premium Card */}
@@ -440,16 +423,30 @@ function PackagesSection() {
                 </li>
               ))}
             </ul>
-            <a
-              id="pkg-premium-wa"
-              href={waLink(WA_MSG_PREMIUM)}
-              target="_blank"
-              rel="noreferrer"
-              className="lp-btn lp-btn--silver lp-package__cta"
-            >
-              <IconWA className="lp-btn__icon" />
-              Pesan Paket Eksklusif
-            </a>
+            {getGeneralContactUrl(MSG_PREMIUM) ? (
+              <a
+                id="pkg-premium-wa"
+                href={getGeneralContactUrl(MSG_PREMIUM)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lp-btn lp-btn--silver lp-package__cta"
+              >
+                <IconWA className="lp-btn__icon" />
+                Pesan Paket Eksklusif
+              </a>
+            ) : (
+              <button
+                type="button"
+                id="pkg-premium-wa"
+                disabled
+                className="lp-btn lp-btn--silver lp-package__cta"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                title="Kontak belum dikonfigurasi"
+              >
+                <IconWA className="lp-btn__icon" />
+                Pesan Paket Eksklusif
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -460,6 +457,8 @@ function PackagesSection() {
 // ── Template Catalog ───────────────────────────────────────────────────────────
 
 function CatalogSection() {
+  const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
+
   return (
     <section id="katalog" className="lp-section lp-section--cream-2">
       <div className="lp-container lp-catalog">
@@ -478,63 +477,76 @@ function CatalogSection() {
         </div>
 
         <div className="lp-catalog__grid">
-          {TEMPLATES.map((t, i) => (
+          {templates.map((t, i) => (
             <div
-              key={t.id}
+              key={t.slug}
               className={`lp-template-card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
             >
-              <div className="lp-template-card__preview" style={{ background: t.bg }}>
-                <div className="lp-template-card__preview-inner">
-                  <div className="lp-template-card__arch">
-                    <div
-                      className="lp-template-card__arch-fill"
-                      style={{ background: t.archBg }}
-                    />
-                  </div>
-                  <p className="lp-template-card__mock-name">Budi &amp; Sari</p>
-                  <p className="lp-template-card__mock-date">12 · Oktober · 2026</p>
-                </div>
-                <div className="lp-template-card__badge">{t.badge}</div>
+              <div className="lp-template-card__preview" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '2/3' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={t.thumbnailPath}
+                  alt={`Pratinjau desain ${t.displayName}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  loading="lazy"
+                  width={600}
+                  height={900}
+                />
+                <div className="lp-template-card__badge">{t.category}</div>
               </div>
               <div className="lp-template-card__info">
-                <h3 className="lp-template-card__name">{t.name}</h3>
-                <p className="lp-template-card__desc">{t.desc}</p>
+                <h3 className="lp-template-card__name">{t.displayName}</h3>
+                <p className="lp-template-card__desc">{t.shortDescription}</p>
                 <div className="lp-template-card__actions">
                   <a
-                    id={`catalog-demo-${t.id}`}
-                    href="#katalog"
+                    id={`catalog-demo-${t.slug}`}
+                    href={t.demoPath}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="lp-btn lp-btn--outline-silver lp-btn--sm"
                   >
                     Lihat Demo
                   </a>
-                  <a
-                    id={`catalog-order-${t.id}`}
-                    href={waLink(encodeURIComponent(
-                      `Halo IRVITE.ID, saya tertarik dengan desain ${t.name}. Boleh info lebih lanjut?`
-                    ))}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="lp-btn lp-btn--silver lp-btn--sm"
-                  >
-                    Pesan Desain Ini
-                  </a>
+                  {(() => {
+                    const orderUrl = getTemplateOrderUrl(t.displayName);
+                    return orderUrl ? (
+                      <a
+                        id={`catalog-order-${t.slug}`}
+                        href={orderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="lp-btn lp-btn--silver lp-btn--sm"
+                      >
+                        Pesan Desain Ini
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        id={`catalog-order-${t.slug}`}
+                        disabled
+                        className="lp-btn lp-btn--silver lp-btn--sm"
+                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                        title="Kontak pemesanan belum dikonfigurasi"
+                      >
+                        Pesan Desain Ini
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="lp-reveal" style={{ textAlign: 'center' }}>
-          <a
-            id="catalog-all-wa"
-            href={waLink(WA_MSG_GENERAL)}
-            target="_blank"
-            rel="noreferrer"
-            className="lp-btn lp-btn--outline-silver"
+        <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+          <Link
+            id="view-all-templates-btn"
+            href="/templates"
+            className="lp-btn lp-btn--silver"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.875rem 2rem' }}
           >
-            <IconWA className="lp-btn__icon" />
-            Tanyakan Desain Lainnya
-          </a>
+            Lihat Semua Template &rarr;
+          </Link>
         </div>
       </div>
     </section>
@@ -662,16 +674,30 @@ function CTABanner() {
             Konsultasikan kebutuhan Anda sekarang. Gratis, tanpa komitmen, dan kami akan memandu Anda menemukan paket yang paling sesuai.
           </p>
           <div className="lp-cta-banner__ctas">
-            <a
-              id="cta-banner-wa"
-              href={waLink(WA_MSG_GENERAL)}
-              target="_blank"
-              rel="noreferrer"
-              className="lp-btn lp-btn--silver"
-            >
-              <IconWA className="lp-btn__icon" />
-              Mulai Konsultasi Gratis
-            </a>
+            {getGeneralContactUrl(MSG_GENERAL) ? (
+              <a
+                id="cta-banner-wa"
+                href={getGeneralContactUrl(MSG_GENERAL)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lp-btn lp-btn--silver"
+              >
+                <IconWA className="lp-btn__icon" />
+                Mulai Konsultasi Gratis
+              </a>
+            ) : (
+              <button
+                type="button"
+                id="cta-banner-wa"
+                disabled
+                className="lp-btn lp-btn--silver"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                title="Kontak belum dikonfigurasi"
+              >
+                <IconWA className="lp-btn__icon" />
+                Mulai Konsultasi Gratis
+              </button>
+            )}
             <a
               id="cta-banner-catalog"
               href="#katalog"
@@ -706,14 +732,23 @@ function Footer() {
               <li><a href="#paket"   className="lp-footer__link">Paket</a></li>
               <li><a href="#alur"    className="lp-footer__link">Cara Kerja</a></li>
               <li>
-                <a
-                  href={waLink(WA_MSG_GENERAL)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="lp-footer__link"
-                >
-                  WhatsApp
-                </a>
+                {getGeneralContactUrl(MSG_GENERAL) ? (
+                  <a
+                    href={getGeneralContactUrl(MSG_GENERAL)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lp-footer__link"
+                  >
+                    WhatsApp
+                  </a>
+                ) : (
+                  <span
+                    className="lp-footer__link"
+                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                  >
+                    WhatsApp
+                  </span>
+                )}
               </li>
             </ul>
           </nav>
@@ -735,12 +770,15 @@ function Footer() {
 // ── Floating WhatsApp FAB ──────────────────────────────────────────────────────
 
 function WaFab() {
+  const fabUrl = getGeneralContactUrl(MSG_GENERAL);
+  if (!fabUrl) return null;
+
   return (
     <a
       id="wa-fab"
-      href={waLink(WA_MSG_GENERAL)}
+      href={fabUrl}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer"
       className="lp-wa-fab"
       aria-label="Hubungi kami via WhatsApp"
     >

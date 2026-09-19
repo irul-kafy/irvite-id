@@ -2,13 +2,38 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FIXED_CATALOG_TEMPLATES } from '../../templates/utils/catalog-registry';
+import { FIXED_CATALOG_TEMPLATES, getCatalogTemplateByThemeCode } from '../../templates/utils/catalog-registry';
+import { getCanonicalTemplateDemoUrl } from '../../../utils/url';
 
-interface TemplateOption {
+export interface TemplateOption {
   id: string;
   name: string;
   themeCode?: string;
+  previewImageUrl?: string | null;
   config?: unknown;
+}
+
+/**
+ * Safely resolves preselected templateId from query parameter.
+ * - Only preselects if templateId/themeCode/name exists in allowed template options.
+ * - If not found, returns empty string (never fabricates fake options).
+ * - Visiting the page never automatically submits or creates an Event.
+ */
+export function resolvePreselectedTemplateId(
+  param: string | null | undefined,
+  availableTemplates: TemplateOption[]
+): string {
+  if (!param || !param.trim() || availableTemplates.length === 0) {
+    return '';
+  }
+  const clean = param.trim();
+  const found = availableTemplates.find(
+    (t) =>
+      t.id === clean ||
+      t.themeCode?.toUpperCase() === clean.toUpperCase() ||
+      t.name.toLowerCase() === clean.toLowerCase()
+  );
+  return found ? found.id : '';
 }
 
 function IconArrowLeft() {
@@ -112,12 +137,13 @@ function CreateEventForm() {
   };
 
   const selectedTemplate = templates.find((t) => t.id === formData.templateId);
-  const matchedCatalogItem = FIXED_CATALOG_TEMPLATES.find(
-    (c) =>
-      c.id === formData.templateId ||
-      c.name.toLowerCase() === selectedTemplate?.name.toLowerCase() ||
-      c.themeCode === selectedTemplate?.themeCode
-  );
+  const matchedCatalogItem = selectedTemplate?.themeCode
+    ? getCatalogTemplateByThemeCode(selectedTemplate.themeCode)
+    : FIXED_CATALOG_TEMPLATES.find(
+        (c) =>
+          c.id === formData.templateId ||
+          c.name.toLowerCase() === selectedTemplate?.name.toLowerCase()
+      );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -412,32 +438,78 @@ function CreateEventForm() {
                   border: '1px solid var(--admin-border)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '1rem',
+                  gap: '1.25rem',
                 }}
               >
                 <div
                   style={{
-                    width: '44px',
-                    height: '44px',
+                    width: '60px',
+                    height: '90px',
                     borderRadius: 'var(--radius-sm)',
-                    background: matchedCatalogItem.config.theme.primaryColor,
-                    border: `2px solid ${matchedCatalogItem.config.theme.secondaryColor}`,
+                    overflow: 'hidden',
                     flexShrink: 0,
-                    boxShadow: 'var(--shadow-xs)',
+                    boxShadow: 'var(--shadow-sm)',
+                    border: '1px solid var(--admin-border)',
+                    background: 'var(--admin-surface-inset)',
                   }}
-                />
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={selectedTemplate?.previewImageUrl || matchedCatalogItem.thumbnailPath}
+                    alt={matchedCatalogItem.displayName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <strong style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                      {matchedCatalogItem.name}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                      {matchedCatalogItem.displayName}
                     </strong>
-                    <span className="badge badge--info">
+                    <span className="badge badge--info" style={{ fontSize: '0.75rem' }}>
                       {matchedCatalogItem.category}
                     </span>
+                    <span className="badge" style={{ fontSize: '0.75rem', background: 'var(--admin-surface-raised)' }}>
+                      {matchedCatalogItem.themeCode}
+                    </span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    {matchedCatalogItem.description}
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    {matchedCatalogItem.shortDescription}
                   </p>
+                  <div>
+                    {(() => {
+                      const demoUrl = getCanonicalTemplateDemoUrl(matchedCatalogItem.demoPath);
+                      return demoUrl ? (
+                        <a
+                          id="preview-selected-template-btn"
+                          href={demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-sm flex-center gap-1"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--admin-accent)', display: 'inline-flex' }}
+                        >
+                          Preview Template
+                          <IconExternal />
+                        </a>
+                      ) : (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            id="preview-selected-template-btn"
+                            disabled
+                            className="btn btn-ghost btn-sm flex-center gap-1"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'inline-flex', opacity: 0.5, cursor: 'not-allowed' }}
+                            title="Origin undangan publik belum dikonfigurasi (NEXT_PUBLIC_INVITATION_ORIGIN)"
+                          >
+                            Preview Template
+                            <IconExternal />
+                          </button>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            (Origin belum dikonfigurasi)
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             )}
