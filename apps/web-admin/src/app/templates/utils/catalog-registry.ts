@@ -215,6 +215,49 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
       ],
     },
   },
+  {
+    id: 'velvet-letter',
+    slug: 'velvet-letter',
+    themeCode: 'VELVET_LETTER',
+    name: 'Velvet Letter',
+    displayName: 'Velvet Letter',
+    category: 'Luxury Stationery',
+    tags: ['Luxury', 'Stationery', 'Velvet', 'Letter', 'Wax Seal', 'Burgundy'],
+    description:
+      'Undangan bernuansa burgundy velvet mewah dengan stationery ivory, aksen champagne, amplop elegan, dan segel lilin.',
+    shortDescription:
+      'Undangan bernuansa burgundy velvet mewah dengan stationery ivory, aksen champagne, amplop elegan, dan segel lilin.',
+    thumbnailPath: '/templates/velvet-letter/thumbnail.webp',
+    demoPath: '/templates/velvet-letter/demo',
+    sortOrder: 5,
+    availability: 'AVAILABLE',
+    badge: 'Artisanal',
+    isPhotoOptional: true,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#5B1425',
+        secondaryColor: '#D4AF37',
+        backgroundColor: '#2A0812',
+        textColor: '#2C2621',
+      },
+      typography: {
+        headingFont: 'PLAYFAIR_DISPLAY',
+        bodyFont: 'INTER',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: false, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
 ] as const;
 
 export function getCatalogTemplates(): CatalogTemplate[] {

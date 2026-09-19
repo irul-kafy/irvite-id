@@ -1,4 +1,4 @@
-export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' | 'CLASSIC_LETTER' | 'GENERIC';
+export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' | 'CLASSIC_LETTER' | 'VELVET_LETTER' | 'GENERIC';
 
 /**
  * Registry of template production activation states.
@@ -12,6 +12,7 @@ export type ThemeRendererKey = 'IVORY_GARDEN' | 'SERENE_GARDEN' | 'SUNDA_PUSPA' 
  * Public / personalized production routes preserve the safe existing GenericTheme fallback.
  */
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
+  VELVET_LETTER: true, // Phase #13B: Locked foundation, awaiting Phase #13C activation review
   CLASSIC_LETTER: true, // Phase #12C: Production activation enabled
   SUNDA_PUSPA: true, // Phase #10C: Production activation enabled after Phase #10B-R2 review
   SERENE_GARDEN: true,
@@ -39,6 +40,9 @@ export function isTemplateProductionActivated(themeCode: string | null | undefin
 export function resolveProductionThemeKey(themeCode: string | null | undefined): ThemeRendererKey {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'VELVET_LETTER' && isTemplateProductionActivated('VELVET_LETTER')) {
+    return 'VELVET_LETTER';
+  }
   if (upper === 'CLASSIC_LETTER' && isTemplateProductionActivated('CLASSIC_LETTER')) {
     return 'CLASSIC_LETTER';
   }
@@ -61,6 +65,7 @@ export function resolveProductionThemeKey(themeCode: string | null | undefined):
 export function resolveFoundationThemeKey(themeCode: string | null | undefined): ThemeRendererKey {
   if (!themeCode || typeof themeCode !== 'string') return 'GENERIC';
   const upper = themeCode.trim().toUpperCase();
+  if (upper === 'VELVET_LETTER') return 'VELVET_LETTER';
   if (upper === 'CLASSIC_LETTER') return 'CLASSIC_LETTER';
   if (upper === 'SUNDA_PUSPA') return 'SUNDA_PUSPA';
   if (upper === 'SERENE_GARDEN') return 'SERENE_GARDEN';

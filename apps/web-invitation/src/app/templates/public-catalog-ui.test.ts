@@ -7,23 +7,39 @@ import { getCatalogTemplates } from '../../catalog';
 test('Public Catalog UI & Landing Integration Contract', async (t) => {
   const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
 
-  await t.test('public catalog contains exactly the 4 AVAILABLE approved templates', () => {
-    assert.equal(templates.length, 4);
+  await t.test('public catalog contains exactly the 5 AVAILABLE approved templates', () => {
+    assert.equal(templates.length, 5);
     const names = templates.map((t) => t.displayName);
-    assert.deepEqual(names, ['Ivory Garden', 'Serene Garden', 'Sunda Puspa', 'Classic Letter']);
+    assert.deepEqual(names, [
+      'Ivory Garden',
+      'Serene Garden',
+      'Sunda Puspa',
+      'Classic Letter',
+      'Velvet Letter',
+    ]);
 
     const themeCodes = templates.map((t) => t.themeCode);
-    assert.deepEqual(themeCodes, ['IVORY_GARDEN', 'SERENE_GARDEN', 'SUNDA_PUSPA', 'CLASSIC_LETTER']);
+    assert.deepEqual(themeCodes, [
+      'IVORY_GARDEN',
+      'SERENE_GARDEN',
+      'SUNDA_PUSPA',
+      'CLASSIC_LETTER',
+      'VELVET_LETTER',
+    ]);
   });
 
-  await t.test('Ivory, Serene, and Sunda are all visible with required metadata', () => {
+  await t.test('Ivory, Serene, Sunda, Classic, and Velvet are all visible with required metadata', () => {
     const ivory = templates.find((t) => t.themeCode === 'IVORY_GARDEN');
     const serene = templates.find((t) => t.themeCode === 'SERENE_GARDEN');
     const sunda = templates.find((t) => t.themeCode === 'SUNDA_PUSPA');
+    const classic = templates.find((t) => t.themeCode === 'CLASSIC_LETTER');
+    const velvet = templates.find((t) => t.themeCode === 'VELVET_LETTER');
 
     assert.ok(ivory, 'Ivory Garden must be present');
     assert.ok(serene, 'Serene Garden must be present');
     assert.ok(sunda, 'Sunda Puspa must be present');
+    assert.ok(classic, 'Classic Letter must be present');
+    assert.ok(velvet, 'Velvet Letter must be present');
 
     assert.equal(ivory?.thumbnailPath, '/templates/ivory-garden/thumbnail.webp');
     assert.equal(ivory?.demoPath, '/templates/ivory-garden/demo');
@@ -34,10 +50,11 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
     assert.equal(sunda?.thumbnailPath, '/templates/sunda-puspa/thumbnail.webp');
     assert.equal(sunda?.demoPath, '/templates/sunda-puspa/demo');
 
-    const classic = templates.find((t) => t.themeCode === 'CLASSIC_LETTER');
-    assert.ok(classic, 'Classic Letter must be present');
     assert.equal(classic?.thumbnailPath, '/templates/classic-letter/thumbnail.webp');
     assert.equal(classic?.demoPath, '/templates/classic-letter/demo');
+
+    assert.equal(velvet?.thumbnailPath, '/templates/velvet-letter/thumbnail.webp');
+    assert.equal(velvet?.demoPath, '/templates/velvet-letter/demo');
   });
 
   await t.test('legacy placeholder marketing cards are strictly absent from active catalog', () => {

@@ -49,6 +49,18 @@ export const APPROVED_CATALOG_TEMPLATES: readonly CatalogTemplateItem[] = [
     sortOrder: 4,
     availability: 'AVAILABLE',
   },
+  {
+    themeCode: 'VELVET_LETTER',
+    slug: 'velvet-letter',
+    displayName: 'Velvet Letter',
+    category: 'Luxury Stationery',
+    shortDescription:
+      'Undangan bernuansa burgundy velvet mewah dengan stationery ivory, aksen champagne, amplop elegan, dan segel lilin.',
+    thumbnailPath: '/templates/velvet-letter/thumbnail.webp',
+    demoPath: '/templates/velvet-letter/demo',
+    sortOrder: 5,
+    availability: 'AVAILABLE',
+  },
 ] as const;
 
 /**

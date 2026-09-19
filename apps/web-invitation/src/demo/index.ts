@@ -3,12 +3,14 @@ import { IVORY_GARDEN_DEMO_FIXTURE } from './fixtures/ivory-garden.fixture';
 import { SERENE_GARDEN_DEMO_FIXTURE } from './fixtures/serene-garden.fixture';
 import { SUNDA_PUSPA_DEMO_FIXTURE } from './fixtures/sunda-puspa.fixture';
 import { CLASSIC_LETTER_DEMO_FIXTURE } from './fixtures/classic-letter.fixture';
+import { VELVET_LETTER_DEMO_FIXTURE } from './fixtures/velvet-letter.fixture';
 
 export {
   IVORY_GARDEN_DEMO_FIXTURE,
   SERENE_GARDEN_DEMO_FIXTURE,
   SUNDA_PUSPA_DEMO_FIXTURE,
   CLASSIC_LETTER_DEMO_FIXTURE,
+  VELVET_LETTER_DEMO_FIXTURE,
 };
 
 const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
@@ -16,6 +18,7 @@ const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
   SERENE_GARDEN: SERENE_GARDEN_DEMO_FIXTURE,
   SUNDA_PUSPA: SUNDA_PUSPA_DEMO_FIXTURE,
   CLASSIC_LETTER: CLASSIC_LETTER_DEMO_FIXTURE,
+  VELVET_LETTER: VELVET_LETTER_DEMO_FIXTURE,
 };
 
 /**
