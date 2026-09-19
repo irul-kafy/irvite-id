@@ -1,130 +1,75 @@
 /**
- * Fixed Template Catalog Registry
- * Defines ready-to-use, uniquely styled fixed invitation templates.
- * Customers and standard admins select fixed designs without modifying colors, typography, or section layout.
+ * Fixed Template Catalog Registry (Admin)
+ * Authoritative admin presentation metadata for approved production templates.
+ * Aligned with the public web-invitation catalog registry contract.
+ *
+ * DO NOT hardcode environment-specific DB UUIDs here.
+ * DB identity is resolved dynamically via joinCatalogWithDbTemplates() by matching themeCode.
  */
 
 import { TemplateConfigV1 } from './template-studio-model';
 
+export type CatalogAvailability = 'AVAILABLE' | 'COMING_SOON' | 'DEPRECATED';
+
 export type CatalogCategory =
   | 'All'
-  | 'Elegant'
-  | 'Minimalist'
-  | 'Floral'
-  | 'Non-Foto'
-  | 'Painting'
-  | 'Classic';
+  | 'Floral & Botanical'
+  | 'Modern Botanical'
+  | 'Traditional Sundanese'
+  | string;
 
 export interface CatalogTemplate {
-  id: string;
-  name: string;
+  id: string; // Stable slug identifier (e.g. 'ivory-garden')
+  slug: string;
   themeCode: string;
-  category: CatalogCategory;
+  name: string;
+  displayName: string;
+  category: string;
   tags: string[];
   description: string;
+  shortDescription: string;
+  thumbnailPath: string;
+  demoPath: string;
+  sortOrder: number;
+  availability: CatalogAvailability;
   badge?: string;
   isPhotoOptional?: boolean;
   config: TemplateConfigV1;
 }
 
-export const CATALOG_CATEGORIES: CatalogCategory[] = [
+export const CATALOG_CATEGORIES: string[] = [
   'All',
-  'Elegant',
-  'Minimalist',
-  'Floral',
-  'Non-Foto',
-  'Painting',
-  'Classic',
+  'Floral & Botanical',
+  'Modern Botanical',
+  'Traditional Sundanese',
 ];
 
-export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
+export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
   {
-    id: 'verdant-estate',
-    name: 'Verdant Estate',
-    themeCode: 'VERDANT',
-    category: 'Elegant',
-    tags: ['Classic', 'Elegant', 'Floral'],
+    id: 'ivory-garden',
+    slug: 'ivory-garden',
+    themeCode: 'IVORY_GARDEN',
+    name: 'Ivory Garden',
+    displayName: 'Ivory Garden',
+    category: 'Floral & Botanical',
+    tags: ['Floral', 'Botanical', 'Elegant', 'Classic'],
     description:
-      'Timeless luxury with deep emerald greens, warm gold accents, and elegant serif typography.',
-    badge: 'Trending',
-    isPhotoOptional: false,
-    config: {
-      version: 1,
-      theme: {
-        primaryColor: '#1E3A2F',
-        secondaryColor: '#B4975A',
-        backgroundColor: '#F7F8F5',
-        textColor: '#1A2820',
-      },
-      typography: {
-        headingFont: 'PLAYFAIR_DISPLAY',
-        bodyFont: 'LORA',
-      },
-      sections: [
-        { id: 'hero', enabled: true, order: 1, variant: 'default' },
-        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
-        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
-        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
-        { id: 'location', enabled: true, order: 6, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
-        { id: 'closing', enabled: true, order: 9, variant: 'default' },
-      ],
-    },
-  },
-  {
-    id: 'midnight-editorial',
-    name: 'Midnight Editorial',
-    themeCode: 'MIDNIGHT',
-    category: 'Minimalist',
-    tags: ['Minimalist', 'Modern', 'Dark'],
-    description:
-      'High-fashion dark aesthetic with sleek typography, high-contrast layouts, and modern minimalism.',
+      'Desain elegan bernuansa floral ivory dengan sentuhan botanical klasik yang abadi.',
+    shortDescription:
+      'Desain elegan bernuansa floral ivory dengan sentuhan botanical klasik yang abadi.',
+    thumbnailPath: '/templates/ivory-garden/thumbnail.webp',
+    demoPath: '/templates/ivory-garden/demo',
+    sortOrder: 1,
+    availability: 'AVAILABLE',
     badge: 'Popular',
     isPhotoOptional: false,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#F3F4F6',
-        secondaryColor: '#9CA3AF',
-        backgroundColor: '#0F172A',
-        textColor: '#F9FAFB',
-      },
-      typography: {
-        headingFont: 'MONTSERRAT',
-        bodyFont: 'INTER',
-      },
-      sections: [
-        { id: 'hero', enabled: true, order: 1, variant: 'default' },
-        { id: 'eventDetails', enabled: true, order: 2, variant: 'default' },
-        { id: 'greeting', enabled: true, order: 3, variant: 'default' },
-        { id: 'location', enabled: true, order: 4, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 5, variant: 'default' },
-        { id: 'gallery', enabled: true, order: 6, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 7, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
-        { id: 'closing', enabled: true, order: 9, variant: 'default' },
-      ],
-    },
-  },
-  {
-    id: 'botanical-illustration',
-    name: 'Botanical Illustration',
-    themeCode: 'BOTANICAL',
-    category: 'Painting',
-    tags: ['Painting', 'Non-Foto', 'Floral', 'Rustic'],
-    description:
-      'Artistic painted botanicals with warm earth tones, organic textures, and hand-crafted charm without requiring personal photos.',
-    badge: 'Artisanal',
-    isPhotoOptional: true,
-    config: {
-      version: 1,
-      theme: {
-        primaryColor: '#8B4513',
-        secondaryColor: '#C48B58',
-        backgroundColor: '#FAF6F0',
-        textColor: '#3D2817',
+        primaryColor: '#C4A06A',
+        secondaryColor: '#8A734D',
+        backgroundColor: '#FDFBF7',
+        textColor: '#171817',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
@@ -134,31 +79,40 @@ export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
         { id: 'hero', enabled: true, order: 1, variant: 'default' },
         { id: 'greeting', enabled: true, order: 2, variant: 'default' },
         { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
-        { id: 'location', enabled: true, order: 4, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 5, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 6, variant: 'default' },
-        { id: 'closing', enabled: true, order: 7, variant: 'default' },
-        { id: 'gallery', enabled: false, order: 8, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 9, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
       ],
     },
   },
   {
-    id: 'classic-elegance',
-    name: 'Classic Elegance',
-    themeCode: 'CLASSIC',
-    category: 'Classic',
-    tags: ['Classic', 'Elegant'],
+    id: 'serene-garden',
+    slug: 'serene-garden',
+    themeCode: 'SERENE_GARDEN',
+    name: 'Serene Garden',
+    displayName: 'Serene Garden',
+    category: 'Modern Botanical',
+    tags: ['Botanical', 'Modern', 'Serene', 'Minimalist'],
     description:
-      'A refined, timeless aesthetic with warm stone accents, balanced serif typography, and graceful whitespace.',
+      'Harmoni botanical modern yang menenangkan dengan tipografi anggun dan tata letak presisi.',
+    shortDescription:
+      'Harmoni botanical modern yang menenangkan dengan tipografi anggun dan tata letak presisi.',
+    thumbnailPath: '/templates/serene-garden/thumbnail.webp',
+    demoPath: '/templates/serene-garden/demo',
+    sortOrder: 2,
+    availability: 'AVAILABLE',
+    badge: 'Trending',
     isPhotoOptional: false,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#1C1917',
-        secondaryColor: '#78716C',
-        backgroundColor: '#FAFAF9',
-        textColor: '#292524',
+        primaryColor: '#2D5A3D',
+        secondaryColor: '#7A9A7E',
+        backgroundColor: '#F7FAF7',
+        textColor: '#172019',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
@@ -178,55 +132,30 @@ export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
     },
   },
   {
-    id: 'modern-minimal',
-    name: 'Modern Minimal',
-    themeCode: 'MINIMAL',
-    category: 'Minimalist',
-    tags: ['Minimalist', 'Modern'],
+    id: 'sunda-puspa',
+    slug: 'sunda-puspa',
+    themeCode: 'SUNDA_PUSPA',
+    name: 'Sunda Puspa',
+    displayName: 'Sunda Puspa',
+    category: 'Traditional Sundanese',
+    tags: ['Traditional', 'Sunda', 'Puspa', 'Cultural'],
     description:
-      'Crisp, clean lines with high-contrast typography, neutral grays, and contemporary structure.',
-    isPhotoOptional: false,
+      'Pernikahan adat Sunda klasik nan agung dengan ornamen puspa dan kidung kabagjaan.',
+    shortDescription:
+      'Pernikahan adat Sunda klasik nan agung dengan ornamen puspa dan kidung kabagjaan.',
+    thumbnailPath: '/templates/sunda-puspa/thumbnail.webp',
+    demoPath: '/templates/sunda-puspa/demo',
+    sortOrder: 3,
+    availability: 'AVAILABLE',
+    badge: 'Artisanal',
+    isPhotoOptional: true,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#111827',
-        secondaryColor: '#6B7280',
-        backgroundColor: '#FFFFFF',
-        textColor: '#111827',
-      },
-      typography: {
-        headingFont: 'MONTSERRAT',
-        bodyFont: 'INTER',
-      },
-      sections: [
-        { id: 'hero', enabled: true, order: 1, variant: 'default' },
-        { id: 'eventDetails', enabled: true, order: 2, variant: 'default' },
-        { id: 'greeting', enabled: true, order: 3, variant: 'default' },
-        { id: 'location', enabled: true, order: 4, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 5, variant: 'default' },
-        { id: 'gallery', enabled: true, order: 6, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 7, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
-        { id: 'closing', enabled: true, order: 9, variant: 'default' },
-      ],
-    },
-  },
-  {
-    id: 'romantic-garden',
-    name: 'Romantic Garden',
-    themeCode: 'ROMANTIC',
-    category: 'Floral',
-    tags: ['Floral', 'Romantic', 'Elegant'],
-    description:
-      'Soft blush tones, crimson accents, and poetic typography designed for romantic celebrations.',
-    isPhotoOptional: false,
-    config: {
-      version: 1,
-      theme: {
-        primaryColor: '#881337',
-        secondaryColor: '#9F1239',
-        backgroundColor: '#FFF1F2',
-        textColor: '#4C0519',
+        primaryColor: '#A17A38',
+        secondaryColor: '#D4AF37',
+        backgroundColor: '#FAF7F2',
+        textColor: '#2A2318',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
@@ -236,8 +165,8 @@ export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
         { id: 'hero', enabled: true, order: 1, variant: 'default' },
         { id: 'greeting', enabled: true, order: 2, variant: 'default' },
         { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
-        { id: 'gallery', enabled: true, order: 4, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 5, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
         { id: 'location', enabled: true, order: 6, variant: 'default' },
         { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
         { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
@@ -245,18 +174,41 @@ export const FIXED_CATALOG_TEMPLATES: CatalogTemplate[] = [
       ],
     },
   },
-];
+] as const;
 
-export function getCatalogTemplateById(id: string): CatalogTemplate | undefined {
-  return FIXED_CATALOG_TEMPLATES.find((t) => t.id === id);
+export function getCatalogTemplates(): CatalogTemplate[] {
+  return [...FIXED_CATALOG_TEMPLATES].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+export function getCatalogTemplateById(id: string | null | undefined): CatalogTemplate | undefined {
+  if (!id) return undefined;
+  const normalized = id.trim().toLowerCase();
+  return FIXED_CATALOG_TEMPLATES.find(
+    (t) => t.id.toLowerCase() === normalized || t.slug.toLowerCase() === normalized || t.themeCode.toLowerCase() === normalized
+  );
+}
+
+export function getCatalogTemplateBySlug(slug: string | null | undefined): CatalogTemplate | undefined {
+  if (!slug) return undefined;
+  const normalized = slug.trim().toLowerCase();
+  return FIXED_CATALOG_TEMPLATES.find((t) => t.slug.toLowerCase() === normalized);
+}
+
+export function getCatalogTemplateByThemeCode(
+  themeCode: string | null | undefined
+): CatalogTemplate | undefined {
+  if (!themeCode) return undefined;
+  const normalized = themeCode.trim().toUpperCase();
+  return FIXED_CATALOG_TEMPLATES.find(
+    (t) => t.themeCode.trim().toUpperCase() === normalized
+  );
 }
 
 export function filterCatalogTemplates(
-  category: CatalogCategory,
+  category: string,
   searchQuery: string = ''
 ): CatalogTemplate[] {
   return FIXED_CATALOG_TEMPLATES.filter((tpl) => {
-    // 1. Category filter
     const matchesCategory =
       category === 'All' ||
       tpl.category === category ||
@@ -264,13 +216,97 @@ export function filterCatalogTemplates(
 
     if (!matchesCategory) return false;
 
-    // 2. Search query filter
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase().trim();
     return (
       tpl.name.toLowerCase().includes(query) ||
+      tpl.displayName.toLowerCase().includes(query) ||
+      tpl.themeCode.toLowerCase().includes(query) ||
       tpl.description.toLowerCase().includes(query) ||
       tpl.tags.some((tag) => tag.toLowerCase().includes(query))
     );
+  });
+}
+
+// ── DB JOIN LOGIC (SECTION 9) ────────────────────────────────────────────────
+
+export interface DbTemplateRecord {
+  id: string;
+  name: string;
+  themeCode?: string | null;
+  previewImageUrl?: string | null;
+  config?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type DbReadinessStatus = 'SYNCED' | 'MISSING' | 'DUPLICATE';
+
+export interface JoinedCatalogTemplate {
+  catalogItem: CatalogTemplate;
+  readiness: DbReadinessStatus;
+  matchCount: number;
+  matchedDbTemplate: DbTemplateRecord | null;
+  canUse: boolean;
+  previewImageUrl: string;
+  statusMessage: string;
+}
+
+/**
+ * Joins static code-owned catalog templates with live database template records by themeCode.
+ *
+ * Requirements:
+ * - Join MUST be by themeCode, NOT display name.
+ * - 0 matching DB rows: readiness = MISSING, canUse = false, no fabricated ID.
+ * - 1 matching DB row: readiness = SYNCED, canUse = true, receives exact DB id.
+ * - >1 matching DB rows: readiness = DUPLICATE, canUse = false, FAIL CLOSED (never pick first duplicate).
+ */
+export function joinCatalogWithDbTemplates(
+  catalogTemplates: readonly CatalogTemplate[],
+  dbTemplates: readonly DbTemplateRecord[]
+): JoinedCatalogTemplate[] {
+  return catalogTemplates.map((catalogItem) => {
+    const targetThemeCode = catalogItem.themeCode.trim().toUpperCase();
+
+    const matches = dbTemplates.filter((db) => {
+      if (!db.themeCode || typeof db.themeCode !== 'string') return false;
+      return db.themeCode.trim().toUpperCase() === targetThemeCode;
+    });
+
+    if (matches.length === 1) {
+      const dbRow = matches[0];
+      return {
+        catalogItem,
+        readiness: 'SYNCED',
+        matchCount: 1,
+        matchedDbTemplate: dbRow,
+        canUse: catalogItem.availability === 'AVAILABLE',
+        previewImageUrl: dbRow.previewImageUrl || catalogItem.thumbnailPath,
+        statusMessage: 'Tersinkronisasi dengan Database',
+      };
+    }
+
+    if (matches.length === 0) {
+      return {
+        catalogItem,
+        readiness: 'MISSING',
+        matchCount: 0,
+        matchedDbTemplate: null,
+        canUse: false,
+        previewImageUrl: catalogItem.thumbnailPath,
+        statusMessage: 'Identitas Database belum tersinkronisasi. Jalankan templates:sync.',
+      };
+    }
+
+    // > 1 matching rows: FAIL CLOSED! Do NOT pick first duplicate!
+    return {
+      catalogItem,
+      readiness: 'DUPLICATE',
+      matchCount: matches.length,
+      matchedDbTemplate: null,
+      canUse: false,
+      previewImageUrl: catalogItem.thumbnailPath,
+      statusMessage: `Peringatan: Duplikasi identitas terdeteksi (${matches.length} baris di DB). Fitur dinonaktifkan.`,
+    };
   });
 }

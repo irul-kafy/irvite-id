@@ -115,3 +115,22 @@ export function getTrustedInvitationOrigin(): string | null {
 
   return urlObj.origin;
 }
+
+/**
+ * Constructs the canonical public URL to a coded template demo route.
+ * Resolves against trusted invitation origin (e.g. http://localhost:3002 or https://irvite.id)
+ * if configured, or returns null if not configured or invalid (fails closed).
+ * Never returns relative demoPath which is unsafe for cross-origin web-admin.
+ */
+export function getCanonicalTemplateDemoUrl(demoPath: string | null | undefined): string | null {
+  if (!demoPath || typeof demoPath !== 'string' || !demoPath.trim()) {
+    return null;
+  }
+  const origin = getTrustedInvitationOrigin();
+  if (!origin) {
+    return null;
+  }
+  const trimmed = demoPath.trim();
+  const cleanPath = trimmed.startsWith('/') ? trimmed : '/' + trimmed;
+  return origin + cleanPath;
+}
