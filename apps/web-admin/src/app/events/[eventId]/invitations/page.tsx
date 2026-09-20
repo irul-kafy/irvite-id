@@ -163,6 +163,7 @@ export default function InvitationDistributionPage({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
+  const [bulkGenerating, setBulkGenerating] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -259,6 +260,57 @@ export default function InvitationDistributionPage({
       ignore = true;
     };
   }, [eventId, router]);
+
+
+  const handleBulkGenerate = async () => {
+    if (bulkGenerating) return;
+    if (!confirm('Apakah Anda yakin ingin membuat undangan personal untuk semua tamu yang belum memiliki undangan?')) {
+      return;
+    }
+
+    setBulkGenerating(true);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch(`/api/events/${eventId}/invitations/bulk`, {
+        method: 'POST',
+      });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (res.status === 409) {
+        const errData = await res.json().catch(() => ({}));
+        setActionMessage({
+          type: 'error',
+          text: errData.message || 'Tidak dapat membuat undangan untuk acara yang diarsipkan.',
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Gagal melakukan bulk generate undangan.');
+      }
+
+      const summary = await res.json();
+      setActionMessage({
+        type: 'success',
+        text: `Proses generate selesai: ${summary.created} undangan baru dibuat, ${summary.alreadyExisting} sudah ada sebelumnya (${summary.totalGuests} total tamu).`,
+      });
+
+      await loadPageData(currentPage);
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal melakukan bulk generate undangan.',
+      });
+    } finally {
+      setBulkGenerating(false);
+    }
+  };
 
   const handleGenerateInvitation = async (guestId: string) => {
     if (generatingGuestId) return;
@@ -390,6 +442,19 @@ export default function InvitationDistributionPage({
           <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>
             Kelola tautan undangan personal dan status respons tamu.
           </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            id="btn-bulk-generate-invitations"
+            type="button"
+            onClick={handleBulkGenerate}
+            disabled={bulkGenerating || loading}
+            className="btn btn-primary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
+          >
+            <IconSparkles />
+            <span>{bulkGenerating ? 'Memproses Undangan...' : 'Generate Semua Undangan'}</span>
+          </button>
         </div>
       </div>
 

@@ -1,7 +1,8 @@
-export type PublicAvailabilityState = 'DRAFT' | 'ACTIVE' | 'EXPIRED';
+export type PublicAvailabilityState = 'DRAFT' | 'ACTIVE' | 'EXPIRED' | 'ARCHIVED';
 
 /**
  * Derives the factual public invitation availability state matching the backend contract:
+ * - ARCHIVED: status === 'ARCHIVED'
  * - DRAFT: status !== 'PUBLISHED'
  * - ACTIVE: status === 'PUBLISHED' && now < eventDate + 30 days
  * - EXPIRED: status === 'PUBLISHED' && now >= eventDate + 30 days
@@ -11,6 +12,10 @@ export function getPublicAvailabilityState(
   eventDateStr: string,
   nowMs: number = Date.now(),
 ): PublicAvailabilityState {
+  if (status === 'ARCHIVED') {
+    return 'ARCHIVED';
+  }
+
   if (status !== 'PUBLISHED') {
     return 'DRAFT';
   }

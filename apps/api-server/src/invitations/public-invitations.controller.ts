@@ -1,3 +1,4 @@
+import { Throttle, seconds } from '@nestjs/throttler';
 import {
   Controller,
   Get,
@@ -19,6 +20,7 @@ export class PublicInvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 
   @Public()
+  @Throttle({ default: { limit: 60, ttl: seconds(60) } })
   @Get(':uniqueCode')
   @Header('Cache-Control', 'no-store')
   async resolvePublic(@Param('uniqueCode') uniqueCode: string) {
@@ -30,6 +32,7 @@ export class PublicInvitationsController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 15, ttl: seconds(60) } })
   @Patch(':uniqueCode/rsvp')
   @Header('Cache-Control', 'no-store')
   async updatePublicRsvp(

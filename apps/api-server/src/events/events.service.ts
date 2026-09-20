@@ -1,3 +1,4 @@
+import { EVENT_STATUS } from './event-status';
 import {
   Injectable,
   NotFoundException,
@@ -321,5 +322,28 @@ export class EventsService {
       media: mediaDescriptors,
       mediaBySlot,
     };
+  }
+  async archive(id: string, userId: string, role: Role) {
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+
+    const existingEvent = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: { id: true, status: true },
+    });
+
+    if (!existingEvent) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (existingEvent.status === EVENT_STATUS.ARCHIVED) {
+      return { success: true, message: 'Event is already archived' };
+    }
+
+    await this.prisma.event.update({
+      where: { id },
+      data: { status: EVENT_STATUS.ARCHIVED },
+    });
+
+    return { success: true, message: 'Event archived successfully' };
   }
 }

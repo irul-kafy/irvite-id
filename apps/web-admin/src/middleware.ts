@@ -5,11 +5,12 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   
-  // Protect /dashboard, /events, /events/[eventId]/*, /templates, /templates/*
+  // Protect /dashboard, /events, /events/[eventId]/*, /templates, /templates/*, /staff, /staff/*
   const isProtectedPath = 
     request.nextUrl.pathname.startsWith('/dashboard') || 
     request.nextUrl.pathname.startsWith('/events') ||
-    request.nextUrl.pathname.startsWith('/templates');
+    request.nextUrl.pathname.startsWith('/templates') ||
+    request.nextUrl.pathname.startsWith('/staff');
 
   if (isProtectedPath && !token) {
     return NextResponse.redirect(new URL('/login', request.url));
@@ -23,5 +24,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/events/:path*', '/templates/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/events/:path*', '/templates/:path*', '/staff/:path*', '/login'],
 };
