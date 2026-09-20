@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../database/prisma.service';
+import { MediaStorageService } from '../media/media-storage.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { Role, Prisma } from 'database';
 
@@ -12,6 +13,10 @@ describe('EventsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: MediaStorageService,
+          useValue: { deleteFile: jest.fn() },
+        },
         EventsService,
         {
           provide: PrismaService,

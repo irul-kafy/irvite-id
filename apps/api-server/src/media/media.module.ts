@@ -16,5 +16,6 @@ import { InvitationsModule } from '../invitations/invitations.module';
     PublicEventMediaController,
   ],
   providers: [MediaService, MediaStorageService, PublicMediaService],
+  exports: [MediaStorageService],
 })
 export class MediaModule {}
