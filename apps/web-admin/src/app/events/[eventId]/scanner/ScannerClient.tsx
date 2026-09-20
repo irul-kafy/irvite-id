@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -14,18 +14,43 @@ interface ScannerClientProps {
 type ScanStatus = 'INITIALIZING' | 'READY' | 'ERROR' | 'DENIED' | 'NOT_FOUND';
 type ScanState = 'IDLE' | 'RESOLVING' | 'PREVIEW' | 'CHECKING_IN' | 'CHECKED_IN' | 'ALREADY_CHECKED_IN';
 
+interface CheckInAudit {
+  id: string;
+  scannedPax: number;
+  scannedAt: string;
+  scannedById: string;
+}
+
 interface ResolveData {
+  result: 'READY' | 'ALREADY_CHECKED_IN';
+  status?: 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
+  scannedPax?: number;
+  remainingPax?: number;
   guest: { name: string; maxPax: number };
-  rsvp?: { response: string; pax?: number };
-  attendance?: { scannedPax: number; scannedAt: string };
+  rsvp?: { response: string; pax?: number | null };
+  attendance?: { scannedPax: number; scannedAt: string } | null;
+  checkIns?: CheckInAudit[];
 }
 
 interface CheckInResponse {
   result: 'CHECKED_IN' | 'ALREADY_CHECKED_IN';
-  attendance: {
+  status?: 'PARTIAL' | 'COMPLETE';
+  scannedPax?: number;
+  remainingPax?: number;
+  deltaPax?: number;
+  attendance?: {
     scannedPax: number;
     scannedAt: string;
   };
+}
+
+interface LastCheckInResult {
+  deltaPax: number;
+  scannedPax: number;
+  remainingPax: number;
+  maxPax: number;
+  status: 'PARTIAL' | 'COMPLETE';
+  scannedAt: string;
 }
 
 export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientProps) {
@@ -41,6 +66,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [resolveData, setResolveData] = useState<ResolveData | null>(null);
   const [selectedPax, setSelectedPax] = useState<number>(1);
   const [manualInput, setManualInput] = useState<string>('');
+  const [lastCheckInResult, setLastCheckInResult] = useState<LastCheckInResult | null>(null);
 
   // Refs for async safety and cleanup
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -183,18 +209,22 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         return;
       }
 
-      const data = await res.json();
+      const data: ResolveData = await res.json();
+      setResolveData(data);
 
-      if (data.attendance) {
-        setResolveData(data);
+      const maxPax = data.guest.maxPax;
+      const alreadyScanned = typeof data.scannedPax === 'number' ? data.scannedPax : (data.attendance?.scannedPax ?? 0);
+      const remainingPax = typeof data.remainingPax === 'number' ? data.remainingPax : Math.max(0, maxPax - alreadyScanned);
+      const status = data.status || (alreadyScanned === 0 ? 'NOT_CHECKED_IN' : remainingPax === 0 ? 'COMPLETE' : 'PARTIAL');
+
+      if (status === 'COMPLETE' || remainingPax === 0) {
         setScanState('ALREADY_CHECKED_IN');
       } else {
-        setResolveData(data);
-
-        // Determine default pax: if RSVP is YES and pax is valid number, use min(rsvp.pax, maxPax)
         let defaultPax = 1;
-        if (data.rsvp?.response === 'YES' && typeof data.rsvp.pax === 'number') {
-          defaultPax = Math.min(Math.max(1, data.rsvp.pax), data.guest.maxPax);
+        if (status === 'NOT_CHECKED_IN' && data.rsvp?.response === 'YES' && typeof data.rsvp.pax === 'number') {
+          defaultPax = Math.min(Math.max(1, data.rsvp.pax), remainingPax);
+        } else {
+          defaultPax = Math.min(1, remainingPax);
         }
         setSelectedPax(defaultPax);
         setScanState('PREVIEW');
@@ -239,14 +269,54 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       }
 
       const data: CheckInResponse = await res.json();
-      // Correct assignment: store data.attendance (not full data object) to prevent double nesting
-      setResolveData((prev) => (prev ? { ...prev, attendance: data.attendance } : null));
 
       if (data.result === 'ALREADY_CHECKED_IN') {
+        setResolveData((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'COMPLETE',
+                scannedPax: data.scannedPax ?? prev.guest.maxPax,
+                remainingPax: 0,
+                attendance: data.attendance ?? prev.attendance,
+              }
+            : null,
+        );
         setScanState('ALREADY_CHECKED_IN');
-      } else {
-        setScanState('CHECKED_IN');
+        return;
       }
+
+      const maxPax = resolveData?.guest.maxPax ?? data.scannedPax ?? selectedPax;
+      const currentTotal = data.scannedPax ?? ((resolveData?.scannedPax ?? 0) + selectedPax);
+      const remaining = typeof data.remainingPax === 'number' ? data.remainingPax : Math.max(0, maxPax - currentTotal);
+      const status: 'PARTIAL' | 'COMPLETE' = data.status || (remaining === 0 ? 'COMPLETE' : 'PARTIAL');
+      const delta = data.deltaPax ?? selectedPax;
+
+      const checkInTime = data.attendance?.scannedAt || new Date().toISOString();
+      setLastCheckInResult({
+        deltaPax: delta,
+        scannedPax: currentTotal,
+        remainingPax: remaining,
+        maxPax,
+        status,
+        scannedAt: checkInTime,
+      });
+
+      setResolveData((prev) =>
+        prev
+          ? {
+              ...prev,
+              status,
+              scannedPax: currentTotal,
+              remainingPax: remaining,
+              attendance: data.attendance ?? {
+                scannedPax: currentTotal,
+                scannedAt: checkInTime,
+              },
+            }
+          : null,
+      );
+      setScanState('CHECKED_IN');
     } catch {
       if (!mountedRef.current) return;
       setErrorMessage('Terjadi gangguan jaringan saat mengirim data check-in.');
@@ -261,6 +331,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     setSelectedPax(1);
     setManualInput('');
     setErrorMessage('');
+    setLastCheckInResult(null);
     lockRef.current = false;
   };
 
@@ -316,49 +387,84 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </div>
         )}
 
-        {scanState === 'PREVIEW' && resolveData && (
-          <div className="scanner-card preview-card">
-            <h2>{resolveData.guest.name}</h2>
-            <p className="rsvp-status">
-              RSVP:{' '}
-              <strong>
-                {resolveData.rsvp?.response === 'YES'
-                  ? `Hadir (${resolveData.rsvp.pax || 1} Pax)`
-                  : resolveData.rsvp?.response === 'NO'
-                  ? 'Tidak Hadir'
-                  : 'Belum Konfirmasi'}
-              </strong>
-            </p>
+        {scanState === 'PREVIEW' && resolveData && (() => {
+          const maxPax = resolveData.guest.maxPax;
+          const alreadyScanned = typeof resolveData.scannedPax === 'number' ? resolveData.scannedPax : (resolveData.attendance?.scannedPax ?? 0);
+          const remainingPax = typeof resolveData.remainingPax === 'number' ? resolveData.remainingPax : Math.max(0, maxPax - alreadyScanned);
+          const isPartial = alreadyScanned > 0;
 
-            <div className="pax-controls">
-              <button
-                type="button"
-                onClick={() => setSelectedPax((p) => Math.max(1, p - 1))}
-                disabled={selectedPax <= 1}
-                aria-label="Kurangi jumlah pax"
-              >
-                -
+          return (
+            <div className="scanner-card preview-card">
+              <h2>{resolveData.guest.name}</h2>
+
+              {isPartial ? (
+                <div className="pax-summary" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--surface-subtle, #f5f5f5)' }}>
+                  <p style={{ margin: '0 0 4px 0' }}>Maks. tamu: <strong>{maxPax}</strong></p>
+                  <p style={{ margin: '0 0 4px 0' }}>Sudah masuk: <strong>{alreadyScanned}</strong></p>
+                  <p style={{ margin: '0' }}>Sisa: <strong style={{ color: 'var(--primary, #0070f3)' }}>{remainingPax}</strong></p>
+                </div>
+              ) : (
+                <>
+                  <p className="rsvp-status">
+                    RSVP:{' '}
+                    <strong>
+                      {resolveData.rsvp?.response === 'YES'
+                        ? `Hadir (${resolveData.rsvp.pax || 1} Pax)`
+                        : resolveData.rsvp?.response === 'NO'
+                        ? 'Tidak Hadir'
+                        : 'Belum Konfirmasi'}
+                    </strong>
+                  </p>
+                  <p className="max-pax-hint">Maksimal diizinkan: {maxPax} Pax</p>
+                </>
+              )}
+
+              <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Pax datang sekarang:</p>
+                <div className="pax-controls">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPax((p) => Math.max(1, p - 1))}
+                    disabled={selectedPax <= 1}
+                    aria-label="Kurangi jumlah pax"
+                  >
+                    -
+                  </button>
+                  <span className="pax-value">{selectedPax}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPax((p) => Math.min(remainingPax, p + 1))}
+                    disabled={selectedPax >= remainingPax}
+                    aria-label="Tambah jumlah pax"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {resolveData.checkIns && resolveData.checkIns.length > 0 && (
+                <div className="checkin-history" style={{ margin: '0.75rem 0', padding: '0.5rem', borderRadius: '6px', background: '#fafafa', fontSize: '0.8rem', textAlign: 'left' }}>
+                  <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Riwayat Scan Sebelumnya:</p>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                    {resolveData.checkIns.map((ci) => (
+                      <li key={ci.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                        <span>{new Date(ci.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>+{ci.scannedPax} pax</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <button className="checkin-btn" onClick={handleCheckIn}>
+                Check In {selectedPax} Tamu
               </button>
-              <span className="pax-value">{selectedPax}</span>
-              <button
-                type="button"
-                onClick={() => setSelectedPax((p) => Math.min(resolveData.guest.maxPax, p + 1))}
-                disabled={selectedPax >= resolveData.guest.maxPax}
-                aria-label="Tambah jumlah pax"
-              >
-                +
+              <button className="cancel-btn" onClick={handleReset}>
+                Batal
               </button>
             </div>
-            <p className="max-pax-hint">Maksimal diizinkan: {resolveData.guest.maxPax} Pax</p>
-
-            <button className="checkin-btn" onClick={handleCheckIn}>
-              Check-in {selectedPax} Pax
-            </button>
-            <button className="cancel-btn" onClick={handleReset}>
-              Batal
-            </button>
-          </div>
-        )}
+          );
+        })()}
 
         {scanState === 'CHECKING_IN' && (
           <div className="scanner-card loading-card">
@@ -366,40 +472,85 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </div>
         )}
 
-        {scanState === 'CHECKED_IN' && resolveData?.attendance && (
-          <div className="scanner-card success-card" id="scanner-success-card">
-            <h2>Check-In Berhasil!</h2>
-            <p className="scanned-info">
-              <strong>{resolveData.guest.name}</strong> • {resolveData.attendance.scannedPax} Pax
-            </p>
-            <p className="scanned-time" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Waktu:{' '}
-              {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
-            </p>
-            <button className="reset-btn" onClick={handleReset}>
-              Scan Tamu Berikutnya
-            </button>
-          </div>
-        )}
+        {scanState === 'CHECKED_IN' && resolveData?.attendance && (() => {
+          const result = lastCheckInResult;
+          const isComplete = result?.status === 'COMPLETE' || result?.remainingPax === 0;
+
+          return (
+            <div className="scanner-card success-card" id="scanner-success-card">
+              <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
+              <p className="scanned-info">
+                <strong>{resolveData.guest.name}</strong>
+              </p>
+              {result ? (
+                <div className="checkin-success-details" style={{ margin: '0.75rem 0' }}>
+                  <p style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 600 }}>
+                    {result.deltaPax} tamu berhasil check-in
+                  </p>
+                  <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>
+                    Total hadir: <strong>{result.scannedPax} / {result.maxPax}</strong>
+                  </p>
+                  {!isComplete ? (
+                    <p style={{ margin: '0', color: 'var(--warning-text, #e67e22)', fontWeight: 500 }}>
+                      Sisa: <strong>{result.remainingPax}</strong>
+                    </p>
+                  ) : (
+                    <p style={{ margin: '0', color: 'var(--success-text, #27ae60)', fontWeight: 500 }}>
+                      Check-in selesai
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="scanned-info">
+                  {resolveData.attendance.scannedPax} Pax
+                </p>
+              )}
+              <p className="scanned-time" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Waktu:{' '}
+                {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+              <button className="reset-btn" onClick={handleReset}>
+                Scan Tamu Berikutnya
+              </button>
+            </div>
+          );
+        })()}
 
         {scanState === 'ALREADY_CHECKED_IN' && resolveData?.attendance && (
           <div className="scanner-card warning-card" id="scanner-warning-card">
-            <h2>Sudah Check-In Sebelumnya</h2>
+            <h2>Sudah Check-In Lengkap</h2>
             <p className="scanned-info">
-              <strong>{resolveData.guest.name}</strong> • {resolveData.attendance.scannedPax} Pax
+              <strong>{resolveData.guest.name}</strong> &bull;{' '}
+              {resolveData.scannedPax ?? resolveData.attendance.scannedPax} / {resolveData.guest.maxPax} Pax
+            </p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '4px 0' }}>
+              Semua kuota tamu sudah masuk.
             </p>
             <p className="scanned-time" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Waktu:{' '}
+              Waktu terakhir:{' '}
               {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
               })}
             </p>
+            {resolveData.checkIns && resolveData.checkIns.length > 0 && (
+              <div className="checkin-history" style={{ margin: '0.75rem 0', padding: '0.5rem', borderRadius: '6px', background: '#fafafa', fontSize: '0.8rem', textAlign: 'left' }}>
+                <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Riwayat Scan:</p>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                  {resolveData.checkIns.map((ci) => (
+                    <li key={ci.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span>{new Date(ci.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>+{ci.scannedPax} pax</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <button className="reset-btn" onClick={handleReset}>
               Scan Tamu Berikutnya
             </button>
