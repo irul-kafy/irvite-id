@@ -1,4 +1,5 @@
-﻿import {
+import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -60,6 +61,10 @@ export class AttendanceService {
 
     if (event.status !== 'PUBLISHED') {
       throw new ConflictException('Event is not PUBLISHED');
+    }
+
+    if (event.eventDate && isPublicInvitationExpired(event.eventDate)) {
+      throw new ConflictException('Event has expired');
     }
 
     return event;

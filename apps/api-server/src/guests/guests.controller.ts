@@ -4,6 +4,7 @@
   Post,
   Body,
   Patch,
+  Delete,
   Param,
   Query,
   Res,
@@ -92,5 +93,13 @@ export class GuestsController {
       user.role,
       updateGuestDto,
     );
+  }
+  @Delete(':guestId')
+  async delete(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('guestId', ParseUUIDPipe) guestId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.guestsService.delete(eventId, guestId, user.id, user.role);
   }
 }

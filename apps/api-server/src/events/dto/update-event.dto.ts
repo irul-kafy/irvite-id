@@ -40,6 +40,6 @@ export class UpdateEventDto {
   content?: unknown;
 
   @ValidateIf((o: UpdateEventDto) => o.status !== undefined)
-  @IsIn([EVENT_STATUS.DRAFT, EVENT_STATUS.PUBLISHED])
+  @IsIn([EVENT_STATUS.DRAFT, EVENT_STATUS.PUBLISHED, EVENT_STATUS.ARCHIVED])
   status?: string;
 }

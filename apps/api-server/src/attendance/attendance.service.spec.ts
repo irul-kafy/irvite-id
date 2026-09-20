@@ -153,6 +153,20 @@ describe('AttendanceService', () => {
   });
 
   describe('resolve', () => {
+    it('expired published event -> resolve denied', async () => {
+      const expiredDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        userId: 'u1',
+        status: 'PUBLISHED',
+        eventDate: expiredDate,
+      });
+
+      await expect(
+        service.resolve('e1', 'u1', Role.ADMIN, 'code'),
+      ).rejects.toThrow(new ConflictException('Event has expired'));
+    });
+
     beforeEach(() => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'u1',
@@ -232,6 +246,20 @@ describe('AttendanceService', () => {
   });
 
   describe('checkIn', () => {
+    it('expired published event -> check-in denied', async () => {
+      const expiredDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        userId: 'u1',
+        status: 'PUBLISHED',
+        eventDate: expiredDate,
+      });
+
+      await expect(
+        service.checkIn('e1', 'u1', Role.ADMIN, 'code', 1),
+      ).rejects.toThrow(new ConflictException('Event has expired'));
+    });
+
     beforeEach(() => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'u1',

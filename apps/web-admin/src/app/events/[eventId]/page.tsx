@@ -1,5 +1,15 @@
-﻿'use client';
+'use client';
 
+function IconArchive() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="3" width="16" height="4" rx="1" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M4 7v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7" stroke="currentColor" strokeWidth="1.6"/>
+      <line x1="8" y1="11" x2="12" y2="11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+﻿
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublicAvailabilityState } from '@/utils/event-availability';
@@ -143,6 +153,7 @@ export default function EventDetailPage({
   const [templateName, setTemplateName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [archiving, setArchiving] = useState(false);
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
@@ -187,6 +198,32 @@ export default function EventDetailPage({
 
     void fetchEventData();
   }, [eventId, router]);
+
+
+  const handleArchiveEvent = async () => {
+    if (!confirm('Apakah Anda yakin ingin mengarsipkan acara ini? Undangan publik dan tautan personal tidak akan dapat diakses lagi, namun seluruh data historis tamu, undangan, kehadiran, dan media tetap tersimpan.')) {
+      return;
+    }
+    setArchiving(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mengarsipkan acara');
+      }
+      setEvent((prev) => prev ? { ...prev, status: 'ARCHIVED' } : null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal mengarsipkan acara');
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   const handleTabChange = (tab: 'overview' | 'content' | 'media' | 'preview') => {
     router.replace(`/events/${eventId}?tab=${tab}`, { scroll: false });
@@ -255,7 +292,7 @@ export default function EventDetailPage({
               <h1 className="page-title" style={{ margin: 0, fontSize: '1.375rem' }}>
                 {event.title}
               </h1>
-              <span className={`badge ${event.status === 'PUBLISHED' ? 'badge--success' : 'badge--warning'}`}>
+              <span className={`badge ${event.status === 'PUBLISHED' ? 'badge--success' : event.status === 'ARCHIVED' ? 'badge--danger' : 'badge--warning'}`}>
                 {event.status}
               </span>
             </div>
@@ -272,6 +309,20 @@ export default function EventDetailPage({
             <IconEdit />
             <span>Edit Detail Acara</span>
           </button>
+
+          {event.status !== 'ARCHIVED' && (
+            <button
+              type="button"
+              onClick={handleArchiveEvent}
+              disabled={archiving}
+              className="btn btn-secondary btn-sm flex-center gap-1"
+              id="btn-archive-event"
+              style={{ color: 'var(--status-danger, #dc2626)', borderColor: 'rgba(220,38,38,0.2)' }}
+            >
+              <IconArchive />
+              <span>{archiving ? 'Mengarsipkan...' : 'Arsipkan Acara'}</span>
+            </button>
+          )}
         </div>
       </div>
 

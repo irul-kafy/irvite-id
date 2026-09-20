@@ -1,5 +1,15 @@
 'use client';
 
+function IconTrash() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 5h14M8 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M5 5l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="8" y1="9" x2="8" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="12" y1="9" x2="12" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -171,6 +181,7 @@ export default function GuestListPage({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
+  const [deletingGuestId, setDeletingGuestId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
@@ -339,6 +350,53 @@ export default function GuestListPage({
       });
     } finally {
       setIsExporting(null);
+    }
+  };
+
+
+  const handleDeleteGuest = async (guestId: string, guestName: string) => {
+    if (deletingGuestId) return;
+    if (!confirm(`Apakah Anda yakin ingin menghapus tamu "${guestName}"?`)) return;
+
+    setDeletingGuestId(guestId);
+    setActionMessage(null);
+
+    try {
+      const res = await fetch(`/api/events/${eventId}/guests/${guestId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        setActionMessage({
+          type: 'error',
+          text: data.message || 'Tamu tidak dapat dihapus karena sudah memiliki riwayat check-in / kehadiran.',
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal menghapus tamu.');
+      }
+
+      setActionMessage({
+        type: 'success',
+        text: `Tamu "${guestName}" berhasil dihapus.`,
+      });
+      await loadPageData(currentPage);
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal menghapus tamu.',
+      });
+    } finally {
+      setDeletingGuestId(null);
     }
   };
 

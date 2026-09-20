@@ -17,7 +17,9 @@ const origRequire = (Module.prototype as any).require;
 };
 
 const { GET: EventGet, POST: EventPost } = require('./route');
-const { PATCH: EventPatch } = require('./[eventId]/route');
+const { PATCH: EventPatch, DELETE: EventDelete } = require('./[eventId]/route');
+const { DELETE: GuestDelete } = require('./[eventId]/guests/[guestId]/route');
+const { POST: BulkInvitationsPost } = require('./[eventId]/invitations/bulk/route');
 const { GET: GuestGet } = require('./[eventId]/guests/[guestId]/route');
 const { POST: InvitationPost } = require('./[eventId]/guests/[guestId]/invitation/route');
 const { GET: GuestsListGet, POST: GuestCreatePost } = require('./[eventId]/guests/route');
@@ -121,5 +123,92 @@ test('BFF POST /api/events/[eventId]/guests forwards valid guest creation', asyn
   const res = await GuestCreatePost(req, { params: Promise.resolve({ eventId: 'event-123' }) });
   assert.strictEqual(res.status, 200);
   assert.strictEqual(JSON.parse(capturedBody).name, 'Budi');
+  mock.reset();
+});
+
+test('BFF DELETE /api/events/[eventId] rejects missing/invalid origin', async (t) => {
+  const req = new Request('http://localhost:3001/api/events/event-123', {
+    method: 'DELETE',
+    headers: { 'origin': 'http://evil.com' }
+  });
+  const res = await EventDelete(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 403);
+});
+
+test('BFF DELETE /api/events/[eventId] archives event with valid origin', async (t) => {
+  let calledUrl = '';
+  let calledMethod = '';
+  mock.method(global, 'fetch', async (url: string, opts: any) => {
+    calledUrl = url;
+    calledMethod = opts.method;
+    return new Response(JSON.stringify({ success: true, message: 'Event archived successfully' }), { status: 200 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123', {
+    method: 'DELETE',
+    headers: { 'origin': 'http://localhost:3001' }
+  });
+  const res = await EventDelete(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(calledUrl, 'http://localhost:3000/events/event-123');
+  assert.strictEqual(calledMethod, 'DELETE');
+  mock.reset();
+});
+
+test('BFF DELETE /api/events/[eventId]/guests/[guestId] deletes guest with valid origin', async (t) => {
+  let calledUrl = '';
+  let calledMethod = '';
+  mock.method(global, 'fetch', async (url: string, opts: any) => {
+    calledUrl = url;
+    calledMethod = opts.method;
+    return new Response(JSON.stringify({ success: true, message: 'Guest deleted successfully' }), { status: 200 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/guests/guest-456', {
+    method: 'DELETE',
+    headers: { 'origin': 'http://localhost:3001' }
+  });
+  const res = await GuestDelete(req, { params: Promise.resolve({ eventId: 'event-123', guestId: 'guest-456' }) });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(calledUrl, 'http://localhost:3000/events/event-123/guests/guest-456');
+  assert.strictEqual(calledMethod, 'DELETE');
+  mock.reset();
+});
+
+test('BFF DELETE /api/events/[eventId]/guests/[guestId] preserves 409 conflict message on attended guest', async (t) => {
+  mock.method(global, 'fetch', async () => {
+    return new Response(JSON.stringify({ message: 'Cannot delete guest with completed attendance' }), { status: 409 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/guests/guest-attended', {
+    method: 'DELETE',
+    headers: { 'origin': 'http://localhost:3001' }
+  });
+  const res = await GuestDelete(req, { params: Promise.resolve({ eventId: 'event-123', guestId: 'guest-attended' }) });
+  assert.strictEqual(res.status, 409);
+  const data = await res.json();
+  assert.strictEqual(data.message, 'Cannot delete guest with completed attendance');
+  mock.reset();
+});
+
+test('BFF POST /api/events/[eventId]/invitations/bulk triggers bulk generation', async (t) => {
+  let calledUrl = '';
+  let calledMethod = '';
+  mock.method(global, 'fetch', async (url: string, opts: any) => {
+    calledUrl = url;
+    calledMethod = opts.method;
+    return new Response(JSON.stringify({ totalGuests: 10, created: 5, alreadyExisting: 5, failed: 0 }), { status: 200 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/invitations/bulk', {
+    method: 'POST',
+    headers: { 'origin': 'http://localhost:3001' }
+  });
+  const res = await BulkInvitationsPost(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(calledUrl, 'http://localhost:3000/events/event-123/invitations/bulk');
+  assert.strictEqual(calledMethod, 'POST');
+  const data = await res.json();
+  assert.strictEqual(data.created, 5);
   mock.reset();
 });

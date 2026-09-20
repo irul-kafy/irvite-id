@@ -2,6 +2,7 @@
   Injectable,
   NotFoundException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateGuestDto } from './dto/create-guest.dto';
@@ -250,5 +251,47 @@ export class GuestsService {
         },
       },
     };
+  }
+  async delete(
+    eventId: string,
+    guestId: string,
+    currentUserId: string,
+    role: Role,
+  ): Promise<{ success: boolean; message: string }> {
+    await this.assertEventAccessible(eventId, currentUserId, role);
+
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, eventId },
+      include: {
+        invitation: {
+          include: {
+            attendances: true,
+          },
+        },
+      },
+    });
+
+    if (!guest) {
+      throw new NotFoundException('Guest not found');
+    }
+
+    if (guest.invitation && guest.invitation.attendances.length > 0) {
+      throw new ConflictException(
+        'Cannot delete guest with completed attendance/check-in history',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (guest.invitation) {
+        await tx.invitation.delete({
+          where: { id: guest.invitation.id },
+        });
+      }
+      await tx.guest.delete({
+        where: { id: guestId },
+      });
+    });
+
+    return { success: true, message: 'Guest deleted successfully' };
   }
 }

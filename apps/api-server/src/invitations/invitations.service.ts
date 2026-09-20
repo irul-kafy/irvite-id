@@ -1,3 +1,4 @@
+import { EVENT_STATUS } from '../events/event-status';
 import {
   Injectable,
   NotFoundException,
@@ -36,11 +37,17 @@ export class InvitationsService {
 
     const event = await this.prisma.event.findFirst({
       where,
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
+    }
+
+    if (event.status === EVENT_STATUS.ARCHIVED) {
+      throw new ConflictException(
+        'Cannot perform operations on an archived event',
+      );
     }
   }
 
@@ -444,6 +451,59 @@ export class InvitationsService {
           updated.status === InvitationStatus.RSVP_YES ? updated.rsvpPax : null,
         canRespond: true, // we just validated this above
       },
+    };
+  }
+  async bulkCreate(
+    eventId: string,
+    currentUserId: string,
+    role: Role,
+  ): Promise<{
+    totalGuests: number;
+    created: number;
+    alreadyExisting: number;
+    failed: number;
+  }> {
+    await this.assertEventAccessible(eventId, currentUserId, role);
+
+    const guests = await this.prisma.guest.findMany({
+      where: { eventId },
+      select: {
+        id: true,
+        invitation: {
+          select: { id: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const totalGuests = guests.length;
+    const guestsWithoutInvitation = guests.filter((g) => !g.invitation);
+    const alreadyExisting = totalGuests - guestsWithoutInvitation.length;
+
+    let created = 0;
+    let failed = 0;
+    const BATCH_SIZE = 25;
+
+    for (let i = 0; i < guestsWithoutInvitation.length; i += BATCH_SIZE) {
+      const batch = guestsWithoutInvitation.slice(i, i + BATCH_SIZE);
+      for (const guest of batch) {
+        try {
+          await this.createInvitationWithRetry(this.prisma, {
+            eventId,
+            guestId: guest.id,
+          });
+          created++;
+        } catch {
+          failed++;
+        }
+      }
+    }
+
+    return {
+      totalGuests,
+      created,
+      alreadyExisting,
+      failed,
     };
   }
 }

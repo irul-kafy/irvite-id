@@ -1,3 +1,4 @@
+import { SkipThrottle } from '@nestjs/throttler';
 import * as fs from 'fs';
 import {
   Controller,
@@ -20,6 +21,7 @@ import {
   RangeNotSatisfiableError,
 } from './media-stream-range';
 
+@SkipThrottle()
 @Public()
 @Controller({ path: 'events/public', version: '1' })
 export class PublicEventMediaController {

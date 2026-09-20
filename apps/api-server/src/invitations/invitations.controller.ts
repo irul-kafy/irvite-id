@@ -76,4 +76,11 @@ export class InvitationsController {
       updateInvitationDto,
     );
   }
+  @Post('events/:eventId/invitations/bulk')
+  bulkCreate(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.invitationsService.bulkCreate(eventId, user.id, user.role);
+  }
 }

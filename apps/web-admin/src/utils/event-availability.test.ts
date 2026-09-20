@@ -5,6 +5,14 @@ import { getPublicAvailabilityState } from './event-availability';
 test('getPublicAvailabilityState matching backend expiry contract', async (t) => {
   const baseNow = new Date('2026-09-12T10:00:00.000Z').getTime();
 
+  await t.test('returns ARCHIVED when status is ARCHIVED regardless of eventDate', () => {
+    const futureDate = '2026-10-01T10:00:00.000Z';
+    assert.strictEqual(getPublicAvailabilityState('ARCHIVED', futureDate, baseNow), 'ARCHIVED');
+
+    const pastDate = '2026-08-01T10:00:00.000Z';
+    assert.strictEqual(getPublicAvailabilityState('ARCHIVED', pastDate, baseNow), 'ARCHIVED');
+  });
+
   await t.test('returns DRAFT when status is DRAFT regardless of eventDate', () => {
     const futureDate = '2026-10-01T10:00:00.000Z';
     assert.strictEqual(getPublicAvailabilityState('DRAFT', futureDate, baseNow), 'DRAFT');
