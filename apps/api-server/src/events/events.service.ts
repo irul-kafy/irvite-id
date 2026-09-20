@@ -4,7 +4,10 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Logger,
+  ForbiddenException,
 } from '@nestjs/common';
+import { MediaStorageService } from '../media/media-storage.service';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -14,7 +17,12 @@ import { validateEventContent } from '../templates/definitions';
 
 @Injectable()
 export class EventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EventsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mediaStorageService: MediaStorageService,
+  ) {}
 
   private selectSafeEvent() {
     return {
@@ -398,6 +406,113 @@ export class EventsService {
       success: true,
       message: 'Event restored successfully to DRAFT status',
       data: restoredEvent,
+    };
+  }
+
+  async permanentDelete(id: string, userId: string, role: Role) {
+    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Forbidden: Insufficient permissions to delete event permanently',
+      );
+    }
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+
+    const existingEvent = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: { id: true, title: true, status: true },
+    });
+
+    if (!existingEvent) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (existingEvent.status !== EVENT_STATUS.ARCHIVED) {
+      throw new BadRequestException(
+        `Only archived events can be permanently deleted. Current status is ${existingEvent.status}. Archive the event first.`,
+      );
+    }
+
+    // Step 1: Collect only media file keys belonging to target event BEFORE DB deletion
+    const eventMedias = await this.prisma.media.findMany({
+      where: { eventId: id },
+      select: { url: true },
+    });
+    const mediaUrls = eventMedias.map((m) => m.url);
+
+    // Step 2: Atomic bottom-up database deletion in transaction
+    const deletedCounts = await this.prisma.$transaction(async (tx) => {
+      // 1. attendance_check_ins
+      const checkIns = await tx.attendanceCheckIn.deleteMany({
+        where: {
+          attendance: {
+            eventId: id,
+          },
+        },
+      });
+
+      // 2. attendances
+      const attendances = await tx.attendance.deleteMany({
+        where: { eventId: id },
+      });
+
+      // 3. invitations
+      const invitations = await tx.invitation.deleteMany({
+        where: { eventId: id },
+      });
+
+      // 4. guests
+      const guests = await tx.guest.deleteMany({
+        where: { eventId: id },
+      });
+
+      // 5. medias
+      const medias = await tx.media.deleteMany({
+        where: { eventId: id },
+      });
+
+      // 6. staff_events
+      const staffEvents = await tx.staffEvent.deleteMany({
+        where: { eventId: id },
+      });
+
+      // 7. event
+      await tx.event.delete({
+        where: { id },
+      });
+
+      return {
+        checkIns: checkIns.count,
+        attendances: attendances.count,
+        invitations: invitations.count,
+        guests: guests.count,
+        medias: medias.count,
+        staffEvents: staffEvents.count,
+        events: 1,
+      };
+    });
+
+    // Step 3: Attempt physical file deletion only AFTER successful DB commit
+    const mediaCleanupWarnings: string[] = [];
+    for (const key of mediaUrls) {
+      try {
+        await this.mediaStorageService.deleteFile(key);
+      } catch (err: unknown) {
+        const msg = `Failed to delete physical media file "${key}" after DB commit: ${err instanceof Error ? err.message : String(err)}`;
+        this.logger.warn(msg);
+        mediaCleanupWarnings.push(msg);
+      }
+    }
+
+    return {
+      status: 'success',
+      message: 'Event and associated data permanently deleted',
+      data: {
+        id: existingEvent.id,
+        title: existingEvent.title,
+        deletedCounts,
+        warnings:
+          mediaCleanupWarnings.length > 0 ? mediaCleanupWarnings : undefined,
+      },
     };
   }
 }

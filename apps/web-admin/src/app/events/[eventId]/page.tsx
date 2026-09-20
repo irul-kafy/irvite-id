@@ -9,6 +9,16 @@ function IconArchive() {
     </svg>
   );
 }
+
+function IconTrash() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 5h12M8 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M6 5v11a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="9" y1="9" x2="9" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <line x1="11" y1="9" x2="11" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
 ﻿
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -155,6 +165,10 @@ export default function EventDetailPage({
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmationInput, setConfirmationInput] = useState('');
+  const [permanentDeleting, setPermanentDeleting] = useState(false);
+  const [deleteModalError, setDeleteModalError] = useState('');
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
@@ -248,6 +262,34 @@ export default function EventDetailPage({
       alert(err instanceof Error ? err.message : 'Gagal memulihkan acara');
     } finally {
       setRestoring(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!event) return;
+    if (confirmationInput.trim() !== 'DELETE' && confirmationInput.trim() !== event.title) {
+      return;
+    }
+    setPermanentDeleting(true);
+    setDeleteModalError('');
+    try {
+      const res = await fetch(`/api/events/${eventId}/permanent`, {
+        method: 'DELETE',
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal menghapus acara secara permanen');
+      }
+      setShowDeleteModal(false);
+      router.push('/events');
+    } catch (err: unknown) {
+      setDeleteModalError(err instanceof Error ? err.message : 'Gagal menghapus acara secara permanen');
+    } finally {
+      setPermanentDeleting(false);
     }
   };
 
@@ -353,15 +395,37 @@ export default function EventDetailPage({
           )}
 
           {event.status === 'ARCHIVED' && (
-            <button
-              type="button"
-              onClick={handleRestoreEvent}
-              disabled={restoring}
-              className="btn btn-primary btn-sm flex-center gap-1"
-              id="btn-restore-event"
-            >
-              <span>{restoring ? 'Memulihkan...' : 'Pulihkan Acara'}</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleRestoreEvent}
+                disabled={restoring || permanentDeleting}
+                className="btn btn-primary btn-sm flex-center gap-1"
+                id="btn-restore-event"
+              >
+                <span>{restoring ? 'Memulihkan...' : 'Pulihkan Acara'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmationInput('');
+                  setDeleteModalError('');
+                  setShowDeleteModal(true);
+                }}
+                disabled={restoring || permanentDeleting}
+                className="btn btn-danger btn-sm flex-center gap-1"
+                id="btn-permanent-delete-event"
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  border: '1px solid #b91c1c',
+                }}
+              >
+                <IconTrash />
+                <span>Hapus Permanen</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -743,6 +807,171 @@ export default function EventDetailPage({
           hasTemplate={Boolean(event.templateId)}
           hasContent={Boolean(event.content && Object.keys(event.content).length > 0)}
         />
+      )}
+      {/* Destructive Confirmation Modal for Permanent Event Deletion */}
+      {showDeleteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)',
+            padding: '1rem',
+          }}
+          onClick={() => {
+            if (!permanentDeleting) {
+              setShowDeleteModal(false);
+              setConfirmationInput('');
+              setDeleteModalError('');
+            }
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--admin-surface, #ffffff)',
+              borderRadius: 'var(--radius-lg, 12px)',
+              padding: '1.75rem',
+              maxWidth: '520px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              border: '1px solid var(--admin-border, #e2e8f0)',
+              color: 'var(--text-primary)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <IconTrash />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>
+                  Hapus Acara Secara Permanen
+                </h3>
+                <p className="text-xs text-muted" style={{ margin: 0 }}>
+                  Konfirmasi tindakan destruktif
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'rgba(220, 38, 38, 0.08)',
+                border: '1px solid rgba(220, 38, 38, 0.25)',
+                borderRadius: '8px',
+                padding: '0.875rem 1rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.875rem',
+                lineHeight: 1.5,
+                color: 'var(--text-primary)',
+              }}
+            >
+              <strong style={{ color: '#dc2626' }}>Peringatan:</strong>
+              <p style={{ margin: '0.375rem 0 0 0' }}>
+                This action permanently deletes the event, guests, invitations, RSVP data, attendance data, media records, and staff assignments and cannot be undone.
+              </p>
+              <p style={{ margin: '0.375rem 0 0 0', fontSize: '0.8125rem', opacity: 0.85 }}>
+                Tindakan ini menghapus acara, tamu, undangan, data RSVP, data kehadiran, catatan media, dan penugasan staf secara permanen dan tidak dapat dibatalkan.
+              </p>
+            </div>
+
+            {deleteModalError && (
+              <div
+                className="alert alert--error mb-4"
+                style={{
+                  padding: '0.625rem 0.875rem',
+                  fontSize: '0.875rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                {deleteModalError}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label
+                htmlFor="confirm-delete-input"
+                style={{
+                  display: 'block',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  marginBottom: '0.5rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                Ketik <strong>DELETE</strong> atau <strong>{event.title}</strong> untuk mengonfirmasi:
+              </label>
+              <input
+                id="confirm-delete-input"
+                type="text"
+                value={confirmationInput}
+                onChange={(e) => setConfirmationInput(e.target.value)}
+                placeholder={`DELETE atau ${event.title}`}
+                disabled={permanentDeleting}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.75rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--admin-border, #cbd5e1)',
+                  background: 'var(--admin-surface-raised, #f8fafc)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.875rem',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                id="cancel-delete-btn"
+                className="btn btn-secondary btn-sm"
+                disabled={permanentDeleting}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setConfirmationInput('');
+                  setDeleteModalError('');
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                id="confirm-permanent-delete-btn"
+                className="btn btn-danger btn-sm"
+                disabled={
+                  permanentDeleting ||
+                  (confirmationInput.trim() !== 'DELETE' && confirmationInput.trim() !== event.title)
+                }
+                onClick={handlePermanentDelete}
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  opacity:
+                    confirmationInput.trim() === 'DELETE' || confirmationInput.trim() === event.title
+                      ? 1
+                      : 0.5,
+                }}
+              >
+                {permanentDeleting ? 'Menghapus Permanen...' : 'Ya, Hapus Permanen'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

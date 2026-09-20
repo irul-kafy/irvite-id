@@ -55,6 +55,14 @@ export class EventsController {
   ) {
     return this.eventsService.update(id, user.id, user.role, updateEventDto);
   }
+  @Delete(':id/permanent')
+  async permanentDelete(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.eventsService.permanentDelete(id, user.id, user.role);
+  }
+
   @Delete(':id')
   async archive(
     @Param('id', ParseUUIDPipe) id: string,

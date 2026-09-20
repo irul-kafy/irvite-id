@@ -24,6 +24,7 @@ const { GET: GuestGet } = require('./[eventId]/guests/[guestId]/route');
 const { POST: InvitationPost } = require('./[eventId]/guests/[guestId]/invitation/route');
 const { GET: GuestsListGet, POST: GuestCreatePost } = require('./[eventId]/guests/route');
 const { POST: EventRestorePost } = require('./[eventId]/restore/route');
+const { DELETE: EventPermanentDelete } = require('./[eventId]/permanent/route');
 
 test('BFF GET returns 401 if unauthenticated', async (t) => {
   const origCookies = (Module.prototype as any).require;
@@ -262,5 +263,56 @@ test('BFF POST /api/events/[eventId]/restore forwards 409 Conflict when event no
   assert.strictEqual(res.status, 409);
   const data = await res.json();
   assert.strictEqual(data.message, 'Only archived events can be restored. Current status is DRAFT.');
+  mock.reset();
+});
+
+test('BFF DELETE /api/events/[eventId]/permanent rejects missing/invalid origin with 403', async (t) => {
+  const req = new Request('http://localhost:3001/api/events/event-123/permanent', {
+    method: 'DELETE',
+    headers: { origin: 'http://evil.com' },
+  });
+  const res = await EventPermanentDelete(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 403);
+});
+
+test('BFF DELETE /api/events/[eventId]/permanent forwards permanent delete request to internal API server', async (t) => {
+  let calledUrl = '';
+  let calledMethod = '';
+  let calledAuth = '';
+
+  mock.method(global, 'fetch', async (url: string, opts: any) => {
+    calledUrl = url;
+    calledMethod = opts.method;
+    calledAuth = opts.headers.Authorization;
+    return new Response(JSON.stringify({ status: 'success', message: 'Event and associated data permanently deleted' }), { status: 200 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/permanent', {
+    method: 'DELETE',
+    headers: { origin: 'http://localhost:3001' },
+  });
+  const res = await EventPermanentDelete(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(calledUrl, 'http://localhost:3000/events/event-123/permanent');
+  assert.strictEqual(calledMethod, 'DELETE');
+  assert.strictEqual(calledAuth, 'Bearer mock-token');
+  const data = await res.json();
+  assert.strictEqual(data.status, 'success');
+  mock.reset();
+});
+
+test('BFF DELETE /api/events/[eventId]/permanent forwards 400 Bad Request when event is not archived', async (t) => {
+  mock.method(global, 'fetch', async () => {
+    return new Response(JSON.stringify({ message: 'Only archived events can be permanently deleted. Current status is DRAFT. Archive the event first.' }), { status: 400 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/permanent', {
+    method: 'DELETE',
+    headers: { origin: 'http://localhost:3001' },
+  });
+  const res = await EventPermanentDelete(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.message, 'Only archived events can be permanently deleted. Current status is DRAFT. Archive the event first.');
   mock.reset();
 });
