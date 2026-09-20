@@ -1,0 +1,14 @@
+export const TEMPLATE_STATUS = {
+  AVAILABLE: 'AVAILABLE',
+  HIDDEN: 'HIDDEN',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export type TemplateStatus =
+  (typeof TEMPLATE_STATUS)[keyof typeof TEMPLATE_STATUS];
+
+export const VALID_TEMPLATE_STATUSES = [
+  TEMPLATE_STATUS.AVAILABLE,
+  TEMPLATE_STATUS.HIDDEN,
+  TEMPLATE_STATUS.ARCHIVED,
+] as const;

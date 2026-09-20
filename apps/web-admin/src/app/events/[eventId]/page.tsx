@@ -154,6 +154,7 @@ export default function EventDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
@@ -222,6 +223,31 @@ export default function EventDetailPage({
       alert(err instanceof Error ? err.message : 'Gagal mengarsipkan acara');
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleRestoreEvent = async () => {
+    if (!confirm('Apakah Anda yakin ingin memulihkan acara ini? Status akan dikembalikan ke DRAFT.')) {
+      return;
+    }
+    setRestoring(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/restore`, {
+        method: 'POST',
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal memulihkan acara');
+      }
+      setEvent((prev) => prev ? { ...prev, status: 'DRAFT' } : null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal memulihkan acara');
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -300,15 +326,17 @@ export default function EventDetailPage({
         </div>
 
         <div className="flex-center gap-2">
-          <button
-            type="button"
-            onClick={() => router.push(`/events/${event.id}/edit`)}
-            className="btn btn-secondary btn-sm flex-center gap-1"
-            id="btn-edit-event"
-          >
-            <IconEdit />
-            <span>Edit Detail Acara</span>
-          </button>
+          {event.status !== 'ARCHIVED' && (
+            <button
+              type="button"
+              onClick={() => router.push(`/events/${event.id}/edit`)}
+              className="btn btn-secondary btn-sm flex-center gap-1"
+              id="btn-edit-event"
+            >
+              <IconEdit />
+              <span>Edit Detail Acara</span>
+            </button>
+          )}
 
           {event.status !== 'ARCHIVED' && (
             <button
@@ -321,6 +349,18 @@ export default function EventDetailPage({
             >
               <IconArchive />
               <span>{archiving ? 'Mengarsipkan...' : 'Arsipkan Acara'}</span>
+            </button>
+          )}
+
+          {event.status === 'ARCHIVED' && (
+            <button
+              type="button"
+              onClick={handleRestoreEvent}
+              disabled={restoring}
+              className="btn btn-primary btn-sm flex-center gap-1"
+              id="btn-restore-event"
+            >
+              <span>{restoring ? 'Memulihkan...' : 'Pulihkan Acara'}</span>
             </button>
           )}
         </div>

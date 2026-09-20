@@ -13,6 +13,7 @@ import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { Role } from 'database';
 
 @Controller({ path: 'templates', version: '1' })
@@ -29,6 +30,12 @@ export class TemplatesController {
   @Get()
   findAll(@Query() query: PaginationQueryDto) {
     return this.templatesService.findAll(query);
+  }
+
+  @Public()
+  @Get('public/availability')
+  getPublicAvailability() {
+    return this.templatesService.getPublicAvailability();
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)

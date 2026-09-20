@@ -112,4 +112,34 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
     assert.ok(content.includes('getCatalogTemplates'), 'public /templates/page.tsx must use getCatalogTemplates');
     assert.ok(content.includes('demoPath'), 'public /templates/page.tsx must render demoPath');
   });
+  await t.test('landing page and public /templates page wire DB lifecycle fetch and fail closed', () => {
+    const landingPath = fs.existsSync(path.resolve(process.cwd(), 'src/app/page.tsx'))
+      ? path.resolve(process.cwd(), 'src/app/page.tsx')
+      : path.resolve(process.cwd(), 'apps/web-invitation/src/app/page.tsx');
+
+    const landingContent = fs.readFileSync(landingPath, 'utf8');
+    assert.ok(landingContent.includes('fetchPublicTemplateAvailability'), 'Landing page must import and call fetchPublicTemplateAvailability');
+    assert.ok(landingContent.includes('filterAvailableTemplates'), 'Landing page must use filterAvailableTemplates');
+
+    const templatesPagePath = fs.existsSync(path.resolve(process.cwd(), 'src/app/templates/page.tsx'))
+      ? path.resolve(process.cwd(), 'src/app/templates/page.tsx')
+      : path.resolve(process.cwd(), 'apps/web-invitation/src/app/templates/page.tsx');
+
+    const templatesContent = fs.readFileSync(templatesPagePath, 'utf8');
+    assert.ok(templatesContent.includes('fetchPublicTemplateAvailability'), 'Templates page must import and call fetchPublicTemplateAvailability');
+    assert.ok(templatesContent.includes('filterAvailableTemplates'), 'Templates page must use filterAvailableTemplates');
+  });
+
+  await t.test('demo route file exists, checks DB lifecycle, and guards metadata', () => {
+    const demoPath = fs.existsSync(path.resolve(process.cwd(), 'src/app/templates/[slug]/demo/page.tsx'))
+      ? path.resolve(process.cwd(), 'src/app/templates/[slug]/demo/page.tsx')
+      : path.resolve(process.cwd(), 'apps/web-invitation/src/app/templates/[slug]/demo/page.tsx');
+
+    assert.ok(fs.existsSync(demoPath), 'Demo page file must exist');
+    const demoContent = fs.readFileSync(demoPath, 'utf8');
+
+    assert.ok(demoContent.includes('fetchPublicTemplateAvailability'), 'Demo page must fetch DB lifecycle availability');
+    assert.ok(demoContent.includes("matched.status !== 'AVAILABLE'"), 'Demo page must fail closed if status !== AVAILABLE');
+    assert.ok(demoContent.includes('Template Not Found | IRVITE.ID'), 'generateMetadata must return generic not found for unavailable templates');
+  });
 });

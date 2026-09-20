@@ -9,6 +9,7 @@ interface TemplateOption {
   id: string;
   name: string;
   themeCode?: string;
+  status?: string;
   config?: unknown;
 }
 
@@ -121,6 +122,10 @@ export default function EditEventPage({
     };
     void fetchData();
   }, [eventId, router]);
+
+  const selectableTemplates = templates.filter(
+    (tpl) => tpl.status === 'AVAILABLE' || tpl.id === initialTemplateId
+  );
 
   const selectedTemplate = templates.find((t) => t.id === formData.templateId);
   const matchedCatalogItem = FIXED_CATALOG_TEMPLATES.find(
@@ -547,9 +552,9 @@ export default function EditEventPage({
                 onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
               >
                 <option value="">-- Gunakan Template Standar (Default) --</option>
-                {templates.map((tpl) => (
+                {selectableTemplates.map((tpl) => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.name} {tpl.themeCode ? `(${tpl.themeCode})` : ''}
+                    {tpl.name} {tpl.themeCode ? `(${tpl.themeCode})` : ''}{tpl.status && tpl.status !== 'AVAILABLE' ? ` [${tpl.status} - Saat ini digunakan]` : ''}
                   </option>
                 ))}
               </select>

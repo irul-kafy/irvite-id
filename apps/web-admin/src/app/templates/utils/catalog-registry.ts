@@ -318,6 +318,7 @@ export interface DbTemplateRecord {
   id: string;
   name: string;
   themeCode?: string | null;
+  status?: string;
   previewImageUrl?: string | null;
   config?: unknown;
   createdAt?: string;
@@ -359,14 +360,17 @@ export function joinCatalogWithDbTemplates(
 
     if (matches.length === 1) {
       const dbRow = matches[0];
+      const isAvailable = dbRow.status !== undefined ? dbRow.status === 'AVAILABLE' : catalogItem.availability === 'AVAILABLE';
       return {
         catalogItem,
         readiness: 'SYNCED',
         matchCount: 1,
         matchedDbTemplate: dbRow,
-        canUse: catalogItem.availability === 'AVAILABLE',
+        canUse: isAvailable,
         previewImageUrl: dbRow.previewImageUrl || catalogItem.thumbnailPath,
-        statusMessage: 'Tersinkronisasi dengan Database',
+        statusMessage: isAvailable
+          ? 'Tersinkronisasi dengan Database'
+          : `Template berstatus ${dbRow.status || 'HIDDEN'}. Tidak dapat digunakan untuk event baru.`,
       };
     }
 

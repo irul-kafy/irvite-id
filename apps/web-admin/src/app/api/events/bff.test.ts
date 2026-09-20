@@ -23,6 +23,7 @@ const { POST: BulkInvitationsPost } = require('./[eventId]/invitations/bulk/rout
 const { GET: GuestGet } = require('./[eventId]/guests/[guestId]/route');
 const { POST: InvitationPost } = require('./[eventId]/guests/[guestId]/invitation/route');
 const { GET: GuestsListGet, POST: GuestCreatePost } = require('./[eventId]/guests/route');
+const { POST: EventRestorePost } = require('./[eventId]/restore/route');
 
 test('BFF GET returns 401 if unauthenticated', async (t) => {
   const origCookies = (Module.prototype as any).require;
@@ -210,5 +211,56 @@ test('BFF POST /api/events/[eventId]/invitations/bulk triggers bulk generation',
   assert.strictEqual(calledMethod, 'POST');
   const data = await res.json();
   assert.strictEqual(data.created, 5);
+  mock.reset();
+});
+
+test('BFF POST /api/events/[eventId]/restore rejects missing/invalid origin with 403', async (t) => {
+  const req = new Request('http://localhost:3001/api/events/event-123/restore', {
+    method: 'POST',
+    headers: { 'origin': 'http://evil.com' },
+  });
+  const res = await EventRestorePost(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 403);
+});
+
+test('BFF POST /api/events/[eventId]/restore forwards restore request to internal API server', async (t) => {
+  let calledUrl = '';
+  let calledMethod = '';
+  let calledAuth = '';
+  mock.method(global, 'fetch', async (url: string, opts: any) => {
+    calledUrl = url;
+    calledMethod = opts.method;
+    calledAuth = opts.headers?.Authorization;
+    return new Response(JSON.stringify({ success: true, message: 'Event restored successfully to DRAFT status', data: { id: 'event-123', status: 'DRAFT' } }), { status: 200 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/restore', {
+    method: 'POST',
+    headers: { 'origin': 'http://localhost:3001' },
+  });
+  const res = await EventRestorePost(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(calledUrl, 'http://localhost:3000/events/event-123/restore');
+  assert.strictEqual(calledMethod, 'POST');
+  assert.strictEqual(calledAuth, 'Bearer mock-token');
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.status, 'DRAFT');
+  mock.reset();
+});
+
+test('BFF POST /api/events/[eventId]/restore forwards 409 Conflict when event not archived', async (t) => {
+  mock.method(global, 'fetch', async () => {
+    return new Response(JSON.stringify({ message: 'Only archived events can be restored. Current status is DRAFT.' }), { status: 409 });
+  });
+
+  const req = new Request('http://localhost:3001/api/events/event-123/restore', {
+    method: 'POST',
+    headers: { 'origin': 'http://localhost:3001' },
+  });
+  const res = await EventRestorePost(req, { params: Promise.resolve({ eventId: 'event-123' }) });
+  assert.strictEqual(res.status, 409);
+  const data = await res.json();
+  assert.strictEqual(data.message, 'Only archived events can be restored. Current status is DRAFT.');
   mock.reset();
 });

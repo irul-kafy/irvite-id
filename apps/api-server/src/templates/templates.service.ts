@@ -73,6 +73,7 @@ export class TemplatesService {
       name: updateTemplateDto.name,
       themeCode: updateTemplateDto.themeCode,
       previewImageUrl: updateTemplateDto.previewImageUrl,
+      status: updateTemplateDto.status,
     };
     if (updateTemplateDto.config !== undefined) {
       validateTemplateConfig(updateTemplateDto.config);
@@ -111,5 +112,15 @@ export class TemplatesService {
       contentFields: definition.contentFields,
       mediaSlots: definition.mediaSlots,
     };
+  }
+
+  async getPublicAvailability() {
+    return this.prisma.template.findMany({
+      select: {
+        themeCode: true,
+        status: true,
+      },
+      orderBy: { themeCode: 'asc' },
+    });
   }
 }

@@ -1,6 +1,7 @@
-import { describe, it, mock } from 'node:test';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { fetchPublicEvent, fetchPublicInvitation } from './client';
+import { fetchPublicEvent, fetchPublicInvitation, fetchPublicTemplateAvailability } from './client';
 
 describe('Web Invitation API Client', () => {
   it('fetchPublicInvitation returns invitation data on 200', async () => {
@@ -89,6 +90,90 @@ describe('Web Invitation API Client', () => {
     try {
       const res = await fetchPublicEvent('nonexistent-slug');
       assert.strictEqual(res, null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+  it('fetchPublicTemplateAvailability returns template availability list on 200', async () => {
+    const fakeList = [
+      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
+      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
+    ];
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => fakeList,
+      } as any;
+    }) as any;
+
+    try {
+      const res = await fetchPublicTemplateAvailability();
+      assert.deepStrictEqual(res, fakeList);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('fetchPublicTemplateAvailability returns null on non-200 or network failure (fails closed)', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      return {
+        ok: false,
+        status: 500,
+      } as any;
+    }) as any;
+
+    try {
+      const res = await fetchPublicTemplateAvailability();
+      assert.strictEqual(res, null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    // Network error throw
+    globalThis.fetch = (async () => {
+      throw new Error('Network error');
+    }) as any;
+
+    try {
+      const res = await fetchPublicTemplateAvailability();
+      assert.strictEqual(res, null);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('fetchPublicTemplateAvailability filters out malformed array items', async () => {
+    const mixedList = [
+      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+      { invalid: true },
+      null,
+      'malformed',
+      { themeCode: 123, status: 'AVAILABLE' },
+      { themeCode: 'SERENE_GARDEN', status: 'HIDDEN' },
+    ];
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => mixedList,
+      } as any;
+    }) as any;
+
+    try {
+      const res = await fetchPublicTemplateAvailability();
+      assert.deepStrictEqual(res, [
+        { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+        { themeCode: 'SERENE_GARDEN', status: 'HIDDEN' },
+      ]);
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -9,6 +9,7 @@ export interface TemplateOption {
   id: string;
   name: string;
   themeCode?: string;
+  status?: string;
   previewImageUrl?: string | null;
   config?: unknown;
 }
@@ -88,10 +89,11 @@ function CreateEventForm() {
         if (res.ok) {
           const json = await res.json();
           const list: TemplateOption[] = json.data || [];
-          setTemplates(list);
+          const availableList = list.filter((t) => t.status === 'AVAILABLE');
+          setTemplates(availableList);
 
-          if (preselectedTemplateParam && list.length > 0) {
-            const found = list.find(
+          if (preselectedTemplateParam && availableList.length > 0) {
+            const found = availableList.find(
               (t) =>
                 t.id === preselectedTemplateParam ||
                 t.name.toLowerCase() === preselectedTemplateParam.toLowerCase()

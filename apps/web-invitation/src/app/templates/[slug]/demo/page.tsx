@@ -8,6 +8,7 @@ import {
   RenderTheme,
   isTemplateProductionActivated,
 } from '../../../../renderers/registry';
+import { fetchPublicTemplateAvailability } from '../../../../api/client';
 
 interface DemoPageProps {
   params: Promise<{ slug: string }>;
@@ -19,7 +20,18 @@ export async function generateMetadata({
   const { slug } = await params;
   const catalogItem = getCatalogTemplateBySlug(slug);
 
-  if (!catalogItem || catalogItem.availability !== 'AVAILABLE') {
+  if (!catalogItem) {
+    return {
+      title: 'Template Not Found | IRVITE.ID',
+    };
+  }
+
+  const availability = await fetchPublicTemplateAvailability();
+  const matched = availability?.find(
+    (a) => a.themeCode?.trim().toUpperCase() === catalogItem.themeCode.trim().toUpperCase(),
+  );
+
+  if (!matched || matched.status !== 'AVAILABLE') {
     return {
       title: 'Template Not Found | IRVITE.ID',
     };
@@ -35,8 +47,18 @@ export default async function TemplateDemoPage({ params }: DemoPageProps) {
   const { slug } = await params;
   const catalogItem = getCatalogTemplateBySlug(slug);
 
-  // Fail closed if slug not in catalog or not AVAILABLE
-  if (!catalogItem || catalogItem.availability !== 'AVAILABLE') {
+  // Fail closed if slug not in catalog
+  if (!catalogItem) {
+    notFound();
+  }
+
+  // Fail closed if not AVAILABLE in DB lifecycle
+  const availability = await fetchPublicTemplateAvailability();
+  const matched = availability?.find(
+    (a) => a.themeCode?.trim().toUpperCase() === catalogItem.themeCode.trim().toUpperCase(),
+  );
+
+  if (!matched || matched.status !== 'AVAILABLE') {
     notFound();
   }
 

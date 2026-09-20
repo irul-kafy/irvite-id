@@ -1,14 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getCatalogTemplates } from '@/catalog';
+import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '@/catalog';
+import { fetchPublicTemplateAvailability } from '@/api/client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
 import './templates.css';
 
 export default function PublicTemplatesPage() {
-  const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
+  const [templates, setTemplates] = useState<CatalogTemplateItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const allTemplates = getCatalogTemplates();
+    fetchPublicTemplateAvailability()
+      .then((availability) => {
+        if (cancelled) return;
+        if (availability && availability.length > 0) {
+          setTemplates(filterAvailableTemplates(allTemplates, availability));
+        } else {
+          setTemplates([]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
   const navContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya ingin konsultasi undangan digital.');
   const footerContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya butuh bantuan memilih template undangan.');
 
@@ -61,8 +84,17 @@ export default function PublicTemplatesPage() {
 
       {/* Grid */}
       <main className="cat-container">
-        <div className="cat-grid" role="list">
-          {templates.map((tpl) => {
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--cat-muted, #8b949e)' }}>
+            <p>Memuat katalog template...</p>
+          </div>
+        ) : templates.length === 0 ? (
+          <div id="catalog-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--cat-muted, #8b949e)' }}>
+            <p>Katalog template saat ini belum tersedia.</p>
+          </div>
+        ) : (
+          <div className="cat-grid" role="list">
+            {templates.map((tpl) => {
             const orderUrl = getTemplateOrderUrl(tpl.displayName);
 
             return (
@@ -125,7 +157,8 @@ export default function PublicTemplatesPage() {
               </article>
             );
           })}
-        </div>
+          </div>
+        )}
       </main>
 
       {/* Assistance Footer */}

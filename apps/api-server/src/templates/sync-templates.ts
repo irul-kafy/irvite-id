@@ -4,6 +4,7 @@ export interface ApprovedTemplateSeed {
   name: string;
   themeCode: string;
   previewImageUrl: string;
+  initialStatus?: 'AVAILABLE' | 'HIDDEN' | 'ARCHIVED';
 }
 
 export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
@@ -11,26 +12,31 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     name: 'Ivory Garden',
     themeCode: 'IVORY_GARDEN',
     previewImageUrl: '/templates/ivory-garden/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
   },
   {
     name: 'Serene Garden',
     themeCode: 'SERENE_GARDEN',
     previewImageUrl: '/templates/serene-garden/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
   },
   {
     name: 'Sunda Puspa',
     themeCode: 'SUNDA_PUSPA',
     previewImageUrl: '/templates/sunda-puspa/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
   },
   {
     name: 'Classic Letter',
     themeCode: 'CLASSIC_LETTER',
     previewImageUrl: '/templates/classic-letter/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
   },
   {
     name: 'Velvet Letter',
     themeCode: 'VELVET_LETTER',
     previewImageUrl: '/templates/velvet-letter/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
   },
 ];
 
@@ -87,6 +93,7 @@ export async function syncTemplateIdentities(
             name: target.name,
             themeCode: target.themeCode,
             previewImageUrl: target.previewImageUrl,
+            status: target.initialStatus ?? 'HIDDEN',
             config: undefined,
           },
         });

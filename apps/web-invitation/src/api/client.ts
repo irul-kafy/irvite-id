@@ -40,3 +40,41 @@ export async function fetchPublicEvent(
   const data = await res.json();
   return data as PublicEventResponse;
 }
+
+export interface PublicTemplateAvailabilityItem {
+  themeCode: string;
+  status: string;
+}
+
+export async function fetchPublicTemplateAvailability(): Promise<
+  PublicTemplateAvailabilityItem[] | null
+> {
+  const isServer = typeof window === 'undefined';
+  const url = isServer
+    ? (process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000') + '/templates/public/availability'
+    : '/api-proxy/templates/public/availability';
+
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      return null;
+    }
+    return data.filter(
+      (item): item is PublicTemplateAvailabilityItem =>
+        Boolean(
+          item &&
+            typeof item === 'object' &&
+            typeof item.themeCode === 'string' &&
+            typeof item.status === 'string',
+        ),
+    );
+  } catch {
+    return null;
+  }
+}

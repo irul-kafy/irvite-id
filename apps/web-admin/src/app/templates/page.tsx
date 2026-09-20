@@ -19,6 +19,8 @@ export default function TemplateCatalogPage() {
   const [dbTemplates, setDbTemplates] = useState<DbTemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [updatingStatusTheme, setUpdatingStatusTheme] = useState<string | null>(null);
   const hasTrustedOrigin = Boolean(getTrustedInvitationOrigin());
 
   // Session verification and DB templates fetch
@@ -38,6 +40,7 @@ export default function TemplateCatalogPage() {
 
         const meData = await meRes.json();
         const role = meData.user?.role;
+        if (isMounted) setUserRole(role);
 
         if (role === 'STAFF') {
           router.push('/dashboard');
@@ -94,6 +97,29 @@ export default function TemplateCatalogPage() {
       cat.shortDescription.toLowerCase().includes(q)
     );
   });
+
+  const handleStatusChange = async (templateId: string, themeCode: string, newStatus: string) => {
+    setUpdatingStatusTheme(themeCode);
+    try {
+      const res = await fetch('/api/templates/' + encodeURIComponent(templateId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setDbTemplates((prev) =>
+          prev.map((t) => (t.id === templateId ? { ...t, status: newStatus } : t))
+        );
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Gagal mengubah status template');
+      }
+    } catch {
+      alert('Terjadi kesalahan saat mengubah status template');
+    } finally {
+      setUpdatingStatusTheme(null);
+    }
+  };
 
   const handleUseTemplate = (item: JoinedCatalogTemplate) => {
     if (!item.canUse || !item.matchedDbTemplate) return;
@@ -280,7 +306,7 @@ export default function TemplateCatalogPage() {
                             borderRadius: '4px',
                           }}
                         >
-                          {cat.availability}
+                          {item.matchedDbTemplate?.status || cat.availability}
                         </span>
 
                         {/* DB Identity Readiness Badge */}
@@ -371,6 +397,46 @@ export default function TemplateCatalogPage() {
                         </div>
                       )}
                     </div>
+
+                                        {/* SUPER_ADMIN Lifecycle Controls */}
+                    {userRole === 'SUPER_ADMIN' && item.matchedDbTemplate && (
+                      <div
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          background: 'var(--admin-surface-inset)',
+                          borderTop: '1px solid var(--admin-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--admin-text)' }}>
+                          Lifecycle:
+                        </span>
+                        <select
+                          id={'select-status-' + cat.slug}
+                          value={item.matchedDbTemplate.status || 'AVAILABLE'}
+                          disabled={updatingStatusTheme === cat.themeCode}
+                          onChange={(e) =>
+                            handleStatusChange(item.matchedDbTemplate!.id, cat.themeCode, e.target.value)
+                          }
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.2rem 0.4rem',
+                            borderRadius: 'var(--admin-radius-sm)',
+                            border: '1px solid var(--admin-border)',
+                            background: 'var(--admin-surface)',
+                            color: 'var(--admin-text)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <option value="AVAILABLE">AVAILABLE</option>
+                          <option value="HIDDEN">HIDDEN</option>
+                          <option value="ARCHIVED">ARCHIVED</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* Action Footer */}
                     <div className="template-card__actions">

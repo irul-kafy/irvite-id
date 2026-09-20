@@ -8,6 +8,7 @@ import {
   getCatalogTemplateBySlug,
   getCatalogTemplateByThemeCode,
   isAvailableTemplate,
+  filterAvailableTemplates,
 } from './template-catalog.registry';
 
 test('Template Catalog Registry', async (t) => {
@@ -141,5 +142,48 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(getCatalogTemplateByThemeCode('GENERIC'), undefined);
     assert.equal(isAvailableTemplate('unknown-theme'), false);
     assert.equal(isAvailableTemplate(null), false);
+  });
+await t.test('filterAvailableTemplates filters by DB lifecycle status', () => {
+    const templates = getCatalogTemplates();
+
+    // 1. All 5 AVAILABLE in DB
+    const allAvailable = [
+      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
+      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
+    ];
+    const res1 = filterAvailableTemplates(templates, allAvailable);
+    assert.equal(res1.length, 5);
+
+    // 2. VELVET_LETTER is HIDDEN
+    const withHidden = [
+      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
+      { themeCode: 'VELVET_LETTER', status: 'HIDDEN' },
+    ];
+    const res2 = filterAvailableTemplates(templates, withHidden);
+    assert.equal(res2.length, 4);
+    assert.ok(!res2.some((t) => t.themeCode === 'VELVET_LETTER'), 'HIDDEN template must not be in public catalog');
+
+    // 3. CLASSIC_LETTER is ARCHIVED
+    const withArchived = [
+      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
+      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+      { themeCode: 'CLASSIC_LETTER', status: 'ARCHIVED' },
+      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
+    ];
+    const res3 = filterAvailableTemplates(templates, withArchived);
+    assert.equal(res3.length, 4);
+    assert.ok(!res3.some((t) => t.themeCode === 'CLASSIC_LETTER'), 'ARCHIVED template must not be in public catalog');
+
+    // 4. Missing / null / empty availability fails closed (returns [])
+    assert.deepEqual(filterAvailableTemplates(templates, null), []);
+    assert.deepEqual(filterAvailableTemplates(templates, undefined), []);
+    assert.deepEqual(filterAvailableTemplates(templates, []), []);
   });
 });
