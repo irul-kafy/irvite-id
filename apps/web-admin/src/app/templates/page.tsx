@@ -173,7 +173,7 @@ export default function TemplateCatalogPage() {
       )}
 
       {/* Filter and Search Toolbar */}
-      <section className="catalog-toolbar" aria-label="Filter katalog">
+      <section className="catalog-toolbar catalog-filter-bar" aria-label="Filter katalog">
         <div className="catalog-search">
           <svg
             className="catalog-search__icon"
@@ -200,15 +200,15 @@ export default function TemplateCatalogPage() {
           />
         </div>
 
-        <div className="catalog-categories" role="tablist" aria-label="Kategori template">
+        <div className="catalog-categories catalog-category-tabs" role="tablist" aria-label="Kategori template">
           {CATALOG_CATEGORIES.map((cat) => (
             <button
               key={cat}
               type="button"
               role="tab"
               aria-selected={selectedCategory === cat}
-              className={`catalog-category-tab ${
-                selectedCategory === cat ? 'catalog-category-tab--active' : ''
+              className={`catalog-category-tab catalog-tab ${
+                selectedCategory === cat ? 'catalog-category-tab--active catalog-tab--active' : ''
               }`}
               onClick={() => setSelectedCategory(cat)}
             >
@@ -262,6 +262,7 @@ export default function TemplateCatalogPage() {
                   >
                     {/* Rendered Thumbnail Header */}
                     <div
+                      className="template-card__thumbnail-container"
                       style={{
                         position: 'relative',
                         width: '100%',
@@ -271,14 +272,54 @@ export default function TemplateCatalogPage() {
                         borderBottom: '1px solid var(--admin-border)',
                       }}
                     >
+                      {/* Subtle fallback placeholder behind image */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--admin-text-muted)',
+                          zIndex: 0,
+                          padding: '1rem',
+                          textAlign: 'center',
+                        }}
+                        aria-hidden="true"
+                      >
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        <span style={{ fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 600 }}>
+                          {cat.displayName}
+                        </span>
+                      </div>
+
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.previewImageUrl}
                         alt={`Thumbnail ${cat.displayName}`}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        style={{
+                          position: 'relative',
+                          zIndex: 1,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
                         loading="lazy"
                         width={600}
                         height={900}
+                        onError={(e) => {
+                          const origin = getTrustedInvitationOrigin();
+                          if (origin && item.previewImageUrl.startsWith('/') && !e.currentTarget.dataset.retried) {
+                            e.currentTarget.dataset.retried = 'true';
+                            e.currentTarget.src = `${origin}${item.previewImageUrl}`;
+                          }
+                        }}
                       />
 
                       {/* Top Badges */}

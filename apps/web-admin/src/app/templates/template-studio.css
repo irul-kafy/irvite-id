@@ -1319,7 +1319,8 @@
 
 /* ── Catalog Filter Bar ── */
 
-.catalog-filter-bar {
+.catalog-filter-bar,
+.catalog-toolbar {
   display: flex;
   flex-direction: column;
   gap: var(--admin-space-md);
@@ -1329,21 +1330,24 @@
 }
 
 @media (min-width: 900px) {
-  .catalog-filter-bar {
+  .catalog-filter-bar,
+  .catalog-toolbar {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
 }
 
-.catalog-category-tabs {
+.catalog-category-tabs,
+.catalog-categories {
   display: flex;
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
 
-.catalog-tab {
+.catalog-tab,
+.catalog-category-tab {
   padding: 8px 16px;
   font-size: var(--admin-font-size-sm);
   font-weight: 500;
@@ -1356,20 +1360,23 @@
   transition: all var(--admin-transition);
 }
 
-.catalog-tab:hover {
+.catalog-tab:hover,
+.catalog-category-tab:hover {
   background: var(--admin-surface-raised);
   color: var(--admin-text);
   border-color: var(--admin-border-strong);
 }
 
-.catalog-tab--active {
+.catalog-tab--active,
+.catalog-category-tab--active {
   background: var(--admin-text);
   color: #ffffff;
   border-color: var(--admin-text);
   font-weight: 600;
 }
 
-.catalog-tab--active:hover {
+.catalog-tab--active:hover,
+.catalog-category-tab--active:hover {
   background: #000000;
   color: #ffffff;
   border-color: #000000;
@@ -1942,4 +1949,146 @@
   font-size: var(--admin-font-size-sm);
   font-weight: 600;
   color: var(--admin-text);
+}
+
+
+/* ============================================================
+   Dark Mode Overrides for Template Studio & Catalog
+   ============================================================ */
+
+html.dark .studio-page,
+html.dark .catalog-page {
+  --admin-text: #F4EFE7;
+  --admin-text-secondary: #D2C9BC;
+  --admin-text-muted: #A8A29E;
+  --admin-surface-raised: #242421;
+  --admin-surface-inset: #141413;
+  --admin-border-strong: rgba(244, 239, 231, 0.25);
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+html.dark .catalog-header__badge {
+  background: var(--admin-accent-soft);
+  color: var(--admin-accent-hover);
+  border: 1px solid var(--admin-accent-border);
+}
+
+html.dark .catalog-header__title {
+  color: var(--admin-text);
+}
+
+html.dark .catalog-header__subtitle {
+  color: var(--admin-text-secondary);
+}
+
+html.dark .catalog-search__input {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  border-color: rgba(244, 239, 231, 0.2);
+}
+
+html.dark .catalog-search__input::placeholder {
+  color: var(--admin-text-muted);
+  opacity: 1;
+}
+
+html.dark .catalog-search__input:focus {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px var(--admin-accent-soft);
+}
+
+html.dark .catalog-search__icon {
+  color: var(--admin-text-muted);
+}
+
+html.dark .catalog-tab,
+html.dark .catalog-category-tab {
+  background: var(--admin-surface);
+  color: var(--admin-text-secondary);
+  border-color: var(--admin-border);
+}
+
+html.dark .catalog-tab:hover,
+html.dark .catalog-category-tab:hover {
+  background: var(--admin-surface-hover);
+  color: var(--admin-text);
+  border-color: var(--admin-border-strong);
+}
+
+html.dark .catalog-tab--active,
+html.dark .catalog-category-tab--active {
+  background: var(--admin-accent);
+  color: #121212;
+  border-color: var(--admin-accent);
+  font-weight: 600;
+}
+
+html.dark .catalog-tab--active:hover,
+html.dark .catalog-category-tab--active:hover {
+  background: var(--admin-accent-hover);
+  color: #121212;
+  border-color: var(--admin-accent-hover);
+}
+
+html.dark .catalog-section__title {
+  color: var(--admin-text);
+}
+
+html.dark .catalog-section__count {
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+}
+
+html.dark .catalog-empty p {
+  color: var(--admin-text-secondary);
+}
+
+html.dark .template-card {
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+html.dark .template-card:hover {
+  border-color: var(--admin-border-strong);
+}
+
+html.dark .template-card__name {
+  color: var(--admin-text);
+}
+
+html.dark .template-card__desc {
+  color: var(--admin-text-secondary);
+}
+
+html.dark .template-card__theme-code {
+  color: var(--admin-text-muted);
+}
+
+html.dark .template-card__thumbnail-container {
+  background: var(--admin-surface-inset);
+  border-bottom-color: var(--admin-border);
+}
+
+html.dark .template-card__btn--preview {
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  border-color: var(--admin-border-strong);
+}
+
+html.dark .template-card__btn--preview:hover {
+  background: var(--admin-surface-hover);
+  color: var(--admin-text);
+  border-color: var(--admin-accent);
+}
+
+html.dark .template-card__btn--select {
+  background: var(--admin-accent);
+  color: #121212;
+  font-weight: 600;
+}
+
+html.dark .template-card__btn--select:hover {
+  background: var(--admin-accent-hover);
+  color: #121212;
 }
