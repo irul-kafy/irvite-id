@@ -44,7 +44,8 @@ model User {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   events      Event[]
-  attendances Attendance[] @relation("StaffScan")
+  attendances Attendance[]        @relation("StaffScan")
+  checkIns    AttendanceCheckIn[] @relation("CheckInStaff")
   staffEvents StaffEvent[]
 
   @@map("users")
@@ -136,14 +137,31 @@ model Attendance {
   scannedAt    DateTime         @default(now()) @map("scanned_at")
   status       AttendanceStatus @default(VALID)
 
-  invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
-  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  staff      User       @relation("StaffScan", fields: [scannedById], references: [id])
-
+  invitation Invitation          @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  event      Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  staff      User                @relation("StaffScan", fields: [scannedById], references: [id])
+  checkIns   AttendanceCheckIn[]
 
   @@index([eventId])
   @@index([scannedById])
   @@map("attendances")
+}
+
+model AttendanceCheckIn {
+  id           String   @id @default(uuid())
+  attendanceId String   @map("attendance_id")
+  scannedById  String   @map("scanned_by_id")
+  scannedPax   Int      @default(1) @map("scanned_pax")
+  scannedAt    DateTime @default(now()) @map("scanned_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  staff      User       @relation("CheckInStaff", fields: [scannedById], references: [id])
+
+  @@index([attendanceId])
+  @@index([scannedById])
+  @@index([scannedAt])
+  @@map("attendance_check_ins")
 }
 
 model Media {

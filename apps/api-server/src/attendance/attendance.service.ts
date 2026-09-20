@@ -14,6 +14,8 @@ import { ExportQueryDto } from '../reports/dto/export-query.dto';
 
 type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
+export type AttendanceCheckInStatus = 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
+
 @Injectable()
 export class AttendanceService {
   constructor(
@@ -113,7 +115,13 @@ export class AttendanceService {
       where: { uniqueCode: code },
       include: {
         guest: true,
-        attendances: true,
+        attendances: {
+          include: {
+            checkIns: {
+              orderBy: { scannedAt: 'desc' },
+            },
+          },
+        },
       },
     });
 
@@ -126,16 +134,33 @@ export class AttendanceService {
     }
 
     const attendance = invitation.attendances?.[0] || null;
+    const maxPax = invitation.guest.maxPax;
+    const alreadyScanned = attendance ? attendance.scannedPax : 0;
+    const remainingPax = Math.max(0, maxPax - alreadyScanned);
+
+    let status: AttendanceCheckInStatus;
+    if (alreadyScanned === 0) {
+      status = 'NOT_CHECKED_IN';
+    } else if (alreadyScanned < maxPax) {
+      status = 'PARTIAL';
+    } else {
+      status = 'COMPLETE';
+    }
+
+    const result = status === 'COMPLETE' ? 'ALREADY_CHECKED_IN' : 'READY';
 
     let rsvpResponse = 'PENDING';
     if (invitation.status === 'RSVP_YES') rsvpResponse = 'YES';
     else if (invitation.status === 'RSVP_NO') rsvpResponse = 'NO';
 
     return {
-      result: attendance ? 'ALREADY_CHECKED_IN' : 'READY',
+      result,
+      status,
+      scannedPax: alreadyScanned,
+      remainingPax,
       guest: {
         name: invitation.guest.name,
-        maxPax: invitation.guest.maxPax,
+        maxPax,
       },
       rsvp: {
         response: rsvpResponse,
@@ -147,6 +172,14 @@ export class AttendanceService {
             scannedAt: attendance.scannedAt,
           }
         : null,
+      checkIns: attendance?.checkIns
+        ? attendance.checkIns.map((ci) => ({
+            id: ci.id,
+            scannedPax: ci.scannedPax,
+            scannedAt: ci.scannedAt,
+            scannedById: ci.scannedById,
+          }))
+        : [],
     };
   }
 
@@ -158,6 +191,10 @@ export class AttendanceService {
     pax: number,
   ) {
     await this.authorizeEvent(eventId, userId);
+
+    if (pax < 1) {
+      throw new BadRequestException('Pax must be at least 1');
+    }
 
     const invitation = await this.db.invitation.findUnique({
       where: { uniqueCode: code },
@@ -172,62 +209,215 @@ export class AttendanceService {
       throw new NotFoundException('Invitation not found for this event');
     }
 
-    if (pax > invitation.guest.maxPax) {
+    const maxPax = invitation.guest.maxPax;
+    if (pax > maxPax) {
       throw new BadRequestException('Pax exceeds maximum allowed');
     }
 
-    try {
-      const newAttendance = await this.db.attendance.create({
-        data: {
-          invitationId: invitation.id,
-          eventId: eventId,
-          scannedById: userId,
-          scannedPax: pax,
-          scannedAt: new Date(),
-          status: 'VALID',
-        },
+    return this.executeAtomicCheckIn(
+      invitation.id,
+      eventId,
+      userId,
+      pax,
+      maxPax,
+    );
+  }
+
+  private async executeAtomicCheckIn(
+    invitationId: string,
+    eventId: string,
+    userId: string,
+    pax: number,
+    maxPax: number,
+  ) {
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await this.attemptAtomicCheckIn(
+          invitationId,
+          eventId,
+          userId,
+          pax,
+          maxPax,
+        );
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2002' || error.code === 'P2034') &&
+          attempt < maxRetries - 1
+        ) {
+          // Concurrent first-scan or transient write conflict: retry in a fresh transaction
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new ConflictException('Concurrent check-in conflict, please retry');
+  }
+
+  private async attemptAtomicCheckIn(
+    invitationId: string,
+    eventId: string,
+    userId: string,
+    pax: number,
+    maxPax: number,
+  ) {
+    return this.db.$transaction(async (tx) => {
+      const existingAttendance = await tx.attendance.findUnique({
+        where: { invitationId },
       });
 
+      const now = new Date();
+
+      if (!existingAttendance) {
+        // First scan for this invitation
+        const created = await tx.attendance.create({
+          data: {
+            invitationId,
+            eventId,
+            scannedById: userId,
+            scannedPax: pax,
+            scannedAt: now,
+            status: 'VALID',
+          },
+        });
+
+        await tx.attendanceCheckIn.create({
+          data: {
+            attendanceId: created.id,
+            scannedById: userId,
+            scannedPax: pax,
+            scannedAt: now,
+          },
+        });
+
+        const remainingPax = maxPax - pax;
+        const status: AttendanceCheckInStatus =
+          remainingPax === 0 ? 'COMPLETE' : 'PARTIAL';
+
+        return {
+          result: 'CHECKED_IN' as const,
+          status,
+          scannedPax: pax,
+          remainingPax,
+          deltaPax: pax,
+          attendance: {
+            scannedPax: pax,
+            scannedAt: now,
+          },
+        };
+      }
+
+      return this.applyIncrementalCheckIn(
+        tx,
+        existingAttendance,
+        userId,
+        pax,
+        maxPax,
+        now,
+      );
+    });
+  }
+
+  private async applyIncrementalCheckIn(
+    tx: Prisma.TransactionClient,
+    attendance: { id: string; scannedPax: number; scannedAt: Date },
+    userId: string,
+    pax: number,
+    maxPax: number,
+    now: Date,
+  ) {
+    if (attendance.scannedPax >= maxPax) {
       return {
-        result: 'CHECKED_IN',
+        result: 'ALREADY_CHECKED_IN' as const,
+        status: 'COMPLETE' as const,
+        scannedPax: attendance.scannedPax,
+        remainingPax: 0,
         attendance: {
-          scannedPax: newAttendance.scannedPax,
-          scannedAt: newAttendance.scannedAt,
+          scannedPax: attendance.scannedPax,
+          scannedAt: attendance.scannedAt,
         },
       };
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        (error.code === 'P2002' || error.code === 'P2034')
-      ) {
-        // Target specifically the invitation uniqueness constraint if available
-        const target = error.meta?.target;
-        if (
-          error.code === 'P2034' || // Deadlocks are assumed to be this conflict in this atomic operation
-          (Array.isArray(target) && target.includes('invitationId')) ||
-          target === 'attendances_invitation_id_key' ||
-          (typeof target === 'string' && target.includes('invitation_id'))
-        ) {
-          const existing = await this.db.attendance.findUnique({
-            where: { invitationId: invitation.id },
-          });
-
-          if (!existing) {
-            throw new ConflictException(
-              'Concurrent check-in conflict but row disappeared',
-            );
-          }
-
-          return {
-            result: 'ALREADY_CHECKED_IN',
-            attendance: {
-              scannedPax: existing.scannedPax,
-              scannedAt: existing.scannedAt,
-            },
-          };
-        }
-      }
-      throw error;
     }
+
+    const remainingPax = maxPax - attendance.scannedPax;
+    if (pax > remainingPax) {
+      throw new BadRequestException('Jumlah pax melebihi sisa kuota');
+    }
+
+    // Atomic conditional update ensuring scannedPax <= maxPax - pax
+    const updateResult = await tx.attendance.updateMany({
+      where: {
+        id: attendance.id,
+        scannedPax: {
+          lte: maxPax - pax,
+        },
+      },
+      data: {
+        scannedPax: {
+          increment: pax,
+        },
+        scannedAt: now,
+        scannedById: userId,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      // Concurrency race: capacity was taken by another concurrent scan
+      const current = await tx.attendance.findUnique({
+        where: { id: attendance.id },
+      });
+      if (current && current.scannedPax >= maxPax) {
+        return {
+          result: 'ALREADY_CHECKED_IN' as const,
+          status: 'COMPLETE' as const,
+          scannedPax: current.scannedPax,
+          remainingPax: 0,
+          attendance: {
+            scannedPax: current.scannedPax,
+            scannedAt: current.scannedAt,
+          },
+        };
+      }
+      throw new ConflictException(
+        'Kapasitas tamu telah terisi oleh proses scan lain',
+      );
+    }
+
+    // Read the newly persisted post-update Attendance record inside the transaction
+    const updated = await tx.attendance.findUnique({
+      where: { id: attendance.id },
+    });
+
+    if (!updated) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    // Insert immutable audit log
+    await tx.attendanceCheckIn.create({
+      data: {
+        attendanceId: attendance.id,
+        scannedById: userId,
+        scannedPax: pax,
+        scannedAt: now,
+      },
+    });
+
+    const newTotal = updated.scannedPax;
+    const finalRemaining = Math.max(0, maxPax - newTotal);
+    const status: AttendanceCheckInStatus =
+      finalRemaining === 0 ? 'COMPLETE' : 'PARTIAL';
+
+    return {
+      result: 'CHECKED_IN' as const,
+      status,
+      scannedPax: newTotal,
+      remainingPax: finalRemaining,
+      deltaPax: pax,
+      attendance: {
+        scannedPax: newTotal,
+        scannedAt: updated.scannedAt,
+      },
+    };
   }
 }
