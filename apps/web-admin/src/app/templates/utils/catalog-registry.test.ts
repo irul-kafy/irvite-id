@@ -194,4 +194,37 @@ test('Admin DB Join Behavior Contract', async (t) => {
     assert.equal(velvetJoined.canUse, false, 'Use Template must be disabled on duplicate');
     assert.ok(velvetJoined.statusMessage.includes('Duplikasi'));
   });
+await t.test('1 matching row with status HIDDEN: canUse = false', () => {
+    const hiddenTemplates: DbTemplateRecord[] = [
+      {
+        id: 'db-uuid-velvet',
+        name: 'Velvet Letter',
+        themeCode: 'VELVET_LETTER',
+        status: 'HIDDEN',
+      },
+    ];
+    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, hiddenTemplates);
+    const velvet = joined.find((j) => j.catalogItem.themeCode === 'VELVET_LETTER');
+    assert.ok(velvet);
+    assert.equal(velvet.readiness, 'SYNCED');
+    assert.equal(velvet.canUse, false, 'HIDDEN template cannot be used for new events');
+    assert.ok(velvet.statusMessage.includes('HIDDEN'));
+  });
+
+  await t.test('1 matching row with status ARCHIVED: canUse = false', () => {
+    const archivedTemplates: DbTemplateRecord[] = [
+      {
+        id: 'db-uuid-classic',
+        name: 'Classic Letter',
+        themeCode: 'CLASSIC_LETTER',
+        status: 'ARCHIVED',
+      },
+    ];
+    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, archivedTemplates);
+    const classic = joined.find((j) => j.catalogItem.themeCode === 'CLASSIC_LETTER');
+    assert.ok(classic);
+    assert.equal(classic.readiness, 'SYNCED');
+    assert.equal(classic.canUse, false, 'ARCHIVED template cannot be used for new events');
+    assert.ok(classic.statusMessage.includes('ARCHIVED'));
+  });
 });

@@ -90,6 +90,8 @@ function statusBadgeClass(status?: string): string {
   switch (status?.toUpperCase()) {
     case 'PUBLISHED':
       return 'badge badge--success';
+    case 'ARCHIVED':
+      return 'badge badge--danger';
     case 'DRAFT':
       return 'badge badge--neutral';
     default:
@@ -102,6 +104,7 @@ export default function EventsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('all');
   const router = useRouter();
 
   useEffect(() => {
@@ -140,6 +143,16 @@ export default function EventsPage() {
     void fetchEvents();
   }, [router]);
 
+  const filteredEvents = events.filter((e) => {
+    if (filter === 'active') {
+      return e.status === 'DRAFT' || e.status === 'PUBLISHED';
+    }
+    if (filter === 'archived') {
+      return e.status === 'ARCHIVED';
+    }
+    return true;
+  });
+
   return (
     <>
       {/* Page Header */}
@@ -164,6 +177,36 @@ export default function EventsPage() {
           </button>
         )}
       </div>
+
+      {/* Filter Tabs */}
+      {isAdmin && (
+        <div style={{ display: 'flex', gap: '0.5rem', margin: '0.5rem 0 1.25rem 0' }} role="tablist" aria-label="Filter status acara">
+          <button
+            type="button"
+            id="filter-all"
+            className={'btn btn-sm ' + (filter === 'all' ? 'btn-primary' : 'btn-secondary')}
+            onClick={() => setFilter('all')}
+          >
+            Semua ({events.length})
+          </button>
+          <button
+            type="button"
+            id="filter-active"
+            className={'btn btn-sm ' + (filter === 'active' ? 'btn-primary' : 'btn-secondary')}
+            onClick={() => setFilter('active')}
+          >
+            Aktif ({events.filter((e) => e.status === 'DRAFT' || e.status === 'PUBLISHED').length})
+          </button>
+          <button
+            type="button"
+            id="filter-archived"
+            className={'btn btn-sm ' + (filter === 'archived' ? 'btn-primary' : 'btn-secondary')}
+            onClick={() => setFilter('archived')}
+          >
+            Diarsipkan ({events.filter((e) => e.status === 'ARCHIVED').length})
+          </button>
+        </div>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -218,8 +261,21 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Filtered Empty State */}
+      {!loading && !error && events.length > 0 && filteredEvents.length === 0 && (
+        <div className="card">
+          <div className="empty-state" style={{ padding: '2rem' }}>
+            <p className="text-sm text-muted" style={{ margin: 0 }}>
+              {filter === 'archived'
+                ? 'Tidak ada acara yang diarsipkan.'
+                : 'Tidak ada acara aktif saat ini.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Events Table */}
-      {!loading && events.length > 0 && (
+      {!loading && filteredEvents.length > 0 && (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -232,7 +288,7 @@ export default function EventsPage() {
               </tr>
             </thead>
             <tbody>
-              {events.map((event) => {
+              {filteredEvents.map((event) => {
                 let canonicalPublicUrl = '';
                 if (event.slug) {
                   try {

@@ -55,6 +55,7 @@ model Template {
   id              String   @id @default(uuid())
   name            String
   themeCode       String   @map("theme_code")
+  status          String   @default("HIDDEN") @db.VarChar(20)
   config          Json?
   previewImageUrl String?  @map("preview_image_url")
   createdAt       DateTime @default(now()) @map("created_at")
@@ -80,7 +81,7 @@ model Event {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  template    Template?    @relation(fields: [templateId], references: [id])
+  template    Template?    @relation(fields: [templateId], references: [id], onDelete: Restrict)
   guests      Guest[]
   invitations Invitation[]
   attendances Attendance[]

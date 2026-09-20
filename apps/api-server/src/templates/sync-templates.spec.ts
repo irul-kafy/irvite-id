@@ -149,4 +149,45 @@ describe('syncTemplateIdentities', () => {
     expect(mockPrisma.template.create).not.toHaveBeenCalled();
     expect(mockPrisma.template.update).not.toHaveBeenCalled();
   });
+  it('assigns initialStatus AVAILABLE when creating records for approved seeds', async () => {
+    mockPrisma.template.findMany.mockResolvedValue([]);
+
+    await syncTemplateIdentities(mockPrisma);
+
+    expect(mockPrisma.template.create).toHaveBeenCalledTimes(
+      APPROVED_TEMPLATE_SEEDS.length,
+    );
+    for (const call of mockPrisma.template.create.mock.calls) {
+      expect(call[0].data.status).toBe('AVAILABLE');
+    }
+  });
+
+  it('preserves existing DB status (AVAILABLE, HIDDEN, ARCHIVED) without resetting', async () => {
+    mockPrisma.template.findMany.mockImplementation(({ where }: any) => {
+      let status = 'AVAILABLE';
+      if (where.themeCode === 'VELVET_LETTER') status = 'HIDDEN';
+      if (where.themeCode === 'CLASSIC_LETTER') status = 'ARCHIVED';
+
+      return Promise.resolve([
+        {
+          id: 'id-' + where.themeCode,
+          themeCode: where.themeCode,
+          name: 'Old Outdated Name',
+          previewImageUrl: '/old-image.png',
+          status,
+        },
+      ]);
+    });
+
+    const results = await syncTemplateIdentities(mockPrisma);
+
+    expect(results).toHaveLength(APPROVED_TEMPLATE_SEEDS.length);
+    expect(mockPrisma.template.update).toHaveBeenCalledTimes(
+      APPROVED_TEMPLATE_SEEDS.length,
+    );
+    for (const call of mockPrisma.template.update.mock.calls) {
+      expect(call[0].data.status).toBeUndefined();
+    }
+    expect(mockPrisma.template.create).not.toHaveBeenCalled();
+  });
 });

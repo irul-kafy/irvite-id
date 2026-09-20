@@ -1,7 +1,8 @@
  'use client';
 
 import Link from 'next/link';
-import { getCatalogTemplates } from '../catalog';
+import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '../catalog';
+import { fetchPublicTemplateAvailability } from '../api/client';
 
 import { useEffect, useState } from 'react';
 import { ThemeToggle } from '../components/theme-toggle';
@@ -457,7 +458,30 @@ function PackagesSection() {
 // ── Template Catalog ───────────────────────────────────────────────────────────
 
 function CatalogSection() {
-  const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
+  const [templates, setTemplates] = useState<CatalogTemplateItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const allTemplates = getCatalogTemplates();
+    fetchPublicTemplateAvailability()
+      .then((availability) => {
+        if (cancelled) return;
+        if (availability && availability.length > 0) {
+          setTemplates(filterAvailableTemplates(allTemplates, availability));
+        } else {
+          // Fail closed: no templates shown if availability API fails
+          setTemplates([]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <section id="katalog" className="lp-section lp-section--cream-2">
@@ -476,8 +500,17 @@ function CatalogSection() {
           </div>
         </div>
 
-        <div className="lp-catalog__grid">
-          {templates.map((t, i) => (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--lp-text-muted, #78716c)' }}>
+            <p>Memuat katalog template...</p>
+          </div>
+        ) : templates.length === 0 ? (
+          <div id="catalog-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--lp-text-muted, #78716c)' }}>
+            <p>Katalog template saat ini belum tersedia.</p>
+          </div>
+        ) : (
+          <div className="lp-catalog__grid">
+            {templates.map((t, i) => (
             <div
               key={t.slug}
               className={`lp-template-card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
@@ -536,7 +569,8 @@ function CatalogSection() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
         <div style={{ textAlign: 'center', marginTop: '3rem' }}>
           <Link

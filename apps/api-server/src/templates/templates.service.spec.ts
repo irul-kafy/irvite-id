@@ -193,4 +193,61 @@ describe('TemplatesService', () => {
       );
     });
   });
+  describe('lifecycle status update & public availability', () => {
+    it('should update template status to AVAILABLE, HIDDEN, or ARCHIVED', async () => {
+      mockPrismaService.template.findUnique.mockResolvedValue({
+        id: 'tpl-1',
+        status: 'AVAILABLE',
+      });
+      mockPrismaService.template.update.mockResolvedValue({
+        id: 'tpl-1',
+        status: 'HIDDEN',
+      });
+
+      const result = await service.update('tpl-1', { status: 'HIDDEN' });
+
+      expect(mockPrismaService.template.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'tpl-1' },
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          data: expect.objectContaining({ status: 'HIDDEN' }),
+        }),
+      );
+      expect(result.status).toBe('HIDDEN');
+    });
+
+    it('should return minimal public availability list with only themeCode and status', async () => {
+      const mockList = [
+        { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
+        { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
+        { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
+        { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+        { themeCode: 'VELVET_LETTER', status: 'HIDDEN' },
+      ];
+      mockPrismaService.template.findMany.mockResolvedValue(mockList);
+
+      const result = await service.getPublicAvailability();
+
+      expect(mockPrismaService.template.findMany).toHaveBeenCalledWith({
+        select: {
+          themeCode: true,
+          status: true,
+        },
+        orderBy: { themeCode: 'asc' },
+      });
+      expect(result).toEqual(mockList);
+    });
+
+    it('should still return definition for HIDDEN or ARCHIVED templates', async () => {
+      mockPrismaService.template.findUnique.mockResolvedValue({
+        id: 'tpl-hidden-uuid',
+        themeCode: 'VELVET_LETTER',
+      });
+
+      const result = await service.getDefinition('tpl-hidden-uuid');
+
+      expect(result).toBeDefined();
+      expect(result.themeCode).toBe('VELVET_LETTER');
+    });
+  });
 });

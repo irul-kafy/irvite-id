@@ -62,4 +62,12 @@ export class EventsController {
   ) {
     return this.eventsService.archive(id, user.id, user.role);
   }
+
+  @Post(':id/restore')
+  async restore(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.eventsService.restore(id, user.id, user.role);
+  }
 }

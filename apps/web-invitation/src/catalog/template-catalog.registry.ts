@@ -103,3 +103,23 @@ export function isAvailableTemplate(slug: string | null | undefined): boolean {
   const item = getCatalogTemplateBySlug(slug);
   return item !== undefined && item.availability === 'AVAILABLE';
 }
+
+/**
+ * Merges code-owned catalog templates with DB-owned availability records.
+ * Fails closed: if availability list is null/undefined or not an array, returns [].
+ * Only templates with status === 'AVAILABLE' in DB are returned.
+ */
+export function filterAvailableTemplates(
+  catalogTemplates: readonly CatalogTemplateItem[],
+  availability: readonly { themeCode: string; status: string }[] | null | undefined,
+): CatalogTemplateItem[] {
+  if (!availability || !Array.isArray(availability)) {
+    return [];
+  }
+  return catalogTemplates.filter((tpl) => {
+    const matched = availability.find(
+      (a) => a.themeCode?.trim().toUpperCase() === tpl.themeCode.trim().toUpperCase(),
+    );
+    return matched?.status === 'AVAILABLE';
+  });
+}

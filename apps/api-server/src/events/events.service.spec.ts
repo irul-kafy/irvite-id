@@ -138,6 +138,7 @@ describe('EventsService', () => {
       (prisma.template.findUnique as jest.Mock).mockResolvedValue({
         id: 'tpl-new',
         themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
       });
       (prisma.event.update as jest.Mock).mockResolvedValue({
         id: 'event-1',
@@ -170,6 +171,7 @@ describe('EventsService', () => {
       (prisma.template.findUnique as jest.Mock).mockResolvedValue({
         id: 'tpl-new',
         themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
       });
       (prisma.event.update as jest.Mock).mockResolvedValue({
         id: 'event-1',
@@ -377,6 +379,311 @@ describe('EventsService', () => {
       ).giftAccounts;
       expect(accounts[0].accountNumber).toBe('001234567890');
       expect(typeof accounts[0].accountNumber).toBe('string');
+    });
+  });
+  describe('template lifecycle selection enforcement', () => {
+    it('allows creating an event with an AVAILABLE template', async () => {
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-avail',
+        themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
+      });
+      (prisma.event.create as jest.Mock).mockResolvedValue({ id: 'event-1' });
+
+      const res = await service.create('user-1', {
+        title: 'Test Event',
+        slug: 'test-event',
+        eventDate: '2026-10-10',
+        templateId: 'tpl-avail',
+      });
+
+      expect(res.id).toBe('event-1');
+    });
+
+    it('rejects creating an event with a HIDDEN template with BadRequestException', async () => {
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-hidden',
+        themeCode: 'VELVET_LETTER',
+        status: 'HIDDEN',
+      });
+
+      await expect(
+        service.create('user-1', {
+          title: 'Test Event',
+          slug: 'test-event-hidden',
+          eventDate: '2026-10-10',
+          templateId: 'tpl-hidden',
+        }),
+      ).rejects.toThrow(
+        'Template is not available for new usage (status: HIDDEN)',
+      );
+    });
+
+    it('rejects creating an event with an ARCHIVED template with BadRequestException', async () => {
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-archived',
+        themeCode: 'CLASSIC_LETTER',
+        status: 'ARCHIVED',
+      });
+
+      await expect(
+        service.create('user-1', {
+          title: 'Test Event',
+          slug: 'test-event-archived',
+          eventDate: '2026-10-10',
+          templateId: 'tpl-archived',
+        }),
+      ).rejects.toThrow(
+        'Template is not available for new usage (status: ARCHIVED)',
+      );
+    });
+
+    it('allows editing an event retaining its current HIDDEN template', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-hidden',
+        content: null,
+        template: { themeCode: 'VELVET_LETTER' },
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        title: 'Updated Title',
+        templateId: 'tpl-hidden',
+      });
+
+      const res = await service.update('event-1', 'admin-1', Role.ADMIN, {
+        title: 'Updated Title',
+        templateId: 'tpl-hidden', // unchanged
+      });
+
+      expect(res.title).toBe('Updated Title');
+      expect(prisma.template.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('allows editing an event retaining its current ARCHIVED template', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-archived',
+        content: null,
+        template: { themeCode: 'CLASSIC_LETTER' },
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        title: 'Updated Title',
+        templateId: 'tpl-archived',
+      });
+
+      const res = await service.update('event-1', 'admin-1', Role.ADMIN, {
+        title: 'Updated Title',
+        templateId: 'tpl-archived', // unchanged
+      });
+
+      expect(res.title).toBe('Updated Title');
+      expect(prisma.template.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('rejects switching template to a HIDDEN template with BadRequestException', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-old',
+        content: null,
+      });
+      (prisma.media.count as jest.Mock).mockResolvedValue(0);
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-hidden',
+        themeCode: 'VELVET_LETTER',
+        status: 'HIDDEN',
+      });
+
+      await expect(
+        service.update('event-1', 'admin-1', Role.ADMIN, {
+          templateId: 'tpl-hidden',
+        }),
+      ).rejects.toThrow(
+        'Template is not available for new usage (status: HIDDEN)',
+      );
+    });
+
+    it('rejects switching template to an ARCHIVED template with BadRequestException', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-old',
+        content: null,
+      });
+      (prisma.media.count as jest.Mock).mockResolvedValue(0);
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-archived',
+        themeCode: 'CLASSIC_LETTER',
+        status: 'ARCHIVED',
+      });
+
+      await expect(
+        service.update('event-1', 'admin-1', Role.ADMIN, {
+          templateId: 'tpl-archived',
+        }),
+      ).rejects.toThrow(
+        'Template is not available for new usage (status: ARCHIVED)',
+      );
+    });
+  });
+
+  describe('event lifecycle & restore state machine', () => {
+    it('rejects generic PATCH on an ARCHIVED event with 409 Conflict', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-archived-1',
+        status: 'ARCHIVED',
+        templateId: 'tpl-1',
+      });
+
+      await expect(
+        service.update('event-archived-1', 'admin-1', Role.ADMIN, {
+          title: 'Should Fail',
+        }),
+      ).rejects.toThrow(
+        'Archived events cannot be modified. Restore the event first.',
+      );
+    });
+
+    it('rejects generic PATCH trying to set status to ARCHIVED directly', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-1',
+      });
+
+      await expect(
+        service.update('event-1', 'admin-1', Role.ADMIN, {
+          status: 'ARCHIVED',
+        }),
+      ).rejects.toThrow('Archiving must be performed via archive action');
+    });
+
+    it('restores ARCHIVED event strictly to DRAFT preserving child identity', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'ARCHIVED',
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+      });
+
+      const res = await service.restore('event-1', 'admin-1', Role.ADMIN);
+
+      expect(res.success).toBe(true);
+      expect(res.data.status).toBe('DRAFT');
+      expect(prisma.event.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'event-1' },
+          data: { status: 'DRAFT' },
+        }),
+      );
+    });
+
+    it('rejects restoring an event that is already DRAFT with 409 Conflict', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+      });
+
+      await expect(
+        service.restore('event-1', 'admin-1', Role.ADMIN),
+      ).rejects.toThrow(
+        'Only archived events can be restored. Current status is DRAFT.',
+      );
+    });
+
+    it('rejects restoring an event that is already PUBLISHED with 409 Conflict', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+      });
+
+      await expect(
+        service.restore('event-1', 'admin-1', Role.ADMIN),
+      ).rejects.toThrow(
+        'Only archived events can be restored. Current status is PUBLISHED.',
+      );
+    });
+
+    it('returns opaque 404 NotFound when non-owner ADMIN attempts restore', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.restore('event-other-tenant', 'admin-1', Role.ADMIN),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('allows SUPER_ADMIN to restore an event regardless of owner', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'ARCHIVED',
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+      });
+
+      const res = await service.restore(
+        'event-1',
+        'super-admin-1',
+        Role.SUPER_ADMIN,
+      );
+
+      expect(res.success).toBe(true);
+      expect(prisma.event.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'event-1' }, // not scoped to userId
+        }),
+      );
+    });
+
+    it('renders existing PUBLISHED event even if bound template is HIDDEN in DB', async () => {
+      const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-hidden-tpl',
+        title: 'Event With Hidden Template',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+        slug: 'hidden-tpl-event',
+        content: null,
+        template: {
+          themeCode: 'VELVET_LETTER',
+          config: null,
+        },
+      });
+      (prisma.media.findMany as jest.Mock).mockResolvedValue([]);
+
+      const res = await service.resolvePublic('hidden-tpl-event');
+
+      expect(res).toBeDefined();
+      expect(res.template?.themeCode).toBe('VELVET_LETTER');
+    });
+
+    it('renders existing PUBLISHED event even if bound template is ARCHIVED in DB', async () => {
+      const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-archived-tpl',
+        title: 'Event With Archived Template',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+        slug: 'archived-tpl-event',
+        content: null,
+        template: {
+          themeCode: 'CLASSIC_LETTER',
+          config: null,
+        },
+      });
+      (prisma.media.findMany as jest.Mock).mockResolvedValue([]);
+
+      const res = await service.resolvePublic('archived-tpl-event');
+
+      expect(res).toBeDefined();
+      expect(res.template?.themeCode).toBe('CLASSIC_LETTER');
     });
   });
 });

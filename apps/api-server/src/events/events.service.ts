@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -35,7 +36,7 @@ export class EventsService {
   private async verifyTemplateExists(templateId: string) {
     const template = await this.prisma.template.findUnique({
       where: { id: templateId },
-      select: { id: true, themeCode: true },
+      select: { id: true, themeCode: true, status: true },
     });
     if (!template) {
       throw new NotFoundException(`Template with ID ${templateId} not found`);
@@ -49,6 +50,11 @@ export class EventsService {
       const template = await this.verifyTemplateExists(
         createEventDto.templateId,
       );
+      if (template.status !== 'AVAILABLE') {
+        throw new BadRequestException(
+          `Template is not available for new usage (status: ${template.status})`,
+        );
+      }
       themeCode = template.themeCode;
     }
 
@@ -146,6 +152,18 @@ export class EventsService {
       throw new NotFoundException(`Event not found`);
     }
 
+    if (existingEvent.status === EVENT_STATUS.ARCHIVED) {
+      throw new ConflictException(
+        'Archived events cannot be modified. Restore the event first.',
+      );
+    }
+
+    if (updateEventDto.status === EVENT_STATUS.ARCHIVED) {
+      throw new ConflictException(
+        'Archiving must be performed via archive action',
+      );
+    }
+
     let activeThemeCode = existingEvent.template?.themeCode ?? null;
 
     // Template change rule
@@ -186,6 +204,11 @@ export class EventsService {
         const newTemplate = await this.verifyTemplateExists(
           updateEventDto.templateId,
         );
+        if (newTemplate.status !== 'AVAILABLE') {
+          throw new BadRequestException(
+            `Template is not available for new usage (status: ${newTemplate.status})`,
+          );
+        }
         activeThemeCode = newTemplate.themeCode;
       } else {
         activeThemeCode = null;
@@ -345,5 +368,36 @@ export class EventsService {
     });
 
     return { success: true, message: 'Event archived successfully' };
+  }
+
+  async restore(id: string, userId: string, role: Role) {
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+
+    const existingEvent = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: { id: true, status: true },
+    });
+
+    if (!existingEvent) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (existingEvent.status !== EVENT_STATUS.ARCHIVED) {
+      throw new ConflictException(
+        `Only archived events can be restored. Current status is ${existingEvent.status}.`,
+      );
+    }
+
+    const restoredEvent = await this.prisma.event.update({
+      where: { id },
+      data: { status: EVENT_STATUS.DRAFT },
+      select: this.selectSafeEvent(),
+    });
+
+    return {
+      success: true,
+      message: 'Event restored successfully to DRAFT status',
+      data: restoredEvent,
+    };
   }
 }
