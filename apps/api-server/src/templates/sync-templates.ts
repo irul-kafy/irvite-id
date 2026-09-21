@@ -150,3 +150,17 @@ export async function syncTemplateIdentities(
 
   return results;
 }
+
+export const BUILT_IN_THEME_CODES: ReadonlySet<string> = new Set(
+  APPROVED_TEMPLATE_SEEDS.map((s) => s.themeCode),
+);
+
+/**
+ * Checks if a given themeCode corresponds to an approved built-in template seed.
+ */
+export function isBuiltInTemplate(
+  themeCode: string | null | undefined,
+): boolean {
+  if (!themeCode || typeof themeCode !== 'string') return false;
+  return BUILT_IN_THEME_CODES.has(themeCode.trim().toUpperCase());
+}

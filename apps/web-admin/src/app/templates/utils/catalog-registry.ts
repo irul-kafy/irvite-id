@@ -321,6 +321,7 @@ export interface DbTemplateRecord {
   status?: string;
   previewImageUrl?: string | null;
   config?: unknown;
+  eventUsageCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -397,4 +398,15 @@ export function joinCatalogWithDbTemplates(
       statusMessage: `Peringatan: Duplikasi identitas terdeteksi (${matches.length} baris di DB). Fitur dinonaktifkan.`,
     };
   });
+}
+
+export const BUILT_IN_THEME_CODES: ReadonlySet<string> = new Set(
+  FIXED_CATALOG_TEMPLATES.map((t) => t.themeCode.trim().toUpperCase())
+);
+
+export function isBuiltInCatalogTemplate(
+  themeCode: string | null | undefined
+): boolean {
+  if (!themeCode || typeof themeCode !== 'string') return false;
+  return BUILT_IN_THEME_CODES.has(themeCode.trim().toUpperCase());
 }

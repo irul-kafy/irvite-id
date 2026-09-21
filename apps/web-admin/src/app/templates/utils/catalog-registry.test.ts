@@ -9,6 +9,8 @@ import {
   filterCatalogTemplates,
   joinCatalogWithDbTemplates,
   DbTemplateRecord,
+  BUILT_IN_THEME_CODES,
+  isBuiltInCatalogTemplate,
 } from './catalog-registry';
 
 test('Admin Fixed Catalog Registry Contract', async (t) => {
@@ -105,6 +107,20 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     assert.equal(classic[0].themeCode, 'IVORY_GARDEN');
     assert.equal(classic[1].themeCode, 'CLASSIC_LETTER');
   });
+  await t.test('isBuiltInCatalogTemplate correctly identifies built-in templates', () => {
+    assert.equal(BUILT_IN_THEME_CODES.size, 5);
+    assert.equal(isBuiltInCatalogTemplate('IVORY_GARDEN'), true);
+    assert.equal(isBuiltInCatalogTemplate('serene_garden'), true);
+    assert.equal(isBuiltInCatalogTemplate('SUNDA_PUSPA'), true);
+    assert.equal(isBuiltInCatalogTemplate('CLASSIC_LETTER'), true);
+    assert.equal(isBuiltInCatalogTemplate('VELVET_LETTER'), true);
+
+    assert.equal(isBuiltInCatalogTemplate('CUSTOM_THEME'), false);
+    assert.equal(isBuiltInCatalogTemplate(''), false);
+    assert.equal(isBuiltInCatalogTemplate(null), false);
+    assert.equal(isBuiltInCatalogTemplate(undefined), false);
+  });
+
 });
 
 test('Admin DB Join Behavior Contract', async (t) => {
