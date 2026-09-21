@@ -1,37 +1,21 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '@/catalog';
+import { getCatalogTemplates, filterAvailableTemplates } from '@/catalog';
 import { fetchPublicTemplateAvailability } from '@/api/client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
 import './templates.css';
 
-export default function PublicTemplatesPage() {
-  const [templates, setTemplates] = useState<CatalogTemplateItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export const dynamic = 'force-dynamic';
 
-  useEffect(() => {
-    let cancelled = false;
-    const allTemplates = getCatalogTemplates();
-    fetchPublicTemplateAvailability()
-      .then((availability) => {
-        if (cancelled) return;
-        if (availability && availability.length > 0) {
-          setTemplates(filterAvailableTemplates(allTemplates, availability));
-        } else {
-          setTemplates([]);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setTemplates([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
+export default async function PublicTemplatesPage() {
+  const availability = await fetchPublicTemplateAvailability();
+  const allTemplates = getCatalogTemplates();
+  const templates =
+    availability && availability.length > 0
+      ? filterAvailableTemplates(allTemplates, availability)
+      : [];
+
   const navContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya ingin konsultasi undangan digital.');
   const footerContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya butuh bantuan memilih template undangan.');
 
@@ -84,79 +68,75 @@ export default function PublicTemplatesPage() {
 
       {/* Grid */}
       <main className="cat-container">
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--cat-muted, #8b949e)' }}>
-            <p>Memuat katalog template...</p>
-          </div>
-        ) : templates.length === 0 ? (
+        {templates.length === 0 ? (
           <div id="catalog-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--cat-muted, #8b949e)' }}>
             <p>Katalog template saat ini belum tersedia.</p>
           </div>
         ) : (
           <div className="cat-grid" role="list">
             {templates.map((tpl) => {
-            const orderUrl = getTemplateOrderUrl(tpl.displayName);
+              const orderUrl = getTemplateOrderUrl(tpl.displayName);
 
-            return (
-              <article key={tpl.slug} className="cat-card" role="listitem">
-                <div className="cat-card__preview">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={tpl.thumbnailPath}
-                    alt={`Pratinjau desain ${tpl.displayName}`}
-                    className="cat-card__img"
-                    loading="lazy"
-                    width={600}
-                    height={900}
-                  />
-                  <span className="cat-card__overlay-badge">Tersedia</span>
-                </div>
+              return (
+                <article key={tpl.slug} className="cat-card" role="listitem">
+                  <div className="cat-card__preview">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={tpl.thumbnailPath}
+                      alt={'Pratinjau desain ' + tpl.displayName}
+                      className="cat-card__img"
+                      loading="lazy"
+                      width={600}
+                      height={900}
+                    />
+                    <span className="cat-card__overlay-badge">Tersedia</span>
+                  </div>
 
-                <div className="cat-card__body">
-                  <span className="cat-card__category">{tpl.category}</span>
-                  <h2 className="cat-card__title">{tpl.displayName}</h2>
-                  <p className="cat-card__desc">{tpl.shortDescription}</p>
+                  <div className="cat-card__body">
+                    <span className="cat-card__category">{tpl.category}</span>
+                    <h2 className="cat-card__title">{tpl.displayName}</h2>
+                    <p className="cat-card__desc">{tpl.shortDescription}</p>
 
-                  <div className="cat-card__actions">
-                    <a
-                      id={`demo-${tpl.slug}`}
-                      href={tpl.demoPath}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="cat-btn cat-btn--demo"
-                      aria-label={`Buka demo ${tpl.displayName} di tab baru`}
-                    >
-                      Lihat Demo
-                    </a>
-
-                    {orderUrl ? (
+                    <div className="cat-card__actions">
                       <a
-                        id={`order-${tpl.slug}`}
-                        href={orderUrl}
+                        id={'demo-' + tpl.slug}
+                        href={tpl.demoPath}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="cat-btn cat-btn--order"
-                        aria-label={`Pesan template ${tpl.displayName} via WhatsApp`}
+                        className="cat-btn cat-btn--demo"
+                        aria-label={'Buka demo ' + tpl.displayName + ' di tab baru'}
                       >
-                        Pilih Template
+                        Lihat Demo
                       </a>
-                    ) : (
-                      <button
-                        type="button"
-                        id={`order-${tpl.slug}`}
-                        disabled
-                        className="cat-btn cat-btn--order"
-                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                        title="Pemesanan WhatsApp sementara tidak tersedia"
-                      >
-                        Pilih Template
-                      </button>
-                    )}
+
+                      {orderUrl ? (
+                        <a
+                          id={'order-' + tpl.slug}
+                          href={orderUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cat-btn cat-btn--order"
+                          aria-label={'Pesan template ' + tpl.displayName + ' via WhatsApp'}
+                        >
+                          Pilih Template
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          id={'order-' + tpl.slug}
+                          disabled
+                          className="cat-btn cat-btn--order"
+                          style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                          title="Pemesanan WhatsApp sementara tidak tersedia"
+                        >
+                          Pilih Template
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
           </div>
         )}
       </main>

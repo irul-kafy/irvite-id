@@ -1,14 +1,12 @@
- 'use client';
-
 import Link from 'next/link';
 import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '../catalog';
 import { fetchPublicTemplateAvailability } from '../api/client';
-
-import { useEffect, useState } from 'react';
-import { ThemeToggle } from '../components/theme-toggle';
+import { LandingNavbar } from '../components/landing-navbar';
+import { ScrollReveal } from '../components/scroll-reveal';
+import { PublicTemplateShowcase } from '../components/public-template-showcase';
 import './landing.css';
+import { getGeneralContactUrl } from '../utils/contact';
 
-import { getTemplateOrderUrl, getGeneralContactUrl } from '../utils/contact';
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
 const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
@@ -161,81 +159,6 @@ const TESTIMONIALS = [
 ] as const;
 
 // ── Scroll reveal hook ─────────────────────────────────────────────────────────
-
-function useReveal() {
-  useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-      document.querySelectorAll('.lp-reveal').forEach((el) => el.classList.add('is-visible'));
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: '0px 0px -48px 0px' }
-    );
-    document.querySelectorAll('.lp-reveal').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-}
-
-// ── Navbar ─────────────────────────────────────────────────────────────────────
-
-function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  return (
-    <nav className={`lp-nav${scrolled ? ' lp-nav--scrolled' : ''}`} aria-label="Main navigation">
-      <div className="lp-nav__brand">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="IRVITE" className="lp-nav__logo-img" />
-      </div>
-      <ul className="lp-nav__links">
-        <li><a href="#katalog" className="lp-nav__link">Katalog</a></li>
-        <li><a href="#paket" className="lp-nav__link">Paket</a></li>
-        <li><a href="#alur" className="lp-nav__link">Cara Kerja</a></li>
-      </ul>
-      <div className="lp-nav__actions">
-        <ThemeToggle />
-        {getGeneralContactUrl(MSG_GENERAL) ? (
-          <a
-            id="nav-wa-cta"
-            href={getGeneralContactUrl(MSG_GENERAL)!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="lp-nav__cta"
-          >
-            <IconWA style={{ width: 15, height: 15 }} />
-            WhatsApp Kami
-          </a>
-        ) : (
-          <span
-            id="nav-wa-cta"
-            className="lp-nav__cta"
-            style={{ opacity: 0.5, cursor: 'not-allowed' }}
-            title="Kontak belum dikonfigurasi"
-          >
-            <IconWA style={{ width: 15, height: 15 }} />
-            WhatsApp Kami
-          </span>
-        )}
-      </div>
-    </nav>
-  );
-}
-
-// ── Hero ───────────────────────────────────────────────────────────────────────
 
 function HeroSection() {
   return (
@@ -457,32 +380,7 @@ function PackagesSection() {
 
 // ── Template Catalog ───────────────────────────────────────────────────────────
 
-function CatalogSection() {
-  const [templates, setTemplates] = useState<CatalogTemplateItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    const allTemplates = getCatalogTemplates();
-    fetchPublicTemplateAvailability()
-      .then((availability) => {
-        if (cancelled) return;
-        if (availability && availability.length > 0) {
-          setTemplates(filterAvailableTemplates(allTemplates, availability));
-        } else {
-          // Fail closed: no templates shown if availability API fails
-          setTemplates([]);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setTemplates([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
+function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
   return (
     <section id="katalog" className="lp-section lp-section--cream-2">
       <div className="lp-container lp-catalog">
@@ -500,77 +398,7 @@ function CatalogSection() {
           </div>
         </div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--lp-text-muted, #78716c)' }}>
-            <p>Memuat katalog template...</p>
-          </div>
-        ) : templates.length === 0 ? (
-          <div id="catalog-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--lp-text-muted, #78716c)' }}>
-            <p>Katalog template saat ini belum tersedia.</p>
-          </div>
-        ) : (
-          <div className="lp-catalog__grid">
-            {templates.map((t, i) => (
-            <div
-              key={t.slug}
-              className={`lp-template-card lp-reveal lp-reveal--delay-${(i % 3) + 1}`}
-            >
-              <div className="lp-template-card__preview" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '2/3' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={t.thumbnailPath}
-                  alt={`Pratinjau desain ${t.displayName}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  loading="lazy"
-                  width={600}
-                  height={900}
-                />
-                <div className="lp-template-card__badge">{t.category}</div>
-              </div>
-              <div className="lp-template-card__info">
-                <h3 className="lp-template-card__name">{t.displayName}</h3>
-                <p className="lp-template-card__desc">{t.shortDescription}</p>
-                <div className="lp-template-card__actions">
-                  <a
-                    id={`catalog-demo-${t.slug}`}
-                    href={t.demoPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lp-btn lp-btn--outline-silver lp-btn--sm"
-                  >
-                    Lihat Demo
-                  </a>
-                  {(() => {
-                    const orderUrl = getTemplateOrderUrl(t.displayName);
-                    return orderUrl ? (
-                      <a
-                        id={`catalog-order-${t.slug}`}
-                        href={orderUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="lp-btn lp-btn--silver lp-btn--sm"
-                      >
-                        Pesan Desain Ini
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        id={`catalog-order-${t.slug}`}
-                        disabled
-                        className="lp-btn lp-btn--silver lp-btn--sm"
-                        style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                        title="Kontak pemesanan belum dikonfigurasi"
-                      >
-                        Pesan Desain Ini
-                      </button>
-                    );
-                  })()}
-                </div>
-              </div>
-            </div>
-          ))}
-          </div>
-        )}
+        <PublicTemplateShowcase templates={templates} />
 
         <div style={{ textAlign: 'center', marginTop: '3rem' }}>
           <Link
@@ -586,8 +414,6 @@ function CatalogSection() {
     </section>
   );
 }
-
-// ── How It Works ───────────────────────────────────────────────────────────────
 
 function HowItWorksSection() {
   const steps = [
@@ -824,23 +650,31 @@ function WaFab() {
 
 // ── Root Page ──────────────────────────────────────────────────────────────────
 
-export default function LandingPage() {
-  useReveal();
+export const dynamic = 'force-dynamic';
+
+export default async function LandingPage() {
+  const availability = await fetchPublicTemplateAvailability();
+  const allTemplates = getCatalogTemplates();
+  const templates =
+    availability && availability.length > 0
+      ? filterAvailableTemplates(allTemplates, availability)
+      : [];
 
   return (
     <>
-      <Navbar />
+      <LandingNavbar />
       <main id="main-content">
         <HeroSection />
         <TrustBar />
         <PackagesSection />
-        <CatalogSection />
+        <CatalogSection templates={templates} />
         <HowItWorksSection />
         <TestimonialsSection />
         <CTABanner />
       </main>
       <Footer />
       <WaFab />
+      <ScrollReveal />
     </>
   );
 }
