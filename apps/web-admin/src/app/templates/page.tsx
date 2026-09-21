@@ -8,6 +8,7 @@ import {
   joinCatalogWithDbTemplates,
   DbTemplateRecord,
   JoinedCatalogTemplate,
+  isBuiltInCatalogTemplate,
 } from './utils/catalog-registry';
 import { getCanonicalTemplateDemoUrl, getTrustedInvitationOrigin } from '../../utils/url';
 import './template-studio.css';
@@ -21,6 +22,13 @@ export default function TemplateCatalogPage() {
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [updatingStatusTheme, setUpdatingStatusTheme] = useState<string | null>(null);
+
+  // Permanent Delete Modal State
+  const [templateToDelete, setTemplateToDelete] = useState<DbTemplateRecord | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const hasTrustedOrigin = Boolean(getTrustedInvitationOrigin());
 
   // Session verification and DB templates fetch
@@ -82,7 +90,7 @@ export default function TemplateCatalogPage() {
     dbTemplates
   );
 
-  // Filter based on category and search query
+  // Filter based on category and search query for catalog templates
   const filteredTemplates = joinedTemplates.filter((item) => {
     const cat = item.catalogItem;
     if (selectedCategory !== 'All' && cat.category !== selectedCategory) {
@@ -95,6 +103,20 @@ export default function TemplateCatalogPage() {
       cat.themeCode.toLowerCase().includes(q) ||
       cat.category.toLowerCase().includes(q) ||
       cat.shortDescription.toLowerCase().includes(q)
+    );
+  });
+
+  // Dynamic / Custom templates (non-built-in records from DB)
+  const dynamicTemplates = dbTemplates.filter(
+    (t) => !isBuiltInCatalogTemplate(t.themeCode)
+  );
+
+  const filteredDynamicTemplates = dynamicTemplates.filter((t) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      t.name.toLowerCase().includes(q) ||
+      (t.themeCode && t.themeCode.toLowerCase().includes(q))
     );
   });
 
@@ -124,6 +146,32 @@ export default function TemplateCatalogPage() {
   const handleUseTemplate = (item: JoinedCatalogTemplate) => {
     if (!item.canUse || !item.matchedDbTemplate) return;
     router.push(`/events/create?templateId=${encodeURIComponent(item.matchedDbTemplate.id)}`);
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!templateToDelete || deleteConfirmInput !== 'DELETE') return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/templates/${encodeURIComponent(templateToDelete.id)}/permanent`, {
+        method: 'DELETE',
+        headers: {
+          origin: window.location.origin,
+        },
+      });
+      if (res.ok) {
+        setDbTemplates((prev) => prev.filter((t) => t.id !== templateToDelete.id));
+        setTemplateToDelete(null);
+        setDeleteConfirmInput('');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setDeleteError(err.message || 'Gagal menghapus template secara permanen');
+      }
+    } catch {
+      setDeleteError('Terjadi kesalahan jaringan saat menghapus template');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -251,6 +299,7 @@ export default function TemplateCatalogPage() {
               {filteredTemplates.map((item) => {
                 const cat = item.catalogItem;
                 const demoUrl = getCanonicalTemplateDemoUrl(cat.demoPath);
+                const dbUsageCount = item.matchedDbTemplate?.eventUsageCount ?? 0;
 
                 return (
                   <article
@@ -291,38 +340,32 @@ export default function TemplateCatalogPage() {
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                           <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
+                          <path d="M21 15l-5-5L5 21" />
                         </svg>
-                        <span style={{ fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 600 }}>
-                          {cat.displayName}
-                        </span>
+                        <span style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>{cat.displayName}</span>
                       </div>
 
+                      {/* Preview Image with CSS-based styling */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.previewImageUrl}
-                        alt={`Thumbnail ${cat.displayName}`}
+                        alt={`Thumbnail template ${cat.displayName}`}
+                        loading="lazy"
                         style={{
-                          position: 'relative',
-                          zIndex: 1,
+                          position: 'absolute',
+                          inset: 0,
                           width: '100%',
                           height: '100%',
                           objectFit: 'cover',
-                          display: 'block',
+                          objectPosition: 'top center',
+                          zIndex: 1,
                         }}
-                        loading="lazy"
-                        width={600}
-                        height={900}
                         onError={(e) => {
-                          const origin = getTrustedInvitationOrigin();
-                          if (origin && item.previewImageUrl.startsWith('/') && !e.currentTarget.dataset.retried) {
-                            e.currentTarget.dataset.retried = 'true';
-                            e.currentTarget.src = `${origin}${item.previewImageUrl}`;
-                          }
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
                         }}
                       />
 
-                      {/* Top Badges */}
+                      {/* Header Badges */}
                       <div
                         style={{
                           position: 'absolute',
@@ -332,28 +375,43 @@ export default function TemplateCatalogPage() {
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
+                          zIndex: 2,
                           gap: '0.5rem',
                         }}
                       >
-                        <span
-                          className="badge"
-                          style={{
-                            background: 'rgba(23, 24, 23, 0.85)',
-                            color: '#FFFFFF',
-                            backdropFilter: 'blur(4px)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            fontSize: '0.75rem',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          {item.matchedDbTemplate?.status || cat.availability}
-                        </span>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span
+                            className="template-card__badge"
+                            style={{
+                              background: 'rgba(15, 23, 42, 0.75)',
+                              color: '#ffffff',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              backdropFilter: 'blur(4px)',
+                              fontSize: '0.7rem',
+                              padding: '0.2rem 0.45rem',
+                              borderRadius: '4px',
+                              fontWeight: 600,
+                            }}
+                            title="Built-in system template"
+                          >
+                            System
+                          </span>
+                          {cat.badge && (
+                            <span className="template-card__badge template-card__badge--highlight">
+                              {cat.badge}
+                            </span>
+                          )}
+                          {cat.isPhotoOptional && (
+                            <span className="template-card__badge template-card__badge--outline">
+                              Non-Foto
+                            </span>
+                          )}
+                        </div>
 
-                        {/* DB Identity Readiness Badge */}
+                        {/* Database Sync Status Badge */}
                         {item.readiness === 'SYNCED' ? (
                           <span
-                            className="badge"
+                            className="badge badge-success"
                             style={{
                               background: '#16a34a',
                               color: '#FFFFFF',
@@ -361,7 +419,7 @@ export default function TemplateCatalogPage() {
                               padding: '0.25rem 0.5rem',
                               borderRadius: '4px',
                             }}
-                            title="Identitas template tersinkronisasi dengan database"
+                            title="Tersinkronisasi dengan database"
                           >
                             ✓ SYNCED
                           </span>
@@ -369,7 +427,7 @@ export default function TemplateCatalogPage() {
                           <span
                             className="badge"
                             style={{
-                              background: '#d97706',
+                              background: '#ca8a04',
                               color: '#FFFFFF',
                               fontSize: '0.75rem',
                               padding: '0.25rem 0.5rem',
@@ -413,10 +471,21 @@ export default function TemplateCatalogPage() {
                           color: 'var(--admin-accent)',
                           textTransform: 'uppercase',
                           letterSpacing: '0.05em',
-                          marginBottom: '0.5rem',
+                          marginBottom: '0.25rem',
                         }}
                       >
                         {cat.category}
+                      </div>
+
+                      {/* Event Usage Count */}
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--admin-text-secondary)',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
+                        Used in {dbUsageCount} {dbUsageCount === 1 ? 'event' : 'events'}
                       </div>
 
                       <p className="template-card__desc">{cat.shortDescription}</p>
@@ -439,7 +508,7 @@ export default function TemplateCatalogPage() {
                       )}
                     </div>
 
-                                        {/* SUPER_ADMIN Lifecycle Controls */}
+                    {/* SUPER_ADMIN Lifecycle Controls (Built-in template: Archive mechanism only) */}
                     {userRole === 'SUPER_ADMIN' && item.matchedDbTemplate && (
                       <div
                         style={{
@@ -499,7 +568,7 @@ export default function TemplateCatalogPage() {
                             strokeWidth="2"
                             aria-hidden="true"
                           >
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
                           Preview
@@ -523,7 +592,7 @@ export default function TemplateCatalogPage() {
                             strokeWidth="2"
                             aria-hidden="true"
                           >
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z" />
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                             <circle cx="12" cy="12" r="3" />
                           </svg>
                           Preview
@@ -551,7 +620,411 @@ export default function TemplateCatalogPage() {
             </div>
           )}
         </section>
+
+        {/* Dynamic & Custom Templates Section */}
+        {filteredDynamicTemplates.length > 0 && (
+          <section className="catalog-section" style={{ marginTop: '2.5rem' }}>
+            <div className="catalog-section__header">
+              <h2 className="catalog-section__title">Template Kustom &amp; Dinamis</h2>
+              <span className="catalog-section__count">
+                {`${filteredDynamicTemplates.length} template`}
+              </span>
+            </div>
+
+            <div className="template-grid" role="list">
+              {filteredDynamicTemplates.map((dynamicTpl) => {
+                const isArchived = dynamicTpl.status === 'ARCHIVED';
+                const usage = dynamicTpl.eventUsageCount ?? 0;
+                const canDelete = isArchived && usage === 0;
+
+                return (
+                  <article
+                    key={dynamicTpl.id}
+                    id={`dynamic-template-${dynamicTpl.id}`}
+                    className="template-card"
+                    role="listitem"
+                    aria-label={dynamicTpl.name}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    {/* Dynamic Thumbnail Header */}
+                    <div
+                      className="template-card__thumbnail-container"
+                      style={{
+                        position: 'relative',
+                        width: '100%',
+                        aspectRatio: '2 / 3',
+                        background: 'var(--admin-surface-inset)',
+                        overflow: 'hidden',
+                        borderBottom: '1px solid var(--admin-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <span
+                        className="badge"
+                        style={{
+                          background: '#3b82f6',
+                          color: '#FFFFFF',
+                          fontSize: '0.75rem',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          marginBottom: '0.75rem',
+                        }}
+                      >
+                        Custom Template
+                      </span>
+                      <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--admin-text)' }}>
+                        {dynamicTpl.name}
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--admin-text-secondary)', marginTop: '0.25rem' }}>
+                        {dynamicTpl.themeCode}
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="template-card__body">
+                      <div className="template-card__title-row">
+                        <h3 className="template-card__name" title={dynamicTpl.name}>
+                          {dynamicTpl.name}
+                        </h3>
+                        <span className="template-card__theme-code">{dynamicTpl.themeCode}</span>
+                      </div>
+
+                      {/* Event Usage Count */}
+                      <div
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--admin-text-secondary)',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
+                        Used in {usage} {usage === 1 ? 'event' : 'events'}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-secondary)' }}>Status:</span>
+                        <span
+                          className="badge"
+                          style={{
+                            background:
+                              dynamicTpl.status === 'AVAILABLE'
+                                ? '#16a34a'
+                                : dynamicTpl.status === 'ARCHIVED'
+                                ? '#64748b'
+                                : '#eab308',
+                            color: '#ffffff',
+                            fontSize: '0.7rem',
+                            padding: '0.15rem 0.4rem',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          {dynamicTpl.status || 'AVAILABLE'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* SUPER_ADMIN Lifecycle Controls */}
+                    {userRole === 'SUPER_ADMIN' && (
+                      <div
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          background: 'var(--admin-surface-inset)',
+                          borderTop: '1px solid var(--admin-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.5rem',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--admin-text)' }}>
+                          Lifecycle:
+                        </span>
+                        <select
+                          id={`select-status-${dynamicTpl.id}`}
+                          value={dynamicTpl.status || 'AVAILABLE'}
+                          disabled={updatingStatusTheme === dynamicTpl.themeCode}
+                          onChange={(e) =>
+                            handleStatusChange(dynamicTpl.id, dynamicTpl.themeCode || '', e.target.value)
+                          }
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.2rem 0.4rem',
+                            borderRadius: 'var(--admin-radius-sm)',
+                            border: '1px solid var(--admin-border)',
+                            background: 'var(--admin-surface)',
+                            color: 'var(--admin-text)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <option value="AVAILABLE">AVAILABLE</option>
+                          <option value="HIDDEN">HIDDEN</option>
+                          <option value="ARCHIVED">ARCHIVED</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="template-card__actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        id={`use-template-${dynamicTpl.id}`}
+                        className="template-card__btn template-card__btn--select"
+                        onClick={() => router.push(`/events/create?templateId=${encodeURIComponent(dynamicTpl.id)}`)}
+                        disabled={dynamicTpl.status !== 'AVAILABLE'}
+                        title={dynamicTpl.status !== 'AVAILABLE' ? `Template is ${dynamicTpl.status}` : 'Use Template'}
+                        style={{
+                          opacity: dynamicTpl.status === 'AVAILABLE' ? 1 : 0.5,
+                          cursor: dynamicTpl.status === 'AVAILABLE' ? 'pointer' : 'not-allowed',
+                        }}
+                      >
+                        Use Template
+                      </button>
+
+                      {/* Permanent Delete button only shown when status === 'ARCHIVED' */}
+                      {userRole === 'SUPER_ADMIN' && isArchived && (
+                        <button
+                          type="button"
+                          id={`btn-permanent-delete-${dynamicTpl.id}`}
+                          disabled={!canDelete}
+                          title={
+                            usage > 0
+                              ? `Cannot delete template: used in ${usage} event(s). Only templates with 0 events can be permanently deleted.`
+                              : 'Permanently delete this template'
+                          }
+                          className="studio-btn studio-btn--danger"
+                          onClick={() => {
+                            if (canDelete) {
+                              setTemplateToDelete(dynamicTpl);
+                              setDeleteConfirmInput('');
+                              setDeleteError(null);
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            opacity: canDelete ? 1 : 0.5,
+                            cursor: canDelete ? 'pointer' : 'not-allowed',
+                            fontSize: '0.75rem',
+                            padding: '0.4rem 0.6rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.4rem',
+                          }}
+                        >
+                          Delete Permanently
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* Confirmation Modal: Permanently Delete Template */}
+      {templateToDelete && (
+        <div
+          id="permanent-delete-modal-backdrop"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)',
+            padding: '1rem',
+          }}
+          onClick={() => {
+            if (!isDeleting) {
+              setTemplateToDelete(null);
+              setDeleteConfirmInput('');
+              setDeleteError(null);
+            }
+          }}
+        >
+          <div
+            id="permanent-delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            style={{
+              background: 'var(--admin-surface, #ffffff)',
+              borderRadius: 'var(--radius-lg, 12px)',
+              padding: '1.75rem',
+              maxWidth: '500px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: '1px solid var(--admin-border, #e2e8f0)',
+              color: 'var(--admin-text, #111827)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 id="delete-modal-title" style={{ fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>
+                  Permanently Delete Template
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--admin-text-secondary)' }}>
+                  Konfirmasi tindakan destruktif permanen
+                </p>
+              </div>
+            </div>
+
+            {/* Template Summary Table / Details */}
+            <div
+              id="delete-template-summary"
+              style={{
+                background: 'var(--admin-surface-inset, #f8fafc)',
+                border: '1px solid var(--admin-border, #e2e8f0)',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                marginBottom: '1rem',
+                fontSize: '0.8125rem',
+              }}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.35rem' }}>
+                <span style={{ color: 'var(--admin-text-secondary)', fontWeight: 600 }}>Template:</span>
+                <span id="delete-modal-template-name" style={{ fontWeight: 600 }}>{templateToDelete.name}</span>
+
+                <span style={{ color: 'var(--admin-text-secondary)', fontWeight: 600 }}>Theme Code:</span>
+                <span id="delete-modal-template-code" style={{ fontFamily: 'monospace' }}>{templateToDelete.themeCode}</span>
+
+                <span style={{ color: 'var(--admin-text-secondary)', fontWeight: 600 }}>Status:</span>
+                <span id="delete-modal-template-status">{templateToDelete.status || 'ARCHIVED'}</span>
+
+                <span style={{ color: 'var(--admin-text-secondary)', fontWeight: 600 }}>Event Usage:</span>
+                <span id="delete-modal-template-usage">{templateToDelete.eventUsageCount ?? 0} events</span>
+              </div>
+            </div>
+
+            {/* Destructive Warning Box */}
+            <div
+              style={{
+                background: 'rgba(220, 38, 38, 0.08)',
+                border: '1px solid rgba(220, 38, 38, 0.25)',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                marginBottom: '1.25rem',
+                fontSize: '0.8125rem',
+                lineHeight: 1.4,
+              }}
+            >
+              <strong style={{ color: '#dc2626' }}>Peringatan:</strong>
+              <p style={{ margin: '0.25rem 0 0 0', color: 'var(--admin-text)' }}>
+                Tindakan ini tidak dapat dibatalkan. Baris data template akan dihapus secara permanen dari basis data.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div
+                id="delete-modal-error"
+                role="alert"
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  background: '#fee2e2',
+                  border: '1px solid #fecaca',
+                  color: '#991b1b',
+                  fontSize: '0.8125rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                {deleteError}
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label
+                htmlFor="confirm-delete-template-input"
+                style={{
+                  display: 'block',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  marginBottom: '0.35rem',
+                  color: 'var(--admin-text)',
+                }}
+              >
+                Ketik <strong>DELETE</strong> untuk mengonfirmasi:
+              </label>
+              <input
+                id="confirm-delete-template-input"
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder="DELETE"
+                disabled={isDeleting}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  border: '1px solid var(--admin-border)',
+                  background: 'var(--admin-surface)',
+                  color: 'var(--admin-text)',
+                  fontSize: '0.875rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                id="cancel-delete-template-btn"
+                className="studio-btn studio-btn--secondary"
+                disabled={isDeleting}
+                onClick={() => {
+                  setTemplateToDelete(null);
+                  setDeleteConfirmInput('');
+                  setDeleteError(null);
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                id="confirm-delete-template-btn"
+                className="studio-btn studio-btn--danger"
+                disabled={deleteConfirmInput !== 'DELETE' || isDeleting}
+                onClick={handlePermanentDelete}
+                style={{
+                  opacity: deleteConfirmInput === 'DELETE' && !isDeleting ? 1 : 0.5,
+                  cursor: deleteConfirmInput === 'DELETE' && !isDeleting ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {isDeleting ? 'Menghapus...' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

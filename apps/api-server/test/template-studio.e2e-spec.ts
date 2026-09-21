@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -255,11 +255,13 @@ describe('Template Studio & Public Parity (e2e)', () => {
         .send({
           name: 'E2E Studio Wine Template',
           config: updatedConfig,
+          status: 'AVAILABLE',
         })
         .expect(200);
 
       expect(res.body.name).toBe('E2E Studio Wine Template');
       expect(res.body.config).toEqual(updatedConfig);
+      expect(res.body.status).toBe('AVAILABLE');
     });
 
     it('Step 6: ADMIN cannot PATCH /templates/:id (403)', async () => {

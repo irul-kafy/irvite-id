@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Patch,
+  Delete,
   Param,
   Query,
   ParseUUIDPipe,
@@ -51,6 +52,12 @@ export class TemplatesController {
     @Body() updateTemplateDto: UpdateTemplateDto,
   ) {
     return this.templatesService.update(id, updateTemplateDto);
+  }
+
+  @Roles(Role.SUPER_ADMIN)
+  @Delete(':id/permanent')
+  permanentDelete(@Param('id', ParseUUIDPipe) id: string) {
+    return this.templatesService.permanentDelete(id);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)

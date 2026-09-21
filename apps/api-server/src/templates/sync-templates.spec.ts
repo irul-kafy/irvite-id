@@ -2,6 +2,8 @@
 import {
   syncTemplateIdentities,
   APPROVED_TEMPLATE_SEEDS,
+  isBuiltInTemplate,
+  BUILT_IN_THEME_CODES,
 } from './sync-templates';
 import type { PrismaClient } from 'database';
 
@@ -189,5 +191,32 @@ describe('syncTemplateIdentities', () => {
       expect(call[0].data.status).toBeUndefined();
     }
     expect(mockPrisma.template.create).not.toHaveBeenCalled();
+  });
+  describe('isBuiltInTemplate & BUILT_IN_THEME_CODES', () => {
+    it('contains all 5 approved theme codes', () => {
+      expect(BUILT_IN_THEME_CODES.size).toBe(5);
+      expect(BUILT_IN_THEME_CODES.has('IVORY_GARDEN')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('SUNDA_PUSPA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('CLASSIC_LETTER')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(true);
+    });
+
+    it('returns true for all approved built-in themeCodes case-insensitively', () => {
+      expect(isBuiltInTemplate('IVORY_GARDEN')).toBe(true);
+      expect(isBuiltInTemplate('ivory_garden')).toBe(true);
+      expect(isBuiltInTemplate(' Serene_Garden ')).toBe(true);
+      expect(isBuiltInTemplate('sunda_puspa')).toBe(true);
+      expect(isBuiltInTemplate('classic_letter')).toBe(true);
+      expect(isBuiltInTemplate('velvet_letter')).toBe(true);
+    });
+
+    it('returns false for dynamic/custom or missing themeCodes', () => {
+      expect(isBuiltInTemplate('CUSTOM_THEME')).toBe(false);
+      expect(isBuiltInTemplate('RANDOM_CODE')).toBe(false);
+      expect(isBuiltInTemplate(null)).toBe(false);
+      expect(isBuiltInTemplate(undefined)).toBe(false);
+      expect(isBuiltInTemplate('')).toBe(false);
+    });
   });
 });
