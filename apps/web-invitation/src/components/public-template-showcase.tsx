@@ -25,10 +25,7 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
           key={t.slug}
           className={'lp-template-card lp-reveal lp-reveal--delay-' + ((i % 3) + 1)}
         >
-          <div
-            className="lp-template-card__preview"
-            style={{ position: 'relative', overflow: 'hidden', aspectRatio: '2/3' }}
-          >
+          <div className="lp-template-card__preview">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={t.thumbnailPath}
@@ -61,7 +58,7 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
                     href={orderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="lp-btn lp-btn--silver lp-btn--sm"
+                    className="lp-btn lp-btn--gold lp-btn--sm"
                   >
                     Pesan Desain Ini
                   </a>
@@ -70,8 +67,7 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
                     type="button"
                     id={'catalog-order-' + t.slug}
                     disabled
-                    className="lp-btn lp-btn--silver lp-btn--sm"
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                    className="lp-btn lp-btn--gold lp-btn--sm"
                     title="Kontak pemesanan belum dikonfigurasi"
                   >
                     Pesan Desain Ini
