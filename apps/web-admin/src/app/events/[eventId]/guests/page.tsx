@@ -1616,6 +1616,9 @@ export default function GuestListPage({
         .guest-table-row:hover {
           background: var(--admin-surface-hover, #F2EFE8) !important;
         }
+        html.dark .guest-table-row:hover {
+          background: var(--admin-surface-hover, #242421) !important;
+        }
       `}</style>
     </div>
   );
