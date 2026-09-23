@@ -1,31 +1,40 @@
 .scanner-page-container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: 1.5rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  color: var(--text-primary);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scanner-header h1 {
   text-align: center;
   margin: 0;
   font-size: 1.5rem;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .scanner-layout {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .scanner-viewport-container {
   position: relative;
   width: 100%;
   aspect-ratio: 1;
-  background: #000;
-  border-radius: 12px;
+  background: #000000;
+  border-radius: var(--radius-lg, 12px);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .scanner-video {
@@ -51,66 +60,93 @@
 .scanner-overlay p {
   background: rgba(0, 0, 0, 0.8);
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   text-align: center;
+  font-size: 0.875rem;
 }
 
 .scanner-error {
-  color: #ff6b6b;
+  color: var(--status-danger, #ff6b6b);
   font-weight: bold;
 }
 
 .scanner-manual-input form {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .scanner-manual-input input {
-  flex: 1;
+  flex: 1 1 200px;
+  min-width: 0;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-sm, 8px);
   font-size: 1rem;
+  background: var(--admin-surface);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.scanner-manual-input input:focus {
+  outline: none;
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px var(--admin-accent-soft);
 }
 
 .scanner-manual-input button {
   padding: 0.75rem 1.5rem;
-  background: #0070f3;
-  color: white;
+  background: var(--admin-accent);
+  color: #171817;
   border: none;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: var(--radius-sm, 8px);
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.scanner-manual-input button:hover:not(:disabled) {
+  background: var(--admin-accent-hover);
 }
 
 .scanner-manual-input button:disabled {
-  background: #ccc;
+  background: var(--admin-surface-hover);
+  color: var(--text-tertiary);
+  border: 1px solid var(--admin-border);
   cursor: not-allowed;
 }
 
 .scanner-error-message {
   padding: 1rem;
-  background: #ffe5e5;
-  color: #d32f2f;
-  border-radius: 8px;
+  background: var(--status-danger-bg, #ffe5e5);
+  color: var(--status-danger, #d32f2f);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: var(--radius-sm, 8px);
   text-align: center;
-  font-weight: bold;
+  font-weight: 600;
+  box-sizing: border-box;
 }
 
 .scanner-card {
   padding: 1.5rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: var(--admin-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 4px 6px rgba(0, 0, 0, 0.05));
   display: flex;
   flex-direction: column;
   gap: 1rem;
   text-align: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .scanner-card h2 {
   margin: 0;
   font-size: 1.25rem;
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .pax-controls {
@@ -125,13 +161,19 @@
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  border: 1px solid #ccc;
-  background: #f0f0f0;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface-hover);
+  color: var(--text-primary);
   font-size: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pax-controls button:hover:not(:disabled) {
+  border-color: var(--admin-accent);
 }
 
 .pax-controls button:disabled {
@@ -143,49 +185,88 @@
   font-size: 2rem;
   font-weight: bold;
   min-width: 2rem;
+  color: var(--text-primary);
 }
 
 .checkin-btn {
   padding: 1rem;
-  background: #28a745;
+  background: var(--status-success, #059669);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.checkin-btn:hover {
+  opacity: 0.9;
 }
 
 .cancel-btn {
   padding: 1rem;
   background: transparent;
-  color: #666;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  color: var(--text-secondary);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-sm, 8px);
   font-size: 1rem;
   cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cancel-btn:hover {
+  background: var(--admin-surface-hover);
+  color: var(--text-primary);
 }
 
 .reset-btn {
   padding: 1rem;
-  background: #0070f3;
-  color: white;
+  background: var(--admin-accent);
+  color: #171817;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 1.1rem;
-  font-weight: bold;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover {
+  background: var(--admin-accent-hover);
 }
 
 .success-card {
-  border-top: 4px solid #28a745;
+  border-top: 4px solid var(--status-success, #059669);
 }
 
 .warning-card {
-  border-top: 4px solid #ffc107;
+  border-top: 4px solid var(--status-warning, #d97706);
 }
 
 .scanned-info {
   font-size: 1rem;
-  color: #555;
+  color: var(--text-secondary);
+}
+
+/* Dark mode overrides */
+html.dark .scanner-card {
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+html.dark .scanner-manual-input input {
+  background: var(--admin-surface);
+  color: var(--text-primary);
+  border-color: var(--admin-border);
+}
+
+html.dark .scanner-manual-input button,
+html.dark .reset-btn {
+  color: #121212;
+}
+
+html.dark .pax-controls button {
+  background: var(--admin-surface-hover);
+  border-color: var(--admin-border);
 }
