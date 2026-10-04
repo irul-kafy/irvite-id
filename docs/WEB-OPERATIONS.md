@@ -66,7 +66,15 @@ attendance nyata dan tidak mengklaim lulus UAT hanya karena layanan online.
 5. Uji foto/audio, ekspor guest dan attendance, arsip/restore, dan penolakan akses event milik admin lain.
 6. Uji backup/restore, restart server tanpa kehilangan media, domain HTTPS, dan kontak WhatsApp asli.
 
-Workflow baru belum berjalan di GitHub sampai perubahan dipush. Deployment, DNS, credential hosting, dan verifikasi perangkat nyata tetap membutuhkan lingkungan operasional.
+Workflow berjalan pada push main, fix/**, dan PR. Keberhasilan lokal tidak menjamin
+run GitHub berhasil; periksa tab Actions. Deployment, DNS, credential hosting,
+dan verifikasi perangkat nyata tetap membutuhkan lingkungan operasional.
+
+Dashboard menyediakan tombol Perbarui statistik: hitungan seluruh data sesuai
+ownership, bukan polling/push real-time. Total acara/tamu/RSVP mencakup arsip;
+acara mendatang mengecualikan arsip. Katalog hanya menghitung AVAILABLE.
+Daftar acara memakai pagination dan filter server sehingga data setelah halaman
+pertama tetap dapat diakses.
 
 E2E database wajib memakai E2E_DATABASE_URL ke MySQL lokal disposable dengan
 nama berakhiran _test. Setup menolak URL kosong, host remote, atau nama database

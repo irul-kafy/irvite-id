@@ -3,9 +3,9 @@
 ## Hasil lokal
 
 - API unit/contract: 478 tes lulus.
-- Web admin: 272 tes lulus.
+- Web admin: 274 tes lulus.
 - Web invitation: 314 tes lulus.
-- API E2E: 325 tes, 19 suite lulus, dengan MySQL sementara dan enam migrasi existing.
+- API E2E: 326 tes, 19 suite lulus, dengan MySQL sementara dan enam migrasi existing.
 - Production build: API, web admin, dan web invitation berhasil.
 - Lint frontend: tidak ada error; warning existing tersisa (unused code dan img).
 - Lint terarah pada kode backend baru/storage: berhasil.
@@ -19,6 +19,18 @@ dimigrasikan atau di-reset. Pengujian lokal memakai Node 22.17.1; workflow CI
 menargetkan Node 24 sesuai engine dependency scanner.
 
 ## Perubahan
+
+Lanjutan pemeriksaan lokal: dashboard menghitung seluruh event/guest/RSVP di
+backend dalam snapshot transaksi sesuai ownership. Tidak dibatasi 10 event atau
+100 undangan. Template count/nama memakai katalog AVAILABLE, tanpa angka/nama
+contoh. Acara terdekat tidak memasukkan arsip atau tanggal lampau. Kegagalan
+layanan ditampilkan sebagai error dengan retry, bukan angka nol palsu.
+
+Daftar acara mendukung pagination dan filter aktif/arsip dari backend; BFF hanya
+meneruskan page, limit, filter. Regresi mencakup 11 event tambahan, 101 undangan,
+page kedua, filter, isolasi dua admin, SUPER_ADMIN, serta penolakan STAFF/anonim.
+Workflow kini dipicu juga pada push branch fix/** agar tidak bergantung pada
+izin membuat PR. Hasil CI tetap harus dibaca terpisah dari hasil lokal.
 
 Cookie login mengikuti expiry JWT; proxy navigasi menangani cookie expired.
 Endpoint /api/v1 ditambahkan sebagai alias ke controller existing, menjaga URL

@@ -104,13 +104,19 @@ export default function EventsPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
   const [filter, setFilter] = useState<'all' | 'active' | 'archived'>('all');
   const router = useRouter();
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchEvents = async () => {
       try {
-        const adminRes = await fetch('/api/events');
+        setLoading(true);
+        setError('');
+        const adminRes = await fetch(`/api/events?page=${page}&limit=10&filter=${filter}`, { signal: controller.signal, cache: 'no-store' });
 
         if (adminRes.status === 401) {
           router.push('/login');
@@ -118,9 +124,10 @@ export default function EventsPage() {
         }
 
         if (adminRes.status === 403) {
-          const staffRes = await fetch('/api/scanner/events');
+          const staffRes = await fetch('/api/scanner/events', { signal: controller.signal, cache: 'no-store' });
           if (!staffRes.ok) throw new Error('Gagal memuat event untuk pemindaian');
           const data = await staffRes.json();
+          if (controller.signal.aborted) return;
           setEvents(data.data || []);
           setIsAdmin(false);
           return;
@@ -131,17 +138,21 @@ export default function EventsPage() {
         }
 
         const data = await adminRes.json();
+        if (controller.signal.aborted) return;
         setEvents(data.data || []);
+        setTotal(data.meta?.total ?? 0);
+        setLastPage(Math.max(1, data.meta?.lastPage ?? 1));
         setIsAdmin(true);
       } catch {
-        setError('Gagal memuat data event. Silakan muat ulang halaman.');
+        if (!controller.signal.aborted) setError('Gagal memuat data event. Silakan muat ulang halaman.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     void fetchEvents();
-  }, [router]);
+    return () => controller.abort();
+  }, [router, page, filter]);
 
   const filteredEvents = events.filter((e) => {
     if (filter === 'active') {
@@ -185,27 +196,35 @@ export default function EventsPage() {
             type="button"
             id="filter-all"
             className={'btn btn-sm ' + (filter === 'all' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => setFilter('all')}
+            onClick={() => { setFilter('all'); setPage(1); }}
           >
-            Semua ({events.length})
+            Semua
           </button>
           <button
             type="button"
             id="filter-active"
             className={'btn btn-sm ' + (filter === 'active' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => setFilter('active')}
+            onClick={() => { setFilter('active'); setPage(1); }}
           >
-            Aktif ({events.filter((e) => e.status === 'DRAFT' || e.status === 'PUBLISHED').length})
+            Aktif
           </button>
           <button
             type="button"
             id="filter-archived"
             className={'btn btn-sm ' + (filter === 'archived' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => setFilter('archived')}
+            onClick={() => { setFilter('archived'); setPage(1); }}
           >
-            Diarsipkan ({events.filter((e) => e.status === 'ARCHIVED').length})
+            Diarsipkan
           </button>
         </div>
+      )}
+
+      {isAdmin && !error && (
+        <nav aria-label="Halaman daftar acara" className="flex-between" style={{ marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary btn-sm" disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}>Sebelumnya</button>
+          <span aria-live="polite">{loading ? 'Memuat…' : `${total} acara · Halaman ${page} / ${lastPage}`}</span>
+          <button className="btn btn-secondary btn-sm" disabled={loading || page >= lastPage} onClick={() => setPage((value) => value + 1)}>Berikutnya</button>
+        </nav>
       )}
 
       {/* Error Alert */}

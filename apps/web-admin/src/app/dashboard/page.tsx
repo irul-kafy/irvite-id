@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -16,11 +16,6 @@ interface EventItem {
   status: string;
   templateId?: string | null;
   guestCount?: number;
-}
-
-interface InvitationItem {
-  id: string;
-  status: string;
 }
 
 interface RsvpStats {
@@ -130,18 +125,11 @@ function IconCheckCircle() {
   );
 }
 
-// Fixed template catalog showcase list (standard coded templates on irvite.id)
-const FIXED_TEMPLATES_SHOWCASE = [
-  { name: 'Verdant Estate', tag: 'Luxury Emerald & Gold' },
-  { name: 'Midnight Editorial', tag: 'High-Fashion Monochrome' },
-  { name: 'Botanical Romance', tag: 'Warm Terracotta Floral' },
-  { name: 'Classic Elegance', tag: 'Traditional Ivory Serif' },
-];
-
 export default function DashboardPage() {
   const router = useRouter();
 
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [templateHighlights, setTemplateHighlights] = useState<{ id: string; name: string; themeCode: string }[]>([]);
   const [totalEventsCount, setTotalEventsCount] = useState<number>(0);
   const [templatesCount, setTemplatesCount] = useState<number>(0);
   const [totalGuestsCount, setTotalGuestsCount] = useState<number>(0);
@@ -152,6 +140,10 @@ export default function DashboardPage() {
     pending: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [publishedEventsCount, setPublishedEventsCount] = useState(0);
+  const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -160,92 +152,27 @@ export default function DashboardPage() {
       try {
         setLoading(true);
 
-        // 1. Fetch Events
-        const eventsRes = await fetch('/api/events');
-        let fetchedEvents: EventItem[] = [];
-        let totalEvents = 0;
-
-        if (eventsRes.status === 401) {
+        setError('');
+        const response = await fetch('/api/events/summary', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+        if (response.status === 401) {
           router.push('/login');
           return;
         }
-
-        if (eventsRes.ok) {
-          const eventsJson = await eventsRes.json();
-          fetchedEvents = Array.isArray(eventsJson.data) ? eventsJson.data : [];
-          totalEvents = eventsJson.meta?.total ?? fetchedEvents.length;
-        }
-
-        // 2. Fetch Templates
-        const tplRes = await fetch('/api/templates');
-        let totalTemplates = 0;
-        if (tplRes.ok) {
-          const tplJson = await tplRes.json();
-          const tplList = Array.isArray(tplJson.data) ? tplJson.data : [];
-          // Use total from API, or fallback to fixed catalog length (6)
-          totalTemplates = tplJson.meta?.total || (tplList.length > 0 ? tplList.length : 6);
-        } else {
-          totalTemplates = 6;
-        }
-
-        // 3. For up to 5 events, fetch guest count & invitations for real RSVP stats
-        let aggregateGuests = 0;
-        let attendingCount = 0;
-        let declinedCount = 0;
-        let pendingCount = 0;
-        let totalInvs = 0;
-
-        const eventsWithGuests = await Promise.all(
-          fetchedEvents.slice(0, 10).map(async (ev) => {
-            try {
-              const [guestRes, invRes] = await Promise.all([
-                fetch(`/api/events/${ev.id}/guests?limit=1`),
-                fetch(`/api/events/${ev.id}/invitations?limit=100`),
-              ]);
-
-              let count = 0;
-              if (guestRes.ok) {
-                const gJson = await guestRes.json();
-                count = gJson.meta?.total ?? 0;
-                aggregateGuests += count;
-              }
-
-              if (invRes.ok) {
-                const iJson = await invRes.json();
-                const invList: InvitationItem[] = Array.isArray(iJson.data) ? iJson.data : [];
-                invList.forEach((inv) => {
-                  totalInvs++;
-                  if (inv.status === 'RSVP_YES') {
-                    attendingCount++;
-                  } else if (inv.status === 'RSVP_NO') {
-                    declinedCount++;
-                  } else {
-                    pendingCount++;
-                  }
-                });
-              }
-
-              return { ...ev, guestCount: count };
-            } catch {
-              return ev;
-            }
-          })
-        );
-
+        if (response.status === 403) { router.replace('/staff'); return; }
+        if (!response.ok) throw new Error('Ringkasan gagal dimuat. Coba lagi.');
+        const summary = await response.json();
         if (isMounted) {
-          setEvents(eventsWithGuests);
-          setTotalEventsCount(totalEvents);
-          setTemplatesCount(totalTemplates);
-          setTotalGuestsCount(aggregateGuests);
-          setRsvpStats({
-            totalInvitations: totalInvs,
-            attending: attendingCount,
-            declined: declinedCount,
-            pending: pendingCount,
-          });
+          setEvents(summary.nextEvents);
+          setTotalEventsCount(summary.totalEvents);
+          setTemplatesCount(summary.templates);
+          setTemplateHighlights(summary.templateHighlights);
+          setTotalGuestsCount(summary.totalGuests);
+          setPublishedEventsCount(summary.publishedEvents);
+          setUpcomingEventsCount(summary.upcomingEvents);
+          setRsvpStats(summary.rsvp);
         }
       } catch {
-        // Degrade gracefully with empty metrics
+        if (isMounted) setError('Ringkasan belum tersedia. Periksa koneksi lalu coba lagi; angka tidak ditampilkan agar tidak menyesatkan.');
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -258,24 +185,9 @@ export default function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [router, refresh]);
 
-  // Derived real metrics
-  const publishedEventsCount = useMemo(() => {
-    return events.filter((e) => e.status === 'PUBLISHED').length;
-  }, [events]);
-
-  const upcomingEvents = useMemo(() => {
-    // Sort upcoming events chronologically
-    return [...events]
-      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
-      .slice(0, 5);
-  }, [events]);
-
-  const upcomingEventsCount = useMemo(() => {
-    const now = new Date();
-    return events.filter((e) => new Date(e.eventDate) >= now).length;
-  }, [events]);
+  const upcomingEvents = events;
 
   const formatDate = (dateStr: string) => {
     try {
@@ -291,6 +203,15 @@ export default function DashboardPage() {
     }
   };
 
+  if (error) return (
+    <section role="alert" className="dash-page-header">
+      <div><h1>Dashboard</h1><p>{error}</p>
+        <button onClick={() => setRefresh((value) => value + 1)}>Coba lagi</button>
+        <Link href="/events"> Buka daftar acara</Link>
+      </div>
+    </section>
+  );
+
   return (
     <>
       {/* ── Page Header ── */}
@@ -303,6 +224,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="dash-page-header__right">
+          <button className="btn btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>
+            {loading ? 'Memuat…' : 'Perbarui statistik'}
+          </button>
           <button
             id="dashboard-create-event-btn"
             type="button"
@@ -377,7 +301,7 @@ export default function DashboardPage() {
             {loading ? '…' : totalGuestsCount}
           </div>
           <div className="dash-kpi__meta">
-            Tamu terdaftar pada event
+            Unit undangan/keluarga, termasuk acara arsip
           </div>
         </div>
 
@@ -692,10 +616,11 @@ export default function DashboardPage() {
                 </p>
 
                 <div className="dash-tpl-pill-list">
-                  {FIXED_TEMPLATES_SHOWCASE.map((tpl) => (
-                    <div key={tpl.name} className="dash-tpl-pill">
+                  {!loading && templateHighlights.length === 0 && <p>Belum ada template tersedia.</p>}
+                  {templateHighlights.map((tpl) => (
+                    <div key={tpl.id} className="dash-tpl-pill">
                       <span className="dash-tpl-pill__name">{tpl.name}</span>
-                      <span className="dash-tpl-pill__tag">{tpl.tag}</span>
+                      <span className="dash-tpl-pill__tag">{tpl.themeCode}</span>
                     </div>
                   ))}
                 </div>

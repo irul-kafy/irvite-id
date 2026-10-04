@@ -11,7 +11,7 @@ import { MediaStorageService } from '../media/media-storage.service';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { EventListQueryDto } from './dto/event-list-query.dto';
 import { Role, Prisma } from 'database';
 import { validateEventContent } from '../templates/definitions';
 
@@ -90,11 +90,15 @@ export class EventsService {
     }
   }
 
-  async findAll(userId: string, role: Role, query: PaginationQueryDto) {
+  async findAll(userId: string, role: Role, query: EventListQueryDto) {
     const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
 
-    const whereScope = role === Role.SUPER_ADMIN ? {} : { userId };
+    const whereScope: Prisma.EventWhereInput =
+      role === Role.SUPER_ADMIN ? {} : { userId };
+    if (query.filter === 'active')
+      whereScope.status = { in: ['DRAFT', 'PUBLISHED'] };
+    if (query.filter === 'archived') whereScope.status = 'ARCHIVED';
 
     const [data, total] = await Promise.all([
       this.prisma.event.findMany({
@@ -102,7 +106,7 @@ export class EventsService {
         skip,
         take: limit,
         select: this.selectSafeEvent(),
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       }),
       this.prisma.event.count({ where: whereScope }),
     ]);
@@ -115,6 +119,78 @@ export class EventsService {
         limit,
         lastPage: Math.ceil(total / limit),
       },
+    };
+  }
+
+  async summary(userId: string, role: Role) {
+    const scope: Prisma.EventWhereInput =
+      role === Role.SUPER_ADMIN ? {} : { userId };
+    const upcoming = {
+      ...scope,
+      status: { not: 'ARCHIVED' },
+      eventDate: { gte: new Date() },
+    };
+    const [
+      totalEvents,
+      publishedEvents,
+      upcomingEvents,
+      totalGuests,
+      templates,
+      totalInvitations,
+      attending,
+      declined,
+      nextEvents,
+      templateHighlights,
+    ] = await this.prisma.$transaction(
+      [
+        this.prisma.event.count({ where: scope }),
+        this.prisma.event.count({ where: { ...scope, status: 'PUBLISHED' } }),
+        this.prisma.event.count({ where: upcoming }),
+        this.prisma.guest.count({ where: { event: scope } }),
+        this.prisma.template.count({ where: { status: 'AVAILABLE' } }),
+        this.prisma.invitation.count({ where: { event: scope } }),
+        this.prisma.invitation.count({
+          where: { event: scope, status: 'RSVP_YES' },
+        }),
+        this.prisma.invitation.count({
+          where: { event: scope, status: 'RSVP_NO' },
+        }),
+        this.prisma.event.findMany({
+          where: upcoming,
+          take: 5,
+          orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
+          select: {
+            ...this.selectSafeEvent(),
+            _count: { select: { guests: true } },
+          },
+        }),
+        this.prisma.template.findMany({
+          where: { status: 'AVAILABLE' },
+          take: 4,
+          orderBy: [{ name: 'asc' }, { id: 'asc' }],
+          select: { id: true, name: true, themeCode: true },
+        }),
+      ],
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+    const rsvp = {
+      totalInvitations,
+      attending,
+      declined,
+      pending: totalInvitations - attending - declined,
+    };
+    return {
+      totalEvents,
+      publishedEvents,
+      upcomingEvents,
+      totalGuests,
+      templates,
+      rsvp,
+      templateHighlights,
+      nextEvents: nextEvents.map(({ _count, ...event }) => ({
+        ...event,
+        guestCount: _count.guests,
+      })),
     };
   }
 

@@ -1,7 +1,7 @@
 name: Verify web platform
 on:
   push:
-    branches: [main]
+    branches: [main, 'fix/**']
   pull_request:
   workflow_dispatch:
 

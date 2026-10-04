@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function GET() {
+export async function GET(request?: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -11,7 +11,15 @@ export async function GET() {
     }
 
     const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
-    const res = await fetch(`${internalUrl}/events`, {
+    const query = new URLSearchParams();
+    if (request) {
+      const params = new URL(request.url).searchParams;
+      for (const key of ['page', 'limit', 'filter']) {
+        const value = params.get(key);
+        if (value !== null) query.set(key, value);
+      }
+    }
+    const res = await fetch(`${internalUrl}/events${query.size ? `?${query}` : ''}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,

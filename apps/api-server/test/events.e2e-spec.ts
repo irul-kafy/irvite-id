@@ -148,6 +148,99 @@ describe('EventsController (e2e)', () => {
     eventBId = eventB.id;
   });
 
+  it('summary counts beyond pagination, scopes ownership, and rejects STAFF/anonymous', async () => {
+    const ids: string[] = [];
+    try {
+      for (let i = 0; i < 11; i++) {
+        const event = await prisma.event.create({
+          data: {
+            userId: adminAId,
+            title: 'Summary fixture',
+            slug: `summary-${Date.now()}-${i}`,
+            eventDate: new Date('2099-01-01'),
+            status: i === 10 ? 'ARCHIVED' : 'PUBLISHED',
+          },
+        });
+        ids.push(event.id);
+      }
+      for (let i = 0; i < 101; i++) {
+        await prisma.guest.create({
+          data: {
+            eventId: ids[0],
+            name: `Summary guest ${i}`,
+            invitation: {
+              create: {
+                eventId: ids[0],
+                uniqueCode: `summary-${ids[0]}-${i}`,
+                status: i === 100 ? 'RSVP_NO' : 'RSVP_YES',
+              },
+            },
+          },
+        });
+      }
+      const owner = await request(app.getHttpServer())
+        .get('/api/v1/events/summary')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .expect(200);
+      expect(owner.body.totalEvents).toBe(
+        await prisma.event.count({ where: { userId: adminAId } }),
+      );
+      expect(owner.body.totalGuests).toBe(101);
+      const secondPage = await request(app.getHttpServer())
+        .get('/events?page=2&limit=10&filter=active')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .expect(200);
+      expect(secondPage.body.meta.total).toBe(11);
+      expect(secondPage.body.data).toHaveLength(1);
+      const archived = await request(app.getHttpServer())
+        .get('/events?filter=archived')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .expect(200);
+      expect(archived.body.meta.total).toBe(1);
+      expect(archived.body.data[0].id).toBe(ids[10]);
+      await request(app.getHttpServer())
+        .get('/events?filter=invalid')
+        .set('Authorization', `Bearer ${adminAToken}`)
+        .expect(400);
+      expect(owner.body.templates).toBe(
+        await prisma.template.count({ where: { status: 'AVAILABLE' } }),
+      );
+      expect(owner.body.rsvp).toEqual({
+        totalInvitations: 101,
+        attending: 100,
+        declined: 1,
+        pending: 0,
+      });
+      expect(owner.body.upcomingEvents).toBe(10);
+      expect(owner.body.publishedEvents).toBe(10);
+      expect(owner.body.nextEvents).toHaveLength(5);
+      expect(
+        owner.body.nextEvents.every(
+          (e: { userId: string; status: string }) =>
+            e.userId === adminAId && e.status === 'PUBLISHED',
+        ),
+      ).toBe(true);
+      const other = await request(app.getHttpServer())
+        .get('/events/summary')
+        .set('Authorization', `Bearer ${adminBToken}`)
+        .expect(200);
+      expect(other.body.totalGuests).toBe(0);
+      expect(other.body.rsvp.totalInvitations).toBe(0);
+      const all = await request(app.getHttpServer())
+        .get('/events/summary')
+        .set('Authorization', `Bearer ${superToken}`)
+        .expect(200);
+      expect(all.body.totalEvents).toBe(await prisma.event.count());
+      await request(app.getHttpServer()).get('/events/summary').expect(401);
+      await request(app.getHttpServer())
+        .get('/events/summary')
+        .set('Authorization', `Bearer ${staffToken}`)
+        .expect(403);
+    } finally {
+      await prisma.event.deleteMany({ where: { id: { in: ids } } });
+    }
+  });
+
   afterAll(async () => {
     // Teardown Events FIRST
     await prisma.event.deleteMany({

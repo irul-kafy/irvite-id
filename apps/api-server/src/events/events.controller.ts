@@ -12,7 +12,7 @@ import {
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { EventListQueryDto } from './dto/event-list-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -34,9 +34,14 @@ export class EventsController {
   @Get()
   findAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: PaginationQueryDto,
+    @Query() query: EventListQueryDto,
   ) {
     return this.eventsService.findAll(user.id, user.role, query);
+  }
+
+  @Get('summary')
+  summary(@CurrentUser() user: AuthenticatedUser) {
+    return this.eventsService.summary(user.id, user.role);
   }
 
   @Get(':id')
