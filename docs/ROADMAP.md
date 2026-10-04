@@ -1,5 +1,31 @@
 # Development Roadmap
 
+## Status terkini — 4 Oktober 2026
+
+Keputusan user: platform sepenuhnya web. Tidak ada rencana aplikasi Android/iOS.
+Scanner ada di dashboard staff, melalui kamera browser atau input manual.
+
+Fitur yang sudah ada di kode: auth/RBAC/ownership, event & lifecycle,
+guest import, invitation personal, RSVP, attendance bertahap, scanner web,
+guest export & attendance report, staff management, content/media editor,
+template catalog, renderer dan preview.
+
+Pengerjaan operasional saat ini: cookie sesuai expiry JWT, endpoint versi dengan
+alias kompatibilitas, konfigurasi media saat startup, upgrade dependency,
+CI untuk test/build/E2E disposable, dan halaman admin Pengecekan Sistem.
+Lihat WEB-OPERATIONS.md untuk konfigurasi dan langkah verifikasi.
+
+Sebelum launch: jalankan E2E dengan MySQL disposable, uji browser HP nyata,
+tetapkan hosting/domain HTTPS dan disk persisten, lalu uji backup/restore.
+CI belum terbukti di GitHub sampai workflow dipush dan run selesai.
+S3/R2, refresh token, pencabutan bearer token dan self-service reset password
+masih pekerjaan lanjutan; bukan fitur yang sudah tersedia.
+
+## Arsip rencana awal
+
+Checklist berikut disimpan sebagai riwayat, bukan status implementasi terkini.
+Rencana mobile dalam arsip sudah dibatalkan oleh keputusan web-only di atas.
+
 Berikut adalah peta jalan pengembangan sistem mulai dari fase arsitektur awal hingga mencapai fase *Production Ready*.
 
 ## Fase 1: Foundation & Architecture (Selesai)

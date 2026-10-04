@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { remainingSessionSeconds } from './utils/session-expiry';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
+  const hasSession = !!token && remainingSessionSeconds(token) > 0;
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   
   // Protect /dashboard, /events, /events/[eventId]/*, /templates, /templates/*, /staff, /staff/*
@@ -12,11 +14,13 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/templates') ||
     request.nextUrl.pathname.startsWith('/staff');
 
-  if (isProtectedPath && !token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  if (isProtectedPath && !hasSession) {
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    if (token) response.cookies.delete('auth_token');
+    return response;
   }
 
-  if (isLoginPage && token) {
+  if (isLoginPage && hasSession) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 

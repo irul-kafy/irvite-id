@@ -17,7 +17,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { Role } from 'database';
 
-@Controller({ path: 'templates', version: '1' })
+@Controller(['api/v1/templates', 'templates'])
 export class TemplatesController {
   constructor(private readonly templatesService: TemplatesService) {}
 

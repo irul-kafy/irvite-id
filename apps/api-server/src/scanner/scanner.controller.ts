@@ -5,7 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { Role } from 'database';
 
-@Controller('scanner')
+@Controller(['api/v1/scanner', 'scanner'])
 @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
 export class ScannerController {
   constructor(private readonly scannerService: ScannerService) {}

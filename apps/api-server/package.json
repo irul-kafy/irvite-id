@@ -19,6 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:local": "node --env-file=../../.env scripts/verify-local.cjs",
     "admin:create": "node --env-file=../../.env -r ts-node/register scripts/create-super-admin.ts",
     "templates:sync": "node --env-file=../../.env -r ts-node/register scripts/sync-templates.ts"
   },

@@ -19,7 +19,8 @@ describe('MediaStorageService', () => {
   });
 
   afterEach(() => {
-    process.env.MEDIA_STORAGE_PATH = originalEnv;
+    if (originalEnv === undefined) delete process.env.MEDIA_STORAGE_PATH;
+    else process.env.MEDIA_STORAGE_PATH = originalEnv;
     const testDir = path.join(__dirname, 'test-storage');
     if (fs.existsSync(testDir)) {
       fs.rmSync(testDir, { recursive: true, force: true });
@@ -28,6 +29,12 @@ describe('MediaStorageService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('uses the storage location configured after module import', () => {
+    expect(service.resolvePath('media/configured.png')).toBe(
+      path.join(__dirname, 'test-storage', 'media', 'configured.png'),
+    );
   });
 
   it('valid key resolves inside root', () => {

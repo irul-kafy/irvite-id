@@ -23,7 +23,7 @@ import {
 
 @SkipThrottle()
 @Public()
-@Controller({ path: 'invitations/public', version: '1' })
+@Controller(['api/v1/invitations/public', 'invitations/public'])
 export class PublicMediaController {
   private readonly logger = new Logger(PublicMediaController.name);
 

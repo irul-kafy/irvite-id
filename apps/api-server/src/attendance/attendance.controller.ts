@@ -20,7 +20,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from 'database';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 
-@Controller('events/:eventId/attendance')
+@Controller(['api/v1/events/:eventId/attendance', 'events/:eventId/attendance'])
 @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}

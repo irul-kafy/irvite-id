@@ -7,17 +7,17 @@ Platform Undangan Digital ini menggunakan arsitektur **Client-Server** dalam for
 - **Client Tier (Frontend)**:
   - **Web Admin Dashboard (Next.js)**: Untuk manajemen event, template, dan tamu.
   - **Web Digital Invitation (Next.js)**: Aplikasi untuk menampilkan halaman undangan secara personal kepada tamu.
-  - **Mobile App Scanner (React Native/Expo)**: Aplikasi Android/iOS untuk Staff di lokasi acara melakukan scan QR Code tamu.
+  - **Web Scanner**: Bagian dari Web Admin untuk Staff di lokasi acara. Kamera browser melalui HTTPS atau input kode manual. Tidak ada aplikasi Android/iOS.
 - **API Tier (Backend)**:
   - **API Server (NestJS)**: Bertanggung jawab atas business logic (Authentication, Event Management, Invitation/QR Generation, Check-in Attendance).
 - **Data Tier (Database & Storage)**:
   - **MySQL**: Primary relational database, dikelola dengan ORM Prisma. Dioptimalkan dengan *index* pada *foreign keys* untuk skalabilitas tinggi.
-  - **Cloud Object Storage (AWS S3 / Cloudflare R2)**: Menyimpan aset statis seperti foto galeri tamu, video, dan thumbnail template. Direferensikan melalui entitas `Media` di database.
+  - **Private persistent filesystem**: Implementasi saat ini memakai `MEDIA_STORAGE_PATH` pada disk persisten API. File hanya diakses melalui endpoint dengan pengecekan akses. Object storage S3/R2 adalah opsi deployment lanjutan, belum diimplementasikan.
 
 ## 2. Monorepo Structure
 
 Pendekatan Monorepo memastikan seluruh bagian sistem sinkron:
-- `apps/` berisi executable apps (Admin web, Invitation web, API, Mobile).
+- `apps/` berisi executable apps (Admin web beserta scanner, Invitation web, API).
 - `packages/` berisi dependencies internal. `packages/database` menampung `schema.prisma` yang digenerate menjadi client, sehingga Backend dan script internal lain dapat menggunakan tipe data database yang sama persis.
 
 ## 3. Alur Komunikasi (Dengan Dukungan Pax)
@@ -29,7 +29,7 @@ Pendekatan Monorepo memastikan seluruh bagian sistem sinkron:
 5. Tamu mendapat URL spesifik.
 6. `Web Invitation` mengakses URL, meminta data dan `Media` foto/video ke `API Server`, dan merender desain (serta QR Code) kepada Tamu.
 7. Saat hari H, Tamu menunjukkan QR ke Staff.
-8. Staff menggunakan `Mobile App` atau `Web Staff Dashboard` untuk memindai QR.
+8. Staff menggunakan `Web Staff Dashboard` dari browser HP atau laptop untuk memindai QR.
 9. Scanner mengecek sisa `maxPax` dan menginput berapa orang yang datang.
 10. Scanner mengirimkan `uniqueCode` dan `scannedPax` ke endpoint `API Server`.
 11. `API Server` memvalidasi QR, menyimpan record `Attendance`, dan merespon status (Valid/Invalid/Duplicate).

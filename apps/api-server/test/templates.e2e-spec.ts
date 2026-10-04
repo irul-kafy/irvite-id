@@ -47,6 +47,8 @@ describe('TemplatesController (e2e)', () => {
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
+    // The suite must work on a fresh disposable database, not depend on local seeds.
+    await syncTemplateIdentities(prisma);
     jwtService = app.get<JwtService>(JwtService);
 
     // Clean up test events first
@@ -264,7 +266,7 @@ describe('TemplatesController (e2e)', () => {
       const builtIn = await prisma.template.findFirst({
         where: { themeCode: 'IVORY_GARDEN' },
       });
-      expect(builtIn).toBeDefined();
+      expect(builtIn).not.toBeNull();
 
       const res = await request(app.getHttpServer())
         .delete(`/templates/${builtIn!.id}/permanent`)

@@ -1,16 +1,16 @@
 # Aturan Agent untuk Digital Invitation Platform
 
 ## Tujuan Project
-Membangun sistem Undangan Digital yang scalable, di mana satu template dapat digunakan untuk banyak event, dan setiap tamu memiliki halaman undangan personal dengan QR Code unik. Platform ini mencakup dashboard admin, dashboard staff, website undangan, serta aplikasi mobile untuk scanning QR.
+Membangun sistem Undangan Digital berbasis web, di mana satu template dapat digunakan untuk banyak event, dan setiap tamu memiliki halaman undangan personal dengan QR Code unik. Dashboard admin, dashboard staff, website undangan, dan scanner QR semuanya berjalan di browser. Keputusan user 4 Oktober 2026: tidak membuat aplikasi Android/iOS.
 
 ## Aturan AI Agent (CRITICAL)
-- Agent **DILARANG** mengubah arsitektur utama (Monorepo, Next.js, NestJS, React Native, Prisma) tanpa persetujuan eksplisit dari Lead Engineer / User.
+- Agent **DILARANG** mengubah arsitektur utama (Monorepo, Next.js, NestJS, Prisma) tanpa persetujuan eksplisit dari Lead Engineer / User.
 - Jika ada kebingungan atau ketidakjelasan keputusan teknis, dokumentasikan sebagai `TODO` atau `DECISION` dan tanyakan kepada User. DILARANG menebak sembarangan.
 - Agent tidak boleh menghapus file existing tanpa alasan yang jelas.
 - Jangan mengganti tech stack tanpa menjelaskan alasannya dan mendapat persetujuan.
 
 ## Aturan Coding
-- Gunakan **TypeScript** secara ketat (Strict Mode) di seluruh ekosistem (Frontend, Backend, Mobile).
+- Gunakan **TypeScript** secara ketat (Strict Mode) di seluruh ekosistem (Frontend dan Backend).
 - Gunakan modern JavaScript ES6+ (arrow functions, destructuring, dll).
 - Dilarang meninggalkan `console.log` di production code.
 - Prioritaskan clean code, modularitas, reusability, dan mobile responsiveness.
@@ -20,7 +20,7 @@ Membangun sistem Undangan Digital yang scalable, di mana satu template dapat dig
   - `apps/web-admin`: Dashboard admin & staff (Next.js).
   - `apps/web-invitation`: Halaman publik undangan (Next.js).
   - `apps/api-server`: Backend services (NestJS).
-  - `apps/mobile-scanner`: Aplikasi Android (React Native/Expo).
+  - Scanner: bagian dari `apps/web-admin`, memakai kamera browser atau input manual.
   - `packages/database`: Prisma schema dan koneksi DB.
   - `packages/ui`: Shared UI components.
 - Agent tidak boleh membuat root direktori baru di luar struktur monorepo tanpa izin.

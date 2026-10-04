@@ -1,18 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { middleware, config } from './middleware';
+import { proxy as middleware, config } from './proxy';
 import { NextRequest } from 'next/server';
 
 function createMockRequest(pathname: string, token?: string): NextRequest {
   const url = new URL(`http://localhost:3001${pathname}`);
   const headers = new Headers();
   if (token) {
-    headers.set('cookie', `auth_token=${token}`);
+    const value = token === 'valid_token'
+      ? `header.${Buffer.from(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 900 })).toString('base64url')}.signature`
+      : token;
+    headers.set('cookie', `auth_token=${value}`);
   }
   return new NextRequest(url, { headers });
 }
 
-test('Edge Middleware Protection', async (t) => {
+test('Proxy navigation protection (API still verifies signatures)', async (t) => {
+  await t.test('expired or malformed cookies do not trap a user on login', () => {
+    assert.strictEqual(middleware(createMockRequest('/login', 'expired')).status, 200);
+    const result = middleware(createMockRequest('/dashboard', 'expired'));
+    assert.strictEqual(result.status, 307);
+    assert.match(result.headers.get('set-cookie') || '', /auth_token=;/);
+  });
   await t.test('config matcher includes /staff/:path* and other protected routes', () => {
     assert.ok(config.matcher.includes('/staff/:path*'));
     assert.ok(config.matcher.includes('/dashboard/:path*'));

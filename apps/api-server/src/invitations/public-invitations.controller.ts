@@ -12,10 +12,7 @@ import { PublicRsvpDto } from './dto/public-rsvp.dto';
 import { InvitationsService } from './invitations.service';
 import { Public } from '../auth/decorators/public.decorator';
 
-@Controller({
-  path: 'invitations/public',
-  version: '1',
-})
+@Controller(['api/v1/invitations/public', 'invitations/public'])
 export class PublicInvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 

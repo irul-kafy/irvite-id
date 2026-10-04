@@ -23,7 +23,7 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { Role } from 'database';
 
 @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-@Controller({ path: 'events/:eventId/guests', version: '1' })
+@Controller(['api/v1/events/:eventId/guests', 'events/:eventId/guests'])
 export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
 

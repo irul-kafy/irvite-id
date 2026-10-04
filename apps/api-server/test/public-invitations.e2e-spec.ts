@@ -6,6 +6,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/database/prisma.service';
 import { Role, Guest } from 'database';
+import { ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 
 describe('PublicInvitationsController (e2e)', () => {
   let app: INestApplication<App>;
@@ -25,6 +26,11 @@ describe('PublicInvitationsController (e2e)', () => {
   let templateCode: string;
   let noConfigTemplateCode: string;
   let guestTemplate: Guest;
+
+  beforeEach(() => {
+    // Each case has its own rate-limit window; limits still apply within a case.
+    app.get<ThrottlerStorageService>(ThrottlerStorage).onApplicationShutdown();
+  });
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -318,6 +324,23 @@ describe('PublicInvitationsController (e2e)', () => {
   });
 
   describe('Public Resolving & Eligibility', () => {
+    it('actual RSVP endpoint enforces 15 requests per minute', async () => {
+      for (let index = 0; index < 15; index++) {
+        await request(app.getHttpServer())
+          .patch(`/api/v1/invitations/public/${publishedCodeA}/rsvp`)
+          .send({ response: 'NO' })
+          .expect(200);
+      }
+      await request(app.getHttpServer())
+        .patch(`/api/v1/invitations/public/${publishedCodeA}/rsvp`)
+        .send({ response: 'NO' })
+        .expect(429);
+      // Preserve the baseline fixture for the following read-only tests.
+      await prisma.invitation.update({
+        where: { uniqueCode: publishedCodeA },
+        data: { status: 'PENDING', rsvpPax: null },
+      });
+    });
     it('GET valid PUBLISHED invitation without JWT -> 200 with Cache-Control no-store', async () => {
       await request(app.getHttpServer())
         .get(`/invitations/public/${publishedCodeA}`)
@@ -332,6 +355,7 @@ describe('PublicInvitationsController (e2e)', () => {
             'guest',
             'invitation',
             'media',
+            'mediaBySlot',
             'rsvp',
             'template',
           ]);
@@ -354,6 +378,7 @@ describe('PublicInvitationsController (e2e)', () => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const eventKeys = Object.keys(res.body.event).sort();
           expect(eventKeys).toEqual([
+            'content',
             'description',
             'eventDate',
             'locationDetails',

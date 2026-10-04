@@ -20,29 +20,7 @@ import { StaffEventsModule } from './staff-events/staff-events.module';
 import { ScannerModule } from './scanner/scanner.module';
 import { StaffModule } from './staff/staff.module';
 import { ReportsModule } from './reports/reports.module';
-
-function validateEnv(config: Record<string, unknown>) {
-  if (
-    !config.JWT_ACCESS_SECRET ||
-    typeof config.JWT_ACCESS_SECRET !== 'string' ||
-    config.JWT_ACCESS_SECRET.trim() === ''
-  ) {
-    throw new Error(
-      'Environment variable JWT_ACCESS_SECRET is required and must be non-empty.',
-    );
-  }
-  if (!config.JWT_ACCESS_EXPIRATION) {
-    config.JWT_ACCESS_EXPIRATION = '12h';
-  } else if (
-    typeof config.JWT_ACCESS_EXPIRATION !== 'string' ||
-    !/^\d+[smhd]$/.test(config.JWT_ACCESS_EXPIRATION)
-  ) {
-    throw new Error(
-      'Environment variable JWT_ACCESS_EXPIRATION must be a valid duration (e.g. 12h, 15m, 60s).',
-    );
-  }
-  return config;
-}
+import { validateEnvironment } from './common/validate-environment';
 
 @Module({
   imports: [
@@ -53,7 +31,7 @@ function validateEnv(config: Record<string, unknown>) {
         join(__dirname, '../../../..', '.env'),
       ],
       isGlobal: true,
-      validate: validateEnv,
+      validate: validateEnvironment,
     }),
     DatabaseModule,
     AuthModule,

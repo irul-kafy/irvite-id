@@ -4,6 +4,17 @@ import assert from 'node:assert';
 import { normalizeConfig } from './config-normalizer';
 
 test('normalizeConfig', async (t) => {
+  await t.test('non-finite or unsafe orders cannot stall normalization', () => {
+    const config = normalizeConfig({ sections: [
+      { id: 'hero', order: Infinity },
+      { id: 'gallery', order: Infinity },
+      { id: 'rsvp', order: Number.MAX_VALUE },
+      { id: 'closing', order: NaN },
+    ] });
+    assert.strictEqual(config.sections.length, 9);
+    assert.ok(config.sections.every((section) => Number.isSafeInteger(section.order)));
+    assert.strictEqual(new Set(config.sections.map((section) => section.order)).size, 9);
+  });
   await t.test('should return default v1 config for null', () => {
     const config = normalizeConfig(null);
     assert.strictEqual(config.version, 1);

@@ -8,6 +8,7 @@ import { PrismaService } from '../src/database/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from 'database';
 import * as argon2 from 'argon2';
+import { ThrottlerStorage, ThrottlerStorageService } from '@nestjs/throttler';
 
 describe('StaffController (e2e)', () => {
   let app: INestApplication<App>;
@@ -21,6 +22,10 @@ describe('StaffController (e2e)', () => {
   let superAdminId: string;
   let adminId: string;
   let staffActiveId: string;
+
+  beforeEach(() => {
+    app.get<ThrottlerStorageService>(ThrottlerStorage).onApplicationShutdown();
+  });
 
   const testEmails = [
     'staffc_super@e2e.test',

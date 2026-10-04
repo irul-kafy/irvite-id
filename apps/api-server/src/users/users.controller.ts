@@ -16,7 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from 'database';
 
 @Roles(Role.SUPER_ADMIN)
-@Controller({ path: 'users', version: '1' })
+@Controller(['api/v1/users', 'users'])
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

@@ -165,6 +165,12 @@ function IconBranding({ size = 20 }: { size?: number }) {
 
 const NAV_ITEMS = [
   {
+    id: 'system-check',
+    label: 'Pengecekan Sistem',
+    href: '/dashboard/system-check',
+    icon: IconDashboard,
+  },
+  {
     id: 'dashboard',
     label: 'Dashboard',
     href: '/dashboard',
@@ -237,6 +243,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }, []);
 
   const navItems = NAV_ITEMS.filter((item) => {
+    if (item.id === 'system-check') {
+      return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+    }
     if (item.id === 'staff') {
       return userRole === 'SUPER_ADMIN';
     }

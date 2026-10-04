@@ -9,10 +9,7 @@ import {
 import { EventsService } from './events.service';
 import { Public } from '../auth/decorators/public.decorator';
 
-@Controller({
-  path: 'events/public',
-  version: '1',
-})
+@Controller(['api/v1/events/public', 'events/public'])
 export class PublicEventsController {
   constructor(private readonly eventsService: EventsService) {}
 

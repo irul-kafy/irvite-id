@@ -94,6 +94,11 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
     async function initCamera() {
       if (!videoRef.current) return;
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setScanStatus('ERROR');
+        setErrorMessage('Kamera membutuhkan HTTPS atau localhost dan browser yang mendukung kamera. Gunakan alamat HTTPS, atau masukkan kode undangan secara manual.');
+        return;
+      }
 
       try {
         // Single camera acquisition flow preferring rear/environment camera on mobile

@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { StaffEventsService } from './staff-events.service';
 import { AssignStaffDto } from './dto/assign-staff.dto';
 
-@Controller('events/:eventId/staff')
+@Controller(['api/v1/events/:eventId/staff', 'events/:eventId/staff'])
 @UseGuards(JwtAuthGuard)
 export class StaffEventsController {
   constructor(private readonly staffEventsService: StaffEventsService) {}

@@ -18,7 +18,7 @@ import { UpdateStaffDto } from './dto/update-staff.dto';
 import { ResetStaffPasswordDto } from './dto/reset-staff-password.dto';
 import { StaffQueryDto } from './dto/staff-query.dto';
 
-@Controller('staff')
+@Controller(['api/v1/staff', 'staff'])
 @Roles(Role.SUPER_ADMIN)
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}

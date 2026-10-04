@@ -18,7 +18,7 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { Role } from 'database';
 
 @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-@Controller({ version: '1' })
+@Controller(['api/v1', ''])
 export class InvitationsController {
   constructor(private readonly invitationsService: InvitationsService) {}
 

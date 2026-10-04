@@ -1,0 +1,51 @@
+name: Verify web platform
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: disposable-ci-password
+          MYSQL_DATABASE: irvite_ci_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pdisposable-ci-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      DATABASE_URL: mysql://root:disposable-ci-password@127.0.0.1:3306/irvite_ci_test
+      E2E_DATABASE_URL: mysql://root:disposable-ci-password@127.0.0.1:3306/irvite_ci_test
+      JWT_ACCESS_SECRET: ci-only-not-a-production-secret-0123456789
+      JWT_ACCESS_EXPIRATION: 12h
+      MEDIA_STORAGE_PATH: /tmp/irvite-ci-media
+      INTERNAL_API_URL: http://localhost:3000
+      WEB_ADMIN_ORIGIN: http://localhost:3001
+      PUBLIC_INVITATION_URL: http://localhost:3002
+      NEXT_PUBLIC_INVITATION_ORIGIN: http://localhost:3002
+      NEXT_PUBLIC_TRUSTED_ADMIN_ORIGIN: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run generate --workspace packages/database
+      - name: Apply migrations to disposable CI database
+        run: npx prisma migrate deploy --schema packages/database/prisma/schema.prisma
+      - run: npm run test:unit
+      - run: npm run test:e2e --workspace apps/api-server -- --runInBand
+      - run: npm run build

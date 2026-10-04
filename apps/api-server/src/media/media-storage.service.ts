@@ -2,15 +2,16 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { MEDIA_STORAGE_PATH } from './media.constants';
 
 @Injectable()
 export class MediaStorageService {
   private readonly storageRoot: string;
 
   constructor() {
-    this.storageRoot = MEDIA_STORAGE_PATH
-      ? path.resolve(MEDIA_STORAGE_PATH)
+    // Read at construction, after ConfigModule has loaded .env.
+    const storagePath = process.env.MEDIA_STORAGE_PATH;
+    this.storageRoot = storagePath
+      ? path.resolve(storagePath)
       : path.resolve(process.cwd(), 'storage/media');
 
     // Ensure directory exists

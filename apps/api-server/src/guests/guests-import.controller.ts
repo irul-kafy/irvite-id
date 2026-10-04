@@ -22,7 +22,10 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { Role } from 'database';
 
 @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-@Controller('events/:eventId/guests/import')
+@Controller([
+  'api/v1/events/:eventId/guests/import',
+  'events/:eventId/guests/import',
+])
 export class GuestsImportController {
   constructor(private readonly importService: GuestsImportService) {}
 
