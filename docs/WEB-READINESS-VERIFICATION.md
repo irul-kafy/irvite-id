@@ -1,4 +1,21 @@
-# Verifikasi perbaikan web — 4 Oktober 2026
+# Verifikasi perbaikan web — diperbarui 6 Oktober 2026
+
+## Pemeriksaan ulang 6 Oktober 2026
+
+- Unit/contract backend dan kedua frontend: 1.066 tes lulus.
+- E2E MySQL disposable: 326 tes dalam 19 suite lulus setelah MySQL existing dinyalakan.
+- Tiga production build berhasil (dua hasil build direuse dari cache Turborepo).
+- Empat tes unit baru untuk pemeriksa layanan lokal lulus.
+- `npm run test:smoke`: tujuh pemeriksaan runtime lulus, tanpa login atau perubahan data.
+- Total tes otomatis unit/contract/E2E: 1.396, terpisah dari tujuh smoke runtime.
+- GitHub Actions commit kode aplikasi d2f94f7 terkonfirmasi success:
+  https://github.com/irul-kafy/irvite-id/actions/runs/37217595350
+
+Percobaan E2E pertama hari ini tidak berjalan karena MySQL localhost:3306 belum
+aktif; bukan hasil lulus. Pengguna menyalakan MySQL existing, lalu percobaan ulang
+berhasil. Database project tidak di-reset atau dimigrasikan.
+Pengguna memilih tes otomatis dulu; uji visual setelah login dan kamera fisik
+masih belum dilakukan. Tidak ada klaim seluruh pekerjaan production selesai.
 
 ## Hasil lokal
 

@@ -54,6 +54,22 @@ Uji kamera nyata di browser Android/iPhone sebelum acara; hasil unit test bukan 
 
 ## Pemeriksaan sebelum launch
 
+### Pemeriksaan layanan lokal tanpa login
+
+Setelah MySQL, API, admin, dan web undangan aktif, jalankan `npm run test:smoke`
+dari root. Tujuh pemeriksaan read-only mencakup kesehatan API/database, halaman
+login/undangan, dan penolakan akses endpoint terlindungi tanpa sesi. Exit code
+nonzero berarti ada pemeriksaan gagal; HTTP 200 dengan database status error
+tetap gagal. Tidak ada credential dikirim, login, migrasi, atau perubahan data.
+
+Port alternatif dapat diberikan lewat IRVITE_SMOKE_API_ORIGIN,
+IRVITE_SMOKE_ADMIN_ORIGIN, dan IRVITE_SMOKE_INVITATION_ORIGIN. Hanya origin
+HTTP(S) localhost/loopback diterima, tanpa path, query, atau credential.
+Pemeriksaan ini bukan pengganti transaksi E2E, uji visual, maupun kamera fisik.
+
+Jika koneksi localhost:3306 gagal, nyalakan MySQL existing terlebih dahulu;
+jangan reset database project. Setelah aktif, ulangi smoke dan test:e2e:local.
+
 Di dashboard admin buka /dashboard/system-check, lalu tekan Jalankan pengecekan.
 Hasil diperiksa saat tombol ditekan: sesi/role API, kesehatan API, koneksi DB,
 dan dukungan kamera browser. Halaman tidak menguji izin kamera atau transaksi

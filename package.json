@@ -9,8 +9,10 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test:unit": "npm run test --workspace apps/api-server -- --runInBand && npm run test --workspace apps/web-admin && npm run test --workspace apps/web-invitation",
-    "verify": "npm run test:unit && npm run build"
+    "test:unit": "npm run test --workspace apps/api-server -- --runInBand && npm run test --workspace apps/web-admin && npm run test --workspace apps/web-invitation && npm run test:smoke:unit",
+    "verify": "npm run test:unit && npm run build",
+    "test:smoke": "node apps/api-server/scripts/smoke-local.cjs",
+    "test:smoke:unit": "node --test apps/api-server/scripts/smoke-local.test.cjs"
   },
   "devDependencies": {
     "tsx": "4.23.15",
