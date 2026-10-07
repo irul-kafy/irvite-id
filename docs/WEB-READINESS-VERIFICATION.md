@@ -81,3 +81,16 @@ ditambahkan. Kontrak auth tetap memakai access token dan login ulang.
 Status GitHub Actions harus diperiksa pada PR; hasil lokal tidak membuktikan CI.
 
 Langkah operasional ada di WEB-OPERATIONS.md.
+
+## Perbaikan UI admin — 7 Oktober 2026
+
+- Ikon pencarian katalog sebelumnya tidak memiliki ukuran SVG intrinsik maupun
+  batas CSS. Sekarang keduanya dibatasi 18 x 18 px.
+- Navigasi dashboard, acara, dan katalog memiliki loading fallback. Pengambilan
+  sesi/katalog berjalan paralel, dibatasi 15 detik, dibatalkan saat unmount, dan
+  kegagalan API katalog ditampilkan sebagai error.
+- Verifikasi patch: 276 tes admin lulus, production build admin berhasil,
+  dan 7 pemeriksaan HTTP read-only lokal lulus termasuk koneksi database.
+- Pengujian visual/interaksi admin setelah login masih menunggu sesi pengguna;
+  tes sumber dan build tidak membuktikan pengalaman klik di browser.
+- Tidak ada perubahan database, kontrak undangan, QR, RSVP, scanner, atau auth.

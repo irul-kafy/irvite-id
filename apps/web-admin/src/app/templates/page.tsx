@@ -34,10 +34,15 @@ export default function TemplateCatalogPage() {
   // Session verification and DB templates fetch
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]);
 
     const fetchSessionAndDbTemplates = async () => {
       try {
-        const meRes = await fetch('/api/auth/me');
+        const [meRes, res] = await Promise.all([
+          fetch('/api/auth/me', { cache: 'no-store', signal }),
+          fetch('/api/templates?page=1&limit=100', { cache: 'no-store', signal }),
+        ]);
         if (meRes.status === 401) {
           router.push('/login');
           return;
@@ -55,7 +60,7 @@ export default function TemplateCatalogPage() {
           return;
         }
 
-        const res = await fetch('/api/templates?page=1&limit=100');
+        if (!res.ok) throw new Error('Katalog gagal dimuat. Silakan muat ulang halaman.');
         if (res.ok) {
           const data = await res.json();
           if (isMounted && Array.isArray(data.data)) {
@@ -63,9 +68,9 @@ export default function TemplateCatalogPage() {
           }
         }
       } catch (err: unknown) {
-        if (isMounted) {
+        if (isMounted && !controller.signal.aborted) {
           setError(
-            err instanceof Error
+            signal.aborted ? 'Koneksi terlalu lama. Periksa server lalu muat ulang halaman.' : err instanceof Error
               ? err.message
               : 'An error occurred while loading templates'
           );
@@ -81,6 +86,7 @@ export default function TemplateCatalogPage() {
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [router]);
 
@@ -225,6 +231,8 @@ export default function TemplateCatalogPage() {
         <div className="catalog-search">
           <svg
             className="catalog-search__icon"
+            width="18"
+            height="18"
             viewBox="0 0 20 20"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
