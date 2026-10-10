@@ -9,10 +9,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "test:unit": "npm run test --workspace apps/api-server -- --runInBand && npm run test --workspace apps/web-admin && npm run test --workspace apps/web-invitation && npm run test:smoke:unit",
+    "test:unit": "npm run test --workspace apps/api-server -- --runInBand && npm run test --workspace apps/web-admin && npm run test --workspace apps/web-invitation && npm run test:smoke:unit && npm run test:tooling",
     "verify": "npm run test:unit && npm run build",
     "test:smoke": "node apps/api-server/scripts/smoke-local.cjs",
-    "test:smoke:unit": "node --test apps/api-server/scripts/smoke-local.test.cjs"
+    "test:smoke:unit": "node --test apps/api-server/scripts/smoke-local.test.cjs",
+    "test:tooling": "node --test apps/api-server/scripts/tooling-dependencies.test.cjs"
   },
   "devDependencies": {
     "tsx": "4.23.15",
@@ -20,6 +21,9 @@
   },
   "packageManager": "npm@10.9.2",
   "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "4.3.2"
+    },
     "exceljs": {
       "uuid": "11.1.1"
     }
