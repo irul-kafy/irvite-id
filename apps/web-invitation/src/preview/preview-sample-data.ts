@@ -2,8 +2,8 @@
  * Preview-only sample data.
  *
  * These values are NEVER persisted to the database, never derived from real
- * Event/Guest/Invitation records, and must never be used outside the
- * /preview/template route. They exist solely to give the GenericTheme renderer
+ * Event/Guest/Invitation records, and must only be used by non-mutating
+ * studio/catalog previews. They exist solely to give the GenericTheme renderer
  * believable content during Template Studio live preview.
  */
 

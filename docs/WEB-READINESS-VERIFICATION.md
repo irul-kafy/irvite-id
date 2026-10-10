@@ -1,4 +1,42 @@
-# Verifikasi perbaikan web — diperbarui 6 Oktober 2026
+# Verifikasi perbaikan web — diperbarui 10 Oktober 2026
+
+## Tambah Template admin — 10 Oktober 2026
+
+- SUPER_ADMIN dapat mengimpor JSON/ZIP visual, memeriksa preview, menyimpan
+  HIDDEN/Draft, mengedit konfigurasi, lalu mempublikasikan AVAILABLE ke katalog.
+  ADMIN/STAFF tidak dapat mengimpor. Petunjuk: [TEMPLATE-PACKAGES.md](TEMPLATE-PACKAGES.md).
+- JSON mengonfigurasi renderer GENERIC existing; bukan konverter otomatis
+  source HTML/React atau pengganti renderer desain khusus.
+- Aset memakai MediaStorageService existing. Dua migrasi penambahan aset
+  template dan koreksi FK Restrict telah diterapkan ke MySQL lokal (8 migrasi
+  total). Database project tidak di-reset; E2E memakai database disposable.
+- QR page-level, RSVP, guest identity, URL personal, attendance, scanner, dan
+  auth existing tetap digunakan. PUBLIC tidak memperoleh identitas/RSVP/QR.
+- `npm run verify`: 485 tes API, 285 admin, 315 invitation, 4 smoke-unit lulus;
+  production build ketiga aplikasi berhasil setelah patch dependency runtime.
+- E2E MySQL: 329 tes dalam 20 suite lulus. Meliputi upload multipart nyata,
+  RBAC, paket invalid, kode duplikat, Draft/Publish, katalog/demo publik,
+  pengambilan aset, kontrak PUBLIC/PERSONAL, dan proteksi penghapusan.
+- Total unit/contract/E2E: 1.418 tes. Setelah patch Handlebars development-only,
+  485 tes API dijalankan ulang dan lulus; kompilasi template Handlebars juga lulus.
+- Lint tidak memiliki error. Warning existing masih tersisa (backend 2,
+  admin 8, invitation 6); tidak diklaim warning-free.
+- `npm audit --omit=dev`: 0 vulnerability pada pemeriksaan ini. Patch
+  kompatibel proxy-addr 2.0.8, sharp 0.35.5, source-map-js 1.2.2, dan
+  Handlebars 4.7.10 diterapkan. Encode gambar Sharp juga diuji berhasil.
+- Audit seluruh dependency masih melaporkan 25 temuan development-only
+  (20 moderate, 5 high) pada rantai Jest/ts-jest dan ESLint/fast-glob.
+  Saran npm mencakup downgrade major Jest/Next lint; tidak dijalankan secara
+  paksa. Ini pekerjaan pemeliharaan tooling yang belum diselesaikan.
+- API, admin, dan invitation diaktifkan kembali pada port 3000/3001/3002.
+  Tujuh HTTP smoke read-only lulus, termasuk MySQL dan penolakan akses anonim.
+- Katalog publik telah diperiksa di browser. Interaksi admin setelah login
+  (impor/preview/edit/publish secara visual) masih menunggu login pengguna;
+  hasil otomatis tidak menggantikan pemeriksaan tersebut. Kamera fisik dan
+  deployment production juga belum diverifikasi.
+
+Hasil lokal ini tidak membuktikan status GitHub Actions commit baru. Node lokal
+masih 22.17.1; CI memakai Node 24 sesuai engine dependency scanner.
 
 ## Pemeriksaan ulang 6 Oktober 2026
 

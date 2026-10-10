@@ -15,6 +15,7 @@ interface TemplateDetail {
   name: string;
   themeCode: string;
   config?: TemplateConfigV1 | null;
+  assets?: Array<{ id: string; slot: 'thumbnail' | 'background' | 'ornament' | 'music'; order: number; mimeType: string }>;
 }
 
 export default function EditTemplatePage({ params }: EditTemplatePageProps) {
@@ -113,6 +114,7 @@ export default function EditTemplatePage({ params }: EditTemplatePageProps) {
         name: template.name,
         themeCode: template.themeCode,
         config: template.config,
+        assets: template.assets,
       }}
     />
   );

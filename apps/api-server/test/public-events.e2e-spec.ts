@@ -1,12 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
+import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/database/prisma.service';
 import * as argon2 from 'argon2';
 
 describe('Public Events API (e2e)', () => {
-  let app: INestApplication;
+  let app: INestApplication<App>;
   let prisma: PrismaService;
 
   const testUserEmail = 'super_pub_ev@e2e.test';
@@ -16,8 +17,6 @@ describe('Public Events API (e2e)', () => {
   const templateName = 'E2E Public Event Template';
 
   let publishedEventId: string;
-  let draftEventId: string;
-  let expiredEventId: string;
   let templateId: string;
   let testUserId: string;
 
@@ -118,7 +117,7 @@ describe('Public Events API (e2e)', () => {
     });
 
     // 2. Draft event
-    const draftEvent = await prisma.event.create({
+    await prisma.event.create({
       data: {
         userId: testUserId,
         templateId,
@@ -129,11 +128,10 @@ describe('Public Events API (e2e)', () => {
         status: 'DRAFT',
       },
     });
-    draftEventId = draftEvent.id;
 
     // 3. Expired event (>30 days in the past)
     const expiredDate = new Date(Date.now() - 35 * 24 * 60 * 60 * 1000);
-    const expEvent = await prisma.event.create({
+    await prisma.event.create({
       data: {
         userId: testUserId,
         templateId,
@@ -143,7 +141,6 @@ describe('Public Events API (e2e)', () => {
         status: 'PUBLISHED',
       },
     });
-    expiredEventId = expEvent.id;
   });
 
   afterAll(async () => {
@@ -169,29 +166,36 @@ describe('Public Events API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .get(`/events/public/${publishedSlug}`)
         .expect(200);
+      const body = res.body as {
+        event: Record<string, unknown>;
+        template: Record<string, unknown>;
+        media: Array<{ src: string }>;
+        guest?: unknown;
+        invitation?: unknown;
+      };
 
       expect(res.body).toHaveProperty('event');
-      expect(res.body.event.title).toBe('Sarah & Michael Wedding');
-      expect(res.body.event.slug).toBe(publishedSlug);
-      expect(res.body.event.locationDetails).toBe('Grand Ballroom, Jakarta');
+      expect(body.event.title).toBe('Sarah & Michael Wedding');
+      expect(body.event.slug).toBe(publishedSlug);
+      expect(body.event.locationDetails).toBe('Grand Ballroom, Jakarta');
 
       expect(res.body).toHaveProperty('template');
-      expect(res.body.template.themeCode).toBe('VERDANT');
-      expect(res.body.template.config).toBeDefined();
+      expect(body.template.themeCode).toBe('VERDANT');
+      expect(body.template.config).toBeDefined();
 
       expect(res.body).toHaveProperty('media');
-      expect(Array.isArray(res.body.media)).toBe(true);
-      expect(res.body.media.length).toBe(1);
-      expect(res.body.media[0].src).toMatch(
+      expect(Array.isArray(body.media)).toBe(true);
+      expect(body.media.length).toBe(1);
+      expect(body.media[0].src).toMatch(
         new RegExp(`^/events/public/${publishedSlug}/media/`),
       );
 
       // Security: verify private / sensitive fields are NOT leaked
-      expect(res.body.event.userId).toBeUndefined();
-      expect(res.body.event.id).toBeUndefined();
-      expect(res.body.event.status).toBeUndefined();
-      expect(res.body.guest).toBeUndefined();
-      expect(res.body.invitation).toBeUndefined();
+      expect(body.event.userId).toBeUndefined();
+      expect(body.event.id).toBeUndefined();
+      expect(body.event.status).toBeUndefined();
+      expect(body.guest).toBeUndefined();
+      expect(body.invitation).toBeUndefined();
     });
 
     it('returns 404 for a DRAFT event (opaque privacy protection)', async () => {

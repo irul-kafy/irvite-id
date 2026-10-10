@@ -2,6 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TemplatesService } from './templates.service';
 import { PrismaService } from '../database/prisma.service';
+import { MediaStorageService } from '../media/media-storage.service';
 import {
   NotFoundException,
   BadRequestException,
@@ -33,6 +34,7 @@ describe('TemplatesService', () => {
       providers: [
         TemplatesService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: MediaStorageService, useValue: { deleteFile: jest.fn() } },
       ],
     }).compile();
 
@@ -71,6 +73,7 @@ describe('TemplatesService', () => {
           themeCode: 'TEST',
           config: { color: 'red' },
           previewImageUrl: undefined,
+          renderer: 'CODED',
         },
       });
       expect(result).toEqual(createdTemplate);
@@ -148,6 +151,9 @@ describe('TemplatesService', () => {
       expect(mockPrismaService.template.findUnique).toHaveBeenCalledWith({
         where: { id: '1' },
         include: {
+          assets: {
+            select: { id: true, slot: true, order: true, mimeType: true },
+          },
           _count: {
             select: { events: true },
           },
@@ -269,6 +275,7 @@ describe('TemplatesService', () => {
 
     it('should throw ConflictException if Prisma throws P2003 FK error during delete race condition', async () => {
       mockPrismaService.template.findUnique.mockResolvedValue({
+        assets: [],
         id: validDynamicUuid,
         name: 'Custom Theme',
         themeCode: 'CUSTOM_THEME',
@@ -295,6 +302,7 @@ describe('TemplatesService', () => {
 
     it('should successfully permanently delete dynamic template with ARCHIVED status and 0 event usage', async () => {
       mockPrismaService.template.findUnique.mockResolvedValue({
+        assets: [],
         id: validDynamicUuid,
         name: 'Custom Theme',
         themeCode: 'CUSTOM_THEME',
@@ -316,6 +324,7 @@ describe('TemplatesService', () => {
           name: true,
           themeCode: true,
           status: true,
+          assets: { select: { storageKey: true } },
         },
       });
       expect(mockPrismaService.event.count).toHaveBeenCalledWith({

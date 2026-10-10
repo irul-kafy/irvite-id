@@ -6,6 +6,13 @@ export interface PublicMediaDescriptor {
   src: string;
 }
 
+export interface PublicTemplateAssetDescriptor {
+  slot: 'thumbnail' | 'background' | 'ornament' | 'music';
+  mimeType: string;
+  order: number;
+  src: string;
+}
+
 export interface PublicInvitationResponse {
   invitation: {
     customMessage: string | null;
@@ -25,6 +32,7 @@ export interface PublicInvitationResponse {
   template: {
     themeCode: string;
     config: Record<string, unknown> | null;
+    assets?: PublicTemplateAssetDescriptor[];
   } | null;
   media: PublicMediaDescriptor[];
   mediaBySlot?: Record<string, PublicMediaDescriptor[]>;

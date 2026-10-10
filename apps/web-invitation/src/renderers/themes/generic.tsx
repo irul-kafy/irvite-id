@@ -564,6 +564,15 @@ export default function GenericTheme({
   // Extract audio from media list
   const audioMedia = media?.find((m) => m.type === 'AUDIO');
   const heroThumb = media?.find((m) => m.type === 'THUMBNAIL');
+  const templateAssets = template?.assets ?? [];
+  const templateBackground = templateAssets.find((asset) => asset.slot === 'background');
+  const templateMusic = templateAssets.find((asset) => asset.slot === 'music');
+  const templateOrnaments = templateAssets.filter((asset) => asset.slot === 'ornament');
+  const resolveTemplateAsset = (src?: string) => {
+    if (!src) return undefined;
+    if (isPreview && src.startsWith('blob:')) return src;
+    return /^\/templates\/assets\/[0-9a-f-]{36}\/file$/i.test(src) ? `/api-proxy${src}` : undefined;
+  };
 
   // Handle cover open — also unlocks audio via user gesture
   const handleOpen = useCallback(() => {
@@ -581,7 +590,7 @@ export default function GenericTheme({
         return (
           <Reveal key={section.id} index={idx}>
             <header className="gt-hero">
-              <HeroArch heroImageSrc={resolveMediaSrc(heroThumb?.src)} primaryColor={primaryColor} />
+              <HeroArch heroImageSrc={resolveMediaSrc(heroThumb?.src) || resolveTemplateAsset(templateBackground?.src)} primaryColor={primaryColor} />
               <p className="gt-hero__subtitle" style={{ color: secondaryColor }}>
                 Together with our families
               </p>
@@ -759,9 +768,27 @@ export default function GenericTheme({
       {/* Main invitation */}
       <div
         className={`gt-root ${bodyFontClass} ${themeClass}`}
-        style={{ backgroundColor, color: textColor }}
+        style={{
+          backgroundColor,
+          color: textColor,
+          backgroundImage: templateBackground ? `linear-gradient(${backgroundColor}dd, ${backgroundColor}dd), url(${resolveTemplateAsset(templateBackground.src)})` : undefined,
+          backgroundSize: templateBackground ? 'cover' : undefined,
+          backgroundAttachment: templateBackground ? 'scroll' : undefined,
+        }}
       >
         <article className="gt-card">
+          {templateOrnaments.map((asset, index) => (
+            // Package asset signatures are validated by the API before storage.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={`${asset.src}-${asset.order}`}
+              className={`gt-package-ornament gt-package-ornament--${index % 2 === 0 ? 'left' : 'right'}`}
+              src={resolveTemplateAsset(asset.src)}
+              style={{ top: `${templateOrnaments.length === 1 ? 0 : index * 90 / (templateOrnaments.length - 1)}%` }}
+              alt=""
+              aria-hidden="true"
+            />
+          ))}
           {config.sections
             .slice()
             .sort((a: { order: number }, b: { order: number }) => a.order - b.order)
@@ -775,7 +802,9 @@ export default function GenericTheme({
       </div>
 
       {/* Floating Music FAB */}
-      {audioMedia && isOpened && <MusicFab audioSrc={resolveMediaSrc(audioMedia.src)} />}
+      {(audioMedia || templateMusic) && isOpened && (
+        <MusicFab audioSrc={resolveMediaSrc(audioMedia?.src) || resolveTemplateAsset(templateMusic?.src) || ''} />
+      )}
     </>
   );
 }

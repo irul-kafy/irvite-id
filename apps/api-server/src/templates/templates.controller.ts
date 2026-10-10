@@ -8,7 +8,13 @@ import {
   Param,
   Query,
   ParseUUIDPipe,
+  UploadedFiles,
+  UseInterceptors,
+  Res,
+  Header,
 } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { TemplatesService } from './templates.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -27,10 +33,58 @@ export class TemplatesController {
     return this.templatesService.create(createTemplateDto);
   }
 
+  @Roles(Role.SUPER_ADMIN)
+  @Post('package')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      limits: {
+        files: 12,
+        fileSize: 10 * 1024 * 1024,
+        fields: 2,
+        fieldSize: 64 * 1024,
+        parts: 14,
+      },
+    }),
+  )
+  importPackage(
+    @Body('manifest') manifest: string,
+    @Body('assets') assets: string,
+    @UploadedFiles() files: Express.Multer.File[] = [],
+  ) {
+    return this.templatesService.importPackage(manifest, assets, files);
+  }
+
+  @Public()
+  @Get('assets/:assetId/file')
+  @Header('Cache-Control', 'public, max-age=31536000, immutable')
+  @Header('X-Content-Type-Options', 'nosniff')
+  async getAssetFile(
+    @Param('assetId', ParseUUIDPipe) assetId: string,
+    @Res() response: Response,
+  ) {
+    const asset = await this.templatesService.getAssetFile(assetId);
+    response.type(asset.mimeType);
+    response.setHeader('Content-Length', String(asset.size));
+    asset.stream.once('error', () => response.destroy());
+    return asset.stream.pipe(response);
+  }
+
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get()
   findAll(@Query() query: PaginationQueryDto) {
     return this.templatesService.findAll(query);
+  }
+
+  @Public()
+  @Get('public/packages')
+  getPublicPackages() {
+    return this.templatesService.getPublicPackages();
+  }
+
+  @Public()
+  @Get('public/packages/:id')
+  getPublicPackage(@Param('id', ParseUUIDPipe) id: string) {
+    return this.templatesService.getPublicPackage(id);
   }
 
   @Public()

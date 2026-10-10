@@ -58,6 +58,13 @@ function validMessage(overrides?: Record<string, unknown>) {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
+test('package preview accepts bounded image blobs but refuses remote URLs and executable media', () => {
+  const payload = { name: 'Package', config: validConfig(), assets: [{ slot: 'background', order: 0, blob: new Blob(['test'], { type: 'image/png' }) }] };
+  assert.ok(parsePreviewMessage(validMessage({ payload })));
+  assert.equal(parsePreviewMessage(validMessage({ payload: { ...payload, assets: [{ slot: 'background', order: 0, src: 'https://example.com/image.png' }] } })), null);
+  assert.equal(parsePreviewMessage(validMessage({ payload: { ...payload, assets: [{ slot: 'background', order: 0, blob: new Blob(['<svg/>'], { type: 'image/svg+xml' }) }] } })), null);
+});
+
 test('Preview Protocol', async (t) => {
 
   await t.test('1. Valid message is accepted and returns PreviewMessage', () => {

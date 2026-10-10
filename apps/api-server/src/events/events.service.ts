@@ -349,6 +349,10 @@ export class EventsService {
           select: {
             themeCode: true,
             config: true,
+            assets: {
+              select: { id: true, slot: true, mimeType: true, order: true },
+              orderBy: [{ slot: 'asc' }, { order: 'asc' }],
+            },
           },
         },
       },
@@ -424,6 +428,16 @@ export class EventsService {
         ? {
             themeCode: event.template.themeCode,
             config: event.template.config,
+            ...(event.template.assets?.length
+              ? {
+                  assets: event.template.assets.map((asset) => ({
+                    slot: asset.slot,
+                    mimeType: asset.mimeType,
+                    order: asset.order,
+                    src: `/templates/assets/${asset.id}/file`,
+                  })),
+                }
+              : {}),
           }
         : null,
       media: mediaDescriptors,

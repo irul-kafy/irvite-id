@@ -554,6 +554,38 @@ const builtInDefinitions: Record<string, TemplateDefinition> = {
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
 
+export const GENERIC_TEMPLATE_DEFINITION: TemplateDefinition = {
+  themeCode: 'GENERIC',
+  schemaVersion: 1,
+  contentFields: [],
+  mediaSlots: [
+    {
+      key: 'hero',
+      label: 'Foto Utama',
+      mediaType: 'THUMBNAIL',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
+      key: 'gallery',
+      label: 'Galeri Foto',
+      mediaType: 'PHOTO',
+      multiple: true,
+      maxItems: 6,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
+      key: 'bg-music',
+      label: 'Musik Latar',
+      mediaType: 'AUDIO',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 10 * 1024 * 1024,
+    },
+  ],
+};
+
 export function getTemplateDefinition(
   themeCode: string | null | undefined,
 ): TemplateDefinition | undefined {

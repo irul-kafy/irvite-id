@@ -226,7 +226,10 @@ describe('Media API (e2e)', () => {
         .expect(201);
 
       expect(res.body.url).toBeUndefined(); // Private storage keys must not leak.
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.jpg$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.jpg$/);
     });
 
     it('valid PNG PHOTO', async () => {
@@ -237,7 +240,10 @@ describe('Media API (e2e)', () => {
         .attach('file', createDummyPng(), 'test.png')
         .expect(201);
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.png$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.png$/);
     });
 
     it('valid WebP PHOTO', async () => {
@@ -248,7 +254,10 @@ describe('Media API (e2e)', () => {
         .attach('file', createDummyWebp(), 'test.webp')
         .expect(201);
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.webp$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.webp$/);
     });
 
     it('valid MP4 VIDEO', async () => {
@@ -259,7 +268,10 @@ describe('Media API (e2e)', () => {
         .attach('file', createDummyMp4(), 'test.mp4')
         .expect(201);
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.mp4$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.mp4$/);
     });
 
     it('valid MP3 AUDIO', async () => {
@@ -270,7 +282,10 @@ describe('Media API (e2e)', () => {
         .attach('file', createDummyMp3(), 'test.mp3')
         .expect(201);
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.mp3$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.mp3$/);
     });
 
     it('text bytes + HTTP image/jpeg -> 400', () => {
@@ -303,7 +318,10 @@ describe('Media API (e2e)', () => {
         .expect(201);
 
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } })).url).toMatch(/\.png$/);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: res.body.id } }))
+          .url,
+      ).toMatch(/\.png$/);
     });
 
     it('zero-byte -> 400', () => {
@@ -370,7 +388,8 @@ describe('Media API (e2e)', () => {
         .field('type', MediaType.PHOTO)
         .attach('file', createDummyJpeg(), 'test.jpg');
       mediaId = res.body.id;
-      url = (await prisma.media.findUniqueOrThrow({ where: { id: mediaId } })).url;
+      url = (await prisma.media.findUniqueOrThrow({ where: { id: mediaId } }))
+        .url;
     });
 
     it('POST forbidden fields -> 400', () => {
@@ -399,7 +418,9 @@ describe('Media API (e2e)', () => {
         .expect(200);
       expect(res.body.order).toBe(99);
       expect(res.body.url).toBeUndefined();
-      expect((await prisma.media.findUniqueOrThrow({ where: { id: mediaId } })).url).toBe(url);
+      expect(
+        (await prisma.media.findUniqueOrThrow({ where: { id: mediaId } })).url,
+      ).toBe(url);
     });
 
     it('Same owner wrong parent -> 404', async () => {

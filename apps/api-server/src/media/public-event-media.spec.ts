@@ -149,8 +149,9 @@ describe('Public Event Media Security & Streaming', () => {
     beforeEach(() => {
       headers = {};
       mockRes = {
-        header: jest.fn((k: any, v?: any) => {
-          headers[k] = v;
+        header: jest.fn((k: string | Record<string, string>, v?: string) => {
+          if (typeof k === 'string') headers[k] = v ?? '';
+          else Object.assign(headers, k);
           return mockRes as Response;
         }),
         status: jest.fn(() => mockRes as Response),

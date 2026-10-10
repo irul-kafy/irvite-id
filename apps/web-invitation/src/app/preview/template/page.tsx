@@ -25,6 +25,7 @@ export default function PreviewTemplatePage() {
 
   // Ref for source-window verification — iframe parent is window.parent
   const expectedSourceRef = useRef<WindowProxy | null>(null);
+  const assetUrlsRef = useRef<string[]>([]);
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -49,12 +50,22 @@ export default function PreviewTemplatePage() {
       // 4. normalizeConfig provides the safety layer — any malformed config
       //    degrades gracefully to defaults without throwing.
       const safeConfig = normalizeConfig(msg.payload.config);
+      for (const url of assetUrlsRef.current) URL.revokeObjectURL(url);
+      const assets = (msg.payload.assets ?? []).map((asset, index) => ({
+        id: `preview-asset-${index}`,
+        slot: asset.slot,
+        order: asset.order,
+        mimeType: asset.blob.type,
+        src: URL.createObjectURL(asset.blob),
+      }));
+      assetUrlsRef.current = assets.map((asset) => asset.src);
 
       setPreviewData({
         ...sampleData,
         template: {
           themeCode: 'GENERIC',
           config: safeConfig,
+          assets,
         },
       });
 
@@ -81,6 +92,7 @@ export default function PreviewTemplatePage() {
 
     return () => {
       window.removeEventListener('message', handleMessage);
+      for (const url of assetUrlsRef.current) URL.revokeObjectURL(url);
     };
   }, [handleMessage]);
 

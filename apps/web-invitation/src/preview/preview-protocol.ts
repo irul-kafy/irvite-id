@@ -27,6 +27,7 @@ export interface PreviewMessagePayload {
   config: TemplateConfigV1;
   /** Display name for context only. */
   name: string;
+  assets?: Array<{ slot: 'thumbnail' | 'background' | 'ornament' | 'music'; order: number; blob: Blob }>;
 }
 
 export interface PreviewMessage {
@@ -86,12 +87,32 @@ export function parsePreviewMessage(data: unknown): PreviewMessage | null {
   // sections: array
   if (!Array.isArray(c.sections)) return null;
 
+  if (p.assets !== undefined) {
+    if (!Array.isArray(p.assets) || p.assets.length > 12) return null;
+    let bytes = 0;
+    const positions = new Set<string>();
+    for (const asset of p.assets) {
+      if (!asset || typeof asset !== 'object') return null;
+      const a = asset as Record<string, unknown>;
+      if (!['thumbnail', 'background', 'ornament', 'music'].includes(a.slot as string) || !Number.isInteger(a.order) || (a.order as number) < 0 || (a.order as number) > 7 || !(a.blob instanceof Blob)) return null;
+      if (a.slot !== 'ornament' && a.order !== 0) return null;
+      const position = `${a.slot}:${a.order}`;
+      if (positions.has(position)) return null;
+      positions.add(position);
+      const allowed = a.slot === 'music' ? ['audio/mpeg'] : ['image/png', 'image/jpeg', 'image/webp'];
+      if (!allowed.includes(a.blob.type) || a.blob.size > (a.slot === 'music' ? 10 : 5) * 1024 * 1024) return null;
+      bytes += a.blob.size;
+    }
+    if (bytes > 30 * 1024 * 1024) return null;
+  }
+
   return {
     type: PREVIEW_MESSAGE_TYPE,
     version: PREVIEW_PROTOCOL_VERSION,
     payload: {
       name: p.name as string,
       config: config as TemplateConfigV1,
+      assets: p.assets as PreviewMessagePayload['assets'],
     },
   };
 }

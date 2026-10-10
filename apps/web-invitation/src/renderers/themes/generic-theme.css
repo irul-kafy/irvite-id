@@ -81,6 +81,17 @@
   background: linear-gradient(135deg, rgba(201,168,76,0.04) 0%, transparent 50%, rgba(201,168,76,0.03) 100%);
   pointer-events: none;
 }
+.gt-package-ornament {
+  position: absolute;
+  width: min(34vw, 190px);
+  height: auto;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.72;
+}
+.gt-package-ornament--left { left: 0; transform: translate(-28%, -20%); }
+.gt-package-ornament--right { right: 0; transform: translate(28%, -20%) rotate(180deg); }
+.gt-card > :not(.gt-package-ornament) { position: relative; z-index: 1; }
 @media (max-width: 640px) {
   .gt-root { padding: 1rem 0.625rem 5rem; }
   .gt-card { padding: 2.75rem 1.625rem; border-radius: 12px; }

@@ -1,7 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { getCatalogTemplates, filterAvailableTemplates } from '@/catalog';
-import { fetchPublicTemplateAvailability } from '@/api/client';
+import { fetchPublicTemplateAvailability, fetchPublicTemplatePackages } from '@/api/client';
+import type { CatalogTemplateItem } from '@/catalog/template-catalog.types';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
 import './templates.css';
@@ -9,12 +10,18 @@ import './templates.css';
 export const dynamic = 'force-dynamic';
 
 export default async function PublicTemplatesPage() {
-  const availability = await fetchPublicTemplateAvailability();
+  const [availability, packages] = await Promise.all([fetchPublicTemplateAvailability(), fetchPublicTemplatePackages()]);
   const allTemplates = getCatalogTemplates();
-  const templates =
+  const builtInTemplates =
     availability && availability.length > 0
       ? filterAvailableTemplates(allTemplates, availability)
       : [];
+  const templates: CatalogTemplateItem[] = [...builtInTemplates, ...packages.map((item, index): CatalogTemplateItem => ({
+    themeCode: item.themeCode, slug: item.id, displayName: item.name,
+    category: 'Koleksi Kustom', shortDescription: 'Warna, tipografi, dan dekorasi pilihan untuk hari istimewa Anda.',
+    thumbnailPath: /^\/templates\/assets\/[0-9a-f-]{36}\/file$/i.test(item.previewImageUrl ?? '') ? `/api-proxy${item.previewImageUrl}` : '',
+    demoPath: `/templates/custom/${item.id}`, sortOrder: 100 + index, availability: 'AVAILABLE',
+  }))];
 
   const navContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya ingin konsultasi undangan digital.');
   const footerContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya butuh bantuan memilih template undangan.');
@@ -81,14 +88,14 @@ export default async function PublicTemplatesPage() {
                 <article key={tpl.slug} className="cat-card" role="listitem">
                   <div className="cat-card__preview">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    {tpl.thumbnailPath ? <img
                       src={tpl.thumbnailPath}
                       alt={'Pratinjau desain ' + tpl.displayName}
                       className="cat-card__img"
                       loading="lazy"
                       width={600}
                       height={900}
-                    />
+                    /> : <div className="cat-card__img" style={{ minHeight: 280, display: 'grid', placeItems: 'center', padding: '2rem', fontFamily: 'serif', fontSize: '2rem', background: 'linear-gradient(145deg, #173f5f, #332e46)', color: '#f5f0e8' }}>{tpl.displayName}</div>}
                     <span className="cat-card__overlay-badge">Tersedia</span>
                   </div>
 

@@ -16,7 +16,10 @@ import { Role, MediaType, Prisma } from 'database';
 import { detectSignature } from './media-signature';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { TYPE_SIZE_LIMITS } from './media.constants';
-import { getTemplateDefinition } from '../templates/definitions';
+import {
+  GENERIC_TEMPLATE_DEFINITION,
+  getTemplateDefinition,
+} from '../templates/definitions';
 
 @Injectable()
 export class MediaService {
@@ -26,6 +29,14 @@ export class MediaService {
     private readonly prisma: PrismaService,
     private readonly storageService: MediaStorageService,
   ) {}
+
+  private resolveTemplateDefinition(
+    template?: { themeCode: string; renderer: string } | null,
+  ) {
+    return template?.renderer === 'GENERIC'
+      ? GENERIC_TEMPLATE_DEFINITION
+      : getTemplateDefinition(template?.themeCode);
+  }
 
   private async assertEventAccessible(
     eventId: string,
@@ -44,6 +55,7 @@ export class MediaService {
         template: {
           select: {
             themeCode: true,
+            renderer: true,
           },
         },
       },
@@ -147,7 +159,7 @@ export class MediaService {
       );
     }
 
-    const definition = getTemplateDefinition(event.template?.themeCode);
+    const definition = this.resolveTemplateDefinition(event.template);
 
     if (definition) {
       if (slot !== 'general') {
@@ -386,7 +398,7 @@ export class MediaService {
       }
 
       if (newSlot !== currentMedia.slot) {
-        const definition = getTemplateDefinition(event.template?.themeCode);
+        const definition = this.resolveTemplateDefinition(event.template);
         if (definition) {
           if (newSlot !== 'general') {
             const slotDef = definition.mediaSlots.find(

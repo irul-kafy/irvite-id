@@ -1,4 +1,4 @@
-import { PublicMediaDescriptor } from './public-invitation';
+import { PublicMediaDescriptor, PublicTemplateAssetDescriptor } from './public-invitation';
 
 export interface PublicEventResponse {
   event: {
@@ -12,6 +12,7 @@ export interface PublicEventResponse {
   template: {
     themeCode: string;
     config: Record<string, unknown> | null;
+    assets?: PublicTemplateAssetDescriptor[];
   } | null;
   media: PublicMediaDescriptor[];
   mediaBySlot?: Record<string, PublicMediaDescriptor[]>;

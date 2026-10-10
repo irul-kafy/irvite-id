@@ -13,6 +13,11 @@ import {
 import { getCanonicalTemplateDemoUrl, getTrustedInvitationOrigin } from '../../utils/url';
 import './template-studio.css';
 
+function getImportedPreviewSrc(previewImageUrl?: string | null): string | null {
+  const match = previewImageUrl?.match(/^\/templates\/assets\/([0-9a-f-]{36})\/file$/i);
+  return match ? `/api/template-assets/${match[1]}` : null;
+}
+
 export default function TemplateCatalogPage() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -192,6 +197,16 @@ export default function TemplateCatalogPage() {
             Setiap template terhubung langsung ke basis data produksi untuk pembuatan event.
           </p>
         </div>
+        {userRole === 'SUPER_ADMIN' && (
+          <button
+            type="button"
+            id="add-template-button"
+            className="studio-btn studio-btn--primary"
+            onClick={() => router.push('/templates/create')}
+          >
+            + Tambah Template
+          </button>
+        )}
       </header>
 
       {/* Error alert */}
@@ -644,6 +659,7 @@ export default function TemplateCatalogPage() {
                 const isArchived = dynamicTpl.status === 'ARCHIVED';
                 const usage = dynamicTpl.eventUsageCount ?? 0;
                 const canDelete = isArchived && usage === 0;
+                const importedPreviewSrc = getImportedPreviewSrc(dynamicTpl.previewImageUrl);
 
                 return (
                   <article
@@ -672,9 +688,20 @@ export default function TemplateCatalogPage() {
                         textAlign: 'center',
                       }}
                     >
+                      {importedPreviewSrc ? (
+                        // Imported previews are immutable files served by the existing API proxy.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={importedPreviewSrc}
+                          alt={`Preview ${dynamicTpl.name}`}
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : null}
                       <span
                         className="badge"
                         style={{
+                          position: 'relative',
+                          zIndex: 1,
                           background: '#3b82f6',
                           color: '#FFFFFF',
                           fontSize: '0.75rem',
@@ -686,10 +713,10 @@ export default function TemplateCatalogPage() {
                       >
                         Custom Template
                       </span>
-                      <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--admin-text)' }}>
+                      <div style={{ position: 'relative', zIndex: 1, fontWeight: 700, fontSize: '1rem', color: importedPreviewSrc ? '#fff' : 'var(--admin-text)', textShadow: importedPreviewSrc ? '0 1px 8px rgba(0,0,0,.8)' : 'none' }}>
                         {dynamicTpl.name}
                       </div>
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--admin-text-secondary)', marginTop: '0.25rem' }}>
+                      <div style={{ position: 'relative', zIndex: 1, fontSize: '0.8125rem', color: importedPreviewSrc ? '#fff' : 'var(--admin-text-secondary)', textShadow: importedPreviewSrc ? '0 1px 8px rgba(0,0,0,.8)' : 'none', marginTop: '0.25rem' }}>
                         {dynamicTpl.themeCode}
                       </div>
                     </div>
@@ -778,6 +805,7 @@ export default function TemplateCatalogPage() {
 
                     {/* Actions */}
                     <div className="template-card__actions" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {userRole === 'SUPER_ADMIN' && <button type="button" className="template-card__btn template-card__btn--preview" onClick={() => router.push(`/templates/${dynamicTpl.id}/edit`)}>Preview &amp; Edit</button>}
                       <button
                         type="button"
                         id={`use-template-${dynamicTpl.id}`}
