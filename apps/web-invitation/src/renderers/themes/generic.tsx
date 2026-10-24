@@ -795,7 +795,7 @@ export default function GenericTheme({
             .map(renderSection)}
 
           {/* Digital Gift Section */}
-          {shouldRenderGiftSection(effectiveMode) && (
+          {shouldRenderGiftSection() && (
             <GiftSection primaryColor={primaryColor} headingFontClass={headingFontClass} />
           )}
         </article>

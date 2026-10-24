@@ -178,7 +178,7 @@ describe('Public Event Media Security & Streaming', () => {
       await controller.getMedia(
         validSlug,
         validMediaId,
-        undefined as any,
+        undefined as unknown as string,
         mockRes as Response,
       );
 
@@ -214,7 +214,7 @@ describe('Public Event Media Security & Streaming', () => {
       await controller.headMedia(
         validSlug,
         validMediaId,
-        undefined as any,
+        undefined as unknown as string,
         mockRes as Response,
       );
 

@@ -1336,6 +1336,26 @@ export default function GuestListPage({
                             <IconEdit />
                             Edit
                           </button>
+
+                          <button
+                            id={`guest-delete-${guest.id}`}
+                            type="button"
+                            onClick={() => void handleDeleteGuest(guest.id, guest.name)}
+                            disabled={deletingGuestId !== null}
+                            aria-busy={deletingGuestId === guest.id}
+                            className="btn btn-ghost btn-sm"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              fontSize: '0.75rem',
+                              color: 'var(--status-danger, #dc2626)',
+                            }}
+                            title="Hapus Tamu"
+                          >
+                            <IconTrash />
+                            {deletingGuestId === guest.id ? 'Menghapus...' : 'Hapus'}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1533,6 +1553,24 @@ export default function GuestListPage({
                     >
                       <IconEdit />
                       Edit
+                    </button>
+                    <button
+                      id={`guest-delete-mobile-${guest.id}`}
+                      type="button"
+                      onClick={() => void handleDeleteGuest(guest.id, guest.name)}
+                      disabled={deletingGuestId !== null}
+                      aria-busy={deletingGuestId === guest.id}
+                      className="btn btn-ghost btn-sm"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        color: 'var(--status-danger, #dc2626)',
+                        padding: '0.5rem',
+                      }}
+                    >
+                      <IconTrash />
+                      {deletingGuestId === guest.id ? 'Menghapus...' : 'Hapus'}
                     </button>
                   </div>
                 </div>

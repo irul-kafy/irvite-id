@@ -52,7 +52,7 @@ export function shouldRenderGuestQr(
  * Checks whether the digital gift / QRIS section should be rendered.
  * Feature is deferred per IRVITE.ID MVP specification ? always suppressed in production.
  */
-export function shouldRenderGiftSection(mode?: InvitationMode): boolean {
+export function shouldRenderGiftSection(): boolean {
   return false;
 }
 

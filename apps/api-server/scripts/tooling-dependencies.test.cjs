@@ -16,6 +16,12 @@ test('coverage tooling resolves YAML 4 without the vulnerable sprintf-js depende
   assert.throws(() => toolingRequire.resolve('sprintf-js'), { code: 'MODULE_NOT_FOUND' });
 });
 
+test('upload middleware resolves patched multer (GHSA-q7qp-rjg7-q26m)', () => {
+  const platformRequire = createRequire(require.resolve('@nestjs/platform-express'));
+  const [major, minor] = platformRequire('multer/package.json').version.split('.').map(Number);
+  assert.ok(major > 2 || (major === 2 && minor >= 5), 'multer must be >= 2.5.0');
+});
+
 test('coverage YAML preserves supported scalars, lists, aliases, and extended configuration', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'irvite-tooling-config-'));
   try {
