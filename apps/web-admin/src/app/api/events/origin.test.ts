@@ -7,7 +7,7 @@ import { PATCH as GuestPatch } from './[eventId]/guests/[guestId]/route';
 import { POST as InvitationPost } from './[eventId]/guests/[guestId]/invitation/route';
 
 test('BFF Origin Rejection', async (t) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-function-type
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const checkOrigin = async (handler: any, params?: Record<string, unknown>) => {
     const req = new Request('http://localhost/api/test', {
       method: handler === EventPatch || handler === GuestPatch ? 'PATCH' : 'POST',

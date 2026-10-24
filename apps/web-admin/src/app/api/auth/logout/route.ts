@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ success: true });
     response.cookies.delete('auth_token');
     return response;
-  } catch (_error) {
+  } catch {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
