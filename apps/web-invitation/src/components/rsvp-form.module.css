@@ -1,0 +1,42 @@
+/* Shared operational form: explicit styles, independent of any template framework. */
+.card {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin: 24px auto 0;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid #dce3de;
+  border-radius: 18px;
+  background: #fff;
+  color: #243a31;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  text-align: left;
+  box-shadow: 0 8px 28px rgb(30 55 42 / 6%);
+  color-scheme: light;
+}
+
+.heading { margin: 0 0 20px; font: 600 20px/1.4 Georgia, serif; text-align: center; }
+.description { margin: 0; text-align: center; }
+.form { display: grid; gap: 20px; }
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.choice { position: relative; cursor: pointer; }
+.radio { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip-path: inset(50%); overflow: hidden; }
+.choiceText { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 52px; height: 100%; padding: 12px; border: 1px solid #bac8bf; border-radius: 10px; color: #344b40; background: #fff; text-align: center; font-weight: 600; transition: background 150ms ease, border-color 150ms ease; }
+.choice:hover .choiceText { background: #f4f7f5; }
+.radio:checked + .choiceText { color: #173f2c; border-color: #35694c; background: #e9f3ec; box-shadow: inset 0 0 0 1px #35694c; }
+.radio:focus-visible + .choiceText { outline: 3px solid #35694c; outline-offset: 3px; }
+.radio:disabled + .choiceText { opacity: .65; cursor: wait; }
+.field { display: grid; gap: 8px; }
+.label { font-size: 14px; font-weight: 600; }
+.select { box-sizing: border-box; width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid #bac8bf; border-radius: 10px; color: #243a31; background: #fff; font: inherit; }
+.submit { width: 100%; min-height: 48px; padding: 12px 20px; border: 1px solid #294b3b; border-radius: 10px; color: #fff; background: #294b3b; font: 600 15px/1.5 Arial, Helvetica, sans-serif; cursor: pointer; }
+.submit:hover:not(:disabled) { background: #1d382b; }
+.submit:disabled { color: #52665a; background: #e3eae6; border-color: #d2ddd6; cursor: not-allowed; }
+.select:focus-visible, .submit:focus-visible { outline: 3px solid #35694c; outline-offset: 3px; }
+.notice { margin: 0 0 20px; padding: 12px 14px; border: 1px solid; border-radius: 10px; font-size: 14px; overflow-wrap: anywhere; }
+.success { color: #215334; background: #edf7ef; border-color: #c1dec9; }
+.error { color: #912d2d; background: #fff2f1; border-color: #e9bdb9; }
+@media (max-width: 360px) { .choices { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .choiceText { transition: none; } }

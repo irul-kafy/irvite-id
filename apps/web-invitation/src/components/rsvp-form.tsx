@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { PublicInvitationResponse } from '../types/public-invitation';
+import styles from './rsvp-form.module.css';
 
 interface RsvpFormProps {
   uniqueCode: string;
@@ -20,9 +21,9 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
 
   if (!rsvp.canRespond) {
     return (
-      <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
-        <h3 className="text-lg font-semibold text-gray-700">RSVP sudah ditutup</h3>
-        <p className="text-gray-500 mt-2">
+      <div className={styles.card} role="status">
+        <h3 className={styles.heading}>RSVP sudah ditutup</h3>
+        <p className={styles.description}>
           {rsvp.response === 'YES'
             ? `Anda telah mengkonfirmasi kehadiran untuk ${rsvp.pax} orang.`
             : rsvp.response === 'NO'
@@ -80,57 +81,57 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
   };
 
   return (
-    <div className="mt-8 p-6 bg-white border border-gray-200 shadow-sm rounded-lg">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Konfirmasi Kehadiran</h3>
+    <div className={styles.card}>
+      <h3 className={styles.heading}>Konfirmasi Kehadiran</h3>
       
       {errorMsg && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
+        <div className={`${styles.notice} ${styles.error}`} role="alert">
           {errorMsg}
         </div>
       )}
 
       {rsvp.response !== 'PENDING' && (
-        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md text-sm text-center">
+        <div className={`${styles.notice} ${styles.success}`} role="status">
           Berhasil! RSVP Anda telah disimpan.
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-4">
-          <label className="flex-1 cursor-pointer">
+      <form onSubmit={handleSubmit} className={styles.form} aria-label="Form konfirmasi kehadiran" aria-busy={isSubmitting}>
+        <div className={styles.choices} role="group" aria-label="Pilihan kehadiran">
+          <label className={styles.choice}>
             <input
               type="radio"
               name="response"
               value="YES"
               checked={selectedResponse === 'YES'}
               onChange={() => setSelectedResponse('YES')}
-              className="peer sr-only"
+              className={styles.radio}
               disabled={isSubmitting}
             />
-            <div className="p-3 text-center border rounded-md peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked:text-indigo-700 hover:bg-gray-50 transition-colors">
+            <span className={styles.choiceText}>
               Ya, saya hadir
-            </div>
+            </span>
           </label>
           
-          <label className="flex-1 cursor-pointer">
+          <label className={styles.choice}>
             <input
               type="radio"
               name="response"
               value="NO"
               checked={selectedResponse === 'NO'}
               onChange={() => setSelectedResponse('NO')}
-              className="peer sr-only"
+              className={styles.radio}
               disabled={isSubmitting}
             />
-            <div className="p-3 text-center border rounded-md peer-checked:bg-indigo-50 peer-checked:border-indigo-600 peer-checked:text-indigo-700 hover:bg-gray-50 transition-colors">
+            <span className={styles.choiceText}>
               Maaf, tidak bisa
-            </div>
+            </span>
           </label>
         </div>
 
         {selectedResponse === 'YES' && maxPax > 1 && (
-          <div className="mt-4">
-            <label htmlFor="pax" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className={styles.field}>
+            <label htmlFor="pax" className={styles.label}>
               Jumlah Kehadiran (Maksimal {maxPax})
             </label>
             <select
@@ -138,7 +139,7 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
               value={pax}
               onChange={(e) => setPax(Number(e.target.value))}
               disabled={isSubmitting}
-              className="w-full p-2 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className={styles.select}
             >
               {Array.from({ length: maxPax }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
@@ -152,7 +153,7 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
         <button
           type="submit"
           disabled={!selectedResponse || isSubmitting || (selectedResponse === rsvp.response && pax === rsvp.pax)}
-          className="w-full mt-6 bg-indigo-600 text-white font-medium py-3 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={styles.submit}
         >
           {isSubmitting ? 'Menyimpan...' : 'Simpan RSVP'}
         </button>

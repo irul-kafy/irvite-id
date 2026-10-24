@@ -1,7 +1,13 @@
+import styles from './invitation-state.module.css';
+
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-xl text-gray-600 animate-pulse">Loading invitation...</div>
-    </div>
+    <main className={styles.surface} role="status" aria-busy="true">
+      <div className={styles.card}>
+        <span className={styles.brand}>irvite.id</span>
+        <p className={styles.description}>Memuat undangan...</p>
+        <span className={styles.pulse} aria-hidden="true" />
+      </div>
+    </main>
   );
 }

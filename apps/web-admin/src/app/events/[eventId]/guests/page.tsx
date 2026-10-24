@@ -599,7 +599,8 @@ export default function GuestListPage({
                   position: 'absolute',
                   top: 'calc(100% + 6px)',
                   right: 0,
-                  width: '320px',
+                  width: 'min(320px, calc(100vw - 2rem))',
+                  boxSizing: 'border-box',
                   background: 'var(--admin-surface, #ffffff)',
                   border: '1px solid var(--admin-border, #E2D9CE)',
                   borderRadius: 'var(--radius-lg, 12px)',
@@ -615,6 +616,7 @@ export default function GuestListPage({
                   <button
                     type="button"
                     onClick={() => setExportDropdownOpen(false)}
+                    aria-label="Tutup opsi ekspor"
                     style={{
                       background: 'none',
                       border: 'none',
@@ -622,9 +624,11 @@ export default function GuestListPage({
                       fontSize: '1.125rem',
                       color: 'var(--text-tertiary)',
                       lineHeight: 1,
+                      minWidth: '36px',
+                      minHeight: '36px',
                     }}
                   >
-                    �
+                    <span aria-hidden="true">×</span>
                   </button>
                 </div>
 
