@@ -166,6 +166,7 @@ export default function InvitationDistributionPage({
   const [bulkGenerating, setBulkGenerating] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
   // Derive localhost warning from first available canonical URL
   const hasLocalhostUrl = guests.some(
@@ -376,6 +377,40 @@ export default function InvitationDistributionPage({
     }
   };
 
+  const handlePublishEvent = async () => {
+    if (!confirm('Publikasikan acara ini sekarang? Setelah dipublikasikan, tautan undangan personal tamu dan halaman publik akan segera aktif dan dapat dibuka oleh tamu.')) {
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PUBLISHED' }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mempublikasikan acara');
+      }
+      setEvent((prev) => (prev ? { ...prev, status: 'PUBLISHED' } : null));
+      setActionMessage({
+        type: 'success',
+        text: 'Acara berhasil dipublikasikan! Tautan undangan personal tamu kini aktif dan dapat dibuka.',
+      });
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal mempublikasikan acara',
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const isGenerating = generatingGuestId !== null;
   const isCopied = (canonicalUrl: string) => copiedCode === canonicalUrl;
 
@@ -483,6 +518,48 @@ export default function InvitationDistributionPage({
             aria-label="Tutup pesan"
           >
             ×
+          </button>
+        </div>
+      )}
+
+      {/* Draft Warning Banner */}
+      {event?.status === 'DRAFT' && (
+        <div
+          role="status"
+          id="invitations-draft-warning"
+          style={{
+            marginBottom: '1.25rem',
+            padding: '1rem 1.25rem',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--status-warning-bg, #fffbeb)',
+            border: '1px solid rgba(217, 119, 6, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span className="badge badge--warning">DRAFT</span>
+              <strong style={{ color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
+                Status Acara Masih DRAFT
+              </strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Tautan undangan personal tamu yang disebarkan via WhatsApp atau disalin belum dapat diakses tamu sampai acara dipublikasikan.
+            </p>
+          </div>
+          <button
+            id="btn-publish-event-from-invitations"
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handlePublishEvent}
+            disabled={isPublishing}
+            style={{ fontWeight: 600 }}
+          >
+            {isPublishing ? 'Mempublikasikan...' : 'Publikasikan Acara Sekarang'}
           </button>
         </div>
       )}

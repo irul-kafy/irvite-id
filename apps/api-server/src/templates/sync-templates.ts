@@ -9,33 +9,27 @@ export interface ApprovedTemplateSeed {
 
 export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
   {
-    name: 'Ivory Garden',
-    themeCode: 'IVORY_GARDEN',
-    previewImageUrl: '/templates/ivory-garden/thumbnail.webp',
+    name: 'Sekar Kedaton',
+    themeCode: 'SEKAR_KEDATON',
+    previewImageUrl: '/templates/sekar-kedaton/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
   {
-    name: 'Serene Garden',
-    themeCode: 'SERENE_GARDEN',
-    previewImageUrl: '/templates/serene-garden/thumbnail.webp',
+    name: 'Aetheria',
+    themeCode: 'AETHERIA',
+    previewImageUrl: '/templates/aetheria/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
   {
-    name: 'Sunda Puspa',
-    themeCode: 'SUNDA_PUSPA',
-    previewImageUrl: '/templates/sunda-puspa/thumbnail.webp',
+    name: 'Opaline Nocturne',
+    themeCode: 'OPALINE_NOCTURNE',
+    previewImageUrl: '/templates/opaline-nocturne/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
   {
-    name: 'Classic Letter',
-    themeCode: 'CLASSIC_LETTER',
-    previewImageUrl: '/templates/classic-letter/thumbnail.webp',
-    initialStatus: 'AVAILABLE',
-  },
-  {
-    name: 'Velvet Letter',
-    themeCode: 'VELVET_LETTER',
-    previewImageUrl: '/templates/velvet-letter/thumbnail.webp',
+    name: 'Ranah Cinta',
+    themeCode: 'RANAH_CINTA',
+    previewImageUrl: '/templates/ranah-cinta/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
 ];

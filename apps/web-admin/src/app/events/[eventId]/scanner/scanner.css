@@ -97,7 +97,7 @@
 .scanner-manual-input button {
   padding: 0.75rem 1.5rem;
   background: var(--admin-accent);
-  color: #171817;
+  color: #fffdf9;
   border: none;
   border-radius: var(--radius-sm, 8px);
   font-weight: 600;
@@ -223,7 +223,7 @@
 .reset-btn {
   padding: 1rem;
   background: var(--admin-accent);
-  color: #171817;
+  color: #fffdf9;
   border: none;
   border-radius: var(--radius-sm, 8px);
   font-size: 1.1rem;
@@ -263,7 +263,7 @@ html.dark .scanner-manual-input input {
 
 html.dark .scanner-manual-input button,
 html.dark .reset-btn {
-  color: #121212;
+  color: #1d181a;
 }
 
 html.dark .pax-controls button {

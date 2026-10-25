@@ -197,6 +197,7 @@ export default function GuestListPage({
   });
 
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
   const invitationOrigin =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
@@ -397,6 +398,40 @@ export default function GuestListPage({
       });
     } finally {
       setDeletingGuestId(null);
+    }
+  };
+
+  const handlePublishEvent = async () => {
+    if (!confirm('Publikasikan acara ini sekarang? Setelah dipublikasikan, tautan undangan personal tamu dan halaman publik akan segera aktif dan dapat dibuka oleh tamu.')) {
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PUBLISHED' }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mempublikasikan acara');
+      }
+      setEvent((prev) => (prev ? { ...prev, status: 'PUBLISHED' } : null));
+      setActionMessage({
+        type: 'success',
+        text: 'Acara berhasil dipublikasikan! Tautan undangan personal tamu kini aktif dan dapat dibuka.',
+      });
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal mempublikasikan acara',
+      });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -824,6 +859,48 @@ export default function GuestListPage({
             }}
           >
             ×
+          </button>
+        </div>
+      )}
+
+      {/* Draft Warning Banner */}
+      {event?.status === 'DRAFT' && (
+        <div
+          role="status"
+          id="guests-draft-warning"
+          style={{
+            marginBottom: '1.5rem',
+            padding: '1rem 1.25rem',
+            borderRadius: 'var(--radius-md, 8px)',
+            background: 'var(--status-warning-bg, #fffbeb)',
+            border: '1px solid rgba(217, 119, 6, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <span className="badge badge--warning">DRAFT</span>
+              <strong style={{ color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
+                Status Acara Masih DRAFT
+              </strong>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Tautan undangan personal tamu (<code>/i/:code</code>) dan halaman publik belum dapat dibuka tamu sampai acara dipublikasikan.
+            </p>
+          </div>
+          <button
+            id="btn-publish-event-from-guests"
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handlePublishEvent}
+            disabled={isPublishing}
+            style={{ fontWeight: 600 }}
+          >
+            {isPublishing ? 'Mempublikasikan...' : 'Publikasikan Acara Sekarang'}
           </button>
         </div>
       )}
@@ -1656,10 +1733,10 @@ export default function GuestListPage({
           }
         }
         .guest-table-row:hover {
-          background: var(--admin-surface-hover, #F2EFE8) !important;
+          background: var(--admin-surface-hover, #f1e8e2) !important;
         }
         html.dark .guest-table-row:hover {
-          background: var(--admin-surface-hover, #242421) !important;
+          background: var(--admin-surface-hover, #31272b) !important;
         }
       `}</style>
     </div>

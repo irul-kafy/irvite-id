@@ -30,26 +30,48 @@ describe('syncTemplateIdentities', () => {
     };
   });
 
-  it('includes CLASSIC_LETTER in approved seeds matching contract', () => {
-    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(5);
-    const classic = APPROVED_TEMPLATE_SEEDS.find(
-      (s) => s.themeCode === 'CLASSIC_LETTER',
+  it('includes SEKAR_KEDATON in approved seeds matching contract', () => {
+    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(4);
+    const sekar = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'SEKAR_KEDATON',
     );
-    expect(classic).toBeDefined();
-    expect(classic?.name).toBe('Classic Letter');
-    expect(classic?.previewImageUrl).toBe(
-      '/templates/classic-letter/thumbnail.webp',
+    expect(sekar).toBeDefined();
+    expect(sekar?.name).toBe('Sekar Kedaton');
+    expect(sekar?.previewImageUrl).toBe(
+      '/templates/sekar-kedaton/thumbnail.webp',
     );
   });
 
-  it('includes VELVET_LETTER in approved seeds matching contract', () => {
-    const velvet = APPROVED_TEMPLATE_SEEDS.find(
-      (s) => s.themeCode === 'VELVET_LETTER',
+  it('includes AETHERIA in approved seeds matching contract', () => {
+    const aet = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'AETHERIA',
     );
-    expect(velvet).toBeDefined();
-    expect(velvet?.name).toBe('Velvet Letter');
-    expect(velvet?.previewImageUrl).toBe(
-      '/templates/velvet-letter/thumbnail.webp',
+    expect(aet).toBeDefined();
+    expect(aet?.name).toBe('Aetheria');
+    expect(aet?.previewImageUrl).toBe(
+      '/templates/aetheria/thumbnail.webp',
+    );
+  });
+
+  it('includes OPALINE_NOCTURNE in approved seeds matching contract', () => {
+    const opn = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'OPALINE_NOCTURNE',
+    );
+    expect(opn).toBeDefined();
+    expect(opn?.name).toBe('Opaline Nocturne');
+    expect(opn?.previewImageUrl).toBe(
+      '/templates/opaline-nocturne/thumbnail.webp',
+    );
+  });
+
+  it('includes RANAH_CINTA in approved seeds matching contract', () => {
+    const rnc = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'RANAH_CINTA',
+    );
+    expect(rnc).toBeDefined();
+    expect(rnc?.name).toBe('Ranah Cinta');
+    expect(rnc?.previewImageUrl).toBe(
+      '/templates/ranah-cinta/thumbnail.webp',
     );
   });
 
@@ -120,10 +142,10 @@ describe('syncTemplateIdentities', () => {
 
   it('FAILS CLOSED when duplicate records (>1) exist for a themeCode', async () => {
     mockPrisma.template.findMany.mockImplementation(({ where }: any) => {
-      if (where.themeCode === 'IVORY_GARDEN') {
+      if (where.themeCode === 'SEKAR_KEDATON') {
         return Promise.resolve([
-          { id: 'uuid-1', themeCode: 'IVORY_GARDEN', name: 'Ivory 1' },
-          { id: 'uuid-2', themeCode: 'IVORY_GARDEN', name: 'Ivory 2' },
+          { id: 'uuid-1', themeCode: 'SEKAR_KEDATON', name: 'Sekar 1' },
+          { id: 'uuid-2', themeCode: 'SEKAR_KEDATON', name: 'Sekar 2' },
         ]);
       }
       return Promise.resolve([]);
@@ -193,22 +215,36 @@ describe('syncTemplateIdentities', () => {
     expect(mockPrisma.template.create).not.toHaveBeenCalled();
   });
   describe('isBuiltInTemplate & BUILT_IN_THEME_CODES', () => {
-    it('contains all 5 approved theme codes', () => {
-      expect(BUILT_IN_THEME_CODES.size).toBe(5);
-      expect(BUILT_IN_THEME_CODES.has('IVORY_GARDEN')).toBe(true);
-      expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(true);
-      expect(BUILT_IN_THEME_CODES.has('SUNDA_PUSPA')).toBe(true);
-      expect(BUILT_IN_THEME_CODES.has('CLASSIC_LETTER')).toBe(true);
-      expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(true);
+    it('contains all 4 approved codex theme codes', () => {
+      expect(BUILT_IN_THEME_CODES.size).toBe(4);
+      expect(BUILT_IN_THEME_CODES.has('SEKAR_KEDATON')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('AETHERIA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('OPALINE_NOCTURNE')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('RANAH_CINTA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('CHINESE_TRADITIONAL_LUXURY')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('JARDIN_DE_VELOURS')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('SYMPHONY_OF_US')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('IVORY_GARDEN')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('SUNDA_PUSPA')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('CLASSIC_LETTER')).toBe(false);
     });
 
     it('returns true for all approved built-in themeCodes case-insensitively', () => {
-      expect(isBuiltInTemplate('IVORY_GARDEN')).toBe(true);
-      expect(isBuiltInTemplate('ivory_garden')).toBe(true);
-      expect(isBuiltInTemplate(' Serene_Garden ')).toBe(true);
-      expect(isBuiltInTemplate('sunda_puspa')).toBe(true);
-      expect(isBuiltInTemplate('classic_letter')).toBe(true);
-      expect(isBuiltInTemplate('velvet_letter')).toBe(true);
+      expect(isBuiltInTemplate('SEKAR_KEDATON')).toBe(true);
+      expect(isBuiltInTemplate(' Sekar_Kedaton ')).toBe(true);
+      expect(isBuiltInTemplate('aetheria')).toBe(true);
+      expect(isBuiltInTemplate('opaline_nocturne')).toBe(true);
+      expect(isBuiltInTemplate('ranah_cinta')).toBe(true);
+      expect(isBuiltInTemplate('serene_garden')).toBe(false);
+      expect(isBuiltInTemplate('velvet_letter')).toBe(false);
+      expect(isBuiltInTemplate('chinese_traditional_luxury')).toBe(false);
+      expect(isBuiltInTemplate('jardin_de_velours')).toBe(false);
+      expect(isBuiltInTemplate('symphony_of_us')).toBe(false);
+      expect(isBuiltInTemplate('ivory_garden')).toBe(false);
+      expect(isBuiltInTemplate('sunda_puspa')).toBe(false);
+      expect(isBuiltInTemplate('classic_letter')).toBe(false);
     });
 
     it('returns false for dynamic/custom or missing themeCodes', () => {

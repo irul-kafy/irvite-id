@@ -2,11 +2,9 @@ import Link from 'next/link';
 import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '../catalog';
 import { fetchPublicTemplateAvailability } from '../api/client';
 import { LandingNavbar } from '../components/landing-navbar';
-import { ScrollReveal } from '../components/scroll-reveal';
 import { PublicTemplateShowcase } from '../components/public-template-showcase';
 import './landing.css';
 import { getGeneralContactUrl } from '../utils/contact';
-
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
 const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
@@ -14,180 +12,62 @@ const MSG_BASIC = 'Halo IRVITE.ID, saya ingin memesan Paket Umum untuk undangan 
 const MSG_PREMIUM = 'Halo IRVITE.ID, saya ingin memesan Paket Eksklusif dengan Tim Scanner di venue.';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
-
 function IconWA({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.855L.057 23.943l6.294-1.446A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.571 9.571 0 0 1-4.886-1.338l-.35-.207-3.735.857.92-3.63-.228-.373A9.572 9.572 0 0 1 2.4 12C2.4 6.703 6.703 2.4 12 2.4S21.6 6.703 21.6 12 17.297 21.6 12 21.6z"/>
+    <svg
+      className={className}
+      style={style}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M20.5 3.5A11.8 11.8 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.09.55 4.13 1.59 5.93L.1 24l6.34-1.66a11.87 11.87 0 0 0 5.63 1.43h.01c6.55 0 11.87-5.33 11.87-11.88 0-3.17-1.22-6.15-3.46-8.39Zm-8.42 18.27h-.01a9.84 9.84 0 0 1-5.02-1.38l-.36-.21-3.76.99 1-3.67-.24-.38a9.83 9.83 0 0 1-1.51-5.24c0-5.46 4.45-9.9 9.91-9.9a9.82 9.82 0 0 1 7 2.9 9.83 9.83 0 0 1 2.89 7c0 5.46-4.45 9.9-9.9 9.9Zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.91-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.09 3.19 5.06 4.47.71.3 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z" />
     </svg>
   );
 }
-
-function IconCheck({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="9" cy="9" r="8" fill="currentColor" fillOpacity="0.15"/>
-      <path d="M5.5 9l2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function IconStar() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M7 1l1.545 3.13L12 4.635l-2.5 2.435.59 3.43L7 8.885l-3.09 1.615.59-3.43L2 4.635l3.455-.505L7 1z"/>
-    </svg>
-  );
-}
-
-function IconShield({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 2l7 3v5c0 4.418-3.134 7.5-7 8.5C6.134 17.5 3 14.418 3 10V5l7-3z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function IconScan({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 7V4.5A1.5 1.5 0 0 1 3.5 3H6M14 3h2.5A1.5 1.5 0 0 1 18 4.5V7M2 13v2.5A1.5 1.5 0 0 0 3.5 17H6M14 17h2.5A1.5 1.5 0 0 0 18 15.5V13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function IconDesign({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="2" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <circle cx="10" cy="10" r="3.5" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function IconData({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <path d="M3 8h14M7 12h1M7 15h1M10.5 12h2.5M10.5 15h1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function IconTeam({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="7" cy="6" r="3" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M2 17c0-2.761 2.239-5 5-5s5 2.239 5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M13 4c1.657 0 3 1.343 3 3s-1.343 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <path d="M18 17c0-2.5-1.8-4.5-4-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function IconQR({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="2" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <rect x="4" y="4" width="3" height="3" fill="currentColor"/>
-      <rect x="11" y="2" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <rect x="13" y="4" width="3" height="3" fill="currentColor"/>
-      <rect x="2" y="11" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <rect x="4" y="13" width="3" height="3" fill="currentColor"/>
-      <rect x="11" y="11" width="3" height="3" fill="currentColor" opacity="0.6"/>
-      <rect x="15" y="11" width="3" height="3" fill="currentColor" opacity="0.6"/>
-      <rect x="11" y="15" width="3" height="3" fill="currentColor" opacity="0.6"/>
-      <rect x="15" y="15" width="3" height="3" fill="currentColor" opacity="0.6"/>
-    </svg>
-  );
-}
-
-function IconLink({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8.5 11.5a4.5 4.5 0 0 0 6.364 0l2-2a4.5 4.5 0 0 0-6.364-6.364l-1 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M11.5 8.5a4.5 4.5 0 0 0-6.364 0l-2 2a4.5 4.5 0 0 0 6.364 6.364l1-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-function IconReport({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="2" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-      <path d="M6 7h8M6 10h8M6 13h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M14 13l1.5 1.5L18 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-// ── Template catalog data (consumed from typed catalog registry) ──
-
-
-
-// ── Testimonials ───────────────────────────────────────────────────────────────
 
 const TESTIMONIALS = [
   {
-    id: 1,
-    quote: 'Tim IRVITE.ID luar biasa! QR Scanner-nya berjalan mulus, tamu datang dan langsung ter-scan. Undangannya juga cantik banget, banyak yang tanya pesan dimana.',
+    quote:
+      'Tim IRVITE.ID luar biasa. QR Scanner berjalan mulus dan undangannya cantik banget—banyak yang tanya pesan di mana.',
     name: 'Anisa & Ridwan',
-    role: 'Pernikahan di Ballroom Kota Jakarta, Agustus 2026',
-    avatar: 'AR',
-    color: 'linear-gradient(135deg, #c9a84c, #9a7530)',
+    event: 'Ballroom Kota Jakarta · Agustus 2026',
   },
   {
-    id: 2,
-    quote: 'Paket Eksklusif sangat worth it. Setiap tamu punya link dengan namanya sendiri, berasa VIP. Tim di venue super profesional dan laporan kehadirannya akurat.',
+    quote:
+      'Paket Eksklusif sangat worth it. Setiap tamu punya link dengan namanya sendiri, rasanya benar-benar VIP.',
     name: 'Dita & Bagas',
-    role: 'Pernikahan Garden Party, Bandung, Juli 2026',
-    avatar: 'DB',
-    color: 'linear-gradient(135deg, #059669, #047857)',
+    event: 'Garden Party, Bandung · Juli 2026',
   },
   {
-    id: 3,
-    quote: 'Prosesnya benar-benar "terima beres". Kami tinggal kirim data via WhatsApp, beberapa hari kemudian undangan sudah jadi dan siap dibagikan. Sangat rekomendasikan!',
+    quote:
+      'Prosesnya benar-benar terima beres. Beberapa hari kemudian undangan sudah jadi dan siap dibagikan.',
     name: 'Mega & Fauzan',
-    role: 'Pernikahan Resepsi, Surabaya, September 2026',
-    avatar: 'MF',
-    color: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+    event: 'Resepsi Surabaya · September 2026',
   },
-] as const;
+];
 
-// ── Scroll reveal hook ─────────────────────────────────────────────────────────
-
+// ── Hero Section ───────────────────────────────────────────────────────────────
 function HeroSection() {
+  const heroImage =
+    'https://images.unsplash.com/photo-1650377509454-1bbd8392e122?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400';
+
   return (
-    <section id="home" className="lp-hero">
-      <div className="lp-hero__content">
-        <div className="lp-hero__eyebrow">
-          <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
-          Layanan Undangan Digital Premium Indonesia
-        </div>
-
-        <h1 className="lp-hero__title">
-          Undangan Digital<br />
-          <em>Premium &amp; Eksklusif</em>
+    <section className="hero shell" id="top">
+      <div className="hero-copy">
+        <p className="eyebrow">Undangan digital premium Indonesia</p>
+        <h1>
+          Hari bahagia Anda,
+          <em> kami buat berkesan.</em>
         </h1>
-
-        <p className="lp-hero__subtitle">
-          Kami urus segalanya — dari desain elegan, link personal per tamu, hingga
-          tim scanner di venue. <strong className="lp-hero__terima-beres">Terima Beres.</strong>
+        <p className="lead">
+          Dari desain elegan, link personal per tamu, hingga tim scanner di venue.
+          Semua kami urus dengan rapi—Anda tinggal menikmati momen.
         </p>
-
-        <div className="lp-hero__ctas">
-          <a id="hero-catalog-btn" href="#katalog" className="lp-btn lp-btn--silver">
-            <svg className="lp-btn__icon" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="2" y="2" width="6" height="6" rx="1.5" fill="currentColor"/>
-              <rect x="10" y="2" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/>
-              <rect x="2" y="10" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/>
-              <rect x="10" y="10" width="6" height="6" rx="1.5" fill="currentColor"/>
-            </svg>
-            Lihat Katalog Desain
+        <div className="hero-actions">
+          <a id="hero-catalog-btn" className="button primary" href="#katalog">
+            Lihat katalog <span aria-hidden="true">↘</span>
           </a>
           {getGeneralContactUrl(MSG_GENERAL) ? (
             <a
@@ -195,324 +75,256 @@ function HeroSection() {
               href={getGeneralContactUrl(MSG_GENERAL)!}
               target="_blank"
               rel="noopener noreferrer"
-              className="lp-btn lp-btn--outline"
+              className="text-link"
             >
-              <IconWA className="lp-btn__icon" />
-              Konsultasi via WhatsApp
+              Konsultasi via WhatsApp <span aria-hidden="true">→</span>
             </a>
           ) : (
             <button
               type="button"
               id="hero-wa-btn"
               disabled
-              className="lp-btn lp-btn--outline"
+              className="text-link"
               style={{ opacity: 0.5, cursor: 'not-allowed' }}
               title="Kontak belum dikonfigurasi"
             >
-              <IconWA className="lp-btn__icon" />
-              Konsultasi via WhatsApp
+              Konsultasi via WhatsApp <span aria-hidden="true">→</span>
             </button>
           )}
         </div>
+        <div className="trust">
+          <strong>4.9/5</strong>
+          <span>Dipercaya pasangan di berbagai kota Indonesia</span>
+        </div>
       </div>
-
-      <div className="lp-hero__scroll" aria-hidden="true">
-        <div className="lp-hero__scroll-line" />
-        <span className="lp-hero__scroll-text">Scroll</span>
+      <div className="hero-visual">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={heroImage}
+          alt="Pasangan pengantin Indonesia dalam busana tradisional"
+        />
       </div>
     </section>
   );
 }
 
-// ── Trust Bar ──────────────────────────────────────────────────────────────────
-
-function TrustBar() {
+// ── Feature Strip ──────────────────────────────────────────────────────────────
+function FeatureStrip() {
   const items = [
-    { icon: IconShield, text: 'Konsultasi Gratis' },
-    { icon: IconTeam,   text: 'Tim Profesional Berpengalaman' },
-    { icon: IconScan,   text: 'Scanner On-Site Tersedia' },
-    { icon: IconReport, text: 'Laporan Kehadiran Real-time' },
-    { icon: IconQR,     text: 'QR Code Unik Per Tamu' },
+    'Konsultasi gratis',
+    'Tim profesional',
+    'Scanner on-site',
+    'Laporan real-time',
+    'QR unik per tamu',
   ];
+
   return (
-    <div className="lp-trust" role="complementary" aria-label="Keunggulan layanan">
-      <div className="lp-trust__inner">
-        {items.map(({ icon: Icon, text }) => (
-          <div key={text} className="lp-trust__item">
-            <Icon className="lp-trust__item-icon" />
-            <span>{text}</span>
-          </div>
+    <section className="feature-strip" aria-label="Keunggulan layanan">
+      <div className="shell feature-row">
+        {items.map((item, index) => (
+          <span key={item}>
+            <b>{String(index + 1).padStart(2, '0')}</b> {item}
+          </span>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-// ── Packages ───────────────────────────────────────────────────────────────────
-
-function PackagesSection() {
-  const basicFeatures = [
-    { icon: IconLink,   text: <>1 Link publik untuk disebarkan ke <strong>semua tamu</strong></> },
-    { icon: IconDesign, text: <>Desain template eksklusif pilihan Anda</> },
-    { icon: IconCheck,  text: <>Form RSVP standar (hadir / tidak hadir)</> },
-    { icon: IconCheck,  text: <>Informasi acara lengkap (tanggal, lokasi, maps)</> },
-    { icon: IconCheck,  text: <>Galeri foto</> },
-    { icon: IconCheck,  text: <>Tanpa QR Code per tamu</> },
-  ];
-  const premiumFeatures = [
-    { icon: IconLink,   text: <><strong>Link unik per tamu</strong> — nama tamu tercantum di amplop digital</> },
-    { icon: IconQR,     text: <><strong>QR Code eksklusif</strong> sebagai akses masuk per tamu</> },
-    { icon: IconTeam,   text: <><strong>Tim Scanner di Venue <span className="lp-package__star-tag">INCLUDED</span></strong> — kami datang ke venue, scan &amp; data tamu secara real-time</> },
-    { icon: IconReport, text: <><strong>Laporan kehadiran</strong> lengkap pasca acara</> },
-    { icon: IconDesign, text: <>Semua fitur desain premium + customisasi nama tamu</> },
-    { icon: IconScan,   text: <>Dashboard pemantauan scanner real-time di hari H</> },
-  ];
-
+// ── Catalog Section ────────────────────────────────────────────────────────────
+function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
   return (
-    <section id="paket" className="lp-section lp-section--cream">
-      <div className="lp-container lp-packages">
-        <div className="lp-packages__header">
-          <div className="lp-reveal">
-            <p className="lp-section-label">Paket Layanan</p>
-            <h2 className="lp-section-title lp-section-title--dark">
-              Pilih Paket yang <em>Tepat</em> untuk Anda
-            </h2>
-          </div>
-          <div className="lp-reveal lp-reveal--delay-1" style={{ marginTop: '0.875rem' }}>
-            <p className="lp-section-desc">
-              Dua paket dirancang untuk memenuhi kebutuhan berbeda — dari yang simpel hingga pengalaman pernikahan yang benar-benar <em>memorable.</em>
-            </p>
-          </div>
+    <section className="section catalog-section shell" id="katalog">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Katalog desain</p>
+          <h2>Temukan desain yang terasa personal.</h2>
         </div>
+        <p>
+          Setiap template dirancang dengan presisi dan dapat disesuaikan dengan
+          identitas pernikahan Anda.
+        </p>
+      </div>
 
-        <div className="lp-packages__grid">
-          {/* Basic Card */}
-          <div className="lp-package-card lp-package-card--basic lp-reveal">
-            <div className="lp-package__badge lp-package__badge--basic">
-              <IconLink style={{ width: 13, height: 13 }} />
-              Paket Umum
-            </div>
-            <h3 className="lp-package__name">Paket Umum</h3>
-            <p className="lp-package__tagline">Satu link, semua tamu</p>
-            <div className="lp-package__divider" />
-            <ul className="lp-package__features">
-              {basicFeatures.map((f, i) => (
-                <li key={i} className="lp-package__feature">
-                  <f.icon className="lp-package__feature-icon lp-package__feature-icon--check" />
-                  <span>{f.text}</span>
-                </li>
-              ))}
+      <PublicTemplateShowcase templates={templates} />
+
+      <Link
+        id="view-all-templates-btn"
+        className="button outline centered"
+        href="/templates"
+      >
+        Lihat semua template <span aria-hidden="true">→</span>
+      </Link>
+    </section>
+  );
+}
+
+// ── Packages Section ───────────────────────────────────────────────────────────
+function PackagesSection() {
+  return (
+    <section className="section packages" id="paket">
+      <div className="shell">
+        <div className="section-heading compact">
+          <div>
+            <p className="eyebrow">Paket layanan</p>
+            <h2>Pilih yang tepat, tanpa biaya tersembunyi.</h2>
+          </div>
+          <p>Dua paket yang jelas untuk kebutuhan yang berbeda.</p>
+        </div>
+        <div className="package-grid">
+          <article className="package-card">
+            <p className="package-label">Paket Umum</p>
+            <h3>Satu link, semua tamu</h3>
+            <p className="package-desc">
+              Praktis untuk undangan yang simpel dan tetap berkelas.
+            </p>
+            <ul>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> 1 link publik untuk semua tamu
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Desain template eksklusif
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Form RSVP standar
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Informasi acara, maps, dan galeri
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Tanpa QR Code per tamu
+              </li>
             </ul>
             {getGeneralContactUrl(MSG_BASIC) ? (
               <a
                 id="pkg-basic-wa"
+                className="button outline"
                 href={getGeneralContactUrl(MSG_BASIC)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lp-btn lp-btn--outline-silver lp-package__cta"
               >
-                <IconWA className="lp-btn__icon" />
-                Pesan Paket Ini
+                <IconWA className="wa-icon" />
+                Pesan paket ini
               </a>
             ) : (
               <button
                 type="button"
                 id="pkg-basic-wa"
                 disabled
-                className="lp-btn lp-btn--outline-silver lp-package__cta"
+                className="button outline"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
                 title="Kontak belum dikonfigurasi"
               >
-                <IconWA className="lp-btn__icon" />
-                Pesan Paket Ini
+                <IconWA className="wa-icon" />
+                Pesan paket ini
               </button>
             )}
-          </div>
+          </article>
 
-          {/* Premium Card */}
-          <div className="lp-package-card lp-package-card--premium lp-reveal lp-reveal--delay-2">
-            <div className="lp-package__recommended">Direkomendasikan</div>
-            <div className="lp-package__badge lp-package__badge--premium">
-              <IconQR style={{ width: 13, height: 13 }} />
-              Paket Eksklusif
-            </div>
-            <h3 className="lp-package__name">Paket Eksklusif</h3>
-            <p className="lp-package__tagline">Per tamu + Scanner di venue</p>
-            <div className="lp-package__divider" />
-            <ul className="lp-package__features">
-              {premiumFeatures.map((f, i) => (
-                <li key={i} className="lp-package__feature">
-                  <f.icon className="lp-package__feature-icon lp-package__feature-icon--gold" />
-                  <span>{f.text}</span>
-                </li>
-              ))}
+          <article className="package-card featured">
+            <span className="recommended">Paling diminati</span>
+            <p className="package-label">Paket Eksklusif</p>
+            <h3>Personal, sampai ke setiap tamu</h3>
+            <p className="package-desc">
+              Pengalaman premium dengan scanner profesional di venue.
+            </p>
+            <ul>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Link personal dengan nama tamu
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> QR Code eksklusif per tamu
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Tim scanner hadir di venue
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Dashboard dan laporan real-time
+              </li>
+              <li>
+                <span className="icon" aria-hidden="true">✓</span> Semua fitur desain premium
+              </li>
             </ul>
             {getGeneralContactUrl(MSG_PREMIUM) ? (
               <a
                 id="pkg-premium-wa"
+                className="button primary exclusive-cta"
                 href={getGeneralContactUrl(MSG_PREMIUM)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lp-btn lp-btn--silver lp-package__cta"
               >
-                <IconWA className="lp-btn__icon" />
-                Pesan Paket Eksklusif
+                <IconWA className="wa-icon" />
+                Pesan paket eksklusif
               </a>
             ) : (
               <button
                 type="button"
                 id="pkg-premium-wa"
                 disabled
-                className="lp-btn lp-btn--silver lp-package__cta"
+                className="button primary exclusive-cta"
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
                 title="Kontak belum dikonfigurasi"
               >
-                <IconWA className="lp-btn__icon" />
-                Pesan Paket Eksklusif
+                <IconWA className="wa-icon" />
+                Pesan paket eksklusif
               </button>
             )}
-          </div>
+          </article>
         </div>
       </div>
     </section>
   );
 }
 
-// ── Template Catalog ───────────────────────────────────────────────────────────
-
-function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
-  return (
-    <section id="katalog" className="lp-section lp-section--cream-2">
-      <div className="lp-container lp-catalog">
-        <div className="lp-catalog__header">
-          <div className="lp-reveal">
-            <p className="lp-section-label">Katalog Desain</p>
-            <h2 className="lp-section-title lp-section-title--dark">
-              Temukan Desain <em>Impian</em> Anda
-            </h2>
-          </div>
-          <div className="lp-reveal lp-reveal--delay-1" style={{ marginTop: '0.875rem' }}>
-            <p className="lp-section-desc" style={{ marginInline: 'auto' }}>
-              Setiap template dirancang dengan presisi oleh tim desainer kami — elegan, responsif, dan dapat dikustomisasi sesuai identitas pernikahan Anda.
-            </p>
-          </div>
-        </div>
-
-        <PublicTemplateShowcase templates={templates} />
-
-        <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-          <Link
-            id="view-all-templates-btn"
-            href="/templates"
-            className="lp-btn lp-btn--silver"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.875rem 2rem' }}
-          >
-            Lihat Semua Template &rarr;
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function HowItWorksSection() {
+// ── Process (Cara Kerja) Section ───────────────────────────────────────────────
+function ProcessSection() {
   const steps = [
-    {
-      n: '01',
-      Icon: IconDesign,
-      title: 'Pilih Desain',
-      desc: <>Pilih template dari katalog kami, atau konsultasikan <strong>desain custom</strong> via WhatsApp. Kami siap membantu.</>,
-    },
-    {
-      n: '02',
-      Icon: IconData,
-      title: 'Kirim Data Tamu',
-      desc: <>Kirimkan data tamu via WhatsApp atau template Excel kami. <strong>Kami yang input, kami yang siapkan.</strong></>,
-    },
-    {
-      n: '03',
-      Icon: IconTeam,
-      title: 'Terima Beres & Kami di Hari H',
-      desc: <>Undangan siap disebar. Untuk Paket Eksklusif, <strong>tim kami hadir di venue</strong> dengan sistem scanner real-time.</>,
-    },
+    ['01', 'Pilih desain', 'Pilih dari katalog atau konsultasikan desain custom bersama tim kami.'],
+    ['02', 'Kirim data tamu', 'Kirimkan data via WhatsApp atau template Excel yang kami siapkan.'],
+    ['03', 'Terima beres', 'Undangan siap dibagikan, dan tim kami hadir untuk paket eksklusif.'],
   ];
 
   return (
-    <section id="alur" className="lp-section lp-section--cream">
-      <div className="lp-container lp-hiw">
-        <div className="lp-hiw__header">
-          <div className="lp-reveal">
-            <p className="lp-section-label">Cara Kerja</p>
-            <h2 className="lp-section-title lp-section-title--dark">
-              Alur Pemesanan yang <em>Mudah</em>
-            </h2>
-          </div>
-          <div className="lp-reveal lp-reveal--delay-1" style={{ marginTop: '0.875rem' }}>
-            <p className="lp-section-desc" style={{ marginInline: 'auto' }}>
-              Dari konsultasi hingga hari H, kami pastikan perjalanan Anda bebas stres dan penuh kesenangan.
-            </p>
-          </div>
+    <section className="section process shell" id="cara-kerja">
+      {/* Anchor helper for backward compatibility */}
+      <span id="alur" style={{ display: 'none' }} />
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Cara kerja</p>
+          <h2>Ringkas prosesnya. Tenang menjalaninya.</h2>
         </div>
-
-        <div className="lp-hiw__steps">
-          {steps.map((step, i) => {
-            const Icon = step.Icon;
-            return (
-              <div
-                key={step.n}
-                className={`lp-hiw__step lp-reveal lp-reveal--delay-${i + 1}`}
-              >
-                <div className="lp-hiw__step-num">{step.n}</div>
-                <Icon className="lp-hiw__step-icon" />
-                <h3 className="lp-hiw__step-title">{step.title}</h3>
-                <p className="lp-hiw__step-desc">{step.desc}</p>
-              </div>
-            );
-          })}
-        </div>
+        <p>Dari konsultasi hingga hari H, kami mendampingi di setiap langkah.</p>
+      </div>
+      <div className="steps">
+        {steps.map(([num, title, body]) => (
+          <article key={num}>
+            <span className="step-number">{num}</span>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
       </div>
     </section>
   );
 }
 
-// ── Testimonials ───────────────────────────────────────────────────────────────
-
+// ── Testimonials Section ───────────────────────────────────────────────────────
 function TestimonialsSection() {
   return (
-    <section className="lp-section lp-section--dark lp-proof">
-      <div className="lp-container">
-        <div className="lp-proof__header">
-          <div className="lp-reveal">
-            <p className="lp-section-label">Testimoni Klien</p>
-            <h2 className="lp-section-title lp-section-title--light">
-              Kepercayaan yang <em>Membanggakan</em>
-            </h2>
-          </div>
-        </div>
-        <div className="lp-proof__grid">
-          {TESTIMONIALS.map((t, i) => (
-            <div
-              key={t.id}
-              className={`lp-proof-card lp-reveal lp-reveal--delay-${i + 1}`}
-            >
-              <div className="lp-proof-card__stars" aria-label="Rating 5 bintang">
-                {Array.from({ length: 5 }, (_, j) => <IconStar key={j} />)}
-              </div>
-              <blockquote className="lp-proof-card__quote">&quot;{t.quote}&quot;</blockquote>
-              <div className="lp-proof-card__author">
-                <div
-                  className="lp-proof-card__avatar"
-                  style={{ background: t.color }}
-                  aria-hidden="true"
-                >
-                  {t.avatar}
-                </div>
-                <div>
-                  <div className="lp-proof-card__author-name">{t.name}</div>
-                  <div className="lp-proof-card__author-role">{t.role}</div>
-                </div>
-              </div>
-            </div>
+    <section className="section testimonials">
+      <div className="shell">
+        <p className="eyebrow">Cerita klien</p>
+        <h2>Kepercayaan yang kami jaga.</h2>
+        <div className="quote-grid">
+          {TESTIMONIALS.map((item) => (
+            <figure key={item.name}>
+              <div className="stars" aria-label="5 dari 5 bintang">★★★★★</div>
+              <blockquote>“{item.quote}”</blockquote>
+              <figcaption>
+                <strong>{item.name}</strong>
+                <span>{item.event}</span>
+              </figcaption>
+            </figure>
           ))}
         </div>
       </div>
@@ -520,115 +332,88 @@ function TestimonialsSection() {
   );
 }
 
-// ── CTA Banner ─────────────────────────────────────────────────────────────────
-
-function CTABanner() {
+// ── Final CTA Section ──────────────────────────────────────────────────────────
+function CTASection() {
   return (
-    <div className="lp-cta-banner">
-      <div className="lp-cta-banner__inner">
-        <div className="lp-cta-banner__content lp-reveal">
-          <h2 className="lp-cta-banner__title">
-            Siap Membuat Undangan yang <em>Tak Terlupakan?</em>
-          </h2>
-          <p className="lp-cta-banner__sub">
-            Konsultasikan kebutuhan Anda sekarang. Gratis, tanpa komitmen, dan kami akan memandu Anda menemukan paket yang paling sesuai.
-          </p>
-          <div className="lp-cta-banner__ctas">
-            {getGeneralContactUrl(MSG_GENERAL) ? (
-              <a
-                id="cta-banner-wa"
-                href={getGeneralContactUrl(MSG_GENERAL)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lp-btn lp-btn--silver"
-              >
-                <IconWA className="lp-btn__icon" />
-                Mulai Konsultasi Gratis
-              </a>
-            ) : (
-              <button
-                type="button"
-                id="cta-banner-wa"
-                disabled
-                className="lp-btn lp-btn--silver"
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                title="Kontak belum dikonfigurasi"
-              >
-                <IconWA className="lp-btn__icon" />
-                Mulai Konsultasi Gratis
-              </button>
-            )}
-            <a
-              id="cta-banner-catalog"
-              href="#katalog"
-              className="lp-btn lp-btn--outline"
-            >
-              Lihat Semua Katalog
-            </a>
-          </div>
-        </div>
+    <section className="cta shell">
+      <p className="eyebrow">Mulai dari sini</p>
+      <h2>Siap membuat undangan yang tak terlupakan?</h2>
+      <p>Konsultasikan kebutuhan Anda. Gratis, tanpa komitmen.</p>
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {getGeneralContactUrl(MSG_GENERAL) ? (
+          <a
+            id="cta-banner-wa"
+            className="button light"
+            href={getGeneralContactUrl(MSG_GENERAL)!}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <IconWA className="wa-icon" />
+            Mulai konsultasi gratis
+          </a>
+        ) : (
+          <button
+            type="button"
+            id="cta-banner-wa"
+            disabled
+            className="button light"
+            style={{ opacity: 0.5, cursor: 'not-allowed' }}
+            title="Kontak belum dikonfigurasi"
+          >
+            <IconWA className="wa-icon" />
+            Mulai konsultasi gratis
+          </button>
+        )}
+        <Link
+          id="cta-banner-catalog"
+          href="/templates"
+          className="button outline"
+          style={{ color: 'var(--white)', borderColor: 'rgba(255,255,255,0.4)' }}
+        >
+          Lihat Semua Katalog
+        </Link>
       </div>
-    </div>
+    </section>
   );
 }
 
 // ── Footer ─────────────────────────────────────────────────────────────────────
-
 function Footer() {
   return (
-    <footer className="lp-footer" aria-label="Site footer">
-      <div className="lp-footer__inner">
-        <div className="lp-footer__top">
-          <div>
-            <div className="lp-footer__brand-name">IRVITE.ID</div>
-            <p className="lp-footer__brand-desc">
-              Layanan undangan digital premium &amp; terima beres untuk momen pernikahan Anda.
-            </p>
-          </div>
-          <nav aria-label="Footer navigation">
-            <ul className="lp-footer__links">
-              <li><a href="#home"    className="lp-footer__link">Beranda</a></li>
-              <li><a href="#katalog" className="lp-footer__link">Katalog</a></li>
-              <li><a href="#paket"   className="lp-footer__link">Paket</a></li>
-              <li><a href="#alur"    className="lp-footer__link">Cara Kerja</a></li>
-              <li>
-                {getGeneralContactUrl(MSG_GENERAL) ? (
-                  <a
-                    href={getGeneralContactUrl(MSG_GENERAL)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="lp-footer__link"
-                  >
-                    WhatsApp
-                  </a>
-                ) : (
-                  <span
-                    className="lp-footer__link"
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                  >
-                    WhatsApp
-                  </span>
-                )}
-              </li>
-            </ul>
-          </nav>
-        </div>
-        <div className="lp-footer__bottom">
-          <p className="lp-footer__copy">
-            &copy; {new Date().getFullYear()} IRVITE.ID. All rights reserved.
+    <footer>
+      <div className="shell footer-inner">
+        <div>
+          <a className="brand light-brand" href="#top">
+            IRVITE<span>.ID</span>
+          </a>
+          <p>
+            Layanan undangan digital premium<br />
+            untuk momen pernikahan Anda.
           </p>
-          <ul className="lp-footer__legal">
-            <li><a href="#" className="lp-footer__legal-link">Kebijakan Privasi</a></li>
-            <li><a href="#" className="lp-footer__legal-link">Syarat &amp; Ketentuan</a></li>
-          </ul>
         </div>
+        <div className="footer-links">
+          <a href="#katalog">Katalog</a>
+          <a href="#paket">Paket</a>
+          <a href="#cara-kerja">Cara kerja</a>
+          {getGeneralContactUrl(MSG_GENERAL) ? (
+            <a
+              href={getGeneralContactUrl(MSG_GENERAL)!}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              WhatsApp
+            </a>
+          ) : (
+            <span style={{ opacity: 0.5, cursor: 'not-allowed' }}>WhatsApp</span>
+          )}
+        </div>
+        <p className="copyright">© {new Date().getFullYear()} IRVITE.ID</p>
       </div>
     </footer>
   );
 }
 
 // ── Floating WhatsApp FAB ──────────────────────────────────────────────────────
-
 function WaFab() {
   const fabUrl = getGeneralContactUrl(MSG_GENERAL);
   if (!fabUrl) return null;
@@ -639,17 +424,16 @@ function WaFab() {
       href={fabUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="lp-wa-fab"
+      className="wa-fab"
       aria-label="Hubungi kami via WhatsApp"
     >
-      <IconWA className="lp-wa-fab__icon" />
-      <span className="lp-wa-fab__label">Hubungi Kami</span>
+      <IconWA />
+      <span>Hubungi Kami</span>
     </a>
   );
 }
 
 // ── Root Page ──────────────────────────────────────────────────────────────────
-
 export const dynamic = 'force-dynamic';
 
 export default async function LandingPage() {
@@ -661,20 +445,17 @@ export default async function LandingPage() {
       : [];
 
   return (
-    <>
+    <main>
       <LandingNavbar />
-      <main id="main-content">
-        <HeroSection />
-        <TrustBar />
-        <PackagesSection />
-        <CatalogSection templates={templates} />
-        <HowItWorksSection />
-        <TestimonialsSection />
-        <CTABanner />
-      </main>
+      <HeroSection />
+      <FeatureStrip />
+      <CatalogSection templates={templates} />
+      <PackagesSection />
+      <ProcessSection />
+      <TestimonialsSection />
+      <CTASection />
       <Footer />
       <WaFab />
-      <ScrollReveal />
-    </>
+    </main>
   );
 }

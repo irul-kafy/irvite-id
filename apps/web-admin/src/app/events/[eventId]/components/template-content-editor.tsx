@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ContentFieldDefinition, ContentFieldRenderer } from './content-field-renderer';
@@ -57,14 +57,24 @@ export function normalizeEditableContent(
             if (!acc || typeof acc !== 'object') return false;
             const b = acc.bankName !== undefined && String(acc.bankName).trim() !== '';
             const n = acc.accountNumber !== undefined && String(acc.accountNumber).trim() !== '';
-            const h = acc.accountHolderName !== undefined && String(acc.accountHolderName).trim() !== '';
+            const h =
+              (acc.accountHolderName !== undefined && String(acc.accountHolderName).trim() !== '') ||
+              (acc.accountHolder !== undefined && String(acc.accountHolder).trim() !== '');
             return b || n || h;
           })
-          .map((acc) => ({
-            bankName: acc.bankName !== undefined ? String(acc.bankName).trim() : '',
-            accountNumber: acc.accountNumber !== undefined ? String(acc.accountNumber).trim() : '',
-            accountHolderName: acc.accountHolderName !== undefined ? String(acc.accountHolderName).trim() : '',
-          }));
+          .map((acc) => {
+            const item: Record<string, unknown> = {
+              bankName: acc.bankName !== undefined ? String(acc.bankName).trim() : '',
+              accountNumber: acc.accountNumber !== undefined ? String(acc.accountNumber).trim() : '',
+            };
+            if (acc.accountHolderName !== undefined && String(acc.accountHolderName).trim() !== '') {
+              item.accountHolderName = String(acc.accountHolderName).trim();
+            }
+            if (acc.accountHolder !== undefined && String(acc.accountHolder).trim() !== '') {
+              item.accountHolder = String(acc.accountHolder).trim();
+            }
+            return item;
+          });
 
         if (cleanedAccounts.length > 0) {
           result[k] = cleanedAccounts;
@@ -73,12 +83,26 @@ export function normalizeEditableContent(
         const cleanedCeremonies = (v as Array<Record<string, unknown>>)
           .filter((c) => {
             if (!c || typeof c !== 'object') return false;
-            return Boolean(c.title || c.venue || c.dateTime || c.address || c.mapsUrl);
+            return Boolean(
+              c.title ||
+              c.venue ||
+              c.startDateTime ||
+              c.endDateTime ||
+              c.dateTime ||
+              c.address ||
+              c.mapsUrl
+            );
           })
           .map((c) => {
             const item: Record<string, unknown> = {};
             if (c.title !== undefined && String(c.title).trim() !== '') {
               item.title = String(c.title).trim();
+            }
+            if (c.startDateTime !== undefined && String(c.startDateTime).trim() !== '') {
+              item.startDateTime = String(c.startDateTime).trim();
+            }
+            if (c.endDateTime !== undefined && String(c.endDateTime).trim() !== '') {
+              item.endDateTime = String(c.endDateTime).trim();
             }
             if (c.dateTime !== undefined && String(c.dateTime).trim() !== '') {
               item.dateTime = String(c.dateTime).trim();
@@ -99,7 +123,18 @@ export function normalizeEditableContent(
           result[k] = cleanedCeremonies;
         }
       } else {
-        const cleaned = v.filter((item) => item !== '' && item !== null && item !== undefined);
+        const cleaned = (v as Array<unknown>)
+          .map((item) => {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+              return normalizeEditableContent(item as Record<string, unknown>);
+            }
+            return item;
+          })
+          .filter((item) => {
+            if (item === '' || item === null || item === undefined) return false;
+            if (typeof item === 'object') return Object.keys(item).length > 0;
+            return true;
+          });
         if (cleaned.length > 0) {
           result[k] = cleaned;
         }
@@ -602,7 +637,7 @@ export function TemplateContentEditor({
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {definition.contentFields.map((field) => {
               if (field.type === 'repeater') {
-                if (field.key === 'giftAccounts') {
+                if (field.key === 'giftAccounts' && (!field.fields || field.fields.some((f) => f.key === 'accountHolderName'))) {
                   return (
                     <GiftAccountsEditor
                       key={field.key}

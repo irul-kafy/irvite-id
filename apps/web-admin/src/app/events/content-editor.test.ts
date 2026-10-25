@@ -102,16 +102,33 @@ test('Content Editor & Gift Accounts Specifications', async (t) => {
     const isDirtyAfterSave = JSON.stringify(currentPayloadAfterSave) !== savedSnapshotAfterSave;
     assert.strictEqual(isDirtyAfterSave, false, 'Editor must reset dirty state to false after successful save');
 
-    // 4. Preserves accountNumber with leading zeros
+    // 4. Preserves accountNumber with leading zeros and supports both accountHolder and accountHolderName
     const withAccount = {
       giftAccounts: [
         { bankName: 'BCA', accountNumber: '00789', accountHolderName: 'Ka' },
+        { bankName: 'Mandiri', accountNumber: '00123', accountHolder: 'Dita' },
+      ],
+      ceremonies: [
+        {
+          title: 'Akad',
+          startDateTime: '2026-10-25T10:00',
+          endDateTime: '2026-10-25T12:00',
+          venue: 'Gedung A',
+        },
       ],
     };
     const normalizedAccount = normalizeEditableContent(withAccount);
-    const accounts = normalizedAccount.giftAccounts as Array<{ accountNumber: string }>;
+    const accounts = normalizedAccount.giftAccounts as Array<{ accountNumber: string; accountHolderName?: string; accountHolder?: string }>;
     assert.strictEqual(accounts[0].accountNumber, '00789');
-    assert.strictEqual(typeof accounts[0].accountNumber, 'string');
+    assert.strictEqual(accounts[0].accountHolderName, 'Ka');
+    assert.strictEqual(accounts[1].accountNumber, '00123');
+    assert.strictEqual(accounts[1].accountHolder, 'Dita');
+
+    const ceremonies = normalizedAccount.ceremonies as Array<{ title: string; startDateTime: string; endDateTime?: string; venue: string }>;
+    assert.strictEqual(ceremonies[0].title, 'Akad');
+    assert.strictEqual(ceremonies[0].startDateTime, '2026-10-25T10:00');
+    assert.strictEqual(ceremonies[0].endDateTime, '2026-10-25T12:00');
+    assert.strictEqual(ceremonies[0].venue, 'Gedung A');
 
     // 5. Omits empty strings, null/undefined, empty arrays
     const withEmpty = {

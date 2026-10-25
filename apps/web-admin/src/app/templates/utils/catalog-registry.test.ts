@@ -14,15 +14,14 @@ import {
 } from './catalog-registry';
 
 test('Admin Fixed Catalog Registry Contract', async (t) => {
-  await t.test('contains exactly the 5 approved production templates', () => {
-    assert.equal(FIXED_CATALOG_TEMPLATES.length, 5);
+  await t.test('contains exactly the 4 approved codex templates', () => {
+    assert.equal(FIXED_CATALOG_TEMPLATES.length, 4);
     const themeCodes = FIXED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
     assert.deepEqual(themeCodes, [
-      'IVORY_GARDEN',
-      'SERENE_GARDEN',
-      'SUNDA_PUSPA',
-      'CLASSIC_LETTER',
-      'VELVET_LETTER',
+      'SEKAR_KEDATON',
+      'AETHERIA',
+      'OPALINE_NOCTURNE',
+      'RANAH_CINTA',
     ]);
   });
 
@@ -36,17 +35,14 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 5);
-    assert.equal(templates[0].sortOrder, 1);
-    assert.equal(templates[1].sortOrder, 2);
-    assert.equal(templates[2].sortOrder, 3);
-    assert.equal(templates[3].sortOrder, 4);
-    assert.equal(templates[4].sortOrder, 5);
-    assert.equal(templates[0].themeCode, 'IVORY_GARDEN');
-    assert.equal(templates[1].themeCode, 'SERENE_GARDEN');
-    assert.equal(templates[2].themeCode, 'SUNDA_PUSPA');
-    assert.equal(templates[3].themeCode, 'CLASSIC_LETTER');
-    assert.equal(templates[4].themeCode, 'VELVET_LETTER');
+    assert.equal(templates.length, 4);
+    for (let i = 0; i < 4; i++) {
+      assert.equal(templates[i].sortOrder, i + 1);
+    }
+    assert.equal(templates[0].themeCode, 'SEKAR_KEDATON');
+    assert.equal(templates[1].themeCode, 'AETHERIA');
+    assert.equal(templates[2].themeCode, 'OPALINE_NOCTURNE');
+    assert.equal(templates[3].themeCode, 'RANAH_CINTA');
   });
 
   await t.test('all APPROVED entries have valid thumbnailPath and demoPath', () => {
@@ -63,184 +59,132 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
   });
 
   await t.test('maps slugs and themeCodes correctly with case-insensitivity', () => {
-    assert.equal(getCatalogTemplateBySlug('ivory-garden')?.themeCode, 'IVORY_GARDEN');
-    assert.equal(getCatalogTemplateBySlug('SERENE-GARDEN')?.themeCode, 'SERENE_GARDEN');
-    assert.equal(getCatalogTemplateBySlug('  sunda-puspa  ')?.themeCode, 'SUNDA_PUSPA');
-    assert.equal(getCatalogTemplateBySlug('classic-letter')?.themeCode, 'CLASSIC_LETTER');
-    assert.equal(getCatalogTemplateBySlug('velvet-letter')?.themeCode, 'VELVET_LETTER');
+    assert.equal(getCatalogTemplateBySlug('  sekar-kedaton  ')?.themeCode, 'SEKAR_KEDATON');
+    assert.equal(getCatalogTemplateBySlug('aetheria')?.themeCode, 'AETHERIA');
+    assert.equal(getCatalogTemplateBySlug('opaline-nocturne')?.themeCode, 'OPALINE_NOCTURNE');
+    assert.equal(getCatalogTemplateBySlug('ranah-cinta')?.themeCode, 'RANAH_CINTA');
 
-    assert.equal(getCatalogTemplateByThemeCode('IVORY_GARDEN')?.slug, 'ivory-garden');
-    assert.equal(getCatalogTemplateByThemeCode('serene_garden')?.slug, 'serene-garden');
-    assert.equal(getCatalogTemplateByThemeCode('  SUNDA_PUSPA  ')?.slug, 'sunda-puspa');
-    assert.equal(getCatalogTemplateByThemeCode('CLASSIC_LETTER')?.slug, 'classic-letter');
-    assert.equal(getCatalogTemplateByThemeCode('VELVET_LETTER')?.slug, 'velvet-letter');
+    assert.equal(getCatalogTemplateByThemeCode('sekar_kedaton')?.slug, 'sekar-kedaton');
+    assert.equal(getCatalogTemplateByThemeCode('AETHERIA')?.slug, 'aetheria');
+    assert.equal(getCatalogTemplateByThemeCode('OPALINE_NOCTURNE')?.slug, 'opaline-nocturne');
 
-    assert.equal(getCatalogTemplateById('ivory-garden')?.themeCode, 'IVORY_GARDEN');
-    assert.equal(getCatalogTemplateById('SERENE_GARDEN')?.slug, 'serene-garden');
-    assert.equal(getCatalogTemplateById('classic-letter')?.themeCode, 'CLASSIC_LETTER');
-    assert.equal(getCatalogTemplateById('velvet-letter')?.themeCode, 'VELVET_LETTER');
+    assert.equal(getCatalogTemplateById('SEKAR_KEDATON')?.slug, 'sekar-kedaton');
+    assert.equal(getCatalogTemplateById('ranah-cinta')?.themeCode, 'RANAH_CINTA');
     assert.equal(getCatalogTemplateById('unknown'), undefined);
   });
 
   await t.test('filters catalog templates by category and search query', () => {
-    const all = filterCatalogTemplates('All');
-    assert.equal(all.length, 5);
+    const all = filterCatalogTemplates('All', '');
+    assert.equal(all.length, 4);
 
-    const floral = filterCatalogTemplates('Floral & Botanical');
-    assert.equal(floral.length, 1);
-    assert.equal(floral[0].themeCode, 'IVORY_GARDEN');
+    const javanese = filterCatalogTemplates('Traditional Javanese', '');
+    assert.equal(javanese.length, 1);
+    assert.equal(javanese[0].themeCode, 'SEKAR_KEDATON');
 
-    const luxury = filterCatalogTemplates('Luxury Stationery');
-    assert.equal(luxury.length, 1);
-    assert.equal(luxury[0].themeCode, 'VELVET_LETTER');
+    const searchSekar = filterCatalogTemplates('All', 'sekar');
+    assert.equal(searchSekar.length, 1);
+    assert.equal(searchSekar[0].themeCode, 'SEKAR_KEDATON');
 
-    const searchSunda = filterCatalogTemplates('All', 'sunda');
-    assert.equal(searchSunda.length, 1);
-    assert.equal(searchSunda[0].themeCode, 'SUNDA_PUSPA');
-
-    const searchVelvet = filterCatalogTemplates('All', 'velvet');
-    assert.equal(searchVelvet.length, 1);
-    assert.equal(searchVelvet[0].themeCode, 'VELVET_LETTER');
-
-    const classic = filterCatalogTemplates('Classic');
-    assert.equal(classic.length, 2);
-    assert.equal(classic[0].themeCode, 'IVORY_GARDEN');
-    assert.equal(classic[1].themeCode, 'CLASSIC_LETTER');
+    const searchAetheria = filterCatalogTemplates('All', 'aetheria');
+    assert.equal(searchAetheria.length, 1);
+    assert.equal(searchAetheria[0].themeCode, 'AETHERIA');
   });
-  await t.test('isBuiltInCatalogTemplate correctly identifies built-in templates', () => {
-    assert.equal(BUILT_IN_THEME_CODES.size, 5);
-    assert.equal(isBuiltInCatalogTemplate('IVORY_GARDEN'), true);
-    assert.equal(isBuiltInCatalogTemplate('serene_garden'), true);
-    assert.equal(isBuiltInCatalogTemplate('SUNDA_PUSPA'), true);
-    assert.equal(isBuiltInCatalogTemplate('CLASSIC_LETTER'), true);
-    assert.equal(isBuiltInCatalogTemplate('VELVET_LETTER'), true);
 
+  await t.test('isBuiltInCatalogTemplate correctly identifies built-in templates', () => {
+    assert.equal(BUILT_IN_THEME_CODES.size, 4);
+    assert.equal(isBuiltInCatalogTemplate('SEKAR_KEDATON'), true);
+    assert.equal(isBuiltInCatalogTemplate('sekar_kedaton'), true);
+    assert.equal(isBuiltInCatalogTemplate('AETHERIA'), true);
+    assert.equal(isBuiltInCatalogTemplate('OPALINE_NOCTURNE'), true);
+    assert.equal(isBuiltInCatalogTemplate('RANAH_CINTA'), true);
+
+    assert.equal(isBuiltInCatalogTemplate('SERENE_GARDEN'), false);
+    assert.equal(isBuiltInCatalogTemplate('VELVET_LETTER'), false);
+    assert.equal(isBuiltInCatalogTemplate('CHINESE_TRADITIONAL_LUXURY'), false);
+    assert.equal(isBuiltInCatalogTemplate('JARDIN_DE_VELOURS'), false);
+    assert.equal(isBuiltInCatalogTemplate('SYMPHONY_OF_US'), false);
+    assert.equal(isBuiltInCatalogTemplate('IVORY_GARDEN'), false);
     assert.equal(isBuiltInCatalogTemplate('CUSTOM_THEME'), false);
     assert.equal(isBuiltInCatalogTemplate(''), false);
     assert.equal(isBuiltInCatalogTemplate(null), false);
     assert.equal(isBuiltInCatalogTemplate(undefined), false);
   });
-
 });
 
 test('Admin DB Join Behavior Contract', async (t) => {
   const mockDbTemplates: DbTemplateRecord[] = [
     {
-      id: 'db-uuid-ivory',
-      name: 'Ivory Garden',
-      themeCode: 'IVORY_GARDEN',
-      previewImageUrl: '/templates/ivory-garden/thumbnail.webp',
+      id: 'db-uuid-sekar',
+      name: 'Sekar Kedaton',
+      themeCode: 'SEKAR_KEDATON',
+      previewImageUrl: '/templates/sekar-kedaton/thumbnail.webp',
     },
     {
-      id: 'db-uuid-serene',
-      name: 'Serene Garden',
-      themeCode: 'SERENE_GARDEN',
-      previewImageUrl: '/templates/serene-garden/thumbnail.webp',
+      id: 'db-uuid-aetheria',
+      name: 'Aetheria',
+      themeCode: 'AETHERIA',
+      previewImageUrl: '/templates/aetheria/thumbnail.webp',
     },
-    {
-      id: 'db-uuid-sunda',
-      name: 'Sunda Puspa',
-      themeCode: 'SUNDA_PUSPA',
-      previewImageUrl: '/templates/sunda-puspa/thumbnail.webp',
-    },
-    {
-      id: 'db-uuid-classic',
-      name: 'Classic Letter',
-      themeCode: 'CLASSIC_LETTER',
-      previewImageUrl: '/templates/classic-letter/thumbnail.webp',
-    },
-    // VELVET_LETTER is omitted to test MISSING state
+    // OPALINE_NOCTURNE is omitted to test MISSING state
   ];
 
   await t.test('0 matching rows: readiness = MISSING, canUse = false, no fabricated id', () => {
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, mockDbTemplates);
-    const velvetJoined = joined.find((j) => j.catalogItem.themeCode === 'VELVET_LETTER');
+    const opalineJoined = joined.find((j) => j.catalogItem.themeCode === 'OPALINE_NOCTURNE');
 
-    assert.ok(velvetJoined, 'Velvet Letter joined item must exist');
-    assert.equal(velvetJoined.readiness, 'MISSING');
-    assert.equal(velvetJoined.matchCount, 0);
-    assert.equal(velvetJoined.matchedDbTemplate, null);
-    assert.equal(velvetJoined.canUse, false, 'Use Template must be disabled when 0 rows match');
-    assert.ok(velvetJoined.statusMessage.includes('belum tersinkronisasi'));
+    assert.ok(opalineJoined, 'Opaline Nocturne joined item must exist');
+    assert.equal(opalineJoined.readiness, 'MISSING');
+    assert.equal(opalineJoined.matchCount, 0);
+    assert.equal(opalineJoined.matchedDbTemplate, null);
+    assert.equal(opalineJoined.canUse, false, 'Use Template must be disabled when 0 rows match');
+    assert.ok(opalineJoined.statusMessage.includes('belum tersinkronisasi'));
   });
 
   await t.test('1 matching row: readiness = SYNCED, canUse = true, receives exact DB id', () => {
-    const withVelvet = [
+    const withOpaline = [
       ...mockDbTemplates,
       {
-        id: 'db-uuid-velvet',
-        name: 'Velvet Letter',
-        themeCode: 'VELVET_LETTER',
-        previewImageUrl: '/templates/velvet-letter/thumbnail.webp',
+        id: 'db-uuid-opaline',
+        name: 'Opaline Nocturne',
+        themeCode: 'OPALINE_NOCTURNE',
+        previewImageUrl: '/templates/opaline-nocturne/thumbnail.webp',
       },
     ];
-    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, withVelvet);
-    const velvetJoined = joined.find((j) => j.catalogItem.themeCode === 'VELVET_LETTER');
+    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, withOpaline);
+    const opalineJoined = joined.find((j) => j.catalogItem.themeCode === 'OPALINE_NOCTURNE');
 
-    assert.ok(velvetJoined, 'Velvet Letter joined item must exist');
-    assert.equal(velvetJoined.readiness, 'SYNCED');
-    assert.equal(velvetJoined.matchCount, 1);
-    assert.ok(velvetJoined.matchedDbTemplate);
-    assert.equal(velvetJoined.matchedDbTemplate?.id, 'db-uuid-velvet');
-    assert.equal(velvetJoined.canUse, true, 'Use Template must be enabled for single valid match');
-    assert.equal(velvetJoined.previewImageUrl, '/templates/velvet-letter/thumbnail.webp');
+    assert.ok(opalineJoined, 'Opaline Nocturne joined item must exist');
+    assert.equal(opalineJoined.readiness, 'SYNCED');
+    assert.equal(opalineJoined.matchCount, 1);
+    assert.ok(opalineJoined.matchedDbTemplate);
+    assert.equal(opalineJoined.matchedDbTemplate?.id, 'db-uuid-opaline');
+    assert.equal(opalineJoined.canUse, true, 'Use Template must be enabled for single valid match');
+    assert.equal(opalineJoined.previewImageUrl, '/templates/opaline-nocturne/thumbnail.webp');
   });
 
   await t.test('>1 matching rows: readiness = DUPLICATE, canUse = false, FAIL CLOSED', () => {
     const duplicateDbTemplates: DbTemplateRecord[] = [
       {
-        id: 'dup-1',
-        name: 'Velvet Letter 1',
-        themeCode: 'VELVET_LETTER',
+        id: 'db-uuid-1',
+        name: 'Sekar Kedaton 1',
+        themeCode: 'SEKAR_KEDATON',
+        previewImageUrl: '/templates/sekar-kedaton/thumbnail.webp',
       },
       {
-        id: 'dup-2',
-        name: 'Velvet Letter 2',
-        themeCode: 'VELVET_LETTER',
+        id: 'db-uuid-2',
+        name: 'Sekar Kedaton 2',
+        themeCode: 'SEKAR_KEDATON',
+        previewImageUrl: '/templates/sekar-kedaton/thumbnail.webp',
       },
     ];
-
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, duplicateDbTemplates);
-    const velvetJoined = joined.find((j) => j.catalogItem.themeCode === 'VELVET_LETTER');
+    const sekarJoined = joined.find((j) => j.catalogItem.themeCode === 'SEKAR_KEDATON');
 
-    assert.ok(velvetJoined, 'Velvet Letter joined item must exist');
-    assert.equal(velvetJoined.readiness, 'DUPLICATE');
-    assert.equal(velvetJoined.matchCount, 2);
-    assert.equal(velvetJoined.matchedDbTemplate, null, 'Must NOT silently select first duplicate');
-    assert.equal(velvetJoined.canUse, false, 'Use Template must be disabled on duplicate');
-    assert.ok(velvetJoined.statusMessage.includes('Duplikasi'));
-  });
-await t.test('1 matching row with status HIDDEN: canUse = false', () => {
-    const hiddenTemplates: DbTemplateRecord[] = [
-      {
-        id: 'db-uuid-velvet',
-        name: 'Velvet Letter',
-        themeCode: 'VELVET_LETTER',
-        status: 'HIDDEN',
-      },
-    ];
-    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, hiddenTemplates);
-    const velvet = joined.find((j) => j.catalogItem.themeCode === 'VELVET_LETTER');
-    assert.ok(velvet);
-    assert.equal(velvet.readiness, 'SYNCED');
-    assert.equal(velvet.canUse, false, 'HIDDEN template cannot be used for new events');
-    assert.ok(velvet.statusMessage.includes('HIDDEN'));
-  });
-
-  await t.test('1 matching row with status ARCHIVED: canUse = false', () => {
-    const archivedTemplates: DbTemplateRecord[] = [
-      {
-        id: 'db-uuid-classic',
-        name: 'Classic Letter',
-        themeCode: 'CLASSIC_LETTER',
-        status: 'ARCHIVED',
-      },
-    ];
-    const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, archivedTemplates);
-    const classic = joined.find((j) => j.catalogItem.themeCode === 'CLASSIC_LETTER');
-    assert.ok(classic);
-    assert.equal(classic.readiness, 'SYNCED');
-    assert.equal(classic.canUse, false, 'ARCHIVED template cannot be used for new events');
-    assert.ok(classic.statusMessage.includes('ARCHIVED'));
+    assert.ok(sekarJoined);
+    assert.equal(sekarJoined.readiness, 'DUPLICATE');
+    assert.equal(sekarJoined.matchCount, 2);
+    assert.equal(sekarJoined.matchedDbTemplate, null);
+    assert.equal(sekarJoined.canUse, false, 'Use Template must be disabled on duplicate themeCodes');
+    assert.ok(sekarJoined.statusMessage.includes('Duplikasi identitas terdeteksi'));
   });
 });

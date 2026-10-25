@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ThemeToggle } from './theme-toggle';
 import { getGeneralContactUrl } from '../utils/contact';
 
@@ -8,35 +8,32 @@ const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digit
 
 function IconWA({ style }: { style?: React.CSSProperties }) {
   return (
-    <svg style={style} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.528 5.855L.057 23.943l6.294-1.446A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.6a9.571 9.571 0 0 1-4.886-1.338l-.35-.207-3.735.857.92-3.63-.228-.373A9.572 9.572 0 0 1 2.4 12C2.4 6.703 6.703 2.4 12 2.4S21.6 6.703 21.6 12 17.297 21.6 12 21.6z"/>
+    <svg
+      style={style}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M20.5 3.5A11.8 11.8 0 0 0 12.08 0C5.53 0 .2 5.33.2 11.88c0 2.09.55 4.13 1.59 5.93L.1 24l6.34-1.66a11.87 11.87 0 0 0 5.63 1.43h.01c6.55 0 11.87-5.33 11.87-11.88 0-3.17-1.22-6.15-3.46-8.39Zm-8.42 18.27h-.01a9.84 9.84 0 0 1-5.02-1.38l-.36-.21-3.76.99 1-3.67-.24-.38a9.83 9.83 0 0 1-1.51-5.24c0-5.46 4.45-9.9 9.91-9.9a9.82 9.82 0 0 1 7 2.9 9.83 9.83 0 0 1 2.89 7c0 5.46-4.45 9.9-9.9 9.9Zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.91-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.06 2.87 1.21 3.07c.15.2 2.09 3.19 5.06 4.47.71.3 1.26.49 1.69.63.71.23 1.35.2 1.86.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z" />
     </svg>
   );
 }
 
 export function LandingNavbar() {
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   const contactUrl = getGeneralContactUrl(MSG_GENERAL);
 
   return (
-    <nav className={"lp-nav" + (scrolled ? " lp-nav--scrolled" : "")} aria-label="Main navigation">
-      <div className="lp-nav__brand">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="IRVITE" className="lp-nav__logo-img" />
-      </div>
-      <ul className="lp-nav__links">
-        <li><a href="#katalog" className="lp-nav__link">Katalog</a></li>
-        <li><a href="#paket" className="lp-nav__link">Paket</a></li>
-        <li><a href="#alur" className="lp-nav__link">Cara Kerja</a></li>
-      </ul>
-      <div className="lp-nav__actions">
+    <header className="nav shell" aria-label="Navigasi utama situs">
+      <a className="brand" href="#top" aria-label="IRVITE.ID beranda">
+        IRVITE<span>.ID</span>
+      </a>
+      <nav aria-label="Navigasi utama">
+        <a href="#katalog">Katalog</a>
+        <a href="#paket">Paket</a>
+        <a href="#cara-kerja">Cara kerja</a>
+      </nav>
+      <div className="nav-actions">
         <ThemeToggle />
         {contactUrl ? (
           <a
@@ -44,23 +41,23 @@ export function LandingNavbar() {
             href={contactUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="lp-nav__cta"
+            className="nav-cta"
           >
-            <IconWA style={{ width: 15, height: 15 }} />
-            WhatsApp Kami
+            <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+            Konsultasi
           </a>
         ) : (
           <span
             id="nav-wa-cta"
-            className="lp-nav__cta"
+            className="nav-cta"
             style={{ opacity: 0.5, cursor: 'not-allowed' }}
             title="Kontak belum dikonfigurasi"
           >
-            <IconWA style={{ width: 15, height: 15 }} />
-            WhatsApp Kami
+            <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+            Konsultasi
           </span>
         )}
       </div>
-    </nav>
+    </header>
   );
 }

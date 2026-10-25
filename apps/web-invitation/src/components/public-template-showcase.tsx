@@ -11,7 +11,7 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
     return (
       <div
         id="catalog-empty-state"
-        style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--lp-text-muted, #78716c)' }}
+        style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--ink-soft)' }}
       >
         <p>Katalog template saat ini belum tersedia.</p>
       </div>
@@ -19,65 +19,88 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
   }
 
   return (
-    <div className="lp-catalog__grid">
-      {templates.map((t, i) => (
-        <div
-          key={t.slug}
-          className={'lp-template-card lp-reveal lp-reveal--delay-' + ((i % 3) + 1)}
-        >
-          <div className="lp-template-card__preview">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={t.thumbnailPath}
-              alt={'Pratinjau desain ' + t.displayName}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-              loading="lazy"
-              width={600}
-              height={900}
-            />
-            <div className="lp-template-card__badge">{t.category}</div>
-          </div>
-          <div className="lp-template-card__info">
-            <h3 className="lp-template-card__name">{t.displayName}</h3>
-            <p className="lp-template-card__desc">{t.shortDescription}</p>
-            <div className="lp-template-card__actions">
-              <a
-                id={'catalog-demo-' + t.slug}
-                href={t.demoPath}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lp-btn lp-btn--outline-silver lp-btn--sm"
-              >
-                Lihat Demo
-              </a>
-              {(() => {
-                const orderUrl = getTemplateOrderUrl(t.displayName);
-                return orderUrl ? (
+    <div className="catalog-grid cat-grid">
+      {templates.map((t) => {
+        const orderUrl = getTemplateOrderUrl(t.displayName);
+
+        return (
+          <article className="cat-card" key={t.slug} role="listitem">
+            <div className="cat-card__preview">
+              {t.thumbnailPath ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={t.thumbnailPath}
+                  alt={`Pratinjau desain ${t.displayName}`}
+                  className="cat-card__img"
+                  loading="lazy"
+                  width={600}
+                  height={750}
+                />
+              ) : (
+                <div
+                  className="cat-card__img"
+                  style={{
+                    minHeight: 280,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: '2rem',
+                    fontFamily: 'var(--serif)',
+                    fontSize: '2rem',
+                    background: 'linear-gradient(145deg, #352a2d, #57373d)',
+                    color: '#fffdf9',
+                  }}
+                >
+                  {t.displayName}
+                </div>
+              )}
+              <span className="cat-card__overlay-badge">Tersedia</span>
+            </div>
+
+            <div className="cat-card__body">
+              <span className="cat-card__category">{t.category}</span>
+              <h3 className="cat-card__title">{t.displayName}</h3>
+              <p className="cat-card__desc">{t.shortDescription}</p>
+
+              <div className="cat-card__actions">
+                <a
+                  id={'catalog-demo-' + t.slug}
+                  href={t.demoPath}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cat-btn cat-btn--demo"
+                  aria-label={`Buka demo ${t.displayName} di tab baru`}
+                >
+                  Lihat Demo
+                </a>
+
+                {orderUrl ? (
                   <a
                     id={'catalog-order-' + t.slug}
                     href={orderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="lp-btn lp-btn--gold lp-btn--sm"
+                    className="cat-btn cat-btn--order"
+                    aria-label={`Pesan template ${t.displayName} via WhatsApp`}
                   >
-                    Pesan Desain Ini
+                    Pilih Template
                   </a>
                 ) : (
                   <button
                     type="button"
                     id={'catalog-order-' + t.slug}
                     disabled
-                    className="lp-btn lp-btn--gold lp-btn--sm"
+                    className="cat-btn cat-btn--order"
+                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
                     title="Kontak pemesanan belum dikonfigurasi"
                   >
-                    Pesan Desain Ini
+                    Pilih Template
                   </button>
-                );
-              })()}
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }

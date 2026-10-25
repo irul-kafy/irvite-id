@@ -373,7 +373,7 @@ html.dark .form-group input {
 }
 
 html.dark .staff-table th {
-  background: var(--admin-surface-raised, #242421);
+  background: var(--admin-surface-raised, #271f22);
   color: var(--text-secondary);
   border-color: var(--admin-border);
 }
@@ -393,5 +393,5 @@ html.dark .staff-pagination-bar {
 }
 
 html.dark .modal-footer {
-  background: var(--admin-surface-raised, #242421);
+  background: var(--admin-surface-raised, #271f22);
 }

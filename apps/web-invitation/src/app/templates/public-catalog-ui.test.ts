@@ -8,54 +8,37 @@ import { getCatalogTemplates, filterAvailableTemplates } from '../../catalog';
 test('Public Catalog UI & Landing Integration Contract', async (t) => {
   const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
 
-  await t.test('public catalog contains exactly the 5 AVAILABLE approved templates', () => {
-    assert.equal(templates.length, 5);
+  await t.test('public catalog contains exactly the 4 AVAILABLE approved templates', () => {
+    assert.equal(templates.length, 4);
     const names = templates.map((t) => t.displayName);
     assert.deepEqual(names, [
-      'Ivory Garden',
-      'Serene Garden',
-      'Sunda Puspa',
-      'Classic Letter',
-      'Velvet Letter',
+      'Sekar Kedaton',
+      'Aetheria',
+      'Opaline Nocturne',
+      'Ranah Cinta',
     ]);
 
     const themeCodes = templates.map((t) => t.themeCode);
     assert.deepEqual(themeCodes, [
-      'IVORY_GARDEN',
-      'SERENE_GARDEN',
-      'SUNDA_PUSPA',
-      'CLASSIC_LETTER',
-      'VELVET_LETTER',
+      'SEKAR_KEDATON',
+      'AETHERIA',
+      'OPALINE_NOCTURNE',
+      'RANAH_CINTA',
     ]);
   });
 
-  await t.test('Ivory, Serene, Sunda, Classic, and Velvet are all visible with required metadata', () => {
-    const ivory = templates.find((t) => t.themeCode === 'IVORY_GARDEN');
-    const serene = templates.find((t) => t.themeCode === 'SERENE_GARDEN');
-    const sunda = templates.find((t) => t.themeCode === 'SUNDA_PUSPA');
-    const classic = templates.find((t) => t.themeCode === 'CLASSIC_LETTER');
-    const velvet = templates.find((t) => t.themeCode === 'VELVET_LETTER');
+  await t.test('Sekar Kedaton and Aetheria are visible with required metadata', () => {
+    const sekar = templates.find((t) => t.themeCode === 'SEKAR_KEDATON');
+    const aetheria = templates.find((t) => t.themeCode === 'AETHERIA');
 
-    assert.ok(ivory, 'Ivory Garden must be present');
-    assert.ok(serene, 'Serene Garden must be present');
-    assert.ok(sunda, 'Sunda Puspa must be present');
-    assert.ok(classic, 'Classic Letter must be present');
-    assert.ok(velvet, 'Velvet Letter must be present');
+    assert.ok(sekar, 'Sekar Kedaton must be present');
+    assert.ok(aetheria, 'Aetheria must be present');
 
-    assert.equal(ivory?.thumbnailPath, '/templates/ivory-garden/thumbnail.webp');
-    assert.equal(ivory?.demoPath, '/templates/ivory-garden/demo');
+    assert.equal(sekar?.thumbnailPath, '/templates/sekar-kedaton/thumbnail.webp');
+    assert.equal(sekar?.demoPath, '/templates/sekar-kedaton/demo');
 
-    assert.equal(serene?.thumbnailPath, '/templates/serene-garden/thumbnail.webp');
-    assert.equal(serene?.demoPath, '/templates/serene-garden/demo');
-
-    assert.equal(sunda?.thumbnailPath, '/templates/sunda-puspa/thumbnail.webp');
-    assert.equal(sunda?.demoPath, '/templates/sunda-puspa/demo');
-
-    assert.equal(classic?.thumbnailPath, '/templates/classic-letter/thumbnail.webp');
-    assert.equal(classic?.demoPath, '/templates/classic-letter/demo');
-
-    assert.equal(velvet?.thumbnailPath, '/templates/velvet-letter/thumbnail.webp');
-    assert.equal(velvet?.demoPath, '/templates/velvet-letter/demo');
+    assert.equal(aetheria?.thumbnailPath, '/templates/aetheria/thumbnail.webp');
+    assert.equal(aetheria?.demoPath, '/templates/aetheria/demo');
   });
 
   await t.test('legacy placeholder marketing cards are strictly absent from active catalog', () => {
@@ -176,43 +159,42 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
 
   await t.test('Phase 14H: Failure mode verification for filterAvailableTemplates', () => {
     const all = getCatalogTemplates();
-    assert.equal(all.length, 5, 'Base approved catalog must have 5 templates');
+    assert.equal(all.length, 4, 'Base approved catalog must have 4 templates');
 
-    // A. all 5 AVAILABLE => 5 templates
+    // A. all 4 AVAILABLE => 4 templates
     const allAvailable = [
-      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
-      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
-      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
+      { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
+      { themeCode: 'AETHERIA', status: 'AVAILABLE' },
+      { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
+      { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
     ];
     const resA = filterAvailableTemplates(all, allAvailable);
-    assert.equal(resA.length, 5, 'All 5 AVAILABLE must return 5 cards');
+    assert.equal(resA.length, 4, 'All 4 AVAILABLE must return 4 cards');
 
-    // B. IVORY_GARDEN HIDDEN => 4 templates (Ivory excluded)
-    const ivoryHidden = allAvailable.map((a) =>
-      a.themeCode === 'IVORY_GARDEN' ? { ...a, status: 'HIDDEN' } : a
+    // B. SEKAR_KEDATON HIDDEN => 3 templates (Sekar Kedaton excluded)
+    const sekarHidden = allAvailable.map((a) =>
+      a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'HIDDEN' } : a
     );
-    const resB = filterAvailableTemplates(all, ivoryHidden);
-    assert.equal(resB.length, 4, 'IVORY_GARDEN HIDDEN must return 4 cards');
-    assert.ok(!resB.some((t) => t.themeCode === 'IVORY_GARDEN'), 'IVORY_GARDEN must not be returned when HIDDEN');
+    const resB = filterAvailableTemplates(all, sekarHidden);
+    assert.equal(resB.length, 3, 'SEKAR_KEDATON HIDDEN must return 3 cards');
+    assert.ok(!resB.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when HIDDEN');
 
-    // C. IVORY_GARDEN ARCHIVED => 4 templates (Ivory excluded)
-    const ivoryArchived = allAvailable.map((a) =>
-      a.themeCode === 'IVORY_GARDEN' ? { ...a, status: 'ARCHIVED' } : a
+    // C. SEKAR_KEDATON ARCHIVED => 3 templates (Sekar Kedaton excluded)
+    const sekarArchived = allAvailable.map((a) =>
+      a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'ARCHIVED' } : a
     );
-    const resC = filterAvailableTemplates(all, ivoryArchived);
-    assert.equal(resC.length, 4, 'IVORY_GARDEN ARCHIVED must return 4 cards');
-    assert.ok(!resC.some((t) => t.themeCode === 'IVORY_GARDEN'), 'IVORY_GARDEN must not be returned when ARCHIVED');
+    const resC = filterAvailableTemplates(all, sekarArchived);
+    assert.equal(resC.length, 3, 'SEKAR_KEDATON ARCHIVED must return 3 cards');
+    assert.ok(!resC.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when ARCHIVED');
 
-        // Partial availability -> only matching AVAILABLE templates
+    // Partial availability -> only matching AVAILABLE templates
     const partialAvailable = [
-      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
-      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
+      { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
+      { themeCode: 'AETHERIA', status: 'AVAILABLE' },
     ];
     const resPartial = filterAvailableTemplates(all, partialAvailable);
     assert.equal(resPartial.length, 2, 'Partial availability must return exactly 2 templates');
-    assert.deepEqual(resPartial.map((t) => t.themeCode), ['SUNDA_PUSPA', 'CLASSIC_LETTER']);
+    assert.deepEqual(resPartial.map((t) => t.themeCode), ['SEKAR_KEDATON', 'AETHERIA']);
 
     // D. availability = null => 0 templates (fail-closed)
     const resD = filterAvailableTemplates(all, null);
@@ -232,16 +214,16 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       { themeCode: 'COMPLETELY_UNKNOWN_THEME', status: 'AVAILABLE' },
     ];
     const resG = filterAvailableTemplates(all, withUnknown);
-    assert.equal(resG.length, 5, 'Unknown themeCode from API must be safely ignored');
+    assert.equal(resG.length, 4, 'Unknown themeCode from API must be safely ignored');
     assert.ok(!resG.some((t) => t.themeCode === 'COMPLETELY_UNKNOWN_THEME'), 'Unknown themeCode must not be added to catalog');
 
     // H. DB AVAILABLE themeCode absent from approved catalog registry => not automatically rendered
     const fakeCatalog = [
       {
-        themeCode: 'IVORY_GARDEN',
-        slug: 'ivory-garden',
-        displayName: 'Ivory Garden',
-        category: 'Floral',
+        themeCode: 'SEKAR_KEDATON',
+        slug: 'sekar-kedaton',
+        displayName: 'Sekar Kedaton',
+        category: 'Traditional Javanese',
         shortDescription: 'Desc',
         thumbnailPath: '/thumb.webp',
         demoPath: '/demo',
@@ -251,7 +233,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
     ];
     const resH = filterAvailableTemplates(fakeCatalog, allAvailable);
     assert.equal(resH.length, 1, 'Only templates in approved registry can be returned');
-    assert.equal(resH[0].themeCode, 'IVORY_GARDEN');
+    assert.equal(resH[0].themeCode, 'SEKAR_KEDATON');
   });
 
   await t.test('Phase 14H: Component showcase and navbar client boundary existence', () => {

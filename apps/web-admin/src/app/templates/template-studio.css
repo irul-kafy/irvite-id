@@ -7,8 +7,8 @@
 
 :root {
   /* Surfaces — studio-specific aliases */
-  --admin-surface-raised: #f2efe8;
-  --admin-surface-inset: #edeae2;
+  --admin-surface-raised: #f1e8e2;
+  --admin-surface-inset: #ede2dc;
 
   /* Text — mapped to global admin tokens */
   --admin-text: var(--text-primary);
@@ -16,7 +16,7 @@
   --admin-text-muted: var(--text-tertiary);
 
   /* Borders — studio-specific strong border */
-  --admin-border-strong: rgba(23, 24, 23, 0.2);
+  --admin-border-strong: rgba(53, 42, 45, 0.2);
 
   /* Accent aliases — mapped to global admin tokens */
   --admin-accent-light: var(--admin-accent-soft);
@@ -59,9 +59,9 @@
 }
 
 html.dark {
-  --admin-surface-raised: #242421;
-  --admin-surface-inset: #141413;
-  --admin-border-strong: rgba(244, 239, 231, 0.2);
+  --admin-surface-raised: #271f22;
+  --admin-surface-inset: #181416;
+  --admin-border-strong: rgba(243, 233, 227, 0.2);
 }
 
 /* ── Base Reset for Studio ── */
@@ -2157,12 +2157,12 @@ html.dark {
 
 html.dark .studio-page,
 html.dark .catalog-page {
-  --admin-text: #F4EFE7;
-  --admin-text-secondary: #D2C9BC;
-  --admin-text-muted: #A8A29E;
-  --admin-surface-raised: #242421;
-  --admin-surface-inset: #141413;
-  --admin-border-strong: rgba(244, 239, 231, 0.25);
+  --admin-text: #f3e9e3;
+  --admin-text-secondary: #c6b5b4;
+  --admin-text-muted: #938283;
+  --admin-surface-raised: #271f22;
+  --admin-surface-inset: #181416;
+  --admin-border-strong: rgba(243, 233, 227, 0.25);
   background: var(--admin-bg);
   color: var(--admin-text);
 }
@@ -2218,7 +2218,7 @@ html.dark .catalog-category-tab:hover {
 html.dark .catalog-tab--active,
 html.dark .catalog-category-tab--active {
   background: var(--admin-accent);
-  color: #121212;
+  color: #1d181a;
   border-color: var(--admin-accent);
   font-weight: 600;
 }
@@ -2226,7 +2226,7 @@ html.dark .catalog-category-tab--active {
 html.dark .catalog-tab--active:hover,
 html.dark .catalog-category-tab--active:hover {
   background: var(--admin-accent-hover);
-  color: #121212;
+  color: #1d181a;
   border-color: var(--admin-accent-hover);
 }
 
@@ -2283,13 +2283,13 @@ html.dark .template-card__btn--preview:hover {
 
 html.dark .template-card__btn--select {
   background: var(--admin-accent);
-  color: #121212;
+  color: #1d181a;
   font-weight: 600;
 }
 
 html.dark .template-card__btn--select:hover {
   background: var(--admin-accent-hover);
-  color: #121212;
+  color: #1d181a;
 }
 
 html.dark .studio-topbar,
@@ -2332,4 +2332,63 @@ html.dark .catalog-base-card--selected {
 html.dark .studio-design-summary {
   background: var(--admin-surface);
   border-color: var(--admin-border);
+}
+
+/* Template Card Action Buttons */
+.template-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.template-card__preview-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border);
+  background: transparent;
+  color: var(--admin-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.template-card__preview-btn:hover:not(:disabled) {
+  background: var(--admin-surface-hover);
+  border-color: var(--admin-border-strong);
+}
+
+.template-card__preview-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.template-card__use-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid transparent;
+  background: var(--admin-accent, #2563eb);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.template-card__use-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.template-card__use-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }

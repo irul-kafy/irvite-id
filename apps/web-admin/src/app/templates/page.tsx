@@ -14,8 +14,10 @@ import { getCanonicalTemplateDemoUrl, getTrustedInvitationOrigin } from '../../u
 import './template-studio.css';
 
 function getImportedPreviewSrc(previewImageUrl?: string | null): string | null {
-  const match = previewImageUrl?.match(/^\/templates\/assets\/([0-9a-f-]{36})\/file$/i);
-  return match ? `/api/template-assets/${match[1]}` : null;
+  if (!previewImageUrl) return null;
+  const match = previewImageUrl.match(/^\/templates\/assets\/([0-9a-f-]{36})\/file$/i);
+  if (match) return `/api/template-assets/${match[1]}`;
+  return previewImageUrl;
 }
 
 export default function TemplateCatalogPage() {

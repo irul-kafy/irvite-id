@@ -67,7 +67,7 @@
 
 .assign-form button {
   background: var(--admin-accent);
-  color: #171817;
+  color: #fffdf9;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-sm, 6px);
@@ -200,5 +200,5 @@ html.dark .assign-form select {
 }
 
 html.dark .assign-form button {
-  color: #121212;
+  color: #1d181a;
 }

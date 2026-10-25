@@ -3,6 +3,12 @@ import type { NextRequest } from 'next/server';
 import { remainingSessionSeconds } from './utils/session-expiry';
 
 export function proxy(request: NextRequest) {
+  // Static assets (like template thumbnails .webp/.png) under any path must never be intercepted
+  const isStaticFile = /\.(webp|png|jpg|jpeg|svg|ico|css|js|woff|woff2)$/i.test(request.nextUrl.pathname);
+  if (isStaticFile) {
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get('auth_token')?.value;
   const hasSession = !!token && remainingSessionSeconds(token) > 0;
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');

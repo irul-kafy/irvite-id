@@ -180,12 +180,13 @@ describe('TemplatesService', () => {
       expect(mockPrismaService.template.delete).not.toHaveBeenCalled();
     });
 
-    it('should throw ConflictException if template is built-in (IVORY_GARDEN), even if ARCHIVED', async () => {
+    it('should throw ConflictException if template is built-in (SEKAR_KEDATON), even if ARCHIVED', async () => {
       mockPrismaService.template.findUnique.mockResolvedValue({
         id: validDynamicUuid,
-        name: 'Ivory Garden',
-        themeCode: 'IVORY_GARDEN',
+        name: 'Sekar Kedaton',
+        themeCode: 'SEKAR_KEDATON',
         status: 'ARCHIVED',
+        assets: [],
       });
 
       await expect(service.permanentDelete(validDynamicUuid)).rejects.toThrow(
@@ -199,16 +200,17 @@ describe('TemplatesService', () => {
 
     it('should throw ConflictException for all other built-in themeCodes', async () => {
       for (const themeCode of [
-        'SERENE_GARDEN',
-        'SUNDA_PUSPA',
-        'CLASSIC_LETTER',
-        'VELVET_LETTER',
+        'SEKAR_KEDATON',
+        'AETHERIA',
+        'OPALINE_NOCTURNE',
+        'RANAH_CINTA',
       ]) {
         mockPrismaService.template.findUnique.mockResolvedValue({
           id: validDynamicUuid,
           name: themeCode,
           themeCode,
           status: 'ARCHIVED',
+          assets: [],
         });
 
         await expect(service.permanentDelete(validDynamicUuid)).rejects.toThrow(

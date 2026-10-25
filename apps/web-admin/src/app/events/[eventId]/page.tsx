@@ -19,7 +19,7 @@ function IconTrash() {
     </svg>
   );
 }
-﻿
+
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublicAvailabilityState } from '@/utils/event-availability';
@@ -169,6 +169,7 @@ export default function EventDetailPage({
   const [confirmationInput, setConfirmationInput] = useState('');
   const [permanentDeleting, setPermanentDeleting] = useState(false);
   const [deleteModalError, setDeleteModalError] = useState('');
+  const [publishing, setPublishing] = useState(false);
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
@@ -213,6 +214,60 @@ export default function EventDetailPage({
 
     void fetchEventData();
   }, [eventId, router]);
+
+  const handlePublishEvent = async () => {
+    if (!confirm('Publikasikan acara ini? Setelah dipublikasikan, tautan publik (/e/:slug) dan tautan undangan personal (/i/:code) dapat dibuka oleh tamu.')) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PUBLISHED' }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mempublikasikan acara');
+      }
+      setEvent((prev) => (prev ? { ...prev, status: 'PUBLISHED' } : null));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal mempublikasikan acara');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleUnpublishEvent = async () => {
+    if (!confirm('Kembalikan acara ke status DRAFT? Akses publik dan undangan personal tamu akan ditutup sementara.')) {
+      return;
+    }
+    setPublishing(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DRAFT' }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mengubah status acara');
+      }
+      setEvent((prev) => (prev ? { ...prev, status: 'DRAFT' } : null));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal mengubah status acara');
+    } finally {
+      setPublishing(false);
+    }
+  };
 
 
   const handleArchiveEvent = async () => {
@@ -368,6 +423,31 @@ export default function EventDetailPage({
         </div>
 
         <div className="flex-center gap-2">
+          {event.status === 'DRAFT' && (
+            <button
+              type="button"
+              onClick={handlePublishEvent}
+              disabled={publishing || archiving}
+              className="btn btn-primary btn-sm flex-center gap-1"
+              id="btn-publish-event"
+            >
+              <span>{publishing ? 'Mempublikasikan...' : 'Publikasikan Acara'}</span>
+            </button>
+          )}
+
+          {event.status === 'PUBLISHED' && (
+            <button
+              type="button"
+              onClick={handleUnpublishEvent}
+              disabled={publishing || archiving}
+              className="btn btn-secondary btn-sm flex-center gap-1"
+              id="btn-unpublish-event"
+              title="Kembalikan ke status DRAFT untuk menutup akses sementara"
+            >
+              <span>{publishing ? 'Menyimpan...' : 'Jadikan Draft'}</span>
+            </button>
+          )}
+
           {event.status !== 'ARCHIVED' && (
             <button
               type="button"
@@ -514,6 +594,52 @@ export default function EventDetailPage({
                 <p className="text-sm" style={{ margin: 0, color: 'var(--text-secondary)' }}>
                   Halaman publik undangan acara ini tidak lagi dapat diakses tamu karena telah melewati batas masa aktif 30 hari sejak pelaksanaan acara.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {event.status === 'DRAFT' && (
+            <div
+              className="card mb-4"
+              id="overview-draft-banner"
+              style={{
+                background: 'var(--status-warning-bg, #fffbeb)',
+                borderColor: 'var(--status-warning-border, #fde68a)',
+                borderLeft: '4px solid var(--status-warning, #d97706)',
+              }}
+              role="status"
+            >
+              <div
+                className="card-body"
+                style={{
+                  padding: '1rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span className="badge badge--warning">DRAFT</span>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
+                      Status Acara Masih DRAFT
+                    </strong>
+                  </div>
+                  <p className="text-sm" style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                    Tautan publik (<code>/e/{event.slug}</code>) dan undangan personal tamu (<code>/i/:code</code>) belum dapat dibuka tamu sampai Anda mempublikasikan acara ini.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePublishEvent}
+                  disabled={publishing}
+                  className="btn btn-primary btn-sm"
+                  id="btn-publish-from-overview-banner"
+                >
+                  {publishing ? 'Mempublikasikan...' : 'Publikasikan Sekarang'}
+                </button>
               </div>
             </div>
           )}

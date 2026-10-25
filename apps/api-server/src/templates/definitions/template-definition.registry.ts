@@ -1,6 +1,10 @@
 import { TemplateDefinition } from './template-definition.types';
 import { CLASSIC_LETTER_DEFINITION } from './classic-letter.definition';
 import { VELVET_LETTER_DEFINITION } from './velvet-letter.definition';
+import { SEKAR_KEDATON_DEFINITION } from './sekar-kedaton.definition';
+import { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
+import { AETHERIA_DEFINITION } from './aetheria.definition';
+import { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';
 
 export const IVORY_GARDEN_DEFINITION: TemplateDefinition = {
   themeCode: 'IVORY_GARDEN',
@@ -550,6 +554,10 @@ const builtInDefinitions: Record<string, TemplateDefinition> = {
   SUNDA_PUSPA: SUNDA_PUSPA_DEFINITION,
   CLASSIC_LETTER: CLASSIC_LETTER_DEFINITION,
   VELVET_LETTER: VELVET_LETTER_DEFINITION,
+  SEKAR_KEDATON: SEKAR_KEDATON_DEFINITION,
+  OPALINE_NOCTURNE: OPALINE_NOCTURNE_DEFINITION,
+  AETHERIA: AETHERIA_DEFINITION,
+  RANAH_CINTA: RANAH_CINTA_DEFINITION,
 };
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
@@ -622,3 +630,7 @@ export function getAllTemplateDefinitions(): TemplateDefinition[] {
 
 export { CLASSIC_LETTER_DEFINITION } from './classic-letter.definition';
 export { VELVET_LETTER_DEFINITION } from './velvet-letter.definition';
+export { SEKAR_KEDATON_DEFINITION } from './sekar-kedaton.definition';
+export { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
+export { AETHERIA_DEFINITION } from './aetheria.definition';
+export { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';

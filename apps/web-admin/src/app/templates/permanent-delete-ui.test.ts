@@ -10,39 +10,32 @@ import {
 test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
   const sampleBuiltInDbTemplates: DbTemplateRecord[] = [
     {
-      id: 'db-ivory-uuid',
-      name: 'Ivory Garden',
-      themeCode: 'IVORY_GARDEN',
+      id: 'db-sekar-uuid',
+      name: 'Sekar Kedaton',
+      themeCode: 'SEKAR_KEDATON',
       status: 'AVAILABLE',
-      eventUsageCount: 5,
-    },
-    {
-      id: 'db-serene-uuid',
-      name: 'Serene Garden',
-      themeCode: 'SERENE_GARDEN',
-      status: 'ARCHIVED',
-      eventUsageCount: 0,
-    },
-    {
-      id: 'db-sunda-uuid',
-      name: 'Sunda Puspa',
-      themeCode: 'SUNDA_PUSPA',
-      status: 'HIDDEN',
       eventUsageCount: 2,
     },
     {
-      id: 'db-classic-uuid',
-      name: 'Classic Letter',
-      themeCode: 'CLASSIC_LETTER',
+      id: 'db-aetheria-uuid',
+      name: 'Aetheria',
+      themeCode: 'AETHERIA',
       status: 'AVAILABLE',
       eventUsageCount: 0,
     },
     {
-      id: 'db-velvet-uuid',
-      name: 'Velvet Letter',
-      themeCode: 'VELVET_LETTER',
+      id: 'db-opaline-uuid',
+      name: 'Opaline Nocturne',
+      themeCode: 'OPALINE_NOCTURNE',
       status: 'ARCHIVED',
-      eventUsageCount: 1,
+      eventUsageCount: 0,
+    },
+    {
+      id: 'db-ranah-uuid',
+      name: 'Ranah Cinta',
+      themeCode: 'RANAH_CINTA',
+      status: 'AVAILABLE',
+      eventUsageCount: 0,
     },
   ];
 
@@ -87,12 +80,12 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       );
     }
 
-    // When joined with catalog, all 5 built-in templates are present
+    // When joined with catalog, all 4 built-in templates are present
     const joined = joinCatalogWithDbTemplates(
       FIXED_CATALOG_TEMPLATES,
       sampleBuiltInDbTemplates
     );
-    assert.equal(joined.length, 5);
+    assert.equal(joined.length, 4);
 
     // Verify UI contract: built-in templates must NOT have a permanent delete control even if status is ARCHIVED
     for (const item of joined) {

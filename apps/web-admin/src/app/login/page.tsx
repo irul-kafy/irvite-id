@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { applyTheme, getCurrentTheme } from '../../utils/apply-theme';
 
 // ── Inline SVG Icons ──────────────────────────────────────────────────────────
 
@@ -74,18 +75,9 @@ function ThemeToggle() {
   }, []);
 
   const toggle = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
+    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
     setTheme(next);
-    try {
-      localStorage.setItem('irvite-theme', next);
-    } catch {
-      // ignore
-    }
-    if (next === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   if (!theme) {

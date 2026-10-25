@@ -78,18 +78,18 @@ test('Create Event Selected Template Preview Contract', async (t) => {
   await t.test('origin configured: selected template demo URL is canonical public URL', () => {
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://invitation.example.test';
 
-    const matched = getCatalogTemplateByThemeCode('IVORY_GARDEN');
+    const matched = getCatalogTemplateByThemeCode('SEKAR_KEDATON');
     assert.ok(matched);
 
     const demoUrl = getCanonicalTemplateDemoUrl(matched?.demoPath);
-    assert.equal(demoUrl, 'https://invitation.example.test/templates/ivory-garden/demo');
+    assert.equal(demoUrl, 'https://invitation.example.test/templates/sekar-kedaton/demo');
   });
 
   await t.test('origin missing: selected template demo URL fails closed with null (no admin-relative fallback)', () => {
     delete process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
     delete process.env.PUBLIC_INVITATION_URL;
 
-    const matched = getCatalogTemplateByThemeCode('SUNDA_PUSPA');
+    const matched = getCatalogTemplateByThemeCode('SEKAR_KEDATON');
     assert.ok(matched);
 
     const demoUrl = getCanonicalTemplateDemoUrl(matched?.demoPath);

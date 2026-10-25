@@ -13,13 +13,14 @@ export type CatalogAvailability = 'AVAILABLE' | 'COMING_SOON' | 'DEPRECATED';
 
 export type CatalogCategory =
   | 'All'
-  | 'Floral & Botanical'
-  | 'Modern Botanical'
-  | 'Traditional Sundanese'
+  | 'Traditional Javanese'
+  | 'Celestial Fantasy'
+  | 'Enchanted Woodland'
+  | 'Minang Traditional'
   | string;
 
 export interface CatalogTemplate {
-  id: string; // Stable slug identifier (e.g. 'ivory-garden')
+  id: string; // Stable slug identifier (e.g. 'sekar-kedaton')
   slug: string;
   themeCode: string;
   name: string;
@@ -39,80 +40,38 @@ export interface CatalogTemplate {
 
 export const CATALOG_CATEGORIES: string[] = [
   'All',
-  'Floral & Botanical',
-  'Modern Botanical',
-  'Traditional Sundanese',
+  'Traditional Javanese',
+  'Celestial Fantasy',
+  'Enchanted Woodland',
+  'Minang Traditional',
 ];
 
 export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
   {
-    id: 'ivory-garden',
-    slug: 'ivory-garden',
-    themeCode: 'IVORY_GARDEN',
-    name: 'Ivory Garden',
-    displayName: 'Ivory Garden',
-    category: 'Floral & Botanical',
-    tags: ['Floral', 'Botanical', 'Elegant', 'Classic'],
+    id: 'sekar-kedaton',
+    slug: 'sekar-kedaton',
+    themeCode: 'SEKAR_KEDATON',
+    name: 'Sekar Kedaton',
+    displayName: 'Sekar Kedaton',
+    category: 'Traditional Javanese',
+    tags: ['Traditional', 'Javanese', 'Keraton', 'Gunungan', 'Gold'],
     description:
-      'Desain elegan bernuansa floral ivory dengan sentuhan botanical klasik yang abadi.',
+      'Pernikahan adat Jawa klasik nan agung bernuansa hijau giok, tembaga, gunungan, dan kehangatan pendopo.',
     shortDescription:
-      'Desain elegan bernuansa floral ivory dengan sentuhan botanical klasik yang abadi.',
-    thumbnailPath: '/templates/ivory-garden/thumbnail.webp',
-    demoPath: '/templates/ivory-garden/demo',
+      'Pernikahan adat Jawa klasik nan agung bernuansa hijau giok, tembaga, gunungan, dan kehangatan pendopo.',
+    thumbnailPath: '/templates/sekar-kedaton/thumbnail.webp',
+    demoPath: '/templates/sekar-kedaton/demo',
     sortOrder: 1,
     availability: 'AVAILABLE',
-    badge: 'Popular',
+    badge: 'Artisanal',
     isPhotoOptional: false,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#C4A06A',
-        secondaryColor: '#8A734D',
-        backgroundColor: '#FDFBF7',
-        textColor: '#171817',
-      },
-      typography: {
-        headingFont: 'PLAYFAIR_DISPLAY',
-        bodyFont: 'INTER',
-      },
-      sections: [
-        { id: 'hero', enabled: true, order: 1, variant: 'default' },
-        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
-        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
-        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
-        { id: 'location', enabled: true, order: 6, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
-        { id: 'closing', enabled: true, order: 9, variant: 'default' },
-      ],
-    },
-  },
-  {
-    id: 'serene-garden',
-    slug: 'serene-garden',
-    themeCode: 'SERENE_GARDEN',
-    name: 'Serene Garden',
-    displayName: 'Serene Garden',
-    category: 'Modern Botanical',
-    tags: ['Botanical', 'Modern', 'Serene', 'Minimalist'],
-    description:
-      'Harmoni botanical modern yang menenangkan dengan tipografi anggun dan tata letak presisi.',
-    shortDescription:
-      'Harmoni botanical modern yang menenangkan dengan tipografi anggun dan tata letak presisi.',
-    thumbnailPath: '/templates/serene-garden/thumbnail.webp',
-    demoPath: '/templates/serene-garden/demo',
-    sortOrder: 2,
-    availability: 'AVAILABLE',
-    badge: 'Trending',
-    isPhotoOptional: false,
-    config: {
-      version: 1,
-      theme: {
-        primaryColor: '#2D5A3D',
-        secondaryColor: '#7A9A7E',
-        backgroundColor: '#F7FAF7',
-        textColor: '#172019',
+        primaryColor: '#1d3e33',
+        secondaryColor: '#c59a58',
+        backgroundColor: '#f8f4ee',
+        textColor: '#211c18',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
@@ -132,30 +91,30 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
     },
   },
   {
-    id: 'sunda-puspa',
-    slug: 'sunda-puspa',
-    themeCode: 'SUNDA_PUSPA',
-    name: 'Sunda Puspa',
-    displayName: 'Sunda Puspa',
-    category: 'Traditional Sundanese',
-    tags: ['Traditional', 'Sunda', 'Puspa', 'Cultural'],
+    id: 'aetheria',
+    slug: 'aetheria',
+    themeCode: 'AETHERIA',
+    name: 'Aetheria',
+    displayName: 'Aetheria',
+    category: 'Celestial Fantasy',
+    tags: ['Celestial', 'Fantasy', 'Portal', 'Crystal', 'Stars'],
     description:
-      'Pernikahan adat Sunda klasik nan agung dengan ornamen puspa dan kidung kabagjaan.',
+      'Kisah cinta magis melampaui semesta dengan gerbang portal animasi, pulau kristal melayang, dan pendar bintang.',
     shortDescription:
-      'Pernikahan adat Sunda klasik nan agung dengan ornamen puspa dan kidung kabagjaan.',
-    thumbnailPath: '/templates/sunda-puspa/thumbnail.webp',
-    demoPath: '/templates/sunda-puspa/demo',
-    sortOrder: 3,
+      'Kisah cinta magis melampaui semesta dengan gerbang portal animasi, pulau kristal melayang, dan pendar bintang.',
+    thumbnailPath: '/templates/aetheria/thumbnail.webp',
+    demoPath: '/templates/aetheria/demo',
+    sortOrder: 2,
     availability: 'AVAILABLE',
-    badge: 'Artisanal',
-    isPhotoOptional: true,
+    badge: 'Fantasy',
+    isPhotoOptional: false,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#A17A38',
-        secondaryColor: '#D4AF37',
-        backgroundColor: '#FAF7F2',
-        textColor: '#2A2318',
+        primaryColor: '#2b1b4a',
+        secondaryColor: '#b48def',
+        backgroundColor: '#0e0818',
+        textColor: '#f3eefc',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
@@ -175,32 +134,77 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
     },
   },
   {
-    id: 'classic-letter',
-    slug: 'classic-letter',
-    themeCode: 'CLASSIC_LETTER',
-    name: 'Classic Letter',
-    displayName: 'Classic Letter',
-    category: 'Classic',
-    tags: ['Classic', 'Letter', 'Stationery', 'Wax Seal', 'Elegant'],
-    description: 'Undangan bernuansa surat klasik elegan bertekstur kertas ivory, aksen emas antik, dan segel lilin.',
-    shortDescription: 'Undangan bernuansa surat klasik elegan bertekstur kertas ivory, aksen emas antik, dan segel lilin.',
-    thumbnailPath: '/templates/classic-letter/thumbnail.webp',
-    demoPath: '/templates/classic-letter/demo',
+    id: 'opaline-nocturne',
+    slug: 'opaline-nocturne',
+    themeCode: 'OPALINE_NOCTURNE',
+    name: 'Opaline Nocturne',
+    displayName: 'Opaline Nocturne',
+    category: 'Enchanted Woodland',
+    tags: ['Enchanted', 'Woodland', 'Nocturne', 'Stars', 'Emerald'],
+    description:
+      'Pernikahan malam berlatar hutan magis bertabur bintang, pendar kunang-kunang, dan nuansa emerald nocturne.',
+    shortDescription:
+      'Pernikahan malam berlatar hutan magis bertabur bintang, pendar kunang-kunang, dan nuansa emerald nocturne.',
+    thumbnailPath: '/templates/opaline-nocturne/thumbnail.webp',
+    demoPath: '/templates/opaline-nocturne/demo',
+    sortOrder: 3,
+    availability: 'AVAILABLE',
+    badge: 'Enchanted',
+    isPhotoOptional: false,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#0f2922',
+        secondaryColor: '#a7d5c6',
+        backgroundColor: '#07130f',
+        textColor: '#e8f2ee',
+      },
+      typography: {
+        headingFont: 'PLAYFAIR_DISPLAY',
+        bodyFont: 'INTER',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
+  {
+    id: 'ranah-cinta',
+    slug: 'ranah-cinta',
+    themeCode: 'RANAH_CINTA',
+    name: 'Ranah Cinta',
+    displayName: 'Ranah Cinta',
+    category: 'Minang Traditional',
+    tags: ['Minang', 'Rumah Gadang', 'Traditional', 'Songket', 'Red Gold'],
+    description:
+      'Inspirasi Minangkabau dengan gerbang beranimasi, ornamen ukiran Rumah Gadang, dan susunan editorial berpasangan.',
+    shortDescription:
+      'Inspirasi Minangkabau dengan gerbang beranimasi, ornamen ukiran Rumah Gadang, dan susunan editorial berpasangan.',
+    thumbnailPath: '/templates/ranah-cinta/thumbnail.webp',
+    demoPath: '/templates/ranah-cinta/demo',
     sortOrder: 4,
     availability: 'AVAILABLE',
     badge: 'Artisanal',
-    isPhotoOptional: true,
+    isPhotoOptional: false,
     config: {
       version: 1,
       theme: {
-        primaryColor: '#785A3A',
-        secondaryColor: '#B89758',
-        backgroundColor: '#FAF7F2',
-        textColor: '#2C2621',
+        primaryColor: '#8a1d24',
+        secondaryColor: '#cfa856',
+        backgroundColor: '#fbf7ee',
+        textColor: '#211816',
       },
       typography: {
-        headingFont: 'CORMORANT_GARAMOND',
-        bodyFont: 'DM_SANS',
+        headingFont: 'PLAYFAIR_DISPLAY',
+        bodyFont: 'LORA',
       },
       sections: [
         { id: 'hero', enabled: true, order: 1, variant: 'default' },
@@ -208,49 +212,6 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
         { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
         { id: 'countdown', enabled: true, order: 4, variant: 'default' },
         { id: 'gallery', enabled: true, order: 5, variant: 'default' },
-        { id: 'location', enabled: true, order: 6, variant: 'default' },
-        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
-        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
-        { id: 'closing', enabled: true, order: 9, variant: 'default' },
-      ],
-    },
-  },
-  {
-    id: 'velvet-letter',
-    slug: 'velvet-letter',
-    themeCode: 'VELVET_LETTER',
-    name: 'Velvet Letter',
-    displayName: 'Velvet Letter',
-    category: 'Luxury Stationery',
-    tags: ['Luxury', 'Stationery', 'Velvet', 'Letter', 'Wax Seal', 'Burgundy'],
-    description:
-      'Undangan bernuansa burgundy velvet mewah dengan stationery ivory, aksen champagne, amplop elegan, dan segel lilin.',
-    shortDescription:
-      'Undangan bernuansa burgundy velvet mewah dengan stationery ivory, aksen champagne, amplop elegan, dan segel lilin.',
-    thumbnailPath: '/templates/velvet-letter/thumbnail.webp',
-    demoPath: '/templates/velvet-letter/demo',
-    sortOrder: 5,
-    availability: 'AVAILABLE',
-    badge: 'Artisanal',
-    isPhotoOptional: true,
-    config: {
-      version: 1,
-      theme: {
-        primaryColor: '#5B1425',
-        secondaryColor: '#D4AF37',
-        backgroundColor: '#2A0812',
-        textColor: '#2C2621',
-      },
-      typography: {
-        headingFont: 'PLAYFAIR_DISPLAY',
-        bodyFont: 'INTER',
-      },
-      sections: [
-        { id: 'hero', enabled: true, order: 1, variant: 'default' },
-        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
-        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
-        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
-        { id: 'gallery', enabled: false, order: 5, variant: 'default' },
         { id: 'location', enabled: true, order: 6, variant: 'default' },
         { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
         { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
@@ -268,7 +229,10 @@ export function getCatalogTemplateById(id: string | null | undefined): CatalogTe
   if (!id) return undefined;
   const normalized = id.trim().toLowerCase();
   return FIXED_CATALOG_TEMPLATES.find(
-    (t) => t.id.toLowerCase() === normalized || t.slug.toLowerCase() === normalized || t.themeCode.toLowerCase() === normalized
+    (t) =>
+      t.id.toLowerCase() === normalized ||
+      t.slug.toLowerCase() === normalized ||
+      t.themeCode.toLowerCase() === normalized
   );
 }
 
@@ -278,36 +242,28 @@ export function getCatalogTemplateBySlug(slug: string | null | undefined): Catal
   return FIXED_CATALOG_TEMPLATES.find((t) => t.slug.toLowerCase() === normalized);
 }
 
-export function getCatalogTemplateByThemeCode(
-  themeCode: string | null | undefined
-): CatalogTemplate | undefined {
+export function getCatalogTemplateByThemeCode(themeCode: string | null | undefined): CatalogTemplate | undefined {
   if (!themeCode) return undefined;
   const normalized = themeCode.trim().toUpperCase();
-  return FIXED_CATALOG_TEMPLATES.find(
-    (t) => t.themeCode.trim().toUpperCase() === normalized
-  );
+  return FIXED_CATALOG_TEMPLATES.find((t) => t.themeCode.toUpperCase() === normalized);
 }
 
-export function filterCatalogTemplates(
-  category: string,
-  searchQuery: string = ''
-): CatalogTemplate[] {
-  return FIXED_CATALOG_TEMPLATES.filter((tpl) => {
-    const matchesCategory =
-      category === 'All' ||
-      tpl.category === category ||
-      tpl.tags.some((tag) => tag.toLowerCase() === category.toLowerCase());
+export function filterCatalogTemplates(category: string, searchQuery: string): CatalogTemplate[] {
+  const normCategory = category.trim().toLowerCase();
+  const normQuery = searchQuery.trim().toLowerCase();
 
+  return FIXED_CATALOG_TEMPLATES.filter((tpl) => {
+    const matchesCategory = normCategory === 'all' || tpl.category.toLowerCase() === normCategory;
     if (!matchesCategory) return false;
 
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase().trim();
+    if (!normQuery) return true;
+
     return (
-      tpl.name.toLowerCase().includes(query) ||
-      tpl.displayName.toLowerCase().includes(query) ||
-      tpl.themeCode.toLowerCase().includes(query) ||
-      tpl.description.toLowerCase().includes(query) ||
-      tpl.tags.some((tag) => tag.toLowerCase().includes(query))
+      tpl.name.toLowerCase().includes(normQuery) ||
+      tpl.displayName.toLowerCase().includes(normQuery) ||
+      tpl.description.toLowerCase().includes(normQuery) ||
+      tpl.shortDescription.toLowerCase().includes(normQuery) ||
+      tpl.tags.some((tag) => tag.toLowerCase().includes(normQuery))
     );
   });
 }
@@ -340,12 +296,6 @@ export interface JoinedCatalogTemplate {
 
 /**
  * Joins static code-owned catalog templates with live database template records by themeCode.
- *
- * Requirements:
- * - Join MUST be by themeCode, NOT display name.
- * - 0 matching DB rows: readiness = MISSING, canUse = false, no fabricated ID.
- * - 1 matching DB row: readiness = SYNCED, canUse = true, receives exact DB id.
- * - >1 matching DB rows: readiness = DUPLICATE, canUse = false, FAIL CLOSED (never pick first duplicate).
  */
 export function joinCatalogWithDbTemplates(
   catalogTemplates: readonly CatalogTemplate[],

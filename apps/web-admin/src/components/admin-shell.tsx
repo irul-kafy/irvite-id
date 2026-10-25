@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { applyTheme, getCurrentTheme } from '../utils/apply-theme';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 
@@ -37,18 +38,6 @@ function IconTemplates({ className }: { className?: string }) {
       <path d="M7 7v11" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
       <rect x="9.5" y="9.5" width="5" height="2" rx="1" fill="currentColor" opacity="0.5"/>
       <rect x="9.5" y="13" width="3.5" height="2" rx="1" fill="currentColor" opacity="0.3"/>
-    </svg>
-  );
-}
-
-function IconScanner({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 6.5V4a2 2 0 0 1 2-2h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M18 6.5V4a2 2 0 0 0-2-2h-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M2 13.5V16a2 2 0 0 0 2 2h2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M18 13.5V16a2 2 0 0 1-2 2h-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -122,19 +111,9 @@ function ThemeToggle() {
   }, []);
 
   const toggle = () => {
-    const isCurrentDark = document.documentElement.classList.contains('dark');
-    const next = isCurrentDark ? 'light' : 'dark';
+    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
     setTheme(next);
-    try {
-      localStorage.setItem('irvite-theme', next);
-    } catch {
-      // ignore
-    }
-    if (next === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
   };
 
   return (
@@ -163,7 +142,15 @@ function IconBranding({ size = 20 }: { size?: number }) {
 
 // ── Nav items config ───────────────────────────────────────────────────────────
 
-const NAV_ITEMS = [
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: (props: { className?: string }) => React.JSX.Element;
+  badge?: string;
+}
+
+const NAV_ITEMS: readonly NavItem[] = [
   {
     id: 'system-check',
     label: 'Pengecekan Sistem',
@@ -194,14 +181,7 @@ const NAV_ITEMS = [
     href: '/staff',
     icon: IconStaff,
   },
-  {
-    id: 'scanner',
-    label: 'Scanner',
-    href: '/events',
-    icon: IconScanner,
-    badge: 'LIVE',
-  },
-] as const;
+];
 
 // ── Breadcrumb helper ──────────────────────────────────────────────────────────
 
@@ -324,7 +304,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               >
                 <Icon className="admin-sidebar__link-icon" />
                 {item.label}
-                {'badge' in item && item.badge && (
+                {item.badge && (
                   <span className="admin-sidebar__badge">{item.badge}</span>
                 )}
               </Link>

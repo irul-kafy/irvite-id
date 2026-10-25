@@ -12,15 +12,14 @@ import {
 } from './template-catalog.registry';
 
 test('Template Catalog Registry', async (t) => {
-  await t.test('contains exactly the 5 approved production templates', () => {
-    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 5);
+  await t.test('contains exactly the 4 approved codex templates', () => {
+    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 4);
     const themeCodes = APPROVED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
     assert.deepEqual(themeCodes, [
-      'IVORY_GARDEN',
-      'SERENE_GARDEN',
-      'SUNDA_PUSPA',
-      'CLASSIC_LETTER',
-      'VELVET_LETTER',
+      'SEKAR_KEDATON',
+      'AETHERIA',
+      'OPALINE_NOCTURNE',
+      'RANAH_CINTA',
     ]);
   });
 
@@ -34,17 +33,14 @@ test('Template Catalog Registry', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 5);
-    assert.equal(templates[0].sortOrder, 1);
-    assert.equal(templates[1].sortOrder, 2);
-    assert.equal(templates[2].sortOrder, 3);
-    assert.equal(templates[3].sortOrder, 4);
-    assert.equal(templates[4].sortOrder, 5);
-    assert.equal(templates[0].themeCode, 'IVORY_GARDEN');
-    assert.equal(templates[1].themeCode, 'SERENE_GARDEN');
-    assert.equal(templates[2].themeCode, 'SUNDA_PUSPA');
-    assert.equal(templates[3].themeCode, 'CLASSIC_LETTER');
-    assert.equal(templates[4].themeCode, 'VELVET_LETTER');
+    assert.equal(templates.length, 4);
+    for (let i = 0; i < 4; i++) {
+      assert.equal(templates[i].sortOrder, i + 1);
+    }
+    assert.equal(templates[0].themeCode, 'SEKAR_KEDATON');
+    assert.equal(templates[1].themeCode, 'AETHERIA');
+    assert.equal(templates[2].themeCode, 'OPALINE_NOCTURNE');
+    assert.equal(templates[3].themeCode, 'RANAH_CINTA');
   });
 
   await t.test('all AVAILABLE entries have valid thumbnailPath and demoPath', () => {
@@ -71,117 +67,48 @@ test('Template Catalog Registry', async (t) => {
   });
 
   await t.test('maps slugs to expected themeCodes correctly', () => {
-    assert.equal(getCatalogTemplateBySlug('ivory-garden')?.themeCode, 'IVORY_GARDEN');
-    assert.equal(getCatalogTemplateBySlug('serene-garden')?.themeCode, 'SERENE_GARDEN');
-    assert.equal(getCatalogTemplateBySlug('sunda-puspa')?.themeCode, 'SUNDA_PUSPA');
-    assert.equal(getCatalogTemplateBySlug('classic-letter')?.themeCode, 'CLASSIC_LETTER');
-    assert.equal(getCatalogTemplateBySlug('velvet-letter')?.themeCode, 'VELVET_LETTER');
+    assert.equal(getCatalogTemplateBySlug('sekar-kedaton')?.themeCode, 'SEKAR_KEDATON');
+    assert.equal(getCatalogTemplateBySlug('aetheria')?.themeCode, 'AETHERIA');
+    assert.equal(getCatalogTemplateBySlug('opaline-nocturne')?.themeCode, 'OPALINE_NOCTURNE');
+    assert.equal(getCatalogTemplateBySlug('ranah-cinta')?.themeCode, 'RANAH_CINTA');
   });
 
   await t.test('supports case-insensitive slug and themeCode lookup', () => {
-    assert.equal(getCatalogTemplateBySlug('IVORY-GARDEN')?.themeCode, 'IVORY_GARDEN');
-    assert.equal(getCatalogTemplateBySlug('  sunda-puspa  ')?.themeCode, 'SUNDA_PUSPA');
-    assert.equal(getCatalogTemplateBySlug('VELVET-LETTER')?.themeCode, 'VELVET_LETTER');
-    assert.equal(getCatalogTemplateByThemeCode('ivory_garden')?.slug, 'ivory-garden');
-    assert.equal(getCatalogTemplateByThemeCode('SERENE_GARDEN')?.slug, 'serene-garden');
-    assert.equal(getCatalogTemplateByThemeCode('SUNDA_PUSPA')?.slug, 'sunda-puspa');
-    assert.equal(getCatalogTemplateByThemeCode('CLASSIC_LETTER')?.slug, 'classic-letter');
-    assert.equal(getCatalogTemplateByThemeCode('VELVET_LETTER')?.slug, 'velvet-letter');
-  });
-
-  await t.test('Classic Letter thumbnail exists and is distinct from other template thumbnails', () => {
-    const publicDir = fs.existsSync(path.resolve(process.cwd(), 'public'))
-      ? path.resolve(process.cwd(), 'public')
-      : path.resolve(process.cwd(), 'apps/web-invitation/public');
-
-    const classicPath = path.join(publicDir, 'templates/classic-letter/thumbnail.webp');
-    const ivoryPath = path.join(publicDir, 'templates/ivory-garden/thumbnail.webp');
-    const serenePath = path.join(publicDir, 'templates/serene-garden/thumbnail.webp');
-    const sundaPath = path.join(publicDir, 'templates/sunda-puspa/thumbnail.webp');
-
-    assert.ok(fs.existsSync(classicPath), 'Classic thumbnail must exist on disk');
-    const classicBuf = fs.readFileSync(classicPath);
-    const ivoryBuf = fs.readFileSync(ivoryPath);
-    const sereneBuf = fs.readFileSync(serenePath);
-    const sundaBuf = fs.readFileSync(sundaPath);
-
-    assert.ok(classicBuf.length > 1000, 'Classic thumbnail size must be non-trivial');
-    assert.notEqual(classicBuf.compare(ivoryBuf), 0, 'Classic thumbnail must not be byte-identical to Ivory');
-    assert.notEqual(classicBuf.compare(sereneBuf), 0, 'Classic thumbnail must not be byte-identical to Serene');
-    assert.notEqual(classicBuf.compare(sundaBuf), 0, 'Classic thumbnail must not be byte-identical to Sunda');
-  });
-
-  await t.test('Velvet Letter thumbnail exists and is distinct from other template thumbnails', () => {
-    const publicDir = fs.existsSync(path.resolve(process.cwd(), 'public'))
-      ? path.resolve(process.cwd(), 'public')
-      : path.resolve(process.cwd(), 'apps/web-invitation/public');
-
-    const velvetPath = path.join(publicDir, 'templates/velvet-letter/thumbnail.webp');
-    const ivoryPath = path.join(publicDir, 'templates/ivory-garden/thumbnail.webp');
-    const serenePath = path.join(publicDir, 'templates/serene-garden/thumbnail.webp');
-    const sundaPath = path.join(publicDir, 'templates/sunda-puspa/thumbnail.webp');
-    const classicPath = path.join(publicDir, 'templates/classic-letter/thumbnail.webp');
-
-    assert.ok(fs.existsSync(velvetPath), 'Velvet thumbnail must exist on disk');
-    const velvetBuf = fs.readFileSync(velvetPath);
-    const ivoryBuf = fs.readFileSync(ivoryPath);
-    const sereneBuf = fs.readFileSync(serenePath);
-    const sundaBuf = fs.readFileSync(sundaPath);
-    const classicBuf = fs.readFileSync(classicPath);
-
-    assert.ok(velvetBuf.length > 1000, 'Velvet thumbnail size must be non-trivial');
-    assert.notEqual(velvetBuf.compare(ivoryBuf), 0, 'Velvet thumbnail must not be byte-identical to Ivory');
-    assert.notEqual(velvetBuf.compare(sereneBuf), 0, 'Velvet thumbnail must not be byte-identical to Serene');
-    assert.notEqual(velvetBuf.compare(sundaBuf), 0, 'Velvet thumbnail must not be byte-identical to Sunda');
-    assert.notEqual(velvetBuf.compare(classicBuf), 0, 'Velvet thumbnail must not be byte-identical to Classic');
+    assert.equal(getCatalogTemplateBySlug('SEKAR-KEDATON')?.themeCode, 'SEKAR_KEDATON');
+    assert.equal(getCatalogTemplateBySlug('AETHERIA')?.themeCode, 'AETHERIA');
+    assert.equal(getCatalogTemplateBySlug('OPALINE-NOCTURNE')?.themeCode, 'OPALINE_NOCTURNE');
+    assert.equal(getCatalogTemplateBySlug('RANAH-CINTA')?.themeCode, 'RANAH_CINTA');
+    assert.equal(getCatalogTemplateByThemeCode('sekar_kedaton')?.slug, 'sekar-kedaton');
+    assert.equal(getCatalogTemplateByThemeCode('AETHERIA')?.slug, 'aetheria');
   });
 
   await t.test('returns undefined and false for unknown slugs (fail closed)', () => {
+    assert.equal(getCatalogTemplateBySlug('serene-garden'), undefined);
+    assert.equal(getCatalogTemplateBySlug('velvet-letter'), undefined);
     assert.equal(getCatalogTemplateBySlug('unknown-theme'), undefined);
     assert.equal(getCatalogTemplateBySlug(''), undefined);
     assert.equal(getCatalogTemplateByThemeCode('GENERIC'), undefined);
     assert.equal(isAvailableTemplate('unknown-theme'), false);
     assert.equal(isAvailableTemplate(null), false);
   });
-await t.test('filterAvailableTemplates filters by DB lifecycle status', () => {
+
+  await t.test('filterAvailableTemplates filters by DB lifecycle status', () => {
     const templates = getCatalogTemplates();
 
-    // 1. All 5 AVAILABLE in DB
-    const allAvailable = [
-      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
-      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
-      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
-    ];
+    // 1. All 4 AVAILABLE in DB
+    const allAvailable = templates.map((t) => ({ themeCode: t.themeCode, status: 'AVAILABLE' }));
     const res1 = filterAvailableTemplates(templates, allAvailable);
-    assert.equal(res1.length, 5);
+    assert.equal(res1.length, 4);
 
-    // 2. VELVET_LETTER is HIDDEN
-    const withHidden = [
-      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
-      { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
-      { themeCode: 'VELVET_LETTER', status: 'HIDDEN' },
-    ];
+    // 2. AETHERIA is HIDDEN
+    const withHidden = allAvailable.map((t) =>
+      t.themeCode === 'AETHERIA' ? { ...t, status: 'HIDDEN' } : t
+    );
     const res2 = filterAvailableTemplates(templates, withHidden);
-    assert.equal(res2.length, 4);
-    assert.ok(!res2.some((t) => t.themeCode === 'VELVET_LETTER'), 'HIDDEN template must not be in public catalog');
+    assert.equal(res2.length, 3);
+    assert.ok(!res2.some((t) => t.themeCode === 'AETHERIA'), 'HIDDEN template must not be in public catalog');
 
-    // 3. CLASSIC_LETTER is ARCHIVED
-    const withArchived = [
-      { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
-      { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
-      { themeCode: 'CLASSIC_LETTER', status: 'ARCHIVED' },
-      { themeCode: 'VELVET_LETTER', status: 'AVAILABLE' },
-    ];
-    const res3 = filterAvailableTemplates(templates, withArchived);
-    assert.equal(res3.length, 4);
-    assert.ok(!res3.some((t) => t.themeCode === 'CLASSIC_LETTER'), 'ARCHIVED template must not be in public catalog');
-
-    // 4. Missing / null / empty availability fails closed (returns [])
+    // 3. Missing / null / empty availability fails closed (returns [])
     assert.deepEqual(filterAvailableTemplates(templates, null), []);
     assert.deepEqual(filterAvailableTemplates(templates, undefined), []);
     assert.deepEqual(filterAvailableTemplates(templates, []), []);

@@ -23,8 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               var theme = localStorage.getItem('irvite-theme');
               if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 document.documentElement.classList.add('dark');
+                document.documentElement.dataset.theme = 'dark';
               } else {
                 document.documentElement.classList.remove('dark');
+                document.documentElement.dataset.theme = 'light';
               }
             } catch (e) {}
           `}
