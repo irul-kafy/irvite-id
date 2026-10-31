@@ -189,11 +189,62 @@ function useBreadcrumb(pathname: string) {
   const segments = pathname.split('/').filter(Boolean);
   const crumbs = segments.map((seg, i) => {
     const href = '/' + segments.slice(0, i + 1).join('/');
-    const label =
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(seg);
+    let label =
       seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, ' ');
+    if (isUuid) {
+      label = `ID: ${seg.slice(0, 8)}…`;
+    }
     return { label, href };
   });
   return crumbs;
+}
+
+// ── Persistent Auth Session Cache ─────────────────────────────────────────────
+// Keeps the navigation items stable across route transitions so they don't flicker or re-render.
+
+interface AuthSessionData {
+  role: string | null;
+  email: string | null;
+}
+
+let memoryAuthCache: AuthSessionData | null = null;
+
+function readCachedAuth(): AuthSessionData {
+  if (memoryAuthCache) return memoryAuthCache;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = sessionStorage.getItem('irvite_admin_auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === 'object') {
+          memoryAuthCache = {
+            role: parsed.role || null,
+            email: parsed.email || null,
+          };
+          return memoryAuthCache;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { role: null, email: null };
+}
+
+function writeCachedAuth(role: string | null, email: string | null) {
+  memoryAuthCache = { role, email };
+  if (typeof window !== 'undefined') {
+    try {
+      if (role || email) {
+        sessionStorage.setItem('irvite_admin_auth', JSON.stringify({ role, email }));
+      } else {
+        sessionStorage.removeItem('irvite_admin_auth');
+      }
+    } catch {
+      // ignore
+    }
+  }
 }
 
 // ── Main Shell Component ───────────────────────────────────────────────────────
@@ -202,16 +253,37 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Initial state is null on both SSR and client initial render to ensure 100% hydration match
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Optimistic pending path for instant 0ms visual feedback on navigation clicks
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  // Reset optimistic state whenever real pathname catches up
+  useEffect(() => {
+    setPendingPath(null);
+  }, [pathname]);
+
   const breadcrumbs = useBreadcrumb(pathname);
 
+  // Restore cached auth immediately on mount, then revalidate in background
   useEffect(() => {
+    const cached = readCachedAuth();
+    if (cached.role) setUserRole(cached.role);
+    if (cached.email) setUserEmail(cached.email);
+
     let isMounted = true;
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (isMounted && data?.user?.role) {
-          setUserRole(data.user.role);
+        if (isMounted && data?.user) {
+          const role = data.user.role || null;
+          const email = data.user.email || null;
+          writeCachedAuth(role, email);
+          setUserRole(role);
+          setUserEmail(email);
         }
       })
       .catch(() => {
@@ -232,6 +304,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     return true;
   });
 
+  // Pre-warm client route cache for all accessible navigation destinations
+  useEffect(() => {
+    navItems.forEach((item) => {
+      try {
+        router.prefetch(item.href);
+      } catch {
+        // ignore
+      }
+    });
+  }, [router, navItems]);
+
   // Close sidebar on route change
   const [prevPathname, setPrevPathname] = useState(pathname);
   if (prevPathname !== pathname) {
@@ -249,17 +332,56 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }, []);
 
   const handleLogout = async () => {
+    writeCachedAuth(null, null);
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   };
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard') return pathname === '/dashboard';
-    return pathname.startsWith(href);
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Normal primary click without modifier keys
+    if (!e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0) {
+      if (href !== pathname) {
+        setPendingPath(href);
+        setSidebarOpen(false);
+        router.push(href);
+        e.preventDefault();
+      } else {
+        setSidebarOpen(false);
+        e.preventDefault();
+      }
+    }
   };
+
+  const handleWarmRoute = (href: string) => {
+    try {
+      router.prefetch(href);
+    } catch {
+      // ignore
+    }
+  };
+
+  const activePath = pendingPath || pathname;
+
+  const isActive = (href: string) => {
+    if (href === '/dashboard') return activePath === '/dashboard';
+    return activePath.startsWith(href);
+  };
+
+  const userInitial = userEmail
+    ? userEmail.trim().charAt(0).toUpperCase()
+    : (userRole ? userRole.charAt(0).toUpperCase() : 'A');
+
+  const userTitle = userEmail
+    ? `${userEmail} (${userRole || 'User'})`
+    : 'Admin User';
 
   return (
     <div className="admin-shell">
+      {/* Sleek top navigation progress bar when transitioning */}
+      {pendingPath && (
+        <div className="admin-nav-progress" aria-hidden="true" />
+      )}
+
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -281,14 +403,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               <IconBranding size={18} />
             </div>
             <div>
-              <div className="admin-sidebar__brand-name">irvite.id</div>
+              <div className="admin-sidebar__brand-name">irvite</div>
               <div className="admin-sidebar__brand-sub">Admin Console</div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="admin-sidebar__nav" aria-label="Sidebar navigation">
+        <nav className="admin-sidebar__nav" aria-label="Sidebar navigation" suppressHydrationWarning>
           <div className="admin-sidebar__section-label">Navigation</div>
 
           {navItems.map((item) => {
@@ -298,9 +420,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={true}
                 id={`nav-${item.id}`}
                 className={`admin-sidebar__link${active ? ' admin-sidebar__link--active' : ''}`}
                 aria-current={active ? 'page' : undefined}
+                onClick={(e) => handleNavClick(e, item.href)}
+                onMouseEnter={() => handleWarmRoute(item.href)}
               >
                 <Icon className="admin-sidebar__link-icon" />
                 {item.label}
@@ -353,7 +478,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </span>
             ) : (
               <>
-                <Link href="/dashboard" className="admin-header__breadcrumb-item">
+                <Link
+                  href="/dashboard"
+                  prefetch={true}
+                  className="admin-header__breadcrumb-item"
+                  onClick={(e) => handleNavClick(e, '/dashboard')}
+                  onMouseEnter={() => handleWarmRoute('/dashboard')}
+                >
                   Dashboard
                 </Link>
                 {breadcrumbs
@@ -366,7 +497,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                           {crumb.label}
                         </span>
                       ) : (
-                        <Link href={crumb.href} className="admin-header__breadcrumb-item">
+                        <Link
+                          href={crumb.href}
+                          prefetch={true}
+                          className="admin-header__breadcrumb-item"
+                          onClick={(e) => handleNavClick(e, crumb.href)}
+                          onMouseEnter={() => handleWarmRoute(crumb.href)}
+                        >
                           {crumb.label}
                         </Link>
                       )}
@@ -381,16 +518,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <ThemeToggle />
             <div
               className="admin-header__avatar"
-              title="Admin User"
-              aria-label="User avatar"
+              suppressHydrationWarning
+              title={userTitle}
+              aria-label={`Akun: ${userTitle}`}
             >
-              A
+              {userInitial}
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main id="main-content" className="admin-page">
+        <main id="main-content" className={`admin-page${pendingPath ? ' admin-page--transitioning' : ''}`}>
           {children}
         </main>
       </div>

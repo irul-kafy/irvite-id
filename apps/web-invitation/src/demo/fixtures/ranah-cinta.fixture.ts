@@ -86,5 +86,19 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
       type: 'PHOTO',
       order: 0,
     },
+    {
+      id: 'demo-hero',
+      slot: 'hero',
+      src: '/templates/ranah-cinta/couple-hero.jpg',
+      type: 'PHOTO',
+      order: 1,
+    },
+    {
+      id: 'demo-couple-1',
+      slot: 'couple_1',
+      src: '/templates/ranah-cinta/couple-hero.jpg',
+      type: 'PHOTO',
+      order: 2,
+    },
   ],
 };

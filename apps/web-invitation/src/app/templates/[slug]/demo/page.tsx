@@ -5,10 +5,10 @@ import {
 } from '../../../../catalog';
 import { getDemoFixture } from '../../../../demo';
 import {
-  RenderTheme,
   isTemplateProductionActivated,
 } from '../../../../renderers/registry';
 import { fetchPublicTemplateAvailability } from '../../../../api/client';
+import { TemplateCustomizerStudio } from '../../../../components/template-customizer-studio';
 
 interface DemoPageProps {
   params: Promise<{ slug: string }>;
@@ -22,7 +22,7 @@ export async function generateMetadata({
 
   if (!catalogItem) {
     return {
-      title: 'Template Not Found | IRVITE.ID',
+      title: 'Template Not Found | IRVITE',
     };
   }
 
@@ -33,12 +33,12 @@ export async function generateMetadata({
 
   if (!matched || matched.status !== 'AVAILABLE') {
     return {
-      title: 'Template Not Found | IRVITE.ID',
+      title: 'Template Not Found | IRVITE',
     };
   }
 
   return {
-    title: `${catalogItem.displayName} — Live Demo | IRVITE.ID`,
+    title: `${catalogItem.displayName} — Live Demo & Simulasi | IRVITE`,
     description: catalogItem.shortDescription,
   };
 }
@@ -74,12 +74,12 @@ export default async function TemplateDemoPage({ params }: DemoPageProps) {
 
   return (
     <main>
-      <RenderTheme
+      <TemplateCustomizerStudio
         themeCode={catalogItem.themeCode}
-        data={fixture}
-        uniqueCode=""
-        isPreview={true}
-        mode="PUBLIC"
+        templateSlug={catalogItem.slug}
+        templateDisplayName={catalogItem.displayName}
+        templateCategory={catalogItem.category}
+        initialFixture={fixture}
       />
     </main>
   );

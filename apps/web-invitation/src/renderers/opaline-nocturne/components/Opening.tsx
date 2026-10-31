@@ -44,7 +44,7 @@ export function Opening({
         <button className={s.button} onClick={onOpen} disabled={leaving}>
           Buka Undangan <span aria-hidden="true">↗</span>
         </button>
-        <small className={s.coverBrand}>irvite.id</small>
+        <small className={s.coverBrand}>irvite</small>
       </div>
       <Lace />
     </section>

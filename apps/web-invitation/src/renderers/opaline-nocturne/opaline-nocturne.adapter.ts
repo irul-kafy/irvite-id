@@ -152,12 +152,22 @@ export function adaptOpalineNocturneData(
   const bgMusicUrl = resolveMediaUrl(bgMusicDesc?.src, isPreview);
 
   const eventDate = payload.event.eventDate || '2026-12-20T16:00:00+07:00';
+  const dateLabel =
+    eventDate !== '2026-12-20T16:00:00+07:00' && !isNaN(Date.parse(eventDate))
+      ? new Date(eventDate)
+          .toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+          .toUpperCase()
+      : '20 DESEMBER 2026';
 
   return {
     event: {
       title: payload.event.title || 'The Nocturne Celebration',
       datetime: eventDate,
-      dateLabel: '20 DESEMBER 2026',
+      dateLabel,
       locale: 'id-ID',
       timeZone,
       openingText,

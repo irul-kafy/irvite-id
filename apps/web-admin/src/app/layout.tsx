@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import AdminRootShell from '../components/admin-root-shell';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'IRVITE.ID Admin',
-    template: '%s | IRVITE.ID Admin',
+    default: 'IRVITE Admin',
+    template: '%s | IRVITE Admin',
   },
-  description: 'Internal operational hub for IRVITE.ID Digital Invitation Platform',
+  description: 'Internal operational hub for IRVITE Digital Invitation Platform',
 };
 
 export default function RootLayout({
@@ -17,19 +17,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <head>
-        <Script id="admin-theme-init" strategy="beforeInteractive">
-          {`
-            try {
-              var t = localStorage.getItem('irvite-theme');
-              if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-              }
-            } catch (e) {}
-          `}
-        </Script>
-      </head>
-      <body>{children}</body>
+      <body>
+        <AdminRootShell>
+          {children}
+        </AdminRootShell>
+      </body>
     </html>
   );
 }

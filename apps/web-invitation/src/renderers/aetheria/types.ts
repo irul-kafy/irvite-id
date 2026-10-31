@@ -107,6 +107,8 @@ export interface InvitationTemplateProps {
   theme?: ThemeTokens;
   /** Mount the existing IRVITE RsvpForm here. No RSVP logic belongs to this template. */
   rsvpSlot?: ReactNode;
+  /** Mount the guest check-in QR code here. */
+  qrSlot?: ReactNode;
   /** Optional existing platform wishes UI; the template never persists submissions. */
   wishesSlot?: ReactNode;
   callbacks?: {

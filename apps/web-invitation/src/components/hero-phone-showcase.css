@@ -1,0 +1,484 @@
+/* ── Hero Phone Showcase Interactive Component ── */
+
+.hero-phone-showcase {
+  position: relative;
+  width: 500px;
+  max-width: 100%;
+  min-height: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  justify-self: end;
+  margin-right: 16px;
+}
+
+/* Decorative Background Celestial Orbits */
+.orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(197, 168, 128, 0.45);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.orbit--one {
+  width: 470px;
+  height: 470px;
+  border-color: rgba(197, 168, 128, 0.5);
+  box-shadow: 0 0 35px rgba(212, 175, 55, 0.06);
+}
+
+.orbit--two {
+  width: 350px;
+  height: 530px;
+  border-color: rgba(212, 175, 55, 0.4);
+  transform: translate(-50%, -50%) rotate(26deg);
+}
+
+/* Smartphone Exterior Bezel & Shadow */
+.irv-hero-phone {
+  position: relative;
+  z-index: 2;
+  width: 280px;
+  height: 550px;
+  padding: 10px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 40px;
+  background: linear-gradient(145deg, #1b241e, #0c110e);
+  box-shadow:
+    0 25px 70px rgba(12, 17, 14, 0.35),
+    0 10px 25px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transform: rotate(2.5deg);
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+  overflow: hidden;
+}
+
+.irv-hero-phone:hover {
+  transform: rotate(0deg) scale(1.02);
+  box-shadow:
+    0 35px 85px rgba(12, 17, 14, 0.42),
+    0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Dynamic Island & Status Bar */
+.irv-phone-island {
+  position: absolute;
+  top: 13px;
+  left: 10px;
+  right: 10px;
+  height: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.irv-island-time {
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.02em;
+}
+
+.irv-island-camera {
+  width: 66px;
+  height: 18px;
+  background: #000000;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.irv-camera-lens {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0a141b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: block;
+}
+
+.irv-island-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 9px;
+}
+
+.irv-signal-bar {
+  width: 2.5px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+}
+.irv-signal-bar:nth-child(1) { height: 4px; }
+.irv-signal-bar:nth-child(2) { height: 6.5px; }
+.irv-signal-bar:nth-child(3) { height: 9px; }
+
+/* Smartphone Screen Interior */
+.irv-phone-screen {
+  position: relative;
+  height: 100%;
+  border-radius: 32px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 44px 14px 18px;
+  color: #f7f9f7;
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: irv-screen-fade 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes irv-screen-fade {
+  from {
+    opacity: 0.65;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.irv-screen-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 25%, rgba(216, 184, 126, 0.15), transparent 60%);
+  pointer-events: none;
+}
+
+/* Emblem / Motif */
+.irv-screen-emblem {
+  position: relative;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 6px;
+  display: grid;
+  place-items: center;
+}
+
+.irv-emblem-svg {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+}
+
+/* Eyebrow Subtitle */
+.irv-screen-eyebrow {
+  position: relative;
+  z-index: 2;
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+  opacity: 0.95;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Arch Photo Frame */
+.irv-screen-arch {
+  position: relative;
+  z-index: 2;
+  width: 84px;
+  height: 108px;
+  border-radius: 99px 99px 8px 8px;
+  border: 1.5px solid #d8b87e;
+  overflow: hidden;
+  margin: 0 auto 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.irv-arch-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.irv-arch-glow {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* Couple Names */
+.irv-screen-names {
+  position: relative;
+  z-index: 2;
+  font-family: var(--serif, 'Playfair Display', Georgia, serif);
+  font-size: 23px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+  letter-spacing: -0.01em;
+}
+
+/* Divider */
+.irv-screen-divider {
+  position: relative;
+  z-index: 2;
+  width: 28px;
+  height: 1.5px;
+  margin: 8px 0 6px;
+  border-radius: 99px;
+  opacity: 0.85;
+}
+
+/* Date & Location */
+.irv-screen-date {
+  position: relative;
+  z-index: 2;
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.irv-screen-location {
+  position: relative;
+  z-index: 2;
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 7.5px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 12px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Luxury Guest Card (Kepada Yth) */
+.irv-screen-guest-box {
+  position: relative;
+  z-index: 2;
+  width: 86%;
+  background: rgba(18, 25, 21, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(216, 184, 126, 0.35);
+  border-radius: 12px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.irv-guest-label {
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.05em;
+}
+
+.irv-guest-title {
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.irv-guest-name {
+  font-family: var(--serif, 'Playfair Display', Georgia, serif);
+  font-size: 11px;
+  font-weight: 600;
+  color: #f7dfa4;
+  letter-spacing: 0.02em;
+}
+
+/* CTA Button "Buka Undangan" */
+.irv-screen-cta {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #c9a84c, #e8d5a0);
+  color: #121815;
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 99px;
+  text-decoration: none;
+  box-shadow:
+    0 4px 14px rgba(201, 168, 76, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.irv-screen-cta:hover {
+  transform: translateY(-1.5px) scale(1.03);
+  box-shadow:
+    0 6px 20px rgba(201, 168, 76, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.irv-cta-icon {
+  width: 10px;
+  height: 10px;
+  transition: transform 0.2s ease;
+}
+
+.irv-screen-cta:hover .irv-cta-icon {
+  transform: translateX(2px);
+}
+
+/* Floating Mini Music Disc */
+.irv-screen-music {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(18, 25, 21, 0.8);
+  border: 1px solid rgba(216, 184, 126, 0.4);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+.irv-music-disc {
+  font-size: 11px;
+  display: block;
+  animation: irv-disc-spin 5s linear infinite;
+}
+
+.irv-music-note {
+  position: absolute;
+  top: -6px;
+  right: -2px;
+  font-size: 9px;
+  color: #d8b87e;
+  animation: irv-note-float 2.2s ease-in-out infinite;
+}
+
+@keyframes irv-disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes irv-note-float {
+  0%, 100% { transform: translateY(0) scale(0.9); opacity: 0.6; }
+  50% { transform: translateY(-4px) scale(1.1); opacity: 1; }
+}
+
+/* Interactive 4-Template Switcher Bar */
+.irv-hero-tabs {
+  position: relative;
+  z-index: 4;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(27, 67, 50, 0.12);
+  border-radius: 99px;
+  padding: 4px;
+  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.08);
+}
+
+.irv-hero-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: none;
+  background: transparent;
+  color: #4a544e;
+  font-family: var(--sans, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.irv-hero-tab:hover {
+  color: #1b4332;
+  background: rgba(27, 67, 50, 0.05);
+}
+
+.irv-hero-tab--active {
+  background: #1b4332 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(27, 67, 50, 0.25);
+}
+
+.irv-tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c9a84c;
+  display: block;
+}
+
+.irv-hero-tab:not(.irv-hero-tab--active) .irv-tab-dot {
+  opacity: 0.4;
+}
+
+/* Mobile & Tablet Adjustments */
+@media (max-width: 991px) {
+  .hero-phone-showcase {
+    margin-right: 0;
+    margin-top: 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-phone-showcase {
+    width: 100%;
+    min-height: 520px;
+  }
+
+  .irv-hero-phone {
+    width: 260px;
+    height: 510px;
+    transform: rotate(0deg);
+  }
+
+  .irv-hero-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: 16px;
+    padding: 6px;
+    max-width: 320px;
+  }
+
+  .irv-hero-tab {
+    padding: 5px 10px;
+    font-size: 10px;
+  }
+}
+

@@ -1,13 +1,12 @@
- import type { Metadata } from 'next';
-import Script from 'next/script';
+import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'IRVITE.ID | Premium Digital Invitation',
+  title: 'IRVITE | Premium Digital Invitation',
   description: 'Layanan undangan digital premium & eksklusif. Terima Beres.',
-  keywords: ['undangan digital', 'undangan pernikahan', 'QR code', 'digital invitation', 'IRVITE.ID'],
+  keywords: ['undangan digital', 'undangan pernikahan', 'QR code', 'digital invitation', 'IRVITE'],
   openGraph: {
-    title: 'IRVITE.ID — Undangan Digital Premium',
+    title: 'IRVITE — Undangan Digital Premium',
     description: 'Layanan undangan digital terima beres untuk pernikahan eksklusif Anda.',
     type: 'website',
   },
@@ -15,23 +14,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`
-            try {
-              var theme = localStorage.getItem('irvite-theme');
-              if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                document.documentElement.dataset.theme = 'dark';
-              } else {
-                document.documentElement.classList.remove('dark');
-                document.documentElement.dataset.theme = 'light';
-              }
-            } catch (e) {}
-          `}
-        </Script>
-      </head>
+    <html lang="id" data-theme="light" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

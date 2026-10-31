@@ -145,11 +145,11 @@ export default function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
-              alt="IRVITE.ID"
+              alt="IRVITE"
               className="admin-login__panel-logo"
             />
           </div>
-          <p className="admin-login__panel-wordmark">irvite.id</p>
+          <p className="admin-login__panel-wordmark">irvite</p>
           <div className="admin-login__panel-ornament" />
           <p className="admin-login__panel-tagline">
             Digital Invitation<br />Management System

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
 import { parseQRData } from '../../../../utils/qr-parser';
 import './scanner.css';
@@ -21,12 +22,150 @@ interface CheckInAudit {
   scannedById: string;
 }
 
+function triggerScanFeedback() {
+  // 1. Haptic vibration feedback on mobile
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(60);
+    }
+  } catch {}
+
+  // 2. Audio feedback chime (C6 note crisp beep)
+  try {
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.09);
+    }
+  } catch {}
+}
+
+
+interface EventBanner {
+  title: string;
+  eventDate?: string | null;
+  locationDetails?: string | null;
+  partnerOneName?: string | null;
+  partnerTwoName?: string | null;
+  templateName?: string | null;
+  coverImageUrl?: string | null;
+}
+
+/** Maps a template cover URL into a safe, same-origin-renderable image src. */
+function resolveCoverSrc(url?: string | null): string | null {
+  if (!url) return null;
+  const imported = url.match(/^\/templates\/assets\/([0-9a-f-]{36})\/file$/i);
+  if (imported) return `/api/template-assets/${imported[1]}`;
+  if (url.startsWith('/') && !url.startsWith('//')) return url;
+  if (/^https:\/\//i.test(url)) return url;
+  return null;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  REGULAR: 'Reguler',
+  VIP: 'VIP',
+  VVIP: 'VVIP',
+  FAMILY: 'Keluarga',
+  FRIEND: 'Teman',
+  COLLEAGUE: 'Rekan Kerja',
+};
+
+function formatCategory(category?: string | null): string | null {
+  if (!category) return null;
+  const key = category.trim().toUpperCase();
+  return CATEGORY_LABELS[key] || category.trim();
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+}
+
+function EventBannerView({ banner }: { banner: EventBanner | null }) {
+  const cover = resolveCoverSrc(banner?.coverImageUrl);
+  const p1 = banner?.partnerOneName;
+  const p2 = banner?.partnerTwoName;
+  const hasCouple = Boolean(p1 && p2);
+  const headline = hasCouple ? `${p1} & ${p2}` : p1 || banner?.title || '';
+  const dateLabel = banner?.eventDate
+    ? new Date(banner.eventDate).toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
+
+  return (
+    <div className={`scan-banner${banner ? '' : ' scan-banner--loading'}`}>
+      {cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="scan-banner__img" src={cover} alt="" draggable={false} />
+      )}
+      <div className="scan-banner__shade" />
+      <span className="scan-banner__brand">IRVITE</span>
+      <div className="scan-banner__content">
+        {banner ? (
+          <>
+            <span className="scan-banner__eyebrow">{hasCouple ? 'The Wedding of' : 'Acara'}</span>
+            <h3 className="scan-banner__names">{headline}</h3>
+            {hasCouple && banner.title && banner.title !== headline && (
+              <p className="scan-banner__title">{banner.title}</p>
+            )}
+            {(dateLabel || banner.locationDetails) && (
+              <p className="scan-banner__meta">
+                {dateLabel}
+                {dateLabel && banner.locationDetails ? ' · ' : ''}
+                {banner.locationDetails}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="scan-skeleton scan-skeleton--sm" />
+            <span className="scan-skeleton scan-skeleton--lg" />
+            <span className="scan-skeleton scan-skeleton--md" />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CheckInHistory({ items, title }: { items?: CheckInAudit[]; title: string }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="scan-history">
+      <p className="scan-history__title">{title}</p>
+      <ul>
+        {items.map((ci) => (
+          <li key={ci.id}>
+            <span>{formatTime(ci.scannedAt)}</span>
+            <span>+{ci.scannedPax} pax</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 interface ResolveData {
   result: 'READY' | 'ALREADY_CHECKED_IN';
   status?: 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
   scannedPax?: number;
   remainingPax?: number;
-  guest: { name: string; maxPax: number };
+  guest: { name: string; maxPax: number; category?: string | null; customGreeting?: string | null };
+  event?: EventBanner | null;
   rsvp?: { response: string; pax?: number | null };
   attendance?: { scannedPax: number; scannedAt: string } | null;
   checkIns?: CheckInAudit[];
@@ -67,6 +206,17 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [selectedPax, setSelectedPax] = useState<number>(1);
   const [manualInput, setManualInput] = useState<string>('');
   const [lastCheckInResult, setLastCheckInResult] = useState<LastCheckInResult | null>(null);
+  const [eventBanner, setEventBanner] = useState<EventBanner | null>(null);
+
+  // Bottom sheet state
+  const [sheetClosing, setSheetClosing] = useState<boolean>(false);
+  const [dragY, setDragY] = useState<number>(0);
+  const dragStartRef = useRef<number | null>(null);
+  const [portalReady, setPortalReady] = useState<boolean>(false);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   // Refs for async safety and cleanup
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -87,22 +237,146 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     }
   }, []);
 
-  // Initialize Scanner - Single camera acquisition via ZXing preferring environment camera
+  // Initialize Scanner - High-speed hardware-accelerated detection with optimized ZXing fallback
   useEffect(() => {
     mountedRef.current = true;
-    const codeReader = new BrowserQRCodeReader();
 
     async function initCamera() {
       if (!videoRef.current) return;
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
         setScanStatus('ERROR');
-        setErrorMessage('Kamera membutuhkan HTTPS atau localhost dan browser yang mendukung kamera. Gunakan alamat HTTPS, atau masukkan kode undangan secara manual.');
+        setErrorMessage(
+          'Kamera membutuhkan HTTPS atau localhost dan browser yang mendukung kamera. Gunakan alamat HTTPS, atau masukkan kode undangan secara manual.'
+        );
         return;
       }
 
+      const handleCameraError = (err: unknown) => {
+        if (!mountedRef.current) return;
+        const error = err as Error;
+        if (error.name === 'NotAllowedError') {
+          setScanStatus('DENIED');
+          setErrorMessage('Izin kamera ditolak. Silakan masukkan kode secara manual.');
+        } else if (error.name === 'NotFoundError') {
+          setScanStatus('NOT_FOUND');
+          setErrorMessage('Kamera tidak ditemukan pada perangkat ini. Silakan gunakan input manual.');
+        } else {
+          setScanStatus('ERROR');
+          setErrorMessage('Gagal mengakses kamera. Silakan gunakan input manual.');
+        }
+      };
+
+      // 1. Check for hardware-accelerated native BarcodeDetector API (fastest, near-zero latency in Chrome/Edge/Android)
+      type BarcodeDetectorType = new (opts?: { formats: string[] }) => {
+        detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>;
+      };
+      const BarcodeDetectorCtor =
+        typeof window !== 'undefined'
+          ? (window as unknown as {
+              BarcodeDetector?: BarcodeDetectorType & {
+                getSupportedFormats?: () => Promise<string[]>;
+              };
+            }).BarcodeDetector
+          : undefined;
+
+      let useNativeDetector = false;
+      if (BarcodeDetectorCtor) {
+        try {
+          if (typeof BarcodeDetectorCtor.getSupportedFormats === 'function') {
+            const formats = await BarcodeDetectorCtor.getSupportedFormats();
+            useNativeDetector = Array.isArray(formats) && formats.includes('qr_code');
+          } else {
+            useNativeDetector = true;
+          }
+        } catch {
+          useNativeDetector = false;
+        }
+      }
+
+      if (useNativeDetector && BarcodeDetectorCtor) {
+        try {
+          const constraints: MediaStreamConstraints = {
+            audio: false,
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280, max: 1920 },
+              height: { ideal: 720, max: 1080 },
+            },
+          };
+
+          let stream: MediaStream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+          } catch {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: false,
+              video: { facingMode: { ideal: 'environment' } },
+            });
+          }
+
+          if (!mountedRef.current || !videoRef.current) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+
+          const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
+          let scanningActive = true;
+
+          const detectFrame = async () => {
+            if (!scanningActive || !mountedRef.current) return;
+            const videoEl = videoRef.current;
+            if (videoEl && videoEl.readyState >= 2 && !lockRef.current) {
+              try {
+                const detected = await detector.detect(videoEl);
+                if (detected && detected.length > 0 && !lockRef.current && mountedRef.current) {
+                  const codeText = detected[0].rawValue;
+                  if (codeText) {
+                    handleRawInput(codeText);
+                  }
+                }
+              } catch {
+                // Ignore transient frame detection error
+              }
+            }
+            if (scanningActive && mountedRef.current) {
+              // High-speed 30ms (~33 FPS) polling interval
+              setTimeout(detectFrame, 30);
+            }
+          };
+
+          setTimeout(detectFrame, 50);
+
+          const nativeControls: IScannerControls = {
+            stop: () => {
+              scanningActive = false;
+              stream.getTracks().forEach((t) => t.stop());
+              if (videoRef.current) {
+                videoRef.current.srcObject = null;
+              }
+            },
+          };
+
+          controlsRef.current = nativeControls;
+          setScanStatus('READY');
+          return;
+        } catch (err: unknown) {
+          // If native stream setup failed, fall through to ZXing fallback
+          console.warn('Native BarcodeDetector init failed, falling back to ZXing:', err);
+        }
+      }
+
+      // 2. High-performance fallback via optimized @zxing/browser
       try {
-        // Single camera acquisition flow preferring rear/environment camera on mobile
-        // Uses ideal constraint so devices without an environment camera gracefully fall back to default/front camera
+        const hints = new Map<number, unknown>();
+        hints.set(3, true); // DecodeHintType.TRY_HARDER
+        const codeReader = new BrowserQRCodeReader(hints, {
+          delayBetweenScanAttempts: 60, // 60ms between attempts (~16.6 FPS) instead of default 500ms
+          delayBetweenScanSuccess: 300,
+        });
+
         const scanCallback = (
           result: { getText: () => string } | undefined,
           _error: unknown,
@@ -124,6 +398,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               audio: false,
               video: {
                 facingMode: { ideal: 'environment' },
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 },
               },
             },
             videoRef.current,
@@ -132,11 +408,12 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         } catch (constraintErr: unknown) {
           const cErr = constraintErr as Error;
           if (cErr.name === 'OverconstrainedError' || cErr.name === 'ConstraintNotSatisfiedError') {
-            // Fallback when environment camera constraint cannot be satisfied on device
             controls = await codeReader.decodeFromConstraints(
               {
                 audio: false,
-                video: true,
+                video: {
+                  facingMode: { ideal: 'environment' },
+                },
               },
               videoRef.current,
               scanCallback
@@ -153,18 +430,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           controls.stop();
         }
       } catch (err: unknown) {
-        if (!mountedRef.current) return;
-        const error = err as Error;
-        if (error.name === 'NotAllowedError') {
-          setScanStatus('DENIED');
-          setErrorMessage('Izin kamera ditolak. Silakan masukkan kode secara manual.');
-        } else if (error.name === 'NotFoundError') {
-          setScanStatus('NOT_FOUND');
-          setErrorMessage('Kamera tidak ditemukan pada perangkat ini. Silakan gunakan input manual.');
-        } else {
-          setScanStatus('ERROR');
-          setErrorMessage('Gagal mengakses kamera. Silakan gunakan input manual.');
-        }
+        handleCameraError(err);
       }
     }
 
@@ -187,6 +453,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       return;
     }
 
+    triggerScanFeedback();
     lockRef.current = true;
     setErrorMessage('');
     setRawCode(parsedCode);
@@ -216,6 +483,9 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
       const data: ResolveData = await res.json();
       setResolveData(data);
+      if (data.event) {
+        setEventBanner(data.event);
+      }
 
       const maxPax = data.guest.maxPax;
       const alreadyScanned = typeof data.scannedPax === 'number' ? data.scannedPax : (data.attendance?.scannedPax ?? 0);
@@ -337,19 +607,297 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     setManualInput('');
     setErrorMessage('');
     setLastCheckInResult(null);
+    setSheetClosing(false);
+    setDragY(0);
+    dragStartRef.current = null;
     lockRef.current = false;
+  };
+
+  // ---- Bottom sheet behaviour ----
+  const sheetOpen = scanState !== 'IDLE' && !sheetClosing;
+  const canDismiss = scanState !== 'RESOLVING' && scanState !== 'CHECKING_IN';
+
+  const closeSheet = () => {
+    if (!canDismiss || sheetClosing || scanState === 'IDLE') return;
+    setSheetClosing(true);
+    setDragY(0);
+    window.setTimeout(() => {
+      if (mountedRef.current) handleReset();
+    }, 300);
+  };
+
+  // Keep a ref to the latest close handler for effects / timers
+  const closeSheetRef = useRef(closeSheet);
+  closeSheetRef.current = closeSheet;
+
+  // Close with Escape key
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSheetRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheetOpen]);
+
+  // Lock page scroll while the sheet is open
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [sheetOpen]);
+
+  // Auto-return to camera a few seconds after a successful check-in
+  useEffect(() => {
+    if (scanState !== 'CHECKED_IN') return;
+    const t = window.setTimeout(() => closeSheetRef.current(), 4000);
+    return () => window.clearTimeout(t);
+  }, [scanState]);
+
+  // Swipe-down to dismiss (touch + mouse via pointer events)
+  const onDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!canDismiss) return;
+    dragStartRef.current = e.clientY;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onDragMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragStartRef.current === null) return;
+    setDragY(Math.max(0, e.clientY - dragStartRef.current));
+  };
+  const onDragEnd = () => {
+    if (dragStartRef.current === null) return;
+    dragStartRef.current = null;
+    if (dragY > 100) {
+      closeSheet();
+    } else {
+      setDragY(0);
+    }
+  };
+
+  const renderSheetContent = () => {
+    if (scanState === 'RESOLVING') {
+      return (
+        <div className="scan-state scan-state--loading" role="status">
+          <span className="scan-spinner" aria-hidden="true" />
+          <p>Memverifikasi kode undangan...</p>
+        </div>
+      );
+    }
+
+    if (!resolveData) return null;
+
+    const guest = resolveData.guest;
+    const maxPax = guest.maxPax;
+    const alreadyScanned =
+      typeof resolveData.scannedPax === 'number'
+        ? resolveData.scannedPax
+        : resolveData.attendance?.scannedPax ?? 0;
+    const remainingPax =
+      typeof resolveData.remainingPax === 'number'
+        ? resolveData.remainingPax
+        : Math.max(0, maxPax - alreadyScanned);
+    const categoryLabel = formatCategory(guest.category);
+    const rsvpResponse = resolveData.rsvp?.response;
+    const rsvpLabel =
+      rsvpResponse === 'YES'
+        ? `Hadir (${resolveData.rsvp?.pax || 1} Pax)`
+        : rsvpResponse === 'NO'
+        ? 'Tidak Hadir'
+        : 'Belum Konfirmasi';
+    const rsvpTone = rsvpResponse === 'YES' ? 'yes' : rsvpResponse === 'NO' ? 'no' : 'pending';
+
+    const guestHeader = (
+      <div className="scan-guest">
+        <div className="scan-guest__avatar" aria-hidden="true">
+          {guest.name.trim().charAt(0).toUpperCase() || '?'}
+        </div>
+        <div className="scan-guest__info">
+          <p className="scan-guest__label">
+            {guest.customGreeting ? guest.customGreeting : 'Tamu Undangan'}
+          </p>
+          <h2 className="scan-guest__name">{guest.name}</h2>
+          <div className="scan-guest__tags">
+            {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
+            <span className={`scan-tag scan-tag--rsvp-${rsvpTone}`}>RSVP: {rsvpLabel}</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (scanState === 'PREVIEW' || scanState === 'CHECKING_IN') {
+      const busy = scanState === 'CHECKING_IN';
+      return (
+        <>
+          {guestHeader}
+
+          <div className="scan-stats">
+            <div className="scan-stat">
+              <span className="scan-stat__value">{maxPax}</span>
+              <span className="scan-stat__label">Maks. Pax</span>
+            </div>
+            <div className="scan-stat">
+              <span className="scan-stat__value">{alreadyScanned}</span>
+              <span className="scan-stat__label">Sudah Masuk</span>
+            </div>
+            <div className="scan-stat scan-stat--accent">
+              <span className="scan-stat__value">{remainingPax}</span>
+              <span className="scan-stat__label">Sisa Kuota</span>
+            </div>
+          </div>
+
+          <div className="scan-pax">
+            <p className="scan-pax__label">Jumlah tamu yang datang sekarang</p>
+            <div className="pax-controls">
+              <button
+                type="button"
+                onClick={() => setSelectedPax((p) => Math.max(1, p - 1))}
+                disabled={busy || selectedPax <= 1}
+                aria-label="Kurangi jumlah pax"
+              >
+                -
+              </button>
+              <span className="pax-value">{selectedPax}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedPax((p) => Math.min(remainingPax, p + 1))}
+                disabled={busy || selectedPax >= remainingPax}
+                aria-label="Tambah jumlah pax"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <CheckInHistory items={resolveData.checkIns} title="Riwayat Scan Sebelumnya" />
+
+          {errorMessage && (
+            <div className="scanner-error-message scan-sheet__error" aria-live="assertive">
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="scan-actions">
+            <button className="checkin-btn" onClick={handleCheckIn} disabled={busy}>
+              {busy ? 'Memproses Check-in...' : `Check In ${selectedPax} Tamu`}
+            </button>
+            <button className="cancel-btn" onClick={closeSheet} disabled={busy}>
+              Batal
+            </button>
+          </div>
+        </>
+      );
+    }
+
+    if (scanState === 'CHECKED_IN' && resolveData.attendance) {
+      const result = lastCheckInResult;
+      const isComplete = result?.status === 'COMPLETE' || result?.remainingPax === 0;
+      return (
+        <div className="scan-result scan-result--success" id="scanner-success-card">
+          <div className="scan-result__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
+          <p className="scan-result__name">{guest.name}</p>
+          {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
+          {result ? (
+            <div className="scan-result__details">
+              <p className="scan-result__delta">{result.deltaPax} tamu berhasil check-in</p>
+              <p>
+                Total hadir: <strong>{result.scannedPax} / {result.maxPax}</strong>
+              </p>
+              {!isComplete ? (
+                <p className="scan-result__remaining">
+                  Sisa kuota: <strong>{result.remainingPax}</strong>
+                </p>
+              ) : (
+                <p className="scan-result__complete">Seluruh kuota tamu sudah masuk</p>
+              )}
+            </div>
+          ) : (
+            <p>{resolveData.attendance.scannedPax} Pax</p>
+          )}
+          <p className="scan-result__time">
+            Waktu:{' '}
+            {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}
+          </p>
+          <div className="scan-autoclose" aria-hidden="true">
+            <span className="scan-autoclose__bar" />
+          </div>
+          <button className="reset-btn" onClick={closeSheet}>
+            Scan Tamu Berikutnya
+          </button>
+        </div>
+      );
+    }
+
+    if (scanState === 'ALREADY_CHECKED_IN' && resolveData.attendance) {
+      return (
+        <div className="scan-result scan-result--warning" id="scanner-warning-card">
+          <div className="scan-result__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="7" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
+          <h2>Sudah Check-In Lengkap</h2>
+          <p className="scan-result__name">{guest.name}</p>
+          {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
+          <div className="scan-result__details">
+            <p>
+              Total hadir:{' '}
+              <strong>
+                {resolveData.scannedPax ?? resolveData.attendance.scannedPax} / {maxPax} Pax
+              </strong>
+            </p>
+            <p>Semua kuota tamu sudah masuk.</p>
+          </div>
+          <p className="scan-result__time">
+            Waktu terakhir:{' '}
+            {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })}
+          </p>
+          <CheckInHistory items={resolveData.checkIns} title="Riwayat Scan" />
+          <button className="reset-btn" onClick={closeSheet}>
+            Scan Tamu Berikutnya
+          </button>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
     <div className="scanner-layout">
       {/* Viewport Area */}
-      <div className="scanner-viewport-container">
+      <div
+        className={`scanner-viewport-container${
+          scanState !== 'IDLE' ? ' scanner-viewport-container--success' : ''
+        }`}
+      >
         <video
           ref={videoRef}
           className="scanner-video"
           playsInline
           muted
         />
+
+        {/* Active high-speed scanning laser indicator */}
+        {scanStatus === 'READY' && scanState === 'IDLE' && (
+          <div className="scanner-laser" aria-hidden="true" />
+        )}
 
         {/* Overlay statuses */}
         <div className="scanner-overlay" aria-live="polite">
@@ -377,191 +925,46 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         </form>
       </div>
 
-      {/* Error Message for Logic */}
-      {errorMessage && scanStatus === 'READY' && (
+      {/* Error Message for Logic (shown below camera when the sheet is closed) */}
+      {errorMessage && scanStatus === 'READY' && scanState === 'IDLE' && (
         <div className="scanner-error-message" aria-live="assertive">
           {errorMessage}
         </div>
       )}
 
-      {/* UI States */}
-      <div className="scanner-ui-states" aria-live="polite">
-        {scanState === 'RESOLVING' && (
-          <div className="scanner-card loading-card">
-            <h2>Memverifikasi Kode...</h2>
-          </div>
-        )}
-
-        {scanState === 'PREVIEW' && resolveData && (() => {
-          const maxPax = resolveData.guest.maxPax;
-          const alreadyScanned = typeof resolveData.scannedPax === 'number' ? resolveData.scannedPax : (resolveData.attendance?.scannedPax ?? 0);
-          const remainingPax = typeof resolveData.remainingPax === 'number' ? resolveData.remainingPax : Math.max(0, maxPax - alreadyScanned);
-          const isPartial = alreadyScanned > 0;
-
-          return (
-            <div className="scanner-card preview-card">
-              <h2>{resolveData.guest.name}</h2>
-
-              {isPartial ? (
-                <div className="pax-summary" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'var(--surface-subtle, #f5f5f5)' }}>
-                  <p style={{ margin: '0 0 4px 0' }}>Maks. tamu: <strong>{maxPax}</strong></p>
-                  <p style={{ margin: '0 0 4px 0' }}>Sudah masuk: <strong>{alreadyScanned}</strong></p>
-                  <p style={{ margin: '0' }}>Sisa: <strong style={{ color: 'var(--primary, #0070f3)' }}>{remainingPax}</strong></p>
-                </div>
-              ) : (
-                <>
-                  <p className="rsvp-status">
-                    RSVP:{' '}
-                    <strong>
-                      {resolveData.rsvp?.response === 'YES'
-                        ? `Hadir (${resolveData.rsvp.pax || 1} Pax)`
-                        : resolveData.rsvp?.response === 'NO'
-                        ? 'Tidak Hadir'
-                        : 'Belum Konfirmasi'}
-                    </strong>
-                  </p>
-                  <p className="max-pax-hint">Maksimal diizinkan: {maxPax} Pax</p>
-                </>
-              )}
-
-              <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                <p style={{ fontWeight: 500, fontSize: '0.9rem', marginBottom: '0.25rem' }}>Pax datang sekarang:</p>
-                <div className="pax-controls">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPax((p) => Math.max(1, p - 1))}
-                    disabled={selectedPax <= 1}
-                    aria-label="Kurangi jumlah pax"
-                  >
-                    -
-                  </button>
-                  <span className="pax-value">{selectedPax}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPax((p) => Math.min(remainingPax, p + 1))}
-                    disabled={selectedPax >= remainingPax}
-                    aria-label="Tambah jumlah pax"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {resolveData.checkIns && resolveData.checkIns.length > 0 && (
-                <div className="checkin-history" style={{ margin: '0.75rem 0', padding: '0.5rem', borderRadius: '6px', background: '#fafafa', fontSize: '0.8rem', textAlign: 'left' }}>
-                  <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Riwayat Scan Sebelumnya:</p>
-                  <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                    {resolveData.checkIns.map((ci) => (
-                      <li key={ci.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                        <span>{new Date(ci.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span>+{ci.scannedPax} pax</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <button className="checkin-btn" onClick={handleCheckIn}>
-                Check In {selectedPax} Tamu
-              </button>
-              <button className="cancel-btn" onClick={handleReset}>
-                Batal
-              </button>
-            </div>
-          );
-        })()}
-
-        {scanState === 'CHECKING_IN' && (
-          <div className="scanner-card loading-card">
-            <h2>Memproses Check-in...</h2>
-          </div>
-        )}
-
-        {scanState === 'CHECKED_IN' && resolveData?.attendance && (() => {
-          const result = lastCheckInResult;
-          const isComplete = result?.status === 'COMPLETE' || result?.remainingPax === 0;
-
-          return (
-            <div className="scanner-card success-card" id="scanner-success-card">
-              <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
-              <p className="scanned-info">
-                <strong>{resolveData.guest.name}</strong>
-              </p>
-              {result ? (
-                <div className="checkin-success-details" style={{ margin: '0.75rem 0' }}>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 600 }}>
-                    {result.deltaPax} tamu berhasil check-in
-                  </p>
-                  <p style={{ margin: '0 0 4px 0', color: 'var(--text-secondary)' }}>
-                    Total hadir: <strong>{result.scannedPax} / {result.maxPax}</strong>
-                  </p>
-                  {!isComplete ? (
-                    <p style={{ margin: '0', color: 'var(--warning-text, #e67e22)', fontWeight: 500 }}>
-                      Sisa: <strong>{result.remainingPax}</strong>
-                    </p>
-                  ) : (
-                    <p style={{ margin: '0', color: 'var(--success-text, #27ae60)', fontWeight: 500 }}>
-                      Check-in selesai
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="scanned-info">
-                  {resolveData.attendance.scannedPax} Pax
-                </p>
-              )}
-              <p className="scanned-time" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Waktu:{' '}
-                {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
-              </p>
-              <button className="reset-btn" onClick={handleReset}>
-                Scan Tamu Berikutnya
-              </button>
-            </div>
-          );
-        })()}
-
-        {scanState === 'ALREADY_CHECKED_IN' && resolveData?.attendance && (
-          <div className="scanner-card warning-card" id="scanner-warning-card">
-            <h2>Sudah Check-In Lengkap</h2>
-            <p className="scanned-info">
-              <strong>{resolveData.guest.name}</strong> &bull;{' '}
-              {resolveData.scannedPax ?? resolveData.attendance.scannedPax} / {resolveData.guest.maxPax} Pax
-            </p>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: '4px 0' }}>
-              Semua kuota tamu sudah masuk.
-            </p>
-            <p className="scanned-time" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Waktu terakhir:{' '}
-              {new Date(resolveData.attendance.scannedAt).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })}
-            </p>
-            {resolveData.checkIns && resolveData.checkIns.length > 0 && (
-              <div className="checkin-history" style={{ margin: '0.75rem 0', padding: '0.5rem', borderRadius: '6px', background: '#fafafa', fontSize: '0.8rem', textAlign: 'left' }}>
-                <p style={{ fontWeight: 600, margin: '0 0 4px 0' }}>Riwayat Scan:</p>
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                  {resolveData.checkIns.map((ci) => (
-                    <li key={ci.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                      <span>{new Date(ci.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                      <span>+{ci.scannedPax} pax</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <button className="reset-btn" onClick={handleReset}>
-              Scan Tamu Berikutnya
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Bottom Sheet: guest data + event banner (slides up after a scan) */}
+      {portalReady && createPortal(
+      <>
+      <div
+        className={`scan-sheet-backdrop${sheetOpen ? ' is-open' : ''}`}
+        onClick={closeSheet}
+        aria-hidden="true"
+      />
+      <section
+        className={`scan-sheet${sheetOpen ? ' is-open' : ''}${dragY > 0 ? ' is-dragging' : ''}`}
+        style={dragY > 0 ? ({ '--drag-y': `${dragY}px` } as React.CSSProperties) : undefined}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detail tamu hasil scan"
+        aria-hidden={!sheetOpen}
+      >
+        <div
+          className="scan-sheet__grab"
+          onPointerDown={onDragStart}
+          onPointerMove={onDragMove}
+          onPointerUp={onDragEnd}
+          onPointerCancel={onDragEnd}
+        >
+          <span className="scan-sheet__handle" aria-hidden="true" />
+          <EventBannerView banner={resolveData?.event ?? eventBanner} />
+        </div>
+        <div className="scan-sheet__body" aria-live="polite">
+          {renderSheetContent()}
+        </div>
+      </section>
+      </>,
+      document.body
+      )}
     </div>
   );
 }

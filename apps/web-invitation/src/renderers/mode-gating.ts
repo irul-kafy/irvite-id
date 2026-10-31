@@ -76,7 +76,7 @@ export function shouldRenderGuestQr(
 
 /**
  * Checks whether the digital gift / QRIS section should be rendered.
- * Feature is deferred per IRVITE.ID MVP specification ? always suppressed in production.
+ * Feature is deferred per IRVITE MVP specification — always suppressed in production.
  */
 export function shouldRenderGiftSection(): boolean {
   return false;

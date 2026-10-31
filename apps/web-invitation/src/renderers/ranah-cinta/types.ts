@@ -108,6 +108,7 @@ export interface InvitationTemplateProps {
   data: InvitationData;
   guest?: Guest;
   rsvpSlot?: ReactNode;
+  qrSlot?: ReactNode;
   wishesSlot?: ReactNode;
   onRsvpClick?: () => void;
   onSendWish?: (wish: { name: string; message: string }) => Promise<void> | void;

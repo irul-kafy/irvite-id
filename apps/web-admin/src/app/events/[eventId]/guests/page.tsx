@@ -798,6 +798,24 @@ export default function GuestListPage({
           </div>
 
           <button
+            id="guests-live-monitor-btn"
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => router.push(`/events/${eventId}/monitor`)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              fontWeight: 600,
+              padding: '0.625rem 1rem',
+              color: 'var(--status-success, #059669)',
+            }}
+          >
+            <span>⚡</span>
+            Live Monitor
+          </button>
+
+          <button
             id="guests-add-btn"
             type="button"
             className="btn btn-primary"
@@ -1443,7 +1461,7 @@ export default function GuestListPage({
           </div>
 
           {/* MOBILE CARDS (Visible only on Mobile/Tablet) */}
-          <div className="guest-mobile-cards-container" style={{ display: 'none', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="guest-mobile-cards-container" style={{ flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
             {guests.map((guest) => {
               const inv = guest.invitation;
               const validAttendance = getValidAttendance(inv?.attendances);

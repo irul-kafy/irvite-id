@@ -125,7 +125,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
 
     assert.ok(demoContent.includes('fetchPublicTemplateAvailability'), 'Demo page must fetch DB lifecycle availability');
     assert.ok(demoContent.includes("matched.status !== 'AVAILABLE'"), 'Demo page must fail closed if status !== AVAILABLE');
-    assert.ok(demoContent.includes('Template Not Found | IRVITE.ID'), 'generateMetadata must return generic not found for unavailable templates');
+    assert.ok(demoContent.includes('Template Not Found | IRVITE'), 'generateMetadata must return generic not found for unavailable templates');
   });
 
   // ── Phase 14H Specific Tests: SSR, Freshness & Failure Modes ──

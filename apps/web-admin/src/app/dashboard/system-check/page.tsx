@@ -62,8 +62,8 @@ export default function SystemCheckPage() {
   }
 
   return (
-    <main className="system-check">
-      <p className="system-check__eyebrow">IRVITE.ID / OPERASIONAL WEB</p>
+    <section className="system-check">
+      <p className="system-check__eyebrow">IRVITE / OPERASIONAL WEB</p>
       <h1>Pengecekan Sistem</h1>
       <p className="system-check__intro">Periksa koneksi layanan sebelum mengelola undangan atau menerima tamu. Pemeriksaan ini hanya membaca status.</p>
       <button className="system-check__button" disabled={!authorized || running} onClick={runChecks}>
@@ -84,6 +84,6 @@ export default function SystemCheckPage() {
         <p>Status layanan tidak menggantikan uji acara. Dari event uji, periksa impor tamu, undangan umum/personal, RSVP, scan QR bertahap, dan ekspor laporan. Scanner berjalan langsung di browser HP atau laptop.</p>
         <Link href="/events">Buka daftar event →</Link>
       </section>
-    </main>
+    </section>
   );
 }

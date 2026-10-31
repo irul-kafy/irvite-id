@@ -14,6 +14,7 @@ import {
 } from '../mode-gating';
 import MediaGallery from '../../components/media-gallery';
 import { RsvpForm } from '../../components/rsvp-form';
+import QRDisplay from '../../components/QRDisplay';
 import './generic-theme.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -151,13 +152,25 @@ function Ornament({ color }: { color: string }) {
 
 // ── Closing Section ────────────────────────────────────────────────────────────
 
-function ClosingSection({ primaryColor }: { primaryColor: string }) {
+function ClosingSection({
+  primaryColor,
+  closingText,
+  signatureText,
+}: {
+  primaryColor: string;
+  closingText?: string;
+  signatureText?: string;
+}) {
   return (
-    <div className="gt-closing">
+    <footer className="gt-closing" id="closing">
       <Ornament color={primaryColor} />
-      <p className="gt-closing__text">We look forward to celebrating with you.</p>
-      <p className="gt-closing__signature">With love &amp; gratitude</p>
-    </div>
+      <p className="gt-closing__text">
+        {closingText || 'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.'}
+      </p>
+      <p className="gt-closing__signature">
+        {signatureText || 'Kami yang berbahagia • IRVITE'}
+      </p>
+    </footer>
   );
 }
 
@@ -529,6 +542,7 @@ function HeroArch({ heroImageSrc, primaryColor }: { heroImageSrc?: string; prima
 export default function GenericTheme({
   data,
   uniqueCode = '',
+  canonicalUrl,
   isPreview = false,
   mode,
 }: {
@@ -536,23 +550,50 @@ export default function GenericTheme({
     event: PublicInvitationResponse['event'];
     template?: PublicInvitationResponse['template'];
     media?: PublicInvitationResponse['media'];
+    mediaBySlot?: Record<string, import('../../types/public-invitation').PublicMediaDescriptor[]>;
     guest?: PublicInvitationResponse['guest'] | null;
     invitation?: PublicInvitationResponse['invitation'] | null;
     rsvp?: PublicInvitationResponse['rsvp'] | null;
   };
   uniqueCode?: string;
+  canonicalUrl?: string | null;
   isPreview?: boolean;
-  mode?: 'PUBLIC' | 'PERSONAL';
+  mode?: 'PUBLIC' | 'PERSONAL' | 'PERSONALIZED';
 }) {
-  const { event, guest, invitation, template, media, rsvp } = data;
-  const effectiveMode = resolveEffectiveMode(mode);
+  const { event, guest, invitation, template, media, mediaBySlot, rsvp } = data;
+  const effectiveMode = resolveEffectiveMode(mode === 'PERSONALIZED' ? 'PERSONAL' : mode);
   const config = normalizeConfig(template?.config || null);
   const [isOpened, setIsOpened] = useState(isPreview); // Skip cover in preview mode
 
   const resolveMediaSrc = (src?: string) => {
     if (!src) return undefined;
-    return src.startsWith('/api-proxy') ? src : `/api-proxy${src}`;
+    if (
+      src.startsWith('blob:') ||
+      src.startsWith('data:') ||
+      src.startsWith('http://') ||
+      src.startsWith('https://') ||
+      src.startsWith('/templates/') ||
+      src.startsWith('/api-proxy')
+    ) {
+      return src;
+    }
+    return `/api-proxy${src}`;
   };
+
+  const rawContent = (event.content || {}) as Record<string, unknown>;
+  const partnerOneName = typeof rawContent.partnerOneName === 'string' ? rawContent.partnerOneName.trim() : '';
+  const partnerTwoName = typeof rawContent.partnerTwoName === 'string' ? rawContent.partnerTwoName.trim() : '';
+  const displayCoupleTitle =
+    partnerOneName && partnerTwoName ? `${partnerOneName} & ${partnerTwoName}` : event.title;
+  const customIntro =
+    (typeof rawContent.intro === 'string' && rawContent.intro.trim()) ||
+    (typeof rawContent.openingText === 'string' && rawContent.openingText.trim()) ||
+    event.description ||
+    '';
+  const customClosingText =
+    (typeof rawContent.closingMessage === 'string' && rawContent.closingMessage.trim()) ||
+    (typeof rawContent.closing === 'string' && rawContent.closing.trim()) ||
+    undefined;
 
   const dateString = formatEventDate(event.eventDate);
 
@@ -561,16 +602,16 @@ export default function GenericTheme({
 
   const { primaryColor, secondaryColor, backgroundColor, textColor } = config.theme;
 
-  // Extract audio from media list
+  // Extract audio and hero photo from media list / slots
   const audioMedia = media?.find((m) => m.type === 'AUDIO');
-  const heroThumb = media?.find((m) => m.type === 'THUMBNAIL');
+  const heroSlotPhoto = mediaBySlot?.hero?.[0] || media?.find((m) => m.slot === 'hero' || m.type === 'THUMBNAIL');
   const templateAssets = template?.assets ?? [];
   const templateBackground = templateAssets.find((asset) => asset.slot === 'background');
   const templateMusic = templateAssets.find((asset) => asset.slot === 'music');
   const templateOrnaments = templateAssets.filter((asset) => asset.slot === 'ornament');
   const resolveTemplateAsset = (src?: string) => {
     if (!src) return undefined;
-    if (isPreview && src.startsWith('blob:')) return src;
+    if (src.startsWith('blob:') || src.startsWith('data:') || src.startsWith('/templates/')) return src;
     return /^\/templates\/assets\/[0-9a-f-]{36}\/file$/i.test(src) ? `/api-proxy${src}` : undefined;
   };
 
@@ -579,10 +620,25 @@ export default function GenericTheme({
     setIsOpened(true);
   }, []);
 
+  const resolvedQrUrl =
+    canonicalUrl ||
+    (uniqueCode
+      ? `https://irvite.id/i/${uniqueCode}`
+      : 'https://irvite.id/i/preview-tamu');
+
+  const showUnifiedRsvpAndQr =
+    (shouldRenderRsvp(effectiveMode, !!guest, !!rsvp) && Boolean(guest && rsvp)) ||
+    shouldRenderGuestQr(effectiveMode, isPreview) ||
+    isPreview;
+
   let sectionIndex = 0;
 
   const renderSection = (section: { id: string; enabled: boolean; order: number; variant: string }) => {
     if (!section.enabled) return null;
+    // Unified RSVP + QR and Closing are always rendered in fixed order at the bottom (right above the final slide)
+    if (section.id === 'rsvp' || section.id === 'guestQr' || section.id === 'closing') {
+      return null;
+    }
     const idx = sectionIndex++;
 
     switch (section.id) {
@@ -590,12 +646,18 @@ export default function GenericTheme({
         return (
           <Reveal key={section.id} index={idx}>
             <header className="gt-hero">
-              <HeroArch heroImageSrc={resolveMediaSrc(heroThumb?.src) || resolveTemplateAsset(templateBackground?.src)} primaryColor={primaryColor} />
+              <HeroArch
+                heroImageSrc={
+                  resolveMediaSrc(heroSlotPhoto?.src) ||
+                  resolveTemplateAsset(templateBackground?.src)
+                }
+                primaryColor={primaryColor}
+              />
               <p className="gt-hero__subtitle" style={{ color: secondaryColor }}>
-                Together with our families
+                Bersama keluarga tercinta, kami mengundang Anda
               </p>
               <h1 className={`gt-hero__title ${headingFontClass}`} style={{ color: primaryColor }}>
-                {event.title}
+                {displayCoupleTitle}
               </h1>
               <Ornament color={primaryColor} />
             </header>
@@ -612,9 +674,9 @@ export default function GenericTheme({
               <p className="gt-event-details__date" style={{ color: primaryColor }}>
                 {dateString}
               </p>
-              {event.description && (
+              {customIntro && (
                 <p className="gt-event-details__desc" style={{ color: secondaryColor }}>
-                  {event.description}
+                  {customIntro}
                 </p>
               )}
             </section>
@@ -655,7 +717,7 @@ export default function GenericTheme({
               </div>
               <Ornament color={primaryColor} />
               <h2 className={`gt-greeting__name ${headingFontClass}`} style={{ color: primaryColor }}>
-                Dear {guest.name},
+                Kepada Yth. {guest.name},
               </h2>
               {guest.customGreeting && (
                 <p className="gt-greeting__custom" style={{ color: secondaryColor }}>
@@ -676,25 +738,19 @@ export default function GenericTheme({
           </Reveal>
         ) : null;
 
-      case 'rsvp':
-        return shouldRenderRsvp(effectiveMode, !!guest, !!rsvp) && guest && rsvp ? (
+      case 'gallery': {
+        const galleryItems =
+          media?.filter((m) => m.type === 'PHOTO' || m.type === 'VIDEO') ?? [];
+        return galleryItems.length > 0 ? (
           <Reveal key={section.id} index={idx}>
-            <section className="gt-rsvp-wrapper">
+            <section className="gt-gallery-wrapper">
               <h2 className={`gt-section-title ${headingFontClass}`} style={{ color: primaryColor }}>
-                Konfirmasi Kehadiran
+                Galeri
               </h2>
-              <RsvpSection
-                uniqueCode={uniqueCode}
-                isPreview={isPreview}
-                maxPax={guest.maxPax}
-                initialRsvp={rsvp}
-              />
+              <MediaGallery media={galleryItems} />
             </section>
           </Reveal>
-        ) : null;
-
-      case 'gallery':
-        return isPreview ? (
+        ) : isPreview ? (
           <Reveal key={section.id} index={idx}>
             <section className="gt-gallery-wrapper">
               <h2 className={`gt-section-title ${headingFontClass}`} style={{ color: primaryColor }}>
@@ -703,16 +759,8 @@ export default function GenericTheme({
               <GalleryPlaceholder />
             </section>
           </Reveal>
-        ) : media && media.filter((m) => m.type === 'PHOTO' || m.type === 'VIDEO').length > 0 ? (
-          <Reveal key={section.id} index={idx}>
-            <section className="gt-gallery-wrapper">
-              <h2 className={`gt-section-title ${headingFontClass}`} style={{ color: primaryColor }}>
-                Galeri
-              </h2>
-              <MediaGallery media={media} />
-            </section>
-          </Reveal>
         ) : null;
+      }
 
       case 'countdown':
         return (
@@ -723,25 +771,6 @@ export default function GenericTheme({
               </h2>
               <CountdownPlaceholder eventDate={event.eventDate} />
             </section>
-          </Reveal>
-        );
-
-      case 'guestQr':
-        return shouldRenderGuestQr(effectiveMode, isPreview) ? (
-          <Reveal key={section.id} index={idx}>
-            <section className="gt-qr-wrapper">
-              <h2 className={`gt-section-title ${headingFontClass}`} style={{ color: primaryColor }}>
-                Tiket Masuk
-              </h2>
-              <QrPlaceholder />
-            </section>
-          </Reveal>
-        ) : null;
-
-      case 'closing':
-        return (
-          <Reveal key={section.id} index={idx}>
-            <ClosingSection primaryColor={primaryColor} />
           </Reveal>
         );
 
@@ -758,7 +787,7 @@ export default function GenericTheme({
       {/* Cover Screen — hidden after open */}
       {!isOpened && (
         <CoverScreen
-          title={event.title}
+          title={displayCoupleTitle}
           eventDate={event.eventDate}
           guestName={resolveCoverGuestName(effectiveMode, guest?.name)}
           onOpen={handleOpen}
@@ -798,6 +827,54 @@ export default function GenericTheme({
           {shouldRenderGiftSection() && (
             <GiftSection primaryColor={primaryColor} headingFontClass={headingFontClass} />
           )}
+
+          {/* Unified RSVP & Guest Check-in QR Pass right above the Closing Slide */}
+          {showUnifiedRsvpAndQr && (
+            <Reveal index={sectionIndex++}>
+              <section id="rsvp" className="gt-rsvp-qr-section">
+                <span className="gt-rsvp-qr-section__eyebrow" style={{ color: secondaryColor }}>
+                  Kehadiran &amp; Tiket Masuk
+                </span>
+                <h2 className={`gt-rsvp-qr-section__title ${headingFontClass}`} style={{ color: primaryColor }}>
+                  RSVP &amp; Kode QR Registrasi Tamu
+                </h2>
+                <p className="gt-rsvp-qr-section__lead" style={{ color: secondaryColor }}>
+                  Mohon konfirmasi kehadiran Anda melalui formulir di bawah ini, lalu simpan atau tunjukkan Kode QR kepada petugas penerima tamu saat tiba di lokasi acara.
+                </p>
+                <div className="gt-rsvp-qr-grid">
+                  <div className="gt-rsvp-qr-col">
+                    <RsvpForm
+                      uniqueCode={uniqueCode || 'preview-tamu'}
+                      maxPax={guest?.maxPax ?? 2}
+                      initialRsvp={
+                        rsvp ?? {
+                          response: 'PENDING',
+                          pax: null,
+                          canRespond: false,
+                        }
+                      }
+                    />
+                  </div>
+                  <div className="gt-rsvp-qr-col">
+                    <QRDisplay
+                      canonicalUrl={resolvedQrUrl}
+                      guestName={guest?.name || 'Tamu Undangan'}
+                      maxPax={guest?.maxPax ?? 2}
+                    />
+                  </div>
+                </div>
+              </section>
+            </Reveal>
+          )}
+
+          {/* Final Slide: Closing Section */}
+          <Reveal index={sectionIndex++}>
+            <ClosingSection
+              primaryColor={primaryColor}
+              closingText={customClosingText}
+              signatureText={`${displayCoupleTitle} • IRVITE`}
+            />
+          </Reveal>
         </article>
       </div>
 

@@ -21,7 +21,7 @@ export function Closing({ data }: { data: InvitationData }) {
         <p className={s.eyebrow}>{data.event.dateLabel}</p>
       </div>
       <footer className={s.brand}>
-        crafted with love · <span>irvite.id</span>
+        crafted with love · <span>irvite</span>
       </footer>
       <Lace />
     </section>

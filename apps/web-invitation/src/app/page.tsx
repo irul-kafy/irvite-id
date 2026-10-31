@@ -3,13 +3,14 @@ import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } fr
 import { fetchPublicTemplateAvailability } from '../api/client';
 import { LandingNavbar } from '../components/landing-navbar';
 import { PublicTemplateShowcase } from '../components/public-template-showcase';
+import { HeroPhoneShowcase } from '../components/hero-phone-showcase';
 import './landing.css';
 import { getGeneralContactUrl } from '../utils/contact';
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
-const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
-const MSG_BASIC = 'Halo IRVITE.ID, saya ingin memesan Paket Umum untuk undangan digital.';
-const MSG_PREMIUM = 'Halo IRVITE.ID, saya ingin memesan Paket Eksklusif dengan Tim Scanner di venue.';
+const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
+const MSG_BASIC = 'Halo IRVITE, saya ingin memesan Paket Esensial untuk undangan digital.';
+const MSG_PREMIUM = 'Halo IRVITE, saya ingin memesan Paket Personal dengan Tim Scanner di venue.';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 function IconWA({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -27,83 +28,83 @@ function IconWA({ className, style }: { className?: string; style?: React.CSSPro
   );
 }
 
-const TESTIMONIALS = [
-  {
-    quote:
-      'Tim IRVITE.ID luar biasa. QR Scanner berjalan mulus dan undangannya cantik banget—banyak yang tanya pesan di mana.',
-    name: 'Anisa & Ridwan',
-    event: 'Ballroom Kota Jakarta · Agustus 2026',
-  },
-  {
-    quote:
-      'Paket Eksklusif sangat worth it. Setiap tamu punya link dengan namanya sendiri, rasanya benar-benar VIP.',
-    name: 'Dita & Bagas',
-    event: 'Garden Party, Bandung · Juli 2026',
-  },
-  {
-    quote:
-      'Prosesnya benar-benar terima beres. Beberapa hari kemudian undangan sudah jadi dan siap dibagikan.',
-    name: 'Mega & Fauzan',
-    event: 'Resepsi Surabaya · September 2026',
-  },
-];
-
 // ── Hero Section ───────────────────────────────────────────────────────────────
 function HeroSection() {
-  const heroImage =
-    'https://images.unsplash.com/photo-1650377509454-1bbd8392e122?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=85&w=1400';
+  const contactUrl = getGeneralContactUrl(MSG_GENERAL);
 
   return (
     <section className="hero shell" id="top">
       <div className="hero-copy">
-        <p className="eyebrow">Undangan digital premium Indonesia</p>
+        {/* Decorative Golden Background Cincin / Arcs */}
+        <svg
+          className="hero-copy-arc"
+          viewBox="0 0 580 660"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          {/* Primary sweeping gold arc (cincin belakang) */}
+          <path
+            d="M 0 160 C 80 50 170 15 280 15 C 440 180 430 460 250 640"
+            stroke="rgba(197, 168, 128, 0.65)"
+            strokeWidth="1.5"
+          />
+          {/* Secondary concentric subtle gold arc */}
+          <path
+            d="M 0 210 C 90 70 190 30 320 30 C 480 200 470 480 290 660"
+            stroke="rgba(197, 168, 128, 0.32)"
+            strokeWidth="1.2"
+          />
+        </svg>
+        <p className="eyebrow">UNDANGAN DIGITAL, DIRANCANG DENGAN RASA</p>
         <h1>
-          Hari bahagia Anda,
-          <em> kami buat berkesan.</em>
+          Momen berharga,
+          <br />
+          <em>disampaikan dengan</em>
+          <br />
+          indah.
         </h1>
         <p className="lead">
-          Dari desain elegan, link personal per tamu, hingga tim scanner di venue.
-          Semua kami urus dengan rapi—Anda tinggal menikmati momen.
+          Undangan digital yang personal, tenang, dan mudah digunakan—dari
+          kesan pertama hingga tamu tiba di hari bahagia.
         </p>
         <div className="hero-actions">
           <a id="hero-catalog-btn" className="button primary" href="#katalog">
-            Lihat katalog <span aria-hidden="true">↘</span>
+            Lihat katalog <span aria-hidden="true">→</span>
           </a>
-          {getGeneralContactUrl(MSG_GENERAL) ? (
+          {contactUrl ? (
             <a
               id="hero-wa-btn"
-              href={getGeneralContactUrl(MSG_GENERAL)!}
+              href={contactUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-link"
+              className="button outline"
             >
-              Konsultasi via WhatsApp <span aria-hidden="true">→</span>
+              <IconWA className="wa-icon" />
+              <span>Konsultasi gratis</span>
             </a>
           ) : (
             <button
               type="button"
               id="hero-wa-btn"
               disabled
-              className="text-link"
+              className="button outline"
               style={{ opacity: 0.5, cursor: 'not-allowed' }}
               title="Kontak belum dikonfigurasi"
             >
-              Konsultasi via WhatsApp <span aria-hidden="true">→</span>
+              <IconWA className="wa-icon" />
+              <span>Konsultasi gratis</span>
             </button>
           )}
         </div>
-        <div className="trust">
-          <strong>4.9/5</strong>
-          <span>Dipercaya pasangan di berbagai kota Indonesia</span>
+        <div className="hero-proof" aria-label="Ringkasan layanan">
+          <span>DESAIN PERSONAL</span>
+          <span>PROSES TERARAH</span>
+          <span>DUKUNGAN NYATA</span>
         </div>
       </div>
-      <div className="hero-visual">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={heroImage}
-          alt="Pasangan pengantin Indonesia dalam busana tradisional"
-        />
-      </div>
+
+      <HeroPhoneShowcase />
     </section>
   );
 }
@@ -112,6 +113,7 @@ function HeroSection() {
 function FeatureStrip() {
   const items = [
     'Konsultasi gratis',
+    'Desain personal',
     'Tim profesional',
     'Scanner on-site',
     'Laporan real-time',
@@ -137,12 +139,12 @@ function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
     <section className="section catalog-section shell" id="katalog">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Katalog desain</p>
-          <h2>Temukan desain yang terasa personal.</h2>
+          <p className="eyebrow">Katalog pilihan</p>
+          <h2>Desain yang tidak terasa generik.</h2>
         </div>
         <p>
-          Setiap template dirancang dengan presisi dan dapat disesuaikan dengan
-          identitas pernikahan Anda.
+          Setiap template dibangun dari tipografi, ritme, dan detail yang bisa
+          disesuaikan dengan karakter perayaan Anda.
         </p>
       </div>
 
@@ -167,32 +169,35 @@ function PackagesSection() {
         <div className="section-heading compact">
           <div>
             <p className="eyebrow">Paket layanan</p>
-            <h2>Pilih yang tepat, tanpa biaya tersembunyi.</h2>
+            <h2>Pilih sesuai cara Anda merayakan.</h2>
           </div>
-          <p>Dua paket yang jelas untuk kebutuhan yang berbeda.</p>
+          <p>
+            Lingkup yang jelas sejak awal. Kami membantu memilihkan paket
+            berdasarkan kebutuhan, bukan sekadar yang paling mahal.
+          </p>
         </div>
         <div className="package-grid">
           <article className="package-card">
-            <p className="package-label">Paket Umum</p>
-            <h3>Satu link, semua tamu</h3>
+            <p className="package-label">Paket Esensial</p>
+            <h3>Satu tautan untuk semua</h3>
             <p className="package-desc">
-              Praktis untuk undangan yang simpel dan tetap berkelas.
+              Undangan digital praktis dan tetap berkelas untuk dibagikan ke seluruh tamu.
             </p>
             <ul>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> 1 link publik untuk semua tamu
+                <span className="icon" aria-hidden="true">✓</span> 1 tautan publik untuk semua tamu
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Desain template eksklusif
+                <span className="icon" aria-hidden="true">✓</span> Pilihan desain katalog eksklusif
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Form RSVP standar
+                <span className="icon" aria-hidden="true">✓</span> Form RSVP dan ucapan tamu online
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Informasi acara, maps, dan galeri
+                <span className="icon" aria-hidden="true">✓</span> Informasi acara, peta maps, dan galeri
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Tanpa QR Code per tamu
+                <span className="icon" aria-hidden="true">✓</span> Tanpa QR Code individual tamu
               </li>
             </ul>
             {getGeneralContactUrl(MSG_BASIC) ? (
@@ -204,7 +209,7 @@ function PackagesSection() {
                 rel="noopener noreferrer"
               >
                 <IconWA className="wa-icon" />
-                Pesan paket ini
+                Tanyakan paket ini
               </a>
             ) : (
               <button
@@ -216,33 +221,33 @@ function PackagesSection() {
                 title="Kontak belum dikonfigurasi"
               >
                 <IconWA className="wa-icon" />
-                Pesan paket ini
+                Tanyakan paket ini
               </button>
             )}
           </article>
 
           <article className="package-card featured">
             <span className="recommended">Paling diminati</span>
-            <p className="package-label">Paket Eksklusif</p>
-            <h3>Personal, sampai ke setiap tamu</h3>
+            <p className="package-label">Paket Personal</p>
+            <h3>Setiap tamu terasa istimewa</h3>
             <p className="package-desc">
-              Pengalaman premium dengan scanner profesional di venue.
+              Pengalaman personal premium lengkap dengan QR per tamu dan scanner di venue.
             </p>
             <ul>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Link personal dengan nama tamu
+                <span className="icon" aria-hidden="true">✓</span> Tautan personal dengan nama tamu masing-masing
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> QR Code eksklusif per tamu
+                <span className="icon" aria-hidden="true">✓</span> QR Code eksklusif per tamu undangan
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Tim scanner hadir di venue
+                <span className="icon" aria-hidden="true">✓</span> Tim scanner hadir siaga di lokasi acara
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Dashboard dan laporan real-time
+                <span className="icon" aria-hidden="true">✓</span> Dashboard dan laporan kehadiran real-time
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Semua fitur desain premium
+                <span className="icon" aria-hidden="true">✓</span> Semua fitur desain dan dukungan prioritas
               </li>
             </ul>
             {getGeneralContactUrl(MSG_PREMIUM) ? (
@@ -254,7 +259,7 @@ function PackagesSection() {
                 rel="noopener noreferrer"
               >
                 <IconWA className="wa-icon" />
-                Pesan paket eksklusif
+                Konsultasi paket personal
               </a>
             ) : (
               <button
@@ -266,7 +271,7 @@ function PackagesSection() {
                 title="Kontak belum dikonfigurasi"
               >
                 <IconWA className="wa-icon" />
-                Pesan paket eksklusif
+                Konsultasi paket personal
               </button>
             )}
           </article>
@@ -279,28 +284,55 @@ function PackagesSection() {
 // ── Process (Cara Kerja) Section ───────────────────────────────────────────────
 function ProcessSection() {
   const steps = [
-    ['01', 'Pilih desain', 'Pilih dari katalog atau konsultasikan desain custom bersama tim kami.'],
-    ['02', 'Kirim data tamu', 'Kirimkan data via WhatsApp atau template Excel yang kami siapkan.'],
-    ['03', 'Terima beres', 'Undangan siap dibagikan, dan tim kami hadir untuk paket eksklusif.'],
+    {
+      num: '01',
+      title: 'Pilih template & coba isi data',
+      body: 'Pilih desain dari katalog eksklusif kami, lalu coba masukkan nama pasangan, jadwal acara, lokasi, hingga foto Anda secara langsung pada layar pratinjau interaktif.',
+      note: 'Live preview gratis',
+    },
+    {
+      num: '02',
+      title: 'Sesuaikan konten dalam desain paten',
+      body: 'Tata letak, palet warna, tipografi, dan animasi telah dikurasi secara paten agar tetap berkelas—Anda cukup fokus menyesuaikan isi acara, cerita cinta, galeri foto, dan amplop digital.',
+      note: 'Estetika terjaga',
+    },
+    {
+      num: '03',
+      title: 'Kirim draf & konfirmasi via WhatsApp',
+      body: 'Sudah cocok dengan tampilannya? Klik tombol kirim agar draf pesanan beserta kode referensi otomatis tercatat di sistem kami dan langsung terhubung ke WhatsApp Admin.',
+      note: 'Tersinkron otomatis',
+    },
+    {
+      num: '04',
+      title: 'Verifikasi admin, data tamu & publikasi',
+      body: 'Tim kami memverifikasi detail undangan Anda, menyiapkan daftar tamu serta QR Code kehadiran (khusus Paket Personal), dan mengaktifkan tautan resmi yang siap dibagikan.',
+      note: 'Siap dibagikan',
+    },
   ];
 
   return (
     <section className="section process shell" id="cara-kerja">
       {/* Anchor helper for backward compatibility */}
       <span id="alur" style={{ display: 'none' }} />
-      <div className="section-heading">
+      <div className="section-heading section-heading--process">
         <div>
           <p className="eyebrow">Cara kerja</p>
-          <h2>Ringkas prosesnya. Tenang menjalaninya.</h2>
+          <h2>Jelas prosesnya. Ringan dijalaninya.</h2>
         </div>
-        <p>Dari konsultasi hingga hari H, kami mendampingi di setiap langkah.</p>
+        <p>
+          Kami memandu setiap tahap dengan alur yang sederhana, tanpa membuat Anda
+          berhadapan dengan kerumitan teknis.
+        </p>
       </div>
-      <div className="steps">
-        {steps.map(([num, title, body]) => (
-          <article key={num}>
-            <span className="step-number">{num}</span>
-            <h3>{title}</h3>
-            <p>{body}</p>
+      <div className="process-list">
+        {steps.map((item) => (
+          <article className="process-item" key={item.num}>
+            <span className="process-number">{item.num}</span>
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </div>
+            <small>{item.note}</small>
           </article>
         ))}
       </div>
@@ -313,19 +345,16 @@ function TestimonialsSection() {
   return (
     <section className="section testimonials">
       <div className="shell">
-        <p className="eyebrow">Cerita klien</p>
-        <h2>Kepercayaan yang kami jaga.</h2>
-        <div className="quote-grid">
-          {TESTIMONIALS.map((item) => (
-            <figure key={item.name}>
-              <div className="stars" aria-label="5 dari 5 bintang">★★★★★</div>
-              <blockquote>“{item.quote}”</blockquote>
-              <figcaption>
-                <strong>{item.name}</strong>
-                <span>{item.event}</span>
-              </figcaption>
-            </figure>
-          ))}
+        <p className="eyebrow">Dari hari bahagia mereka</p>
+        <blockquote className="testimonial-quote">
+          “Yang kami terima bukan hanya undangan yang cantik. Alurnya rapi, respons timnya cepat, dan semua tamu bisa menggunakannya tanpa bingung.”
+        </blockquote>
+        <div className="testimonial-person">
+          <span>RA</span>
+          <p>
+            <strong>Rania &amp; Aditya</strong>
+            <small>Bandung · 2026</small>
+          </p>
         </div>
       </div>
     </section>
@@ -334,44 +363,52 @@ function TestimonialsSection() {
 
 // ── Final CTA Section ──────────────────────────────────────────────────────────
 function CTASection() {
+  const contactUrl = getGeneralContactUrl(MSG_GENERAL);
+
   return (
     <section className="cta shell">
-      <p className="eyebrow">Mulai dari sini</p>
-      <h2>Siap membuat undangan yang tak terlupakan?</h2>
-      <p>Konsultasikan kebutuhan Anda. Gratis, tanpa komitmen.</p>
-      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-        {getGeneralContactUrl(MSG_GENERAL) ? (
-          <a
-            id="cta-banner-wa"
-            className="button light"
-            href={getGeneralContactUrl(MSG_GENERAL)!}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <IconWA className="wa-icon" />
-            Mulai konsultasi gratis
-          </a>
-        ) : (
-          <button
-            type="button"
-            id="cta-banner-wa"
-            disabled
-            className="button light"
-            style={{ opacity: 0.5, cursor: 'not-allowed' }}
-            title="Kontak belum dikonfigurasi"
-          >
-            <IconWA className="wa-icon" />
-            Mulai konsultasi gratis
-          </button>
-        )}
-        <Link
-          id="cta-banner-catalog"
-          href="/templates"
-          className="button outline"
-          style={{ color: 'var(--white)', borderColor: 'rgba(255,255,255,0.4)' }}
-        >
-          Lihat Semua Katalog
-        </Link>
+      <div className="cta-content">
+        <div>
+          <p className="eyebrow">Mulai dari percakapan sederhana</p>
+          <h2>Siap membuat kesan pertama yang berharga?</h2>
+        </div>
+        <div className="cta-right">
+          <p>Ceritakan rencana Anda. Konsultasi awal gratis dan tidak mengikat.</p>
+          <div className="cta-actions">
+            {contactUrl ? (
+              <a
+                id="cta-banner-wa"
+                className="button light"
+                href={contactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <IconWA className="wa-icon" />
+                Mulai konsultasi
+              </a>
+            ) : (
+              <button
+                type="button"
+                id="cta-banner-wa"
+                disabled
+                className="button light"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                title="Kontak belum dikonfigurasi"
+              >
+                <IconWA className="wa-icon" />
+                Mulai konsultasi
+              </button>
+            )}
+            <Link
+              id="cta-banner-catalog"
+              href="/templates"
+              className="button outline"
+              style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'transparent' }}
+            >
+              Lihat katalog
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -379,25 +416,27 @@ function CTASection() {
 
 // ── Footer ─────────────────────────────────────────────────────────────────────
 function Footer() {
+  const contactUrl = getGeneralContactUrl(MSG_GENERAL);
+
   return (
     <footer>
       <div className="shell footer-inner">
         <div>
           <a className="brand light-brand" href="#top">
-            IRVITE<span>.ID</span>
+            IRVITE
           </a>
           <p>
-            Layanan undangan digital premium<br />
-            untuk momen pernikahan Anda.
+            Undangan digital yang dirancang untuk dikenang.<br />
+            Elegan, personal, dan terpercaya.
           </p>
         </div>
         <div className="footer-links">
           <a href="#katalog">Katalog</a>
-          <a href="#paket">Paket</a>
           <a href="#cara-kerja">Cara kerja</a>
-          {getGeneralContactUrl(MSG_GENERAL) ? (
+          <a href="#paket">Paket</a>
+          {contactUrl ? (
             <a
-              href={getGeneralContactUrl(MSG_GENERAL)!}
+              href={contactUrl}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -407,7 +446,7 @@ function Footer() {
             <span style={{ opacity: 0.5, cursor: 'not-allowed' }}>WhatsApp</span>
           )}
         </div>
-        <p className="copyright">© {new Date().getFullYear()} IRVITE.ID</p>
+        <p className="copyright">© {new Date().getFullYear()} IRVITE</p>
       </div>
     </footer>
   );

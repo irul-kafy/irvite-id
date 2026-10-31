@@ -1,4 +1,5 @@
-﻿import { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import ScannerClient from './ScannerClient';
 import { cookies } from 'next/headers';
 import { getTrustedInvitationOrigin } from '@/utils/url';
@@ -51,6 +52,22 @@ export default async function ScannerPage({
     <div className="scanner-page-container">
       <header className="scanner-header">
         <h1>Event Scanner</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '0.375rem' }}>
+          <Link
+            href={`/events/${eventId}/monitor`}
+            style={{
+              fontSize: '0.8125rem',
+              color: 'var(--status-success, #059669)',
+              textDecoration: 'none',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            <span>⚡</span> Buka Live Monitor Kehadiran
+          </Link>
+        </div>
       </header>
       <main className="scanner-main">
         <ScannerClient 

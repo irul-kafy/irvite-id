@@ -25,7 +25,10 @@ export function getPublicWhatsAppNumber(): string | null {
     return null;
   }
 
-  const digits = raw.replace(/\D/g, '');
+  const rawDigits = raw.replace(/\D/g, '');
+  const digits = rawDigits.startsWith('08')
+    ? `62${rawDigits.slice(1)}`
+    : rawDigits;
 
   // Must not be the prohibited placeholder number
   if (digits === FORBIDDEN_PLACEHOLDER_NUMBER) {
@@ -60,7 +63,7 @@ export function getTemplateOrderUrl(displayName: string): string | null {
 
   const cleanName = displayName.trim();
   const text = encodeURIComponent(
-    `Halo IRVITE.ID, saya ingin memesan undangan digital dengan tema ${cleanName}. Boleh info lebih lanjut?`
+    `Halo IRVITE, saya ingin memesan undangan digital dengan tema ${cleanName}. Boleh info lebih lanjut?`
   );
 
   return `https://wa.me/${phone}?text=${text}`;
@@ -76,6 +79,6 @@ export function getGeneralContactUrl(customMessage?: string): string | null {
     return null;
   }
 
-  const msg = customMessage?.trim() || 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
+  const msg = customMessage?.trim() || 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 }

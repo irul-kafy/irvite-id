@@ -219,7 +219,7 @@ export default function DashboardPage() {
         <div className="dash-page-header__left">
           <h1 className="dash-page-header__title">Dashboard</h1>
           <p className="dash-page-header__subtitle">
-            Ringkasan operasional undangan digital irvite.id.
+            Ringkasan operasional undangan digital IRVITE.
           </p>
         </div>
 
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="dash-empty__title">Belum Ada Event Terdekat</div>
                   <p className="dash-empty__desc">
-                    Mulai buat undangan pernikahan pertama Anda menggunakan template siap pakai irvite.id.
+                    Mulai buat undangan pernikahan pertama Anda menggunakan template siap pakai IRVITE.
                   </p>
                   <button
                     type="button"
@@ -486,7 +486,7 @@ export default function DashboardPage() {
                     Tidak Hadir: <strong>{rsvpStats.declined}</strong>
                   </span>
                   <span className="dash-rsvp-legend-item">
-                    <span className="dash-rsvp-dot" style={{ background: 'var(--admin-accent)' }} />
+                    <span className="dash-rsvp-dot" style={{ background: "#7ca893" }} />
                     Belum Merespons: <strong>{rsvpStats.pending}</strong>
                   </span>
                   <span className="dash-rsvp-legend-item" style={{ color: 'var(--text-tertiary)' }}>
@@ -571,7 +571,7 @@ export default function DashboardPage() {
                       <IconArrowRight />
                     </div>
                     <p className="dash-action-card__desc">
-                      Eksplorasi koleksi desain undangan tetap siap pakai irvite.id.
+                      Eksplorasi koleksi desain undangan tetap siap pakai IRVITE.
                     </p>
                   </div>
                 </Link>
@@ -612,7 +612,7 @@ export default function DashboardPage() {
             <div className="dash-panel__body">
               <div className="dash-tpl-showcase">
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Setiap template di irvite.id memiliki tipografi dan layout yang dipatenkan untuk performa optimal di seluruh perangkat.
+                  Setiap template di IRVITE memiliki tipografi dan layout yang dipatenkan untuk performa optimal di seluruh perangkat.
                 </p>
 
                 <div className="dash-tpl-pill-list">

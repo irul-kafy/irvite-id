@@ -116,6 +116,8 @@ export interface InvitationTemplateProps {
   data: InvitationData;
   guest?: Guest;
   theme?: ThemeTokens;
+  rsvpSlot?: import("react").ReactNode;
+  qrSlot?: import("react").ReactNode;
   onRsvpSubmit?: (value: RsvpSubmission) => Promise<void> | void;
   onWishSubmit?: (value: WishSubmission) => Promise<void> | void;
   callbacks?: {

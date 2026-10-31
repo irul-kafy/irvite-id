@@ -203,7 +203,9 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   justify-content: center;
   background: #ece0c9;
@@ -1141,21 +1143,45 @@
 }
 
 /* =========================================================================
-   RSVP SECTION
+   RSVP & QR CHECK-IN SECTION (ABOVE CLOSING SLIDE)
    ========================================================================= */
 .rsvp {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10%;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 36px;
 }
 
-.rsvp p {
+.rsvpIntro {
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.rsvpIntro p:not(.eyebrow) {
   color: var(--muted);
+  max-width: 52ch;
+  margin: 14px auto 0;
 }
 
 .rsvp .kawung {
-  margin-top: 20px;
+  margin: 18px auto 0;
+}
+
+.rsvpQrGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 28px;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+.rsvpCardSlot,
+.qrCardSlot {
+  display: flex;
+  width: 100%;
 }
 
 .hostRsvp {
@@ -2254,6 +2280,102 @@
 
   .petals i:nth-child(n + 9) {
     display: none;
+  }
+}
+
+@container (max-width: 600px) {
+  .root {
+    font-size: 13px;
+  }
+  .section {
+    padding: 64px 20px;
+  }
+  .coverBrand {
+    top: 42px;
+    left: 20px;
+    right: 20px;
+    font-size: 7px;
+  }
+  .coverWords {
+    margin-top: 72px;
+    padding: 0 18px;
+  }
+  .coverWords h1 {
+    font-size: 56px;
+    margin: 10px 0;
+  }
+  .coverWords h1 em {
+    display: block;
+    font-size: 24px;
+    margin: 4px 0;
+  }
+  .hero {
+    min-height: 720px;
+    padding: 90px 18px 180px;
+  }
+  .heroBrand {
+    left: 20px;
+    right: 20px;
+    top: 32px;
+  }
+  .heroWords h2 {
+    font-size: 62px;
+  }
+  .heroWords h2 em {
+    display: block;
+    font-size: 28px;
+  }
+  .countdown {
+    gap: 16px;
+  }
+  .countdown strong {
+    font-size: 32px;
+  }
+  .coupleLayout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .couplePhoto {
+    max-width: 240px;
+    margin: 0 auto;
+  }
+  .eventGrid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .gallery {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px;
+  }
+  .gallery button {
+    height: 195px !important;
+  }
+  .gift,
+  .rsvp,
+  .rsvpQrGrid {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .closing {
+    min-height: 680px;
+    padding-top: 64px;
+    padding-bottom: 240px;
+  }
+  .nav {
+    gap: 12px;
+    padding: 9px 14px;
+    bottom: 16px;
+    max-width: calc(100% - 20px);
+    overflow-x: auto;
+  }
+  .nav a {
+    font-size: 9.5px;
+  }
+  .controls {
+    bottom: 74px;
+    right: 12px;
   }
 }
 

@@ -17,7 +17,8 @@ describe('AttendanceService', () => {
   beforeEach(async () => {
     const mockPrisma: any = {
       user: { findUnique: jest.fn() },
-      event: { findUnique: jest.fn(), findFirst: jest.fn() },
+      event: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
+      guest: { findMany: jest.fn() },
       invitation: { findUnique: jest.fn() },
       attendance: {
         create: jest.fn(),
@@ -26,6 +27,7 @@ describe('AttendanceService', () => {
       },
       attendanceCheckIn: {
         create: jest.fn(),
+        findMany: jest.fn(),
       },
       $transaction: jest.fn(async (cb: any) => await cb(mockPrisma)),
     };
@@ -727,4 +729,147 @@ describe('AttendanceService', () => {
       expect(resB.status).toBe('COMPLETE');
     });
   });
+
+  describe('getLiveAttendance', () => {
+    it('returns aggregated summary, recent check-ins, and guest list', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding of Romeo & Juliet',
+        slug: 'romeo-juliet',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+          },
+        },
+      });
+
+      const mockGuests = [
+        {
+          id: 'g1',
+          name: 'Budi Santoso',
+          category: 'VIP',
+          maxPax: 2,
+          customGreeting: 'Keluarga Budi',
+          invitation: {
+            uniqueCode: 'code1',
+            status: 'RSVP_YES',
+            rsvpPax: 2,
+            attendances: [
+              {
+                scannedPax: 2,
+                scannedAt: new Date('2026-12-01T10:00:00Z'),
+                status: 'VALID',
+                staff: { email: 'staff1@irvite.id' },
+              },
+            ],
+          },
+        },
+        {
+          id: 'g2',
+          name: 'Siti Rahma',
+          category: 'REGULAR',
+          maxPax: 3,
+          customGreeting: null,
+          invitation: {
+            uniqueCode: 'code2',
+            status: 'PENDING',
+            rsvpPax: null,
+            attendances: [],
+          },
+        },
+      ];
+      (prisma.guest.findMany as jest.Mock).mockResolvedValue(mockGuests);
+
+      const mockAudits = [
+        {
+          id: 'audit-1',
+          scannedPax: 2,
+          scannedAt: new Date('2026-12-01T10:00:00Z'),
+          staff: { email: 'staff1@irvite.id' },
+          attendance: {
+            invitation: {
+              guest: {
+                id: 'g1',
+                name: 'Budi Santoso',
+                category: 'VIP',
+                maxPax: 2,
+                customGreeting: 'Keluarga Budi',
+              },
+            },
+          },
+        },
+      ];
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue(mockAudits);
+
+      const live = await service.getLiveAttendance('e1', 'u1', Role.SUPER_ADMIN);
+
+      expect(live.event.id).toBe('e1');
+      expect(live.summary.totalGuests).toBe(2);
+      expect(live.summary.totalInvitedPax).toBe(5);
+      expect(live.summary.checkedInGuests).toBe(1);
+      expect(live.summary.checkedInPax).toBe(2);
+      expect(live.summary.remainingPax).toBe(3);
+      expect(live.summary.checkInRate).toBe(40.0);
+      expect(live.recentCheckIns).toHaveLength(1);
+      expect(live.recentCheckIns[0].guestName).toBe('Budi Santoso');
+      expect(live.googleSheet.connected).toBe(true);
+      expect(live.googleSheet.webhookUrl).toBe('https://script.google.com/macros/s/xyz/exec');
+    });
+  });
+
+  describe('Google Sheets Integration', () => {
+    it('getGoogleSheetConfig returns connected status and sample script', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl: 'https://script.google.com/macros/s/abc/exec',
+          },
+        },
+      });
+
+      const config = await service.getGoogleSheetConfig('e1', 'u1', Role.SUPER_ADMIN);
+      expect(config.connected).toBe(true);
+      expect(config.webhookUrl).toBe('https://script.google.com/macros/s/abc/exec');
+      expect(config.sampleScriptTemplate).toContain('doPost(e)');
+    });
+
+    it('updateGoogleSheetConfig updates event content with webhookUrl', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        content: {},
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({});
+
+      const result = await service.updateGoogleSheetConfig(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+        'https://script.google.com/macros/s/new/exec',
+      );
+      expect(result.success).toBe(true);
+      expect(result.connected).toBe(true);
+      expect(prisma.event.update).toHaveBeenCalled();
+    });
+  });
 });
+

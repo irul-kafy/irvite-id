@@ -161,12 +161,26 @@ export function adaptAetheriaData(
   const bgMusicUrl = resolveMediaUrl(bgMusicDesc?.src, isPreview);
 
   const eventDate = payload.event.eventDate || '2027-06-20T16:00:00+07:00';
+  const dateLabel =
+    eventDate !== '2027-06-20T16:00:00+07:00' && !isNaN(Date.parse(eventDate))
+      ? new Date(eventDate)
+          .toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })
+          .toUpperCase()
+      : '20 JUNI 2027';
+
+  const isCustomHeroBlob = Boolean(
+    isPreview && heroDesc?.src && /^blob:https?:\/\//.test(heroDesc.src),
+  );
 
   return {
     event: {
       title: payload.event.title || 'The wedding of',
       datetime: eventDate,
-      dateLabel: '20 JUNI 2027',
+      dateLabel,
       locale: 'id-ID',
       timeZone,
       openingText,
@@ -180,13 +194,17 @@ export function adaptAetheriaData(
         name: partnerOneFullName,
         shortName: partnerOneName,
         parents: partnerOneFamily,
-        portrait: { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerOneName}`, position: '28% 33%', zoom: 1.75 },
+        portrait: isCustomHeroBlob
+          ? { src: heroUrl, alt: `Potret ${partnerOneName}`, position: '50% 30%', zoom: 1.05 }
+          : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerOneName}`, position: '28% 33%', zoom: 1.75 },
       },
       groom: {
         name: partnerTwoFullName,
         shortName: partnerTwoName,
         parents: partnerTwoFamily,
-        portrait: { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerTwoName}`, position: '27% 15%', zoom: 2.8 },
+        portrait: isCustomHeroBlob
+          ? { src: heroUrl, alt: `Potret ${partnerTwoName}`, position: '50% 30%', zoom: 1.05 }
+          : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerTwoName}`, position: '27% 15%', zoom: 2.8 },
       },
     },
     media: {

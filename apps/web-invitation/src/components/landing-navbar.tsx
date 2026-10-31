@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ThemeToggle } from './theme-toggle';
 import { getGeneralContactUrl } from '../utils/contact';
 
-const MSG_GENERAL = 'Halo IRVITE.ID, saya tertarik dengan layanan undangan digitalnya.';
+const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
 
 function IconWA({ style }: { style?: React.CSSProperties }) {
   return (
@@ -24,39 +23,42 @@ export function LandingNavbar() {
   const contactUrl = getGeneralContactUrl(MSG_GENERAL);
 
   return (
-    <header className="nav shell" aria-label="Navigasi utama situs">
-      <a className="brand" href="#top" aria-label="IRVITE.ID beranda">
-        IRVITE<span>.ID</span>
-      </a>
-      <nav aria-label="Navigasi utama">
-        <a href="#katalog">Katalog</a>
-        <a href="#paket">Paket</a>
-        <a href="#cara-kerja">Cara kerja</a>
-      </nav>
-      <div className="nav-actions">
-        <ThemeToggle />
-        {contactUrl ? (
-          <a
-            id="nav-wa-cta"
-            href={contactUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="nav-cta"
-          >
-            <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
-            Konsultasi
-          </a>
-        ) : (
-          <span
-            id="nav-wa-cta"
-            className="nav-cta"
-            style={{ opacity: 0.5, cursor: 'not-allowed' }}
-            title="Kontak belum dikonfigurasi"
-          >
-            <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
-            Konsultasi
-          </span>
-        )}
+    <header className="site-header" aria-label="Navigasi utama situs">
+      <div className="site-header-inner">
+        <a className="brand" href="#top" aria-label="IRVITE beranda">
+          IRVITE
+        </a>
+        <div className="site-nav-group">
+          <nav aria-label="Navigasi utama">
+            <a href="#katalog">Katalog</a>
+            <a href="#cara-kerja">Cara kerja</a>
+            <a href="#paket">Paket</a>
+          </nav>
+          <div className="nav-actions">
+            {contactUrl ? (
+              <a
+                id="nav-wa-cta"
+                href={contactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-cta"
+              >
+                <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+                <span>Konsultasi</span>
+              </a>
+            ) : (
+              <span
+                id="nav-wa-cta"
+                className="nav-cta"
+                style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                title="Kontak belum dikonfigurasi"
+              >
+                <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+                <span>Konsultasi</span>
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );

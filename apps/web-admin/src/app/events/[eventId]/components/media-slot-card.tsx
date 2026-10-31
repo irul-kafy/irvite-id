@@ -472,7 +472,7 @@ export function MediaSlotCard({
                     Slot: {items[0].slot} &bull; Tipe: {items[0].type}
                   </div>
                   <div className="text-xs text-muted">
-                    Dibuat: {new Date(items[0].createdAt).toLocaleDateString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                    Dibuat: {new Date(items[0].createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>

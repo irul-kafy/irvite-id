@@ -26,6 +26,7 @@ export type RendererData = Partial<PublicInvitationResponse> & {
 export type RendererProps = {
   data: RendererData;
   uniqueCode?: string;
+  canonicalUrl?: string | null;
   isPreview?: boolean;
   mode?: 'PUBLIC' | 'PERSONAL' | 'PERSONALIZED';
 };

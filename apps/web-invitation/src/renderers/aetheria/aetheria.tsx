@@ -5,18 +5,20 @@ import type { RendererProps } from '../registry';
 import InvitationTemplate from './InvitationTemplate';
 import { adaptAetheriaData } from './aetheria.adapter';
 import type { Guest } from './types';
-import { shouldRenderSereneGuest, shouldRenderSereneRsvp } from '../mode-gating';
+import { shouldRenderSereneGuest } from '../mode-gating';
 import { RsvpForm } from '../../components/rsvp-form';
+import QRDisplay from '../../components/QRDisplay';
+import { getCanonicalInvitationUrl } from '../../utils/url';
 
 export default function AetheriaRenderer({
   data,
   uniqueCode,
+  canonicalUrl,
   mode = 'PUBLIC',
   isPreview = false,
 }: RendererProps) {
   const invitationData = adaptAetheriaData(data, isPreview);
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
-  const rsvpVisible = shouldRenderSereneRsvp(mode, data.guest, data.rsvp) && Boolean(uniqueCode);
 
   const guest: Guest = guestVisible && data.guest
     ? {
@@ -30,7 +32,7 @@ export default function AetheriaRenderer({
       };
 
   const features = {
-    rsvp: rsvpVisible,
+    rsvp: true,
     countdown: true,
     couple: true,
     story: true,
@@ -41,13 +43,27 @@ export default function AetheriaRenderer({
     music: true,
   };
 
-  const rsvpSlot = rsvpVisible && uniqueCode ? (
+  const rsvpSlot = (
     <RsvpForm
-      uniqueCode={uniqueCode}
+      key={uniqueCode || 'preview-rsvp'}
+      uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
     />
-  ) : undefined;
+  );
+
+  const effectiveCanonicalUrl =
+    canonicalUrl ||
+    (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+    'https://irvite.id/i/SIMULASI-TAMU';
+
+  const qrSlot = (
+    <QRDisplay
+      canonicalUrl={effectiveCanonicalUrl}
+      guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
+      maxPax={data.guest?.maxPax || 2}
+    />
+  );
 
   return (
     <InvitationTemplate
@@ -57,6 +73,7 @@ export default function AetheriaRenderer({
       }}
       guest={guest}
       rsvpSlot={rsvpSlot}
+      qrSlot={qrSlot}
     />
   );
 }

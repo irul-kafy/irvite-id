@@ -73,30 +73,37 @@ export function PublicTemplateShowcase({ templates }: PublicTemplateShowcaseProp
                   Lihat Demo
                 </a>
 
-                {orderUrl ? (
+                <a
+                  id={'catalog-customize-' + t.slug}
+                  href={`${t.demoPath}?customize=1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="cat-btn cat-btn--order"
+                  aria-label={`Coba isi data & foto Anda pada template ${t.displayName}`}
+                >
+                  Coba Isi Data
+                </a>
+              </div>
+
+              {orderUrl && (
+                <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
                   <a
                     id={'catalog-order-' + t.slug}
                     href={orderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="cat-btn cat-btn--order"
+                    style={{
+                      fontSize: '0.78rem',
+                      color: '#8b733e',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
                     aria-label={`Pesan template ${t.displayName} via WhatsApp`}
                   >
-                    Pilih Template
+                    Langsung tanya via WhatsApp →
                   </a>
-                ) : (
-                  <button
-                    type="button"
-                    id={'catalog-order-' + t.slug}
-                    disabled
-                    className="cat-btn cat-btn--order"
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                    title="Kontak pemesanan belum dikonfigurasi"
-                  >
-                    Pilih Template
-                  </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </article>
         );

@@ -172,7 +172,7 @@ export default function EventsPage() {
           <h1 className="admin-page__title">Events</h1>
           <p className="admin-page__subtitle">
             {isAdmin
-              ? 'Kelola seluruh acara dan undangan client IRVITE.ID.'
+              ? 'Kelola seluruh acara dan undangan client IRVITE.'
               : 'Pilih acara yang ditugaskan untuk membuka scanner QR kehadiran.'}
           </p>
         </div>
@@ -293,10 +293,11 @@ export default function EventsPage() {
         </div>
       )}
 
-      {/* Events Table */}
+      {/* Events Table (Desktop) & Cards (Mobile) */}
       {!loading && filteredEvents.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
+        <>
+          <div className="table-wrap events-desktop-table">
+            <table className="data-table">
             <thead>
               <tr>
                 <th>Acara</th>
@@ -447,7 +448,151 @@ export default function EventsPage() {
             </tbody>
           </table>
         </div>
-      )}
-    </>
-  );
+
+        {/* Mobile Events Cards */}
+        <div className="events-mobile-cards">
+          {filteredEvents.map((event) => {
+            let canonicalPublicUrl = '';
+            if (event.slug) {
+              try {
+                canonicalPublicUrl = getCanonicalPublicEventUrl(event.slug);
+              } catch {
+                canonicalPublicUrl = `/e/${event.slug}`;
+              }
+            }
+
+            return (
+              <div
+                key={event.id}
+                className="card"
+                style={{
+                  padding: '1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              >
+                {/* Header: Title & Status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                      {event.title}
+                    </h3>
+                    <div className="text-xs text-muted mt-1 flex-center gap-2" style={{ flexWrap: 'wrap' }}>
+                      {event.slug && (
+                        <span style={{ color: 'var(--admin-accent)', fontWeight: 500 }}>
+                          /e/{event.slug}
+                        </span>
+                      )}
+                      <span>•</span>
+                      <span>ID: {event.id.slice(0, 8)}...</span>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <span className={statusBadgeClass(event.status)} style={{ flexShrink: 0 }}>
+                      {event.status || 'DRAFT'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Metadata */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  <div className="flex-center gap-2">
+                    <IconCalendar />
+                    <span>
+                      {new Date(event.eventDate).toLocaleDateString('id-ID', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  {event.locationDetails && (
+                    <div className="flex-center gap-2">
+                      <IconLocation />
+                      <span style={{ wordBreak: 'break-word' }}>{event.locationDetails}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: isAdmin ? 'repeat(auto-fill, minmax(80px, 1fr))' : '1fr',
+                    gap: '0.375rem',
+                    paddingTop: '0.5rem',
+                    borderTop: '1px solid var(--admin-border)',
+                  }}
+                >
+                  {isAdmin && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => router.push(`/events/${event.id}`)}
+                      type="button"
+                      style={{ fontWeight: 600, justifyContent: 'center' }}
+                    >
+                      Kelola
+                    </button>
+                  )}
+
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => router.push(`/events/${event.id}/scanner`)}
+                    type="button"
+                    style={{ justifyContent: 'center' }}
+                  >
+                    <IconScan />
+                    Scanner
+                  </button>
+
+                  {isAdmin && (
+                    <>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => router.push(`/events/${event.id}/guests`)}
+                        type="button"
+                        style={{ justifyContent: 'center' }}
+                      >
+                        <IconUsers />
+                        Tamu
+                      </button>
+
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => router.push(`/events/${event.id}/edit`)}
+                        type="button"
+                        style={{ justifyContent: 'center' }}
+                      >
+                        <IconEdit />
+                        Edit
+                      </button>
+
+                      {event.status === 'PUBLISHED' && event.slug && (
+                        <a
+                          href={canonicalPublicUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-success btn-sm flex-center gap-1"
+                          style={{ justifyContent: 'center' }}
+                        >
+                          <IconExternal />
+                          Publik
+                        </a>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    )}
+
+
+  </>
+);
 }

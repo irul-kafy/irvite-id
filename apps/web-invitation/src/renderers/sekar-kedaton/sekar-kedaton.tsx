@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
+import QRDisplay from '../../components/QRDisplay';
+import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp } from '../mode-gating';
 import { formatCeremonyDate, formatCeremonyDateShort, formatCeremonyTimeRange, parseTargetEpoch } from '../datetime-formatter';
@@ -61,6 +63,7 @@ function Countdown({ epoch }: { epoch: number | null }) {
 export default function SekarKedatonRenderer({
   data,
   uniqueCode,
+  canonicalUrl,
   mode = 'PUBLIC',
   isPreview = false,
 }: RendererProps) {
@@ -209,7 +212,7 @@ export default function SekarKedatonRenderer({
             <button className={s.primaryButton} onClick={openInvitation}>Buka undangan <span>↗</span></button>
           </div>
           <button className={s.skip} onClick={() => setSkip(true)} disabled={skip}>Lewati animasi pembuka ↓</button>
-          <span className={s.coverCredit}>irvite.id</span>
+          <span className={s.coverCredit}>irvite</span>
         </section>
       )}
 
@@ -338,20 +341,6 @@ export default function SekarKedatonRenderer({
             </section>
           )}
 
-          {rsvpVisible && data.guest && data.rsvp && uniqueCode && (
-            <section id="rsvp" className={`${s.section} ${s.rsvp}`}>
-              <div data-reveal="left">
-                <p className={s.eyebrow}>Kehadiran yang berarti</p>
-                <h2>Sebuah tempat<br /><em>untuk Anda.</em></h2>
-                <p>Kami menantikan kehadiran Anda untuk melengkapi hari bahagia ini.</p>
-                <Kawung />
-              </div>
-              <div className={s.hostRsvp} data-reveal="right">
-                <RsvpForm key={uniqueCode} uniqueCode={uniqueCode} maxPax={data.guest.maxPax} initialRsvp={data.rsvp} />
-              </div>
-            </section>
-          )}
-
           {Boolean(content.giftAccounts?.length) && (
             <section id="gift" className={`${s.section} ${s.gift}`}>
               <div className={s.giftIntro} data-reveal="left">
@@ -376,6 +365,36 @@ export default function SekarKedatonRenderer({
             </section>
           )}
 
+          <section id="rsvp" className={`${s.section} ${s.rsvp}`}>
+            <div className={s.rsvpIntro} data-reveal="left">
+              <p className={s.eyebrow}>Kehadiran &amp; Registrasi Tamu</p>
+              <h2>Sebuah tempat<br /><em>untuk Anda.</em></h2>
+              <p>Kami menantikan kehadiran Anda untuk melengkapi hari bahagia ini. Silakan konfirmasi kehadiran melalui RSVP dan tunjukkan kode QR saat registrasi di lokasi acara.</p>
+              <Kawung />
+            </div>
+            <div className={s.rsvpQrGrid} data-reveal="right">
+              <div className={s.rsvpCardSlot}>
+                <RsvpForm
+                  key={uniqueCode || 'preview-rsvp'}
+                  uniqueCode={uniqueCode || 'simulasi-tamu'}
+                  maxPax={data.guest?.maxPax || 2}
+                  initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
+                />
+              </div>
+              <div className={s.qrCardSlot}>
+                <QRDisplay
+                  canonicalUrl={
+                    canonicalUrl ||
+                    (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+                    'https://irvite.id/i/SIMULASI-TAMU'
+                  }
+                  guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
+                  maxPax={data.guest?.maxPax || 2}
+                />
+              </div>
+            </div>
+          </section>
+
           <section className={`${s.section} ${s.closing}`} data-motion>
             <Scene />
             <div data-reveal="soft">
@@ -386,7 +405,7 @@ export default function SekarKedatonRenderer({
               <h3>{nameOne} & {nameTwo}</h3>
               <a href="#home">Kembali ke awal ↑</a>
             </div>
-            <footer>crafted with love <strong>irvite.id</strong></footer>
+            <footer>crafted with love <strong>irvite</strong></footer>
           </section>
 
           <nav className={s.nav} aria-label="Navigasi undangan">
@@ -394,8 +413,8 @@ export default function SekarKedatonRenderer({
             <a href="#couple">Mempelai</a>
             {ceremonies.length > 0 && <a href="#events">Acara</a>}
             {gallery.length > 0 && <a href="#gallery">Galeri</a>}
-            {rsvpVisible && <a href="#rsvp">RSVP</a>}
             {Boolean(content.giftAccounts?.length) && <a href="#gift">Gift</a>}
+            <a href="#rsvp">RSVP &amp; QR</a>
           </nav>
         </main>
       )}

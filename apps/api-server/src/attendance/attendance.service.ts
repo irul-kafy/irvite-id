@@ -5,6 +5,7 @@ import {
   ConflictException,
   BadRequestException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Role } from 'database';
@@ -18,6 +19,8 @@ export type AttendanceCheckInStatus = 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
 
 @Injectable()
 export class AttendanceService {
+  private readonly logger = new Logger(AttendanceService.name);
+
   constructor(
     private readonly db: PrismaService,
     private readonly reportsService: ReportsService,
@@ -108,8 +111,53 @@ export class AttendanceService {
     return this.reportsService.exportAttendanceReport(eventId, event, query);
   }
 
+  /**
+   * Builds a safe, display-only event banner summary for the scanner bottom sheet.
+   * Uses the event's template cover (previewImageUrl) and couple names from content.
+   * Never throws: banner data is optional and must not block attendance resolution.
+   */
+  private async buildEventBanner(event: Event | null | undefined) {
+    if (!event) return null;
+    const content =
+      event.content &&
+      typeof event.content === 'object' &&
+      !Array.isArray(event.content)
+        ? (event.content as Record<string, unknown>)
+        : {};
+    const pick = (key: string): string | null => {
+      const v = content[key];
+      return typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : null;
+    };
+
+    let coverImageUrl: string | null = null;
+    let templateName: string | null = null;
+    if (event.templateId) {
+      try {
+        const template = await this.db.template?.findUnique?.({
+          where: { id: event.templateId },
+          select: { name: true, previewImageUrl: true },
+        });
+        coverImageUrl = template?.previewImageUrl || null;
+        templateName = template?.name || null;
+      } catch {
+        coverImageUrl = null;
+        templateName = null;
+      }
+    }
+
+    return {
+      title: event.title,
+      eventDate: event.eventDate,
+      locationDetails: event.locationDetails ?? null,
+      partnerOneName: pick('partnerOneName'),
+      partnerTwoName: pick('partnerTwoName'),
+      templateName,
+      coverImageUrl,
+    };
+  }
+
   async resolve(eventId: string, userId: string, _role: Role, code: string) {
-    await this.authorizeEvent(eventId, userId);
+    const authorizedEvent = await this.authorizeEvent(eventId, userId);
 
     const invitation = await this.db.invitation.findUnique({
       where: { uniqueCode: code },
@@ -153,14 +201,19 @@ export class AttendanceService {
     if (invitation.status === 'RSVP_YES') rsvpResponse = 'YES';
     else if (invitation.status === 'RSVP_NO') rsvpResponse = 'NO';
 
+    const eventBanner = await this.buildEventBanner(authorizedEvent);
+
     return {
       result,
       status,
       scannedPax: alreadyScanned,
       remainingPax,
+      event: eventBanner,
       guest: {
         name: invitation.guest.name,
         maxPax,
+        category: invitation.guest.category ?? null,
+        customGreeting: invitation.guest.customGreeting ?? null,
       },
       rsvp: {
         response: rsvpResponse,
@@ -214,13 +267,28 @@ export class AttendanceService {
       throw new BadRequestException('Pax exceeds maximum allowed');
     }
 
-    return this.executeAtomicCheckIn(
+    const result = await this.executeAtomicCheckIn(
       invitation.id,
       eventId,
       userId,
       pax,
       maxPax,
     );
+
+    if (result.result === 'CHECKED_IN') {
+      void this.dispatchGoogleSheetSync(
+        eventId,
+        invitation.guest,
+        pax,
+        result.scannedPax,
+        maxPax,
+        result.remainingPax,
+        result.status,
+        userId,
+      );
+    }
+
+    return result;
   }
 
   private async executeAtomicCheckIn(
@@ -420,4 +488,463 @@ export class AttendanceService {
       },
     };
   }
+
+  private async authorizeEventOperator(
+    eventId: string,
+    userId: string,
+    role: Role,
+  ) {
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user || !user.isActive) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (user.role === Role.SUPER_ADMIN) {
+      const event = await this.db.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, title: true, content: true },
+      });
+      if (!event) throw new NotFoundException('Event not found');
+      return event;
+    }
+
+    const event = await this.db.event.findUnique({
+      where: { id: eventId },
+      include: {
+        staffEvents: {
+          where: { userId },
+        },
+      },
+    });
+    if (!event) throw new NotFoundException('Event not found');
+
+    const isOwner = event.userId === userId;
+    const isAssignedStaff = event.staffEvents && event.staffEvents.length > 0;
+
+    if (!isOwner && !isAssignedStaff) {
+      throw new ForbiddenException('Anda tidak memiliki akses ke acara ini');
+    }
+
+    return event;
+  }
+
+  async getLiveAttendance(eventId: string, userId: string, role: Role) {
+    const event = await this.authorizeEvent(eventId, userId);
+
+    const [guests, recentAudits] = await Promise.all([
+      this.db.guest.findMany({
+        where: { eventId },
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          maxPax: true,
+          customGreeting: true,
+          invitation: {
+            select: {
+              uniqueCode: true,
+              status: true,
+              rsvpPax: true,
+              attendances: {
+                select: {
+                  scannedPax: true,
+                  scannedAt: true,
+                  status: true,
+                  staff: { select: { email: true } },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      this.db.attendanceCheckIn.findMany({
+        where: { attendance: { eventId } },
+        select: {
+          id: true,
+          scannedPax: true,
+          scannedAt: true,
+          staff: { select: { email: true } },
+          attendance: {
+            select: {
+              invitation: {
+                select: {
+                  guest: {
+                    select: {
+                      id: true,
+                      name: true,
+                      category: true,
+                      maxPax: true,
+                      customGreeting: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { scannedAt: 'desc' },
+        take: 30,
+      }),
+    ]);
+
+    let totalInvitedPax = 0;
+    let checkedInGuestsCount = 0;
+    let checkedInPax = 0;
+
+    const categoryMap = new Map<
+      string,
+      { totalGuests: number; checkedInGuests: number; totalPax: number; checkedInPax: number }
+    >();
+
+    const guestList = guests.map((g) => {
+      const cat = g.category || 'REGULAR';
+      totalInvitedPax += g.maxPax;
+
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, {
+          totalGuests: 0,
+          checkedInGuests: 0,
+          totalPax: 0,
+          checkedInPax: 0,
+        });
+      }
+      const catStats = categoryMap.get(cat)!;
+      catStats.totalGuests += 1;
+      catStats.totalPax += g.maxPax;
+
+      const att = g.invitation?.attendances?.[0];
+      const isCheckedIn = Boolean(att && att.scannedPax > 0 && att.status === 'VALID');
+
+      if (isCheckedIn && att) {
+        checkedInGuestsCount += 1;
+        checkedInPax += att.scannedPax;
+        catStats.checkedInGuests += 1;
+        catStats.checkedInPax += att.scannedPax;
+      }
+
+      return {
+        id: g.id,
+        name: g.name,
+        category: cat,
+        customGreeting: g.customGreeting,
+        maxPax: g.maxPax,
+        isCheckedIn,
+        scannedPax: att?.scannedPax || 0,
+        remainingPax: Math.max(0, g.maxPax - (att?.scannedPax || 0)),
+        scannedAt: att?.scannedAt ? att.scannedAt.toISOString() : null,
+        scannedBy: att?.staff?.email || null,
+        rsvpStatus: g.invitation?.status || 'PENDING',
+        rsvpPax: g.invitation?.rsvpPax || null,
+      };
+    });
+
+    const remainingPax = Math.max(0, totalInvitedPax - checkedInPax);
+    const checkInRate =
+      totalInvitedPax > 0 ? Number(((checkedInPax / totalInvitedPax) * 100).toFixed(1)) : 0;
+
+    const recentCheckIns = recentAudits.map((a) => {
+      const guest = a.attendance.invitation.guest;
+      return {
+        id: a.id,
+        guestId: guest.id,
+        guestName: guest.name,
+        category: guest.category || 'REGULAR',
+        customGreeting: guest.customGreeting,
+        scannedPax: a.scannedPax,
+        maxPax: guest.maxPax,
+        scannedAt: a.scannedAt.toISOString(),
+        scannedBy: a.staff.email,
+      };
+    });
+
+    const categories = Array.from(categoryMap.entries()).map(([name, stats]) => ({
+      category: name,
+      ...stats,
+      rate: stats.totalPax > 0 ? Number(((stats.checkedInPax / stats.totalPax) * 100).toFixed(1)) : 0,
+    }));
+
+    const contentObj =
+      event.content && typeof event.content === 'object'
+        ? (event.content as Record<string, any>)
+        : {};
+    const googleSheetWebhookUrl = contentObj?.integrations?.googleSheetWebhookUrl || null;
+    const googleSheetUpdatedAt = contentObj?.integrations?.googleSheetUpdatedAt || null;
+
+    return {
+      event: {
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        eventDate: event.eventDate,
+        status: event.status,
+      },
+      summary: {
+        totalGuests: guests.length,
+        totalInvitedPax,
+        checkedInGuests: checkedInGuestsCount,
+        checkedInPax,
+        remainingPax,
+        checkInRate,
+        recentCheckInsCount: recentCheckIns.length,
+        lastRefreshedAt: new Date().toISOString(),
+      },
+      categories,
+      recentCheckIns,
+      guests: guestList,
+      googleSheet: {
+        connected: Boolean(googleSheetWebhookUrl),
+        webhookUrl: googleSheetWebhookUrl,
+        lastUpdatedAt: googleSheetUpdatedAt,
+      },
+    };
+  }
+
+  async getGoogleSheetConfig(eventId: string, userId: string, role: Role) {
+    const event = await this.authorizeEventOperator(eventId, userId, role);
+
+    const content =
+      event.content && typeof event.content === 'object'
+        ? (event.content as Record<string, any>)
+        : {};
+    const integrations = content?.integrations || {};
+
+    return {
+      connected: Boolean(integrations?.googleSheetWebhookUrl),
+      webhookUrl: integrations?.googleSheetWebhookUrl || '',
+      lastUpdatedAt: integrations?.googleSheetUpdatedAt || null,
+      sampleScriptTemplate: this.generateAppsScriptTemplate(event.title),
+    };
+  }
+
+  async updateGoogleSheetConfig(
+    eventId: string,
+    userId: string,
+    role: Role,
+    webhookUrl?: string,
+  ) {
+    const event = await this.authorizeEventOperator(eventId, userId, role);
+
+    const currentContent =
+      event.content && typeof event.content === 'object'
+        ? { ...(event.content as Record<string, any>) }
+        : {};
+    const integrations =
+      currentContent.integrations && typeof currentContent.integrations === 'object'
+        ? { ...currentContent.integrations }
+        : {};
+
+    const cleanUrl = webhookUrl ? webhookUrl.trim() : null;
+    integrations.googleSheetWebhookUrl = cleanUrl || null;
+    integrations.googleSheetUpdatedAt = new Date().toISOString();
+    currentContent.integrations = integrations;
+
+    await this.db.event.update({
+      where: { id: eventId },
+      data: { content: currentContent },
+    });
+
+    return {
+      success: true,
+      connected: Boolean(cleanUrl),
+      webhookUrl: cleanUrl || '',
+      message: cleanUrl
+        ? 'Webhook Google Sheets berhasil disambungkan!'
+        : 'Integrasi Google Sheets berhasil dinonaktifkan.',
+    };
+  }
+
+  async testGoogleSheetWebhook(eventId: string, userId: string, role: Role) {
+    const event = await this.authorizeEventOperator(eventId, userId, role);
+
+    const content =
+      event.content && typeof event.content === 'object'
+        ? (event.content as Record<string, any>)
+        : {};
+    const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
+
+    if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+      throw new BadRequestException(
+        'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
+      );
+    }
+
+    const user = await this.db.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    try {
+      const testPayload = {
+        event: 'TEST_PING',
+        eventId: event.id,
+        eventTitle: event.title,
+        guestId: 'test-guest-id',
+        guestName: 'Bpk. Hendra Gunawan & Istri (TEST)',
+        category: 'VIP',
+        scannedPax: 2,
+        totalScannedPax: 2,
+        maxPax: 2,
+        remainingPax: 0,
+        status: 'COMPLETE',
+        scannedAt: new Date().toISOString(),
+        scannedBy: user?.email || 'admin@irvite.id',
+        isTest: true,
+      };
+
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(testPayload),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!res.ok && res.status >= 400) {
+        throw new Error(`Google endpoint mengembalikan kode HTTP ${res.status}`);
+      }
+
+      return {
+        success: true,
+        message: 'Koneksi ke Google Sheets berhasil diuji! Data uji coba telah terkirim.',
+      };
+    } catch (err: any) {
+      throw new BadRequestException(
+        `Gagal menghubungi endpoint Google Sheets: ${err?.message || 'Timeout / Network Error'}. Pastikan URL Webhook benar dan dapat diakses publik.`,
+      );
+    }
+  }
+
+  private async dispatchGoogleSheetSync(
+    eventId: string,
+    guest: { id: string; name: string; category: string; maxPax: number },
+    deltaPax: number,
+    newTotalPax: number,
+    maxPax: number,
+    remainingPax: number,
+    status: AttendanceCheckInStatus,
+    userId: string,
+  ) {
+    try {
+      const event = await this.db.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, title: true, content: true },
+      });
+      if (!event) return;
+
+      const content =
+        event.content && typeof event.content === 'object'
+          ? (event.content as Record<string, any>)
+          : {};
+      const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
+      if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+        return;
+      }
+
+      const staff = await this.db.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+
+      const payload = {
+        event: 'GUEST_CHECK_IN',
+        eventId: event.id,
+        eventTitle: event.title,
+        guestId: guest.id,
+        guestName: guest.name,
+        category: guest.category || 'REGULAR',
+        scannedPax: deltaPax,
+        totalScannedPax: newTotalPax,
+        maxPax,
+        remainingPax,
+        status,
+        scannedAt: new Date().toISOString(),
+        scannedBy: staff?.email || 'Staff Scanner',
+        isTest: false,
+      };
+
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(6000),
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Failed to sync check-in to Google Sheet for event ${eventId}: ${err?.message || err}`,
+      );
+    }
+  }
+
+  private generateAppsScriptTemplate(eventTitle: string): string {
+    return `// ==============================================================
+// IRVITE.ID - SCRIPT PENERIMA DATA CHECK-IN REALTIME GOOGLE SHEETS
+// Event: ${eventTitle}
+// ==============================================================
+// CARA PEMASANGAN (HANYA 1 MENIT):
+// 1. Buka Google Sheets Anda yang ingin dipakai memantau tamu.
+// 2. Klik menu "Extensions" (Ekstensi) > "Apps Script".
+// 3. Hapus kode yang ada, lalu COPY-PASTE SELURUH KODE DI BAWAH INI.
+// 4. Klik tombol "Deploy" (Terapkan) di pojok kanan atas > "New deployment" (Penerapan baru).
+// 5. Pilih jenis "Web app" (Aplikasi Web).
+// 6. Pada kolom "Who has access" (Siapa yang memiliki akses), pilih "Anyone" (Siapa saja).
+// 7. Klik "Deploy" dan SALIN URL Web App yang dihasilkan.
+// 8. Tempelkan URL tersebut ke kolom Webhook URL di IRVITE.ID Admin.
+// ==============================================================
+
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    
+    // Header otomatis jika spreadsheet masih kosong
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        "Waktu Check-in",
+        "Nama Tamu",
+        "Kategori",
+        "Pax Masuk",
+        "Total Hadir",
+        "Kuota Pax",
+        "Status",
+        "Petugas Scan",
+        "Keterangan"
+      ]);
+      sheet.getRange(1, 1, 1, 9)
+        .setFontWeight("bold")
+        .setBackground("#EFEBE9")
+        .setFontColor("#3E2723");
+      sheet.setFrozenRows(1);
+    }
+    
+    var timeFormatted = Utilities.formatDate(
+      new Date(data.scannedAt), 
+      "GMT+7", 
+      "yyyy-MM-dd HH:mm:ss"
+    );
+    
+    var note = data.isTest ? "TEST PING" : "LIVE SCANNER";
+    
+    sheet.appendRow([
+      timeFormatted,
+      data.guestName,
+      data.category || "REGULAR",
+      data.scannedPax,
+      data.totalScannedPax,
+      data.maxPax,
+      data.status,
+      data.scannedBy,
+      note
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({ result: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ result: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+  }
 }
+

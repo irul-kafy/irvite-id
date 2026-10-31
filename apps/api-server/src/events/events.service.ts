@@ -7,13 +7,19 @@ import {
   Logger,
   ForbiddenException,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { MediaStorageService } from '../media/media-storage.service';
+import { detectSignature } from '../media/media-signature';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { CreatePublicDraftDto } from './dto/create-public-draft.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
-import { Role, Prisma } from 'database';
-import { validateEventContent } from '../templates/definitions';
+import { Role, MediaType, Prisma } from 'database';
+import {
+  getTemplateDefinition,
+  validateEventContent,
+} from '../templates/definitions';
 
 @Injectable()
 export class EventsService {
@@ -603,6 +609,377 @@ export class EventsService {
         warnings:
           mediaCleanupWarnings.length > 0 ? mediaCleanupWarnings : undefined,
       },
+    };
+  }
+
+  private sanitizeClientDraftContent(
+    rawContent: Record<string, unknown> | undefined | null,
+    themeCode: string,
+  ): Record<string, unknown> {
+    const definition = getTemplateDefinition(themeCode);
+    const raw =
+      rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
+        ? rawContent
+        : {};
+
+    const p1 =
+      typeof raw.partnerOneName === 'string' && raw.partnerOneName.trim()
+        ? raw.partnerOneName.trim().slice(0, 60)
+        : 'Mempelai Wanita';
+    const p2 =
+      typeof raw.partnerTwoName === 'string' && raw.partnerTwoName.trim()
+        ? raw.partnerTwoName.trim().slice(0, 60)
+        : 'Mempelai Pria';
+
+    const validTimeZones = new Set([
+      'Asia/Jakarta',
+      'Asia/Makassar',
+      'Asia/Jayapura',
+    ]);
+    const tz =
+      typeof raw.timeZone === 'string' && validTimeZones.has(raw.timeZone)
+        ? raw.timeZone
+        : 'Asia/Jakarta';
+
+    if (!definition) {
+      return {};
+    }
+
+    const declaredMap = new Map(
+      definition.contentFields.map((field) => [field.key, field]),
+    );
+    const sanitized: Record<string, unknown> = {
+      partnerOneName: p1,
+      partnerTwoName: p2,
+      timeZone: tz,
+    };
+
+    for (const [key, fieldDef] of declaredMap.entries()) {
+      if (
+        key === 'partnerOneName' ||
+        key === 'partnerTwoName' ||
+        key === 'timeZone'
+      ) {
+        continue;
+      }
+
+      const val = raw[key];
+      if (val === undefined || val === null || val === '') {
+        continue;
+      }
+
+      if (fieldDef.type === 'text' || fieldDef.type === 'textarea') {
+        if (typeof val === 'string' && val.trim() !== '') {
+          const maxLen = fieldDef.maxLength ?? 1500;
+          sanitized[key] = val.trim().slice(0, maxLen);
+        }
+      } else if (fieldDef.type === 'repeater' && key === 'ceremonies') {
+        if (Array.isArray(val)) {
+          const maxItems = fieldDef.maxItems ?? 4;
+          const items = val
+            .filter(
+              (c): c is Record<string, unknown> =>
+                Boolean(c && typeof c === 'object' && !Array.isArray(c)),
+            )
+            .slice(0, maxItems)
+            .map((c, idx) => {
+              const title =
+                typeof c.title === 'string' && c.title.trim()
+                  ? c.title.trim().slice(0, 80)
+                  : idx === 0
+                    ? 'Akad Nikah'
+                    : 'Resepsi';
+              const rawStart =
+                typeof c.startDateTime === 'string' &&
+                !isNaN(Date.parse(c.startDateTime))
+                  ? c.startDateTime.trim()
+                  : new Date(Date.now() + 90 * 86400000)
+                      .toISOString()
+                      .slice(0, 16);
+              const venue =
+                typeof c.venue === 'string' && c.venue.trim()
+                  ? c.venue.trim().slice(0, 120)
+                  : 'Lokasi Acara';
+              const address =
+                typeof c.address === 'string' && c.address.trim()
+                  ? c.address.trim().slice(0, 300)
+                  : venue;
+
+              const ceremonyObj: Record<string, unknown> = {
+                title,
+                startDateTime: rawStart,
+                venue,
+                address,
+              };
+
+              if (
+                typeof c.endDateTime === 'string' &&
+                c.endDateTime.trim() &&
+                !isNaN(Date.parse(c.endDateTime))
+              ) {
+                ceremonyObj.endDateTime = c.endDateTime.trim();
+              }
+
+              if (typeof c.mapsUrl === 'string' && c.mapsUrl.trim()) {
+                const trimmedUrl = c.mapsUrl.trim().slice(0, 500);
+                if (/^https?:\/\/[^\s]+$/i.test(trimmedUrl)) {
+                  ceremonyObj.mapsUrl = trimmedUrl;
+                }
+              }
+
+              return ceremonyObj;
+            });
+
+          if (items.length > 0) {
+            sanitized[key] = items;
+          }
+        }
+      } else if (fieldDef.type === 'repeater' && key === 'giftAccounts') {
+        if (Array.isArray(val)) {
+          const maxItems = fieldDef.maxItems ?? 3;
+          const accounts = val
+            .filter(
+              (g): g is Record<string, unknown> =>
+                Boolean(g && typeof g === 'object' && !Array.isArray(g)),
+            )
+            .slice(0, maxItems)
+            .map((g) => {
+              const bankName =
+                typeof g.bankName === 'string'
+                  ? g.bankName.trim().slice(0, 60)
+                  : '';
+              const accountNumber =
+                typeof g.accountNumber === 'string'
+                  ? g.accountNumber.trim().slice(0, 40)
+                  : '';
+              const accountHolder =
+                typeof g.accountHolder === 'string'
+                  ? g.accountHolder.trim().slice(0, 100)
+                  : typeof g.accountHolderName === 'string'
+                    ? g.accountHolderName.trim().slice(0, 100)
+                    : '';
+              return { bankName, accountNumber, accountHolder };
+            })
+            .filter(
+              (g) =>
+                g.bankName !== '' &&
+                g.accountNumber !== '' &&
+                g.accountHolder !== '',
+            );
+
+          if (accounts.length > 0) {
+            sanitized[key] = accounts;
+          }
+        }
+      } else if (fieldDef.type === 'repeater' && key === 'story') {
+        if (Array.isArray(val)) {
+          const maxItems = fieldDef.maxItems ?? 6;
+          const stories = val
+            .filter(
+              (s): s is Record<string, unknown> =>
+                Boolean(s && typeof s === 'object' && !Array.isArray(s)),
+            )
+            .slice(0, maxItems)
+            .map((s) => ({
+              year:
+                typeof s.year === 'string'
+                  ? s.year.trim().slice(0, 40)
+                  : '2025',
+              title:
+                typeof s.title === 'string'
+                  ? s.title.trim().slice(0, 80)
+                  : 'Kisah Kami',
+              description:
+                typeof s.description === 'string'
+                  ? s.description.trim().slice(0, 500)
+                  : '',
+            }))
+            .filter((s) => s.title !== '' && s.description !== '');
+
+          if (stories.length > 0) {
+            sanitized[key] = stories;
+          }
+        }
+      }
+    }
+
+    return sanitized;
+  }
+
+  async createPublicDraft(dto: CreatePublicDraftDto) {
+    const normalizedThemeCode = (dto.themeCode || '').trim().toUpperCase();
+    const template = await this.prisma.template.findFirst({
+      where: {
+        themeCode: normalizedThemeCode,
+        status: 'AVAILABLE',
+      },
+      select: { id: true, name: true, themeCode: true, status: true },
+    });
+
+    if (!template) {
+      throw new BadRequestException(
+        `Template '${normalizedThemeCode}' tidak ditemukan atau sedang tidak tersedia.`,
+      );
+    }
+
+    const adminUser =
+      (await this.prisma.user.findFirst({
+        where: { role: Role.SUPER_ADMIN },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      })) ??
+      (await this.prisma.user.findFirst({
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      }));
+
+    if (!adminUser) {
+      throw new BadRequestException('Sistem belum memiliki akun Super Admin.');
+    }
+
+    const sanitizedContent = this.sanitizeClientDraftContent(
+      dto.content,
+      template.themeCode,
+    );
+    const validatedContent = validateEventContent(
+      sanitizedContent,
+      template.themeCode,
+    );
+
+    const p1 = String(sanitizedContent.partnerOneName || 'Mempelai').trim();
+    const p2 = String(sanitizedContent.partnerTwoName || 'Pasangan').trim();
+    const refHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const referenceCode = `IRV-${refHex}`;
+
+    const slugBase = `${p1}-${p2}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+    const slug = `${slugBase || 'undangan'}-${refHex.toLowerCase()}`;
+
+    const parsedDate =
+      dto.eventDate && !isNaN(Date.parse(dto.eventDate))
+        ? new Date(dto.eventDate)
+        : new Date(Date.now() + 90 * 86400000);
+
+    const clientNameClean = (dto.clientName || 'Klien IRVITE')
+      .trim()
+      .slice(0, 120);
+    const clientWaClean = (dto.clientWhatsapp || '-').trim().slice(0, 40);
+    const clientNotesClean = (dto.clientNotes || '').trim().slice(0, 1000);
+
+    const descriptionLines = [
+      `[PENGAJUAN KLIEN #${referenceCode}]`,
+      `Pemesan: ${clientNameClean}`,
+      `WhatsApp: ${clientWaClean}`,
+      `Template: ${template.name} (${template.themeCode})`,
+    ];
+    if (clientNotesClean) {
+      descriptionLines.push(`Catatan Klien: ${clientNotesClean}`);
+    }
+
+    const ceremoniesList = Array.isArray(sanitizedContent.ceremonies)
+      ? (sanitizedContent.ceremonies as Array<Record<string, unknown>>)
+      : [];
+    const firstVenue =
+      typeof ceremoniesList[0]?.venue === 'string'
+        ? ceremoniesList[0].venue
+        : '';
+    const firstAddress =
+      typeof ceremoniesList[0]?.address === 'string'
+        ? ceremoniesList[0].address
+        : '';
+    const resolvedLocation =
+      (dto.locationDetails && dto.locationDetails.trim()) ||
+      [firstVenue, firstAddress].filter(Boolean).join(', ') ||
+      'Lokasi Acara Klien';
+
+    const newEvent = await this.prisma.event.create({
+      data: {
+        userId: adminUser.id,
+        templateId: template.id,
+        title: `Pernikahan ${p1} & ${p2} (Draf Klien #${referenceCode})`,
+        slug,
+        description: descriptionLines.join('\n'),
+        eventDate: parsedDate,
+        locationDetails: resolvedLocation.slice(0, 255),
+        content: validatedContent as Prisma.InputJsonValue,
+        status: EVENT_STATUS.DRAFT,
+      },
+      select: this.selectSafeEvent(),
+    });
+
+    // Save optional compressed client preview photos into event media slots
+    let savedPhotosCount = 0;
+    const definition = getTemplateDefinition(template.themeCode);
+    if (
+      definition &&
+      Array.isArray(dto.photos) &&
+      dto.photos.length > 0
+    ) {
+      const photosToProcess = dto.photos.slice(0, 5);
+      for (let i = 0; i < photosToProcess.length; i++) {
+        const photoInput = photosToProcess[i];
+        if (
+          !photoInput ||
+          typeof photoInput.slot !== 'string' ||
+          typeof photoInput.dataUrl !== 'string'
+        ) {
+          continue;
+        }
+        const slotKey = photoInput.slot.trim();
+        const slotDef = definition.mediaSlots.find(
+          (s) => s.key === slotKey && s.mediaType === 'PHOTO',
+        );
+        if (!slotDef) continue;
+
+        const dataUrlMatch = /^data:image\/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i.exec(
+          photoInput.dataUrl.trim(),
+        );
+        if (!dataUrlMatch) continue;
+
+        try {
+          const buffer = Buffer.from(dataUrlMatch[1], 'base64');
+          if (buffer.length === 0 || buffer.length > 5 * 1024 * 1024) {
+            continue;
+          }
+          const sig = detectSignature(buffer);
+          if (
+            !sig ||
+            !['image/jpeg', 'image/png', 'image/webp'].includes(sig.mime)
+          ) {
+            continue;
+          }
+          const key = this.mediaStorageService.generateKey(sig.extension);
+          await this.mediaStorageService.writeFile(key, buffer);
+          await this.prisma.media.create({
+            data: {
+              eventId: newEvent.id,
+              slot: slotKey,
+              url: key,
+              type: MediaType.PHOTO,
+              order: typeof photoInput.order === 'number' ? photoInput.order : i,
+            },
+          });
+          savedPhotosCount++;
+        } catch (err) {
+          this.logger.warn(
+            `Failed to persist client draft photo for event ${newEvent.id}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+    }
+
+    return {
+      id: newEvent.id,
+      referenceCode,
+      slug: newEvent.slug,
+      title: newEvent.title,
+      themeCode: template.themeCode,
+      templateName: template.name,
+      status: newEvent.status,
+      savedPhotosCount,
     };
   }
 }

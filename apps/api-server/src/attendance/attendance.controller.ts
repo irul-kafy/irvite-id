@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { AttendanceService } from './attendance.service';
 import { ResolveAttendanceDto } from './dto/resolve-attendance.dto';
 import { CheckInDto } from './dto/check-in.dto';
+import { GoogleSheetConfigDto } from './dto/google-sheet-config.dto';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -24,6 +25,65 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
+
+  @Get('live')
+  @Header('Cache-Control', 'no-store')
+  getLiveAttendance(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.getLiveAttendance(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Get('google-sheet')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Header('Cache-Control', 'no-store')
+  getGoogleSheetConfig(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.getGoogleSheetConfig(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Post('google-sheet')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  updateGoogleSheetConfig(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GoogleSheetConfigDto,
+  ) {
+    return this.attendanceService.updateGoogleSheetConfig(
+      eventId,
+      user.id,
+      user.role,
+      dto.webhookUrl,
+    );
+  }
+
+  @Post('google-sheet/test')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  testGoogleSheetWebhook(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.testGoogleSheetWebhook(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
 
   @Get('report')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)

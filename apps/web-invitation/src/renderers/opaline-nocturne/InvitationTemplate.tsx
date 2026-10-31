@@ -27,6 +27,8 @@ export default function InvitationTemplate({
   data,
   guest,
   theme,
+  rsvpSlot,
+  qrSlot,
   onRsvpSubmit,
   onWishSubmit,
   callbacks,
@@ -126,29 +128,6 @@ export default function InvitationTemplate({
           {feature("gallery") && data.gallery.length > 0 && (
             <Gallery images={data.gallery} />
           )}
-          {feature("rsvp") && (
-            <RSVP
-              key={`rsvp-${guestKey}`}
-              config={data.rsvp}
-              guest={guest}
-              onSubmit={onRsvpSubmit}
-            />
-          )}
-          {feature("guestQr") &&
-            guest?.kind === "personal" &&
-            safeAsset(guest.qrImage?.src) && (
-              <Section id="guest-qr" className={s.qrSection}>
-                <Heading eyebrow="Your personal invitation">
-                  QR Undangan
-                </Heading>
-                <div className={s.qrCard}>
-                  <Photo image={guest.qrImage} />
-                  <strong>{guest.name}</strong>
-                  {guest.invitationLabel && <p>{guest.invitationLabel}</p>}
-                  <p>Tunjukkan QR ini kepada petugas saat tiba di lokasi.</p>
-                </div>
-              </Section>
-            )}
           {feature("wishes") && (
             <Wishes
               key={`wishes-${guestKey}`}
@@ -161,6 +140,41 @@ export default function InvitationTemplate({
             (data.gifts.accounts.length > 0 || data.gifts.address) && (
               <Gift config={data.gifts} onCopy={callbacks?.onCopyGift} />
             )}
+          {(feature("rsvp") || feature("guestQr")) && (
+            <Section id="rsvp" className={s.rsvpSection}>
+              <Heading
+                eyebrow="Your presence is a gift · RSVP & Check-in"
+                description={data.rsvp.description}
+              >
+                {data.rsvp.title}
+              </Heading>
+              <div className={s.rsvpQrGrid}>
+                {rsvpSlot ? (
+                  <div className={s.rsvpCardSlot}>{rsvpSlot}</div>
+                ) : (
+                  <RSVP
+                    key={`rsvp-${guestKey}`}
+                    config={data.rsvp}
+                    guest={guest}
+                    onSubmit={onRsvpSubmit}
+                  />
+                )}
+                {qrSlot ? (
+                  <div className={s.qrCardSlot}>{qrSlot}</div>
+                ) : (
+                  guest?.kind === "personal" &&
+                  safeAsset(guest.qrImage?.src) && (
+                    <div className={s.qrCard}>
+                      <Photo image={guest.qrImage} />
+                      <strong>{guest.name}</strong>
+                      {guest.invitationLabel && <p>{guest.invitationLabel}</p>}
+                      <p>Tunjukkan QR ini kepada petugas saat tiba di lokasi.</p>
+                    </div>
+                  )
+                )}
+              </div>
+            </Section>
+          )}
           <Closing data={data} />
         </main>
       )}
@@ -180,17 +194,17 @@ export default function InvitationTemplate({
                 ◇<span>Acara</span>
               </a>
             )}
-            {feature("rsvp") && (
-              <a href="#rsvp">
-                ✓<span>RSVP</span>
-              </a>
-            )}
             {feature("gift") &&
               (data.gifts.accounts.length > 0 || data.gifts.address) && (
                 <a href="#gift">
                   ♧<span>Gift</span>
                 </a>
               )}
+            {feature("rsvp") && (
+              <a href="#rsvp">
+                ✓<span>RSVP &amp; QR</span>
+              </a>
+            )}
           </nav>
           {musicSrc && (
             <button

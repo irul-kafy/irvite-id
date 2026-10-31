@@ -135,15 +135,26 @@ export function adaptRanahCintaData(
   };
 
   const coverMedia = findMedia('COVER') || `${DEFAULT_ASSET_BASE}/ranah-landscape.png`;
-  const couple1Media = findMedia('COUPLE_1');
+  const heroMedia = findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+  const couple1Media = findMedia('COUPLE_1') || findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
   const couple2Media = findMedia('COUPLE_2');
   const bgMusic = findMedia('BACKGROUND_MUSIC');
+
+  const rawEventDate = payload.event.eventDate || '2026-11-22T08:00:00+07:00';
+  const dateLabel =
+    rawEventDate !== '2026-11-22T08:00:00+07:00' && !isNaN(Date.parse(rawEventDate))
+      ? new Date(rawEventDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+      : '22 November 2026';
 
   return {
     event: {
       title: payload.event.title || `Pernikahan ${partnerOneName} & ${partnerTwoName}`,
-      datetime: payload.event.eventDate || '2026-11-22T08:00:00+07:00',
-      dateLabel: '22 November 2026',
+      datetime: rawEventDate,
+      dateLabel,
       locale: 'id-ID',
       timeZone,
       openingText,
@@ -172,7 +183,7 @@ export function adaptRanahCintaData(
     },
     media: {
       cover: { src: coverMedia, alt: 'Ranah Cinta Cover' },
-      hero: { src: `${DEFAULT_ASSET_BASE}/ranah-landscape.png`, alt: 'Hero Landscape' },
+      hero: { src: heroMedia, alt: 'Hero Minang Couple' },
       closing: { src: `${DEFAULT_ASSET_BASE}/ranah-landscape.png`, alt: 'Closing Landscape' },
     },
     events,

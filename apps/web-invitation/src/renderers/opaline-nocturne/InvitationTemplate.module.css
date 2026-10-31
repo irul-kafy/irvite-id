@@ -99,7 +99,7 @@
 .openingLeaving>.flowers{animation:flowerDeparture 1.3s ease both}
 
 /* The first opened scene gives names, foliage and background independent entrances. */
-.hero{position:relative;background:var(--inv-background)}
+.hero{position:relative;background:transparent;padding:0!important;margin:0;width:100%}
 .heroVista{min-height:920px;min-height:max(850px,100svh);position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;text-align:center;color:var(--inv-on-primary);padding:190px 65px}
 .heroScenery{position:absolute;inset:0;z-index:-2;background:var(--inv-garden) center 65%/cover no-repeat;animation:forestSettle 4s ease both;animation-play-state:paused}
 .main[data-stage="open"] .heroScenery{animation-play-state:running}
@@ -177,6 +177,8 @@
 .gallery figcaption span{font-style:normal;opacity:.6}
 .gallerySection>.inner>.script{text-align:center;margin-top:38px}
 .rsvpSection,.wishesSection,.qrSection{background:linear-gradient(#e6ecd8c7,#e6ecd8df),var(--inv-garden) center/cover}
+.rsvpQrGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:28px;width:100%;max-width:980px;margin:28px auto 0;align-items:stretch}
+.rsvpCardSlot,.qrCardSlot{display:flex;width:100%}
 .formLayout,.wishesLayout{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
 .formLayout{align-items:center}
 .formLayout>.heading{margin:0}
@@ -372,6 +374,84 @@
   .navigation a{min-width:51px}
 }
 @media(max-width:380px){.section{padding-inline:23px}.heroIntro h2{font-size:4.15rem}.coverContent h1{font-size:3.8rem}.coverContent{width:86%}.heroVista{padding-inline:28px}.countdown{gap:6px}.countdown>div{width:60px}.closingContent h3{font-size:2.35rem}}
+@container (max-width: 760px){
+  .template{--inv-section-spacing:72px;font-size:14px}
+  .section{padding:70px 22px 100px}
+  .heading{margin-bottom:36px}
+  .heading h2{font-size:2.6rem}
+  .heading p{font-size:.86rem}
+  .heading .eyebrow{font-size:.61rem;letter-spacing:.13em}
+  .flowers{width:136px;height:215px}
+  .topLeft{left:-62px;top:-65px}.topRight{right:-62px;top:-65px}
+  .bottomLeft{left:-65px;bottom:25px}.bottomRight{right:-65px;bottom:25px}
+  .lace{height:60px;background-size:300px 60px}
+  .coverFrame{inset:30px auto 64px;left:50%;width:98%}
+  .opening{min-height:760px;padding:130px 18px 100px}
+  .opening>.flowers{width:150px;height:240px}
+  .opening>.topLeft{left:-63px;top:-44px}.opening>.topRight{right:-63px;top:-44px}
+  .opening>.bottomLeft{left:-78px;bottom:55px}.opening>.bottomRight{right:-78px;bottom:55px}
+  .coverContent{width:88%;padding:14px 5px 0}
+  .coverContent h1{font-size:3.6rem}
+  .coverContent>.script{font-size:1.05rem;margin:10px 0 18px}
+  .coverContent>.eyebrow{font-size:.62rem}
+  .coverContent .flourish{display:none}
+  .coverDate{font-size:.9rem;margin-top:18px!important}
+  .guestGreeting{margin:50px auto 18px}
+  .guestGreeting strong{font-size:1.15rem}
+  .heroVista{min-height:740px;padding:140px 26px 140px}
+  .heroVista>.flowers{width:160px;height:250px}
+  .heroVista>.topLeft{left:-65px;top:-45px}.heroVista>.topRight{right:-65px;top:-45px}
+  .heroVista>.bottomLeft{left:-70px;bottom:35px;width:140px;height:215px}.heroVista>.bottomRight{right:-70px;bottom:35px;width:140px;height:215px}
+  .heroIntro h2{font-size:4.1rem}
+  .heroIntro>.script{font-size:1.25rem}
+  .heroIntro>p:not(.script){font-size:.82rem;max-width:240px}
+  .heroPrelude{grid-template-columns:1fr;gap:24px;padding:55px 24px 85px}
+  .heroFrame{width:min(100%,310px);margin:auto;padding:22px 24px 32px}
+  .heroPrayer{max-width:360px;margin:auto}
+  .heroPrayer blockquote{font-size:1.55rem}
+  .heroPrayer>p{font-size:.82rem}
+  .countdownSection h2{font-size:2.3rem}
+  .countdown{gap:8px}
+  .countdown>div{width:62px;padding:16px 5px 12px}
+  .countdown strong{font-size:2.4rem}
+  .countdown span{font-size:.54rem}
+  .coupleGrid{padding:0 7px 140px;gap:55px}
+  .partner{grid-template-columns:1fr;gap:15px}
+  .partnerPortrait{width:90%;max-width:290px}
+  .partnerReverse .partnerPortrait{grid-column:1;grid-row:1;justify-self:end}
+  .partnerReverse .partnerInfo{grid-column:1;grid-row:2;text-align:right;padding:0 12px 0 24px}
+  .partnerInfo{padding:0 18px 0 10px}
+  .partnerInfo h3{font-size:2.6rem}
+  .partnerInfo p{font-size:.82rem}
+  .storyScene{padding:15px 15px 40px;margin-inline:-10px}
+  .storyChapters{margin-top:130px;gap:22px}
+  .storyCard{width:94%;padding:24px 20px;border-radius:9px 38px 9px 38px}
+  .storyCard:nth-child(even){border-radius:38px 9px 38px 9px}
+  .storyCard h3{font-size:1.8rem}
+  .storyCard p{font-size:.82rem}
+  .eventGrid{grid-template-columns:1fr;gap:32px;max-width:420px;margin:auto}
+  .eventCard,.eventCard:nth-child(even){margin:0;padding:42px 22px 30px}
+  .eventCard h3{font-size:2.4rem}
+  .eventDate strong{font-size:3.8rem}
+  .gallery{gap:18px 12px}
+  .gallery figure{padding:7px}
+  .gallery figure:nth-child(2){margin-top:45px}
+  .gallery figure:nth-child(3){width:87%;margin-top:-20px}
+  .gallery figcaption{font-size:.84rem;line-height:1.25;padding:8px 1px 2px}
+  .gallery figcaption span{display:none}
+  .formLayout,.wishesLayout,.rsvpQrGrid{grid-template-columns:1fr;gap:24px}
+  .formCard{padding:24px 20px}
+  .bankCard{padding:26px 22px}
+  .accountNumber{font-size:1.15rem}
+  .closing{min-height:740px;padding:70px 15px 140px}
+  .closingContent{padding:56px 28px}
+  .closingContent h2{font-size:3.1rem}
+  .closingContent h3{font-size:2.3rem}
+  .closingContent>p:not(.script):not(.eyebrow){font-size:.82rem}
+  .navigation{bottom:12px;gap:0;padding:6px 8px;max-width:calc(100% - 18px);overflow-x:auto}
+  .navigation a{min-width:46px}
+  .musicButton{bottom:74px;right:14px}
+}
 @media(prefers-reduced-motion:reduce){
   .template *,.template *::before,.template *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .template [data-reveal],.template .animatedName>span{opacity:1!important;clip-path:none!important;filter:none!important;translate:none!important}

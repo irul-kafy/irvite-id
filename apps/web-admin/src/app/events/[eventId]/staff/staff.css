@@ -66,8 +66,8 @@
 }
 
 .assign-form button {
-  background: var(--admin-accent);
-  color: #fffdf9;
+  background: #19382c;
+  color: #ffffff;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: var(--radius-sm, 6px);
@@ -77,7 +77,7 @@
 }
 
 .assign-form button:hover:not(:disabled) {
-  background: var(--admin-accent-hover);
+  background: #111814;
 }
 
 .assign-form button:disabled {

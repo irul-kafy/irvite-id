@@ -108,6 +108,7 @@
 
 .staff-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -394,4 +395,64 @@ html.dark .staff-pagination-bar {
 
 html.dark .modal-footer {
   background: var(--admin-surface-raised, #271f22);
+}
+
+/* ── Mobile & Tablet Responsiveness ── */
+@media (max-width: 768px) {
+  .staff-page-container {
+    padding: 1rem 0.75rem;
+  }
+
+  .staff-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .staff-page-header h1 {
+    font-size: 1.375rem;
+  }
+
+  .staff-page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .staff-controls-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .staff-search-box {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .staff-filter-select {
+    width: 100%;
+  }
+
+  .staff-action-buttons {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .btn-sm-action {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1rem;
+  }
 }

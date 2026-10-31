@@ -1,5 +1,5 @@
 /* =========================================================================
-   PUBLIC TEMPLATE CATALOG — IRVITE.ID
+   PUBLIC TEMPLATE CATALOG — IRVITE
    Curated Luxury Coded Wedding Invitation Templates
    Aligned with Editorial Client Design System (DM Sans + Playfair Display)
    ========================================================================= */
@@ -12,18 +12,18 @@
   --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Client Design System — Light Tokens */
-  --ink: #352a2d;
-  --ink-soft: #6d5d60;
-  --paper: #fbf8f3;
-  --paper-deep: #f1e8e2;
-  --terracotta: #9b5061;
-  --terracotta-dark: #7e3d4d;
-  --lime: #d8c3aa;
-  --white: #fffdf9;
-  --line: rgba(53, 42, 45, 0.14);
-  --card: rgba(255, 253, 249, 0.88);
-  --shadow: 0 18px 48px rgba(87, 55, 61, 0.08);
-  --shadow-hover: 0 24px 64px rgba(87, 55, 61, 0.16);
+  --ink: #181e1b;
+  --ink-soft: #4a463f;
+  --paper: #fbfbf9;
+  --paper-deep: #f5f1e8;
+  --terracotta: #19382c;
+  --terracotta-dark: #0f2b21;
+  --lime: #c5a880;
+  --white: #ffffff;
+  --line: rgba(24, 30, 27, 0.12);
+  --card: rgba(255, 255, 255, 0.92);
+  --shadow: 0 16px 48px rgba(24, 30, 27, 0.06);
+  --shadow-hover: 0 24px 64px rgba(25, 56, 44, 0.12);
 
   /* Legacy & Scoped Aliases */
   --cat-bg: var(--paper);
@@ -46,16 +46,16 @@ html.dark {
   color-scheme: dark;
 
   /* Client Design System — Dark Tokens */
-  --ink: #f3e9e3;
-  --ink-soft: #c6b5b4;
-  --paper: #1d181a;
-  --paper-deep: #271f22;
-  --terracotta: #d18a9b;
-  --terracotta-dark: #b86f81;
-  --lime: #d7bfa5;
-  --white: #211a1d;
-  --line: rgba(243, 233, 227, 0.14);
-  --card: rgba(43, 33, 36, 0.88);
+  --ink: #fbfbf9;
+  --ink-soft: #c8c5bc;
+  --paper: #0e1713;
+  --paper-deep: #15221c;
+  --terracotta: #2d6a4f;
+  --terracotta-dark: #19382c;
+  --lime: #c5a880;
+  --white: #1b2a23;
+  --line: rgba(251, 251, 249, 0.14);
+  --card: rgba(21, 34, 28, 0.88);
   --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
   --shadow-hover: 0 26px 70px rgba(0, 0, 0, 0.55);
 
@@ -104,141 +104,138 @@ html.dark {
   transform: translateX(-50%);
   width: min(100vw, 1200px);
   height: 500px;
-  background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(155, 80, 97, 0.08), transparent 70%);
+  background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(212, 175, 55, 0.08), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
 html.dark .cat-page::before {
-  background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(209, 138, 155, 0.09), transparent 70%);
+  background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(212, 175, 55, 0.06), transparent 70%);
 }
 
-/* ── Floating Pill Navigation ───────────────────────────────────────────────── */
+/* ── Main Site Header (Identical to Landing Page) ───────────────────────────── */
 .cat-nav {
   position: sticky;
-  top: 12px;
+  top: 0;
+  width: 100%;
+  height: 72px;
+  background: #fbfbf9;
+  border-bottom: 1px solid rgba(24, 30, 27, 0.08);
   z-index: 100;
-  max-width: 1140px;
-  width: calc(100% - 32px);
-  margin: 12px auto 0;
-  padding: 0.75rem 1.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--cat-border);
-  background: color-mix(in srgb, var(--cat-bg) 84%, transparent);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
-  backdrop-filter: blur(18px) saturate(1.25);
-  box-shadow: 0 12px 40px rgba(53, 42, 45, 0.08);
-  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
 }
 
 @media (max-width: 768px) {
   .cat-nav {
-    margin: 8px 12px 0;
-    width: calc(100% - 24px);
-    padding: 0.65rem 1.1rem;
+    margin: 0;
+    width: 100%;
+    padding: 0;
   }
 }
 
 .cat-nav__inner {
+  width: 100%;
+  max-width: none;
+  padding-inline: 48px;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
 }
 
 .cat-nav__brand {
-  display: inline-flex;
-  align-items: baseline;
-  text-decoration: none;
-  color: var(--cat-text);
   font-family: var(--serif);
-  font-size: 1.35rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  transition: opacity 0.2s ease;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #181e1b;
+  line-height: 1;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .cat-nav__brand:hover {
   opacity: 0.85;
 }
 
-.cat-nav__brand-gold {
-  color: var(--lime);
-  font-weight: 700;
-}
-
 .cat-nav__actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
-}
-
-@media (max-width: 640px) {
-  .cat-nav__actions {
-    gap: 0.5rem;
-  }
+  gap: 36px;
 }
 
 .cat-nav__links-group {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 34px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .cat-nav__links-group {
     display: none;
   }
 }
 
 .cat-nav__link {
-  text-decoration: none;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
-  color: var(--cat-text-secondary);
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  color: #181e1b;
+  text-decoration: none;
+  padding: 0;
+  border-radius: 0;
+  transition: color 0.2s ease;
 }
 
 .cat-nav__link:hover {
-  color: var(--cat-accent);
-  background-color: rgba(155, 80, 97, 0.06);
+  color: var(--primary, #19382c);
+  background: transparent;
 }
 
 .cat-nav__link--active {
-  color: var(--cat-accent) !important;
+  color: var(--primary, #19382c) !important;
   font-weight: 600;
-  background-color: rgba(155, 80, 97, 0.12);
+  background: transparent;
 }
 
 .cat-nav__cta {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1.15rem;
+  gap: 9px;
+  padding: 10px 22px;
   border-radius: 999px;
-  background: var(--cat-accent);
-  color: #fffdf9;
-  font-size: 0.8125rem;
+  background: var(--primary, #19382c);
+  color: #ffffff !important;
+  font-size: 13px;
   font-weight: 600;
+  border: 1px solid var(--primary, #19382c);
+  box-shadow: 0 4px 14px rgba(25, 56, 44, 0.16);
   text-decoration: none;
-  box-shadow: 0 4px 14px rgba(155, 80, 97, 0.25);
-  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.cat-nav__cta:hover {
-  background: var(--cat-accent-hover);
+.cat-nav__cta:hover:not(:disabled) {
+  background: var(--primary-hover, #122c22);
+  border-color: var(--primary-hover, #122c22);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(155, 80, 97, 0.32);
+}
+
+.cat-nav__cta svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
 }
 
 @media (max-width: 480px) {
   .cat-nav__cta span {
-    display: none;
-  }
-  .cat-nav__cta {
-    padding: 0.55rem;
+    display: inline;
   }
 }
 
@@ -246,7 +243,7 @@ html.dark .cat-page::before {
 .cat-hero {
   position: relative;
   z-index: 1;
-  padding: 4.5rem 1.5rem 2.5rem;
+  padding: 4.5rem 1.5rem 3rem;
   text-align: center;
   max-width: 860px;
   margin: 0 auto;
@@ -262,39 +259,39 @@ html.dark .cat-page::before {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--cat-accent);
-  background: rgba(155, 80, 97, 0.12);
-  border: 1px solid rgba(155, 80, 97, 0.24);
-  padding: 0.42rem 1.25rem;
-  border-radius: 9999px;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 2px 8px rgba(155, 80, 97, 0.06);
+  color: #8b733e;
+  background: rgba(197, 168, 128, 0.14);
+  border: 1px solid rgba(197, 168, 128, 0.3);
+  padding: 0.45rem 1.3rem;
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(197, 168, 128, 0.08);
 }
 
 .cat-hero__title {
   font-family: var(--serif);
-  font-size: clamp(2.35rem, 5.5vw, 3.75rem);
-  font-weight: 600;
-  line-height: 1.16;
+  font-size: clamp(32px, 7vw, 56px);
+  font-weight: 400;
+  line-height: 1.15;
   margin: 0 0 1.25rem;
-  color: var(--cat-text);
-  letter-spacing: -0.015em;
+  color: #181e1b;
+  letter-spacing: -0.025em;
 }
 
 .cat-hero__title em {
   font-style: italic;
-  font-weight: 500;
-  color: var(--cat-accent);
+  font-weight: 400;
+  color: #181e1b;
   font-family: var(--serif);
 }
 
 .cat-hero__subtitle {
-  font-size: clamp(1rem, 2vw, 1.15rem);
-  line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.75;
   color: var(--cat-text-secondary);
   margin: 0 auto;
   max-width: 620px;
@@ -304,9 +301,9 @@ html.dark .cat-page::before {
 /* ── Grid Container ─────────────────────────────────────────────────────────── */
 .cat-container {
   box-sizing: border-box;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem 1.5rem 5rem;
+  max-width: none;
+  margin: 0;
+  padding: 1.5rem 48px 5rem;
   width: 100%;
   flex: 1;
   position: relative;
@@ -315,18 +312,19 @@ html.dark .cat-page::before {
 
 .cat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2.25rem;
-}
-
-@media (max-width: 1024px) {
-  .cat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.75rem;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 28px;
 }
 
 @media (max-width: 640px) {
+  .cat-nav__inner {
+    padding-inline: 20px;
+  }
+
+  .cat-container {
+    padding: 1.5rem 20px 4rem;
+  }
+
   .cat-grid {
     grid-template-columns: 1fr;
     gap: 1.75rem;
@@ -356,7 +354,7 @@ html.dark .cat-page::before {
 .cat-card:hover {
   transform: translateY(-8px);
   box-shadow: var(--cat-shadow-hover);
-  border-color: rgba(155, 80, 97, 0.35);
+  border-color: rgba(25, 56, 44, 0.28);
 }
 
 .cat-card__preview {
@@ -385,7 +383,7 @@ html.dark .cat-page::before {
   position: absolute;
   top: 14px;
   left: 14px;
-  background: rgba(43, 32, 35, 0.85);
+  background: rgba(24, 30, 27, 0.85);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   color: #fffdf9;
@@ -405,18 +403,18 @@ html.dark .cat-page::before {
 }
 
 .cat-card__category {
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--cat-accent);
+  letter-spacing: 0.16em;
+  color: #8b733e;
   margin-bottom: 0.45rem;
 }
 
 .cat-card__title {
   font-family: var(--serif);
   font-size: 1.45rem;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0 0 0.5rem;
   color: var(--cat-text);
   line-height: 1.3;
@@ -436,6 +434,17 @@ html.dark .cat-page::before {
   gap: 0.75rem;
 }
 
+@media (max-width: 440px) {
+  .cat-card__actions {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .cat-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+}
+
 .cat-btn {
   display: inline-flex;
   align-items: center;
@@ -453,29 +462,29 @@ html.dark .cat-page::before {
 }
 
 .cat-btn--demo {
-  background: transparent;
-  color: var(--cat-text);
-  border: 1px solid var(--cat-border);
+  background: #ffffff;
+  color: #181e1b;
+  border: 1px solid rgba(24, 30, 27, 0.2);
 }
 
 .cat-btn--demo:hover {
-  border-color: var(--cat-accent);
-  color: var(--cat-accent);
-  background: rgba(155, 80, 97, 0.08);
+  border-color: #19382c;
+  color: #19382c;
+  background: rgba(25, 56, 44, 0.05);
 }
 
 .cat-btn--order {
-  background: var(--cat-accent);
-  color: #fffdf9;
-  border: 1px solid var(--cat-accent);
-  box-shadow: 0 4px 14px rgba(155, 80, 97, 0.25);
+  background: #19382c;
+  color: #ffffff;
+  border: 1px solid #19382c;
+  box-shadow: 0 4px 14px rgba(25, 56, 44, 0.16);
 }
 
 .cat-btn--order:hover {
-  background: var(--cat-accent-hover);
-  border-color: var(--cat-accent-hover);
+  background: #122c22;
+  border-color: #122c22;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(155, 80, 97, 0.32);
+  box-shadow: 0 6px 18px rgba(25, 56, 44, 0.24);
 }
 
 .cat-btn:disabled,
@@ -505,7 +514,7 @@ html.dark .cat-page::before {
   height: 60px;
   margin: 0 auto 1.25rem;
   border-radius: 50%;
-  background: rgba(155, 80, 97, 0.12);
+  background: rgba(25, 56, 44, 0.08);
   color: var(--cat-accent);
   display: grid;
   place-items: center;
@@ -543,11 +552,11 @@ html.dark .cat-page::before {
 
 .cat-assistance__badge {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--cat-accent);
+  letter-spacing: 0.2em;
+  color: #8b733e;
   margin-bottom: 0.75rem;
 }
 

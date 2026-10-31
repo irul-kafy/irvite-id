@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { getCatalogTemplates, filterAvailableTemplates } from '@/catalog';
 import { fetchPublicTemplateAvailability, fetchPublicTemplatePackages } from '@/api/client';
 import type { CatalogTemplateItem } from '@/catalog/template-catalog.types';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
 import './templates.css';
 
@@ -54,49 +53,61 @@ export default async function PublicTemplatesPage() {
     })),
   ];
 
-  const navContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya ingin konsultasi undangan digital.');
-  const footerContactUrl = getGeneralContactUrl('Halo IRVITE.ID, saya butuh bantuan memilih template undangan.');
+  const navContactUrl = getGeneralContactUrl('Halo IRVITE, saya ingin konsultasi undangan digital.');
+  const footerContactUrl = getGeneralContactUrl('Halo IRVITE, saya butuh bantuan memilih template undangan.');
 
   return (
     <div className="cat-page">
-      {/* Floating Pill Navigation */}
-      <header className="cat-nav" aria-label="Navigasi Utama">
-        <div className="cat-nav__inner">
-          <Link href="/" className="cat-nav__brand" aria-label="IRVITE.ID Beranda">
-            IRVITE<span className="cat-nav__brand-gold">.ID</span>
+      {/* Main Site Header (matching Landing Page) */}
+      <header className="site-header cat-nav" aria-label="Navigasi Utama">
+        <div className="site-header-inner cat-nav__inner">
+          <Link href="/" className="brand cat-nav__brand" aria-label="IRVITE Beranda">
+            IRVITE
           </Link>
 
-          <nav className="cat-nav__actions" aria-label="Navigasi Menu">
-            <div className="cat-nav__links-group">
+          <div className="site-nav-group cat-nav__actions">
+            <nav className="cat-nav__links-group" aria-label="Navigasi Menu">
               <Link href="/" className="cat-nav__link">
                 Beranda
               </Link>
               <Link href="/templates" className="cat-nav__link cat-nav__link--active" aria-current="page">
                 Katalog
               </Link>
-              <Link href="/#paket" className="cat-nav__link">
-                Paket
-              </Link>
               <Link href="/#cara-kerja" className="cat-nav__link">
                 Cara Kerja
               </Link>
+              <Link href="/#paket" className="cat-nav__link">
+                Paket
+              </Link>
+            </nav>
+
+            <div className="nav-actions">
+              {navContactUrl ? (
+                <a
+                  id="cat-nav-wa-cta"
+                  href={navContactUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav-cta cat-nav__cta"
+                >
+                  <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+                  <span>Konsultasi</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  id="cat-nav-wa-cta"
+                  disabled
+                  className="nav-cta cat-nav__cta"
+                  style={{ opacity: 0.5, cursor: 'not-allowed' }}
+                  title="Kontak belum dikonfigurasi"
+                >
+                  <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+                  <span>Konsultasi</span>
+                </button>
+              )}
             </div>
-
-            <ThemeToggle />
-
-            {navContactUrl ? (
-              <a
-                id="cat-nav-wa-cta"
-                href={navContactUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="cat-nav__cta"
-              >
-                <IconWA style={{ width: 16, height: 16, flexShrink: 0 }} />
-                <span>Konsultasi</span>
-              </a>
-            ) : null}
-          </nav>
+          </div>
         </div>
       </header>
 
@@ -191,30 +202,37 @@ export default async function PublicTemplatesPage() {
                         Lihat Demo
                       </a>
 
-                      {orderUrl ? (
+                      <a
+                        id={'customize-' + tpl.slug}
+                        href={`${tpl.demoPath}?customize=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cat-btn cat-btn--order"
+                        aria-label={'Simulasikan data & foto Anda pada template ' + tpl.displayName}
+                      >
+                        Coba Isi Data
+                      </a>
+                    </div>
+
+                    {orderUrl && (
+                      <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
                         <a
                           id={'order-' + tpl.slug}
                           href={orderUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="cat-btn cat-btn--order"
+                          style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--cat-accent)',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
                           aria-label={'Pesan template ' + tpl.displayName + ' via WhatsApp'}
                         >
-                          Pilih Template
+                          Langsung tanya via WhatsApp →
                         </a>
-                      ) : (
-                        <button
-                          type="button"
-                          id={'order-' + tpl.slug}
-                          disabled
-                          className="cat-btn cat-btn--order"
-                          style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                          title="Pemesanan WhatsApp sementara tidak tersedia"
-                        >
-                          Pilih Template
-                        </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
@@ -255,7 +273,7 @@ export default async function PublicTemplatesPage() {
           )}
 
           <div className="cat-assistance__copyright">
-            © {new Date().getFullYear()} IRVITE.ID · Seluruh Hak Cipta Dilindungi
+            © {new Date().getFullYear()} IRVITE · Seluruh Hak Cipta Dilindungi
           </div>
         </div>
       </footer>

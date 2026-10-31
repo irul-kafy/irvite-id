@@ -399,8 +399,8 @@ export default function EventDetailPage({
   return (
     <div>
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex-between mb-4">
-        <div className="flex-center gap-3">
+      <div className="flex-between mb-4" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div className="flex-center gap-3" style={{ flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => router.push('/events')}
@@ -411,8 +411,8 @@ export default function EventDetailPage({
             <span>Kembali</span>
           </button>
           <div>
-            <div className="flex-center gap-2">
-              <h1 className="page-title" style={{ margin: 0, fontSize: '1.375rem' }}>
+            <div className="flex-center gap-2" style={{ flexWrap: 'wrap' }}>
+              <h1 className="page-title" style={{ margin: 0, fontSize: '1.375rem', wordBreak: 'break-word' }}>
                 {event.title}
               </h1>
               <span className={`badge ${event.status === 'PUBLISHED' ? 'badge--success' : event.status === 'ARCHIVED' ? 'badge--danger' : 'badge--warning'}`}>
@@ -422,7 +422,7 @@ export default function EventDetailPage({
           </div>
         </div>
 
-        <div className="flex-center gap-2">
+        <div className="flex-center gap-2" style={{ flexWrap: 'wrap' }}>
           {event.status === 'DRAFT' && (
             <button
               type="button"
@@ -518,6 +518,7 @@ export default function EventDetailPage({
           borderBottom: '1px solid var(--admin-border)',
           marginBottom: '1.5rem',
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
           paddingBottom: '0.25rem',
         }}
         role="tablist"
@@ -558,6 +559,14 @@ export default function EventDetailPage({
           onClick={() => router.push(`/events/${event.id}/guests`)}
         >
           Tamu Undangan &rarr;
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost"
+          onClick={() => router.push(`/events/${event.id}/monitor`)}
+          style={{ color: 'var(--status-success, #059669)', fontWeight: 600 }}
+        >
+          Live Monitor ⚡
         </button>
         <button
           type="button"
@@ -650,7 +659,7 @@ export default function EventDetailPage({
               <h2 className="card-header__title">Ringkasan Informasi Acara</h2>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                 <div>
                   <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
                     Waktu Pelaksanaan
@@ -828,6 +837,32 @@ export default function EventDetailPage({
               </div>
               <div className="action-card__arrow">
                 Buka Scanner QR &rarr;
+              </div>
+            </div>
+
+            {/* Module: Live Attendance Monitor */}
+            <div
+              className="action-card"
+              onClick={() => router.push(`/events/${event.id}/monitor`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/monitor`); }}
+              id="hub-monitor-card"
+            >
+              <div className="action-card__icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#059669' }}>
+                <span style={{ fontSize: '1.25rem' }}>⚡</span>
+              </div>
+              <div>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Live Monitor &amp; WO Hub
+                  <span className="badge badge--success" style={{ fontSize: '0.6875rem' }}>LIVE SYNC</span>
+                </div>
+                <div className="action-card__desc">
+                  Pantau tamu yang sudah hadir secara realtime di HP/tablet, counter kuota porsi pax, dan integrasikan sinkronisasi otomatis ke Google Sheets.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Live Monitor &rarr;
               </div>
             </div>
 
