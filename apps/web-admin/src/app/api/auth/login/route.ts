@@ -5,9 +5,11 @@ export async function POST(request: Request) {
   try {
     const origin = request.headers.get('origin');
     const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const isSameHost = Boolean(host && origin && (origin === `https://${host}` || origin === `http://${host}`));
     
     // Strict origin check for CSRF mitigation
-    if (origin !== expectedOrigin) {
+    if (origin !== expectedOrigin && !isSameHost) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

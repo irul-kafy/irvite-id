@@ -119,7 +119,13 @@ export default function LoginPage() {
       });
 
       if (!res.ok) {
-        setError('Email atau kata sandi tidak valid. Silakan coba lagi.');
+        if (res.status === 403) {
+          setError('Akses ditolak (Domain/Origin tidak valid).');
+        } else if (res.status >= 500) {
+          setError('Tidak dapat terhubung ke backend API. Pastikan tunnel dan server menyala.');
+        } else {
+          setError('Email atau kata sandi tidak valid. Silakan coba lagi.');
+        }
         return;
       }
 
