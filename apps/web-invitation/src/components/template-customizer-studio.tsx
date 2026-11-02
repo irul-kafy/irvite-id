@@ -201,7 +201,7 @@ export function TemplateCustomizerStudio({
   );
 
   const handleSinglePhotoUpload = async (
-    slot: 'hero' | 'closing',
+    slot: 'hero' | 'closing' | 'bride' | 'groom',
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
@@ -218,9 +218,18 @@ export function TemplateCustomizerStudio({
     const blobUrl = URL.createObjectURL(file);
     const dataUrl = await compressImageToDataUrl(file).catch(() => undefined);
 
+    const stateKey =
+      slot === 'hero'
+        ? 'heroPhoto'
+        : slot === 'closing'
+          ? 'closingPhoto'
+          : slot === 'bride'
+            ? 'bridePhoto'
+            : 'groomPhoto';
+
     setState((prev) => ({
       ...prev,
-      [slot === 'hero' ? 'heroPhoto' : 'closingPhoto']: {
+      [stateKey]: {
         slot,
         previewUrl: blobUrl,
         dataUrl,
@@ -354,6 +363,8 @@ export function TemplateCustomizerStudio({
 
   const uploadedPhotoCount =
     (state.heroPhoto ? 1 : 0) +
+    (state.bridePhoto ? 1 : 0) +
+    (state.groomPhoto ? 1 : 0) +
     (state.closingPhoto ? 1 : 0) +
     state.galleryPhotos.length;
 
@@ -839,10 +850,94 @@ export function TemplateCustomizerStudio({
                 </div>
               </div>
 
+              {/* Bride Photo */}
+              <div className="irv-studio-photo-box">
+                <div className="irv-studio-label">
+                  <span>2. Foto Mempelai Wanita ({state.partnerOneName || 'The Bride'})</span>
+                  <span className="irv-studio-label__hint">Opsional • Bingkai 01</span>
+                </div>
+                {state.bridePhoto && (
+                  <div className="irv-studio-photo-preview-row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={state.bridePhoto.previewUrl}
+                      alt="Pratinjau Mempelai Wanita"
+                      className="irv-studio-photo-thumb"
+                    />
+                    <div style={{ fontSize: '0.76rem', color: '#394640' }}>
+                      <strong>{state.bridePhoto.fileName || 'Foto Mempelai Wanita'}</strong>
+                      <div>Tampil khusus di bingkai 01 Mempelai Wanita</div>
+                    </div>
+                  </div>
+                )}
+                <div className="irv-studio-photo-actions">
+                  <label className="irv-studio-upload-btn">
+                    <span>📤 Pilih Foto Mempelai Wanita</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleSinglePhotoUpload('bride', e)}
+                    />
+                  </label>
+                  {state.bridePhoto && (
+                    <button
+                      type="button"
+                      className="irv-studio-remove-btn"
+                      onClick={() => updateField('bridePhoto', null)}
+                    >
+                      Gunakan Foto Default
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Groom Photo */}
+              <div className="irv-studio-photo-box">
+                <div className="irv-studio-label">
+                  <span>3. Foto Mempelai Pria ({state.partnerTwoName || 'The Groom'})</span>
+                  <span className="irv-studio-label__hint">Opsional • Bingkai 02</span>
+                </div>
+                {state.groomPhoto && (
+                  <div className="irv-studio-photo-preview-row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={state.groomPhoto.previewUrl}
+                      alt="Pratinjau Mempelai Pria"
+                      className="irv-studio-photo-thumb"
+                    />
+                    <div style={{ fontSize: '0.76rem', color: '#394640' }}>
+                      <strong>{state.groomPhoto.fileName || 'Foto Mempelai Pria'}</strong>
+                      <div>Tampil khusus di bingkai 02 Mempelai Pria</div>
+                    </div>
+                  </div>
+                )}
+                <div className="irv-studio-photo-actions">
+                  <label className="irv-studio-upload-btn">
+                    <span>📤 Pilih Foto Mempelai Pria</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleSinglePhotoUpload('groom', e)}
+                    />
+                  </label>
+                  {state.groomPhoto && (
+                    <button
+                      type="button"
+                      className="irv-studio-remove-btn"
+                      onClick={() => updateField('groomPhoto', null)}
+                    >
+                      Gunakan Foto Default
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Gallery Photos */}
               <div className="irv-studio-photo-box">
                 <div className="irv-studio-label">
-                  <span>2. Galeri Momen Bahagia</span>
+                  <span>4. Galeri Momen Bahagia</span>
                   <span className="irv-studio-label__hint">
                     {state.galleryPhotos.length}/4 Foto • Maks. 25 MB/foto
                   </span>
@@ -903,7 +998,7 @@ export function TemplateCustomizerStudio({
               {themeCode !== 'SEKAR_KEDATON' && (
                 <div className="irv-studio-photo-box">
                   <div className="irv-studio-label">
-                    <span>3. Foto Penutup (Closing Portrait)</span>
+                    <span>5. Foto Penutup (Closing Portrait)</span>
                     <span className="irv-studio-label__hint">Opsional • Maks. 25 MB</span>
                   </div>
                   {state.closingPhoto && (

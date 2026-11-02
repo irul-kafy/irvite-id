@@ -18,7 +18,7 @@ export interface GiftAccountFormState {
 }
 
 export interface CustomPhotoItem {
-  slot: 'hero' | 'closing' | 'gallery';
+  slot: 'hero' | 'closing' | 'gallery' | 'bride' | 'groom';
   previewUrl: string; // blob:... or /templates/...
   dataUrl?: string; // compressed data:image/jpeg;base64,... for admin submission
   fileName?: string;
@@ -41,6 +41,8 @@ export interface ClientCustomizationState {
   ceremonies: CeremonyFormState[];
   giftAccounts: GiftAccountFormState[];
   heroPhoto: CustomPhotoItem | null;
+  bridePhoto?: CustomPhotoItem | null;
+  groomPhoto?: CustomPhotoItem | null;
   closingPhoto: CustomPhotoItem | null;
   galleryPhotos: CustomPhotoItem[];
 }
@@ -205,6 +207,8 @@ export function extractInitialCustomizationState(
     ceremonies,
     giftAccounts,
     heroPhoto: null,
+    bridePhoto: null,
+    groomPhoto: null,
     closingPhoto: null,
     galleryPhotos: [],
   };
@@ -321,6 +325,38 @@ export function applyClientCustomizationToFixture(
       ...updatedMediaList.filter(
         (m) => m.slot !== 'hero' && m.slot !== 'couple_1',
       ),
+    ];
+  }
+
+  if (state.bridePhoto?.previewUrl) {
+    const brideDescriptor: PublicMediaDescriptor = {
+      id: 'custom-bride-photo',
+      type: 'PHOTO',
+      slot: 'bride',
+      order: 0,
+      src: state.bridePhoto.previewUrl,
+    };
+    baseMediaBySlot['bride'] = [brideDescriptor];
+    baseMediaBySlot['couple_1'] = [brideDescriptor];
+    updatedMediaList = [
+      brideDescriptor,
+      ...updatedMediaList.filter((m) => m.slot !== 'bride' && m.slot !== 'couple_1'),
+    ];
+  }
+
+  if (state.groomPhoto?.previewUrl) {
+    const groomDescriptor: PublicMediaDescriptor = {
+      id: 'custom-groom-photo',
+      type: 'PHOTO',
+      slot: 'groom',
+      order: 0,
+      src: state.groomPhoto.previewUrl,
+    };
+    baseMediaBySlot['groom'] = [groomDescriptor];
+    baseMediaBySlot['couple_2'] = [groomDescriptor];
+    updatedMediaList = [
+      groomDescriptor,
+      ...updatedMediaList.filter((m) => m.slot !== 'groom' && m.slot !== 'couple_2'),
     ];
   }
 
@@ -454,6 +490,20 @@ export function buildDraftSubmissionPayload(params: {
     photos.push({
       slot: 'hero',
       dataUrl: state.heroPhoto.dataUrl,
+      order: 0,
+    });
+  }
+  if (state.bridePhoto?.dataUrl) {
+    photos.push({
+      slot: 'bride',
+      dataUrl: state.bridePhoto.dataUrl,
+      order: 0,
+    });
+  }
+  if (state.groomPhoto?.dataUrl) {
+    photos.push({
+      slot: 'groom',
+      dataUrl: state.groomPhoto.dataUrl,
       order: 0,
     });
   }

@@ -127,6 +127,18 @@ export function adaptAetheriaData(
   const storyDesc: PublicMediaDescriptor | undefined = mediaBySlot['story']?.[0] || payload.media?.find((m) => m.slot === 'story');
   const galleryDescList: PublicMediaDescriptor[] = mediaBySlot['gallery'] || payload.media?.filter((m) => m.slot === 'gallery') || [];
 
+  const brideDesc: PublicMediaDescriptor | undefined =
+    mediaBySlot['bride']?.[0] ||
+    mediaBySlot['couple_1']?.[0] ||
+    payload.media?.find((m) => m.slot === 'bride' || m.slot === 'couple_1');
+  const groomDesc: PublicMediaDescriptor | undefined =
+    mediaBySlot['groom']?.[0] ||
+    mediaBySlot['couple_2']?.[0] ||
+    payload.media?.find((m) => m.slot === 'groom' || m.slot === 'couple_2');
+
+  const brideUrl = resolveMediaUrl(brideDesc?.src, isPreview);
+  const groomUrl = resolveMediaUrl(groomDesc?.src, isPreview);
+
   const heroUrl = resolveMediaUrl(heroDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/couple-garden.webp`;
   const closingUrl = resolveMediaUrl(closingDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/closing.webp`;
   const storyUrl = resolveMediaUrl(storyDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/couple.webp`;
@@ -194,17 +206,21 @@ export function adaptAetheriaData(
         name: partnerOneFullName,
         shortName: partnerOneName,
         parents: partnerOneFamily,
-        portrait: isCustomHeroBlob
-          ? { src: heroUrl, alt: `Potret ${partnerOneName}`, position: '50% 30%', zoom: 1.05 }
-          : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerOneName}`, position: '28% 33%', zoom: 1.75 },
+        portrait: brideUrl
+          ? { src: brideUrl, alt: `Potret ${partnerOneName}`, position: '50% 25%', zoom: 1.05 }
+          : isCustomHeroBlob
+            ? { src: heroUrl, alt: `Potret ${partnerOneName}`, position: '68% 28%', zoom: 1.6 }
+            : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerOneName}`, position: '28% 33%', zoom: 1.75 },
       },
       groom: {
         name: partnerTwoFullName,
         shortName: partnerTwoName,
         parents: partnerTwoFamily,
-        portrait: isCustomHeroBlob
-          ? { src: heroUrl, alt: `Potret ${partnerTwoName}`, position: '50% 30%', zoom: 1.05 }
-          : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerTwoName}`, position: '27% 15%', zoom: 2.8 },
+        portrait: groomUrl
+          ? { src: groomUrl, alt: `Potret ${partnerTwoName}`, position: '50% 25%', zoom: 1.05 }
+          : isCustomHeroBlob
+            ? { src: heroUrl, alt: `Potret ${partnerTwoName}`, position: '32% 25%', zoom: 1.6 }
+            : { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: `Potret ${partnerTwoName}`, position: '27% 15%', zoom: 2.8 },
       },
     },
     media: {
