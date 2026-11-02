@@ -1,5 +1,12 @@
 export function getCanonicalInvitationUrl(uniqueCode: string): string | null {
-  const envUrl = process.env.PUBLIC_INVITATION_URL || 'http://localhost:3002';
+  let envUrl = process.env.PUBLIC_INVITATION_URL;
+  if (!envUrl || !envUrl.trim()) {
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      envUrl = 'https://irvite-id.vercel.app';
+    } else {
+      envUrl = 'http://localhost:3002';
+    }
+  }
 
   try {
     const url = new URL(envUrl);

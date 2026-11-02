@@ -30,6 +30,16 @@ test('strict QR parser tests', async (t) => {
     assert.strictEqual(parseQRData(code, TRUSTED_ORIGIN), null);
   });
 
+  await t.test('accepts localhost:3002 QR code across environments', () => {
+    const url = 'http://localhost:3002/i/abcDEF123_-abcDEF123_-';
+    assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');
+  });
+
+  await t.test('accepts canonical production irvite-id.vercel.app QR code', () => {
+    const url = 'https://irvite-id.vercel.app/i/abcDEF123_-abcDEF123_-';
+    assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');
+  });
+
   await t.test('accepts valid canonical URL', () => {
     const url = 'https://invitations.example.com/i/abcDEF123_-abcDEF123_-';
     assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');
