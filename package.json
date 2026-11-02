@@ -17,7 +17,8 @@
   },
   "devDependencies": {
     "tsx": "4.23.15",
-    "turbo": "^2.10.11"
+    "turbo": "^2.10.11",
+    "prisma": "^5.22.0"
   },
   "packageManager": "npm@10.9.2",
   "overrides": {
