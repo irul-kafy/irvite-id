@@ -70,6 +70,20 @@ export const SEKAR_KEDATON_DEMO_FIXTURE: RendererData = {
       src: '/templates/sekar-kedaton/couple-jawa-demo.png',
     },
     {
+      id: 'demo-bride',
+      type: 'PHOTO',
+      slot: 'bride',
+      order: 0,
+      src: '/templates/sekar-kedaton/bride-jawa-demo.png',
+    },
+    {
+      id: 'demo-groom',
+      type: 'PHOTO',
+      slot: 'groom',
+      order: 0,
+      src: '/templates/sekar-kedaton/groom-jawa-demo.png',
+    },
+    {
       id: 'demo-gallery-0',
       type: 'PHOTO',
       slot: 'gallery',
@@ -92,6 +106,42 @@ export const SEKAR_KEDATON_DEMO_FIXTURE: RendererData = {
         slot: 'hero',
         order: 0,
         src: '/templates/sekar-kedaton/couple-jawa-demo.png',
+      },
+    ],
+    bride: [
+      {
+        id: 'demo-bride',
+        type: 'PHOTO',
+        slot: 'bride',
+        order: 0,
+        src: '/templates/sekar-kedaton/bride-jawa-demo.png',
+      },
+    ],
+    groom: [
+      {
+        id: 'demo-groom',
+        type: 'PHOTO',
+        slot: 'groom',
+        order: 0,
+        src: '/templates/sekar-kedaton/groom-jawa-demo.png',
+      },
+    ],
+    couple_1: [
+      {
+        id: 'demo-bride',
+        type: 'PHOTO',
+        slot: 'couple_1',
+        order: 0,
+        src: '/templates/sekar-kedaton/bride-jawa-demo.png',
+      },
+    ],
+    couple_2: [
+      {
+        id: 'demo-groom',
+        type: 'PHOTO',
+        slot: 'couple_2',
+        order: 0,
+        src: '/templates/sekar-kedaton/groom-jawa-demo.png',
       },
     ],
     gallery: [

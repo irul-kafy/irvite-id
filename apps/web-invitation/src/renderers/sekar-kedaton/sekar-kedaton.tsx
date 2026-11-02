@@ -84,6 +84,14 @@ export default function SekarKedatonRenderer({
   const rsvpVisible = shouldRenderSereneRsvp(mode, data.guest, data.rsvp) && Boolean(uniqueCode);
   const audioSrc = mediaSrc(media.bgMusic?.src, isPreview);
   const heroSrc = mediaSrc(media.hero?.src, isPreview);
+  const brideSrc = mediaSrc(media.bride?.src, isPreview);
+  const groomSrc = mediaSrc(media.groom?.src, isPreview);
+  const isBrideHeroCrop = Boolean(
+    brideSrc && heroSrc && brideSrc === heroSrc && (heroSrc.startsWith('blob:') || heroSrc.includes('couple-jawa-demo')),
+  );
+  const isGroomHeroCrop = Boolean(
+    groomSrc && heroSrc && groomSrc === heroSrc && (heroSrc.startsWith('blob:') || heroSrc.includes('couple-jawa-demo')),
+  );
   const gallery = media.gallery.filter((photo: any) => mediaSrc(photo.src, isPreview));
   const ceremonies = content?.ceremonies ?? [];
   const timezone = content?.timeZone ?? 'Asia/Jakarta';
@@ -256,9 +264,24 @@ export default function SekarKedatonRenderer({
             </div>
             <div className={s.coupleLayout}>
               <article data-reveal="left">
+                {brideSrc && (
+                  <figure className={s.partnerPortrait}>
+                    <div className={s.portraitArch}>
+                      <img
+                        src={brideSrc}
+                        alt={`Mempelai Wanita - ${nameOne}`}
+                        loading="lazy"
+                        style={isBrideHeroCrop ? { objectPosition: '72% 25%', transform: 'scale(1.2)' } : undefined}
+                      />
+                    </div>
+                    <span className={s.portraitBadge}>01</span>
+                  </figure>
+                )}
                 <span className={s.partnerLabel}>MEMPELAI WANITA</span>
                 <h3>{nameOne}</h3>
-                <p>{content.partnerOneFullName}</p>
+                {content.partnerOneFullName && (
+                  <p className={s.partnerFullName}>{content.partnerOneFullName}</p>
+                )}
                 <p className={s.parents}>{content.partnerOneFamily}</p>
                 <Kawung />
               </article>
@@ -269,9 +292,24 @@ export default function SekarKedatonRenderer({
                 </figure>
               )}
               <article data-reveal="right">
+                {groomSrc && (
+                  <figure className={s.partnerPortrait}>
+                    <div className={s.portraitArch}>
+                      <img
+                        src={groomSrc}
+                        alt={`Mempelai Pria - ${nameTwo}`}
+                        loading="lazy"
+                        style={isGroomHeroCrop ? { objectPosition: '32% 25%', transform: 'scale(1.2)' } : undefined}
+                      />
+                    </div>
+                    <span className={s.portraitBadge}>02</span>
+                  </figure>
+                )}
                 <span className={s.partnerLabel}>MEMPELAI PRIA</span>
                 <h3>{nameTwo}</h3>
-                <p>{content.partnerTwoFullName}</p>
+                {content.partnerTwoFullName && (
+                  <p className={s.partnerFullName}>{content.partnerTwoFullName}</p>
+                )}
                 <p className={s.parents}>{content.partnerTwoFamily}</p>
                 <Kawung />
               </article>

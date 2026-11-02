@@ -163,6 +163,22 @@ export const SEKAR_KEDATON_DEFINITION: TemplateDefinition = {
       maxSizeBytes: 5 * 1024 * 1024,
     },
     {
+      key: 'bride',
+      label: 'Foto Mempelai Wanita',
+      mediaType: 'PHOTO',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
+      key: 'groom',
+      label: 'Foto Mempelai Pria',
+      mediaType: 'PHOTO',
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
       key: 'gallery',
       label: 'Galeri Foto',
       mediaType: 'PHOTO',

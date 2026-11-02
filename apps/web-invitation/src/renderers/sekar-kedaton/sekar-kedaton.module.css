@@ -832,6 +832,74 @@
   width: 75px;
 }
 
+.partnerPortrait {
+  position: relative;
+  margin: 0 auto 22px;
+  width: 100%;
+  max-width: 210px;
+  display: block;
+}
+
+.portraitArch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 105px 105px 8px 8px;
+  overflow: hidden;
+  border: 2px solid rgba(158, 96, 61, 0.45);
+  box-shadow: 0 12px 28px rgba(24, 62, 55, 0.12), inset 0 0 0 3px rgba(244, 234, 217, 0.7);
+  outline: 1px solid rgba(158, 96, 61, 0.25);
+  outline-offset: 4px;
+  background: #dfcfb2;
+}
+
+.portraitArch img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+  display: block;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.partnerPortrait:hover .portraitArch img {
+  transform: scale(1.05);
+}
+
+.portraitArch::after {
+  content: '';
+  position: absolute;
+  inset: 60% 0 0;
+  background: linear-gradient(to top, rgba(24, 62, 55, 0.35) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.portraitBadge {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: #f4e4c8;
+  background: var(--jade, #183e37);
+  border: 1px solid rgba(158, 96, 61, 0.5);
+  padding: 3px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(24, 62, 55, 0.2);
+}
+
+.partnerFullName {
+  font-size: 15px !important;
+  font-weight: 600;
+  color: var(--jade);
+  letter-spacing: 0.02em;
+  margin: 6px auto 8px;
+}
+
 .couplePhoto {
   margin: 0;
   position: relative;
@@ -1740,15 +1808,20 @@
 
   .coupleLayout {
     grid-template-columns: 1fr 1fr;
-    gap: 25px;
+    gap: 32px 25px;
   }
 
   .couplePhoto {
     grid-column: 1/-1;
-    grid-row: 1;
-    height: 470px;
-    width: 70%;
-    margin: 0 auto 20px;
+    grid-row: 2;
+    height: 440px;
+    width: 80%;
+    max-width: 320px;
+    margin: 20px auto 0;
+  }
+
+  .partnerPortrait {
+    max-width: 190px;
   }
 
   .coupleLayout h3 {
@@ -2056,10 +2129,30 @@
     gap: 20px 24px;
   }
 
+  .partnerPortrait {
+    max-width: 165px;
+    margin-bottom: 16px;
+  }
+
+  .portraitArch {
+    border-radius: 85px 85px 8px 8px;
+  }
+
+  .portraitBadge {
+    font-size: 10px;
+    padding: 2px 12px;
+    bottom: -8px;
+  }
+
+  .partnerFullName {
+    font-size: 13px !important;
+  }
+
   .couplePhoto {
-    height: 380px;
+    height: 360px;
     width: 90%;
-    margin-bottom: 22px;
+    max-width: 260px;
+    margin: 16px auto 0;
   }
 
   .partnerLabel {

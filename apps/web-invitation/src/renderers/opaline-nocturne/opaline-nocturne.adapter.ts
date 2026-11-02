@@ -124,6 +124,18 @@ export function adaptOpalineNocturneData(
   const closingUrl = resolveMediaUrl(closingDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/closing.webp`;
   const storyUrl = resolveMediaUrl(storyDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/enchanted-forest.webp`;
 
+  const brideDesc: PublicMediaDescriptor | undefined =
+    mediaBySlot['bride']?.[0] ||
+    mediaBySlot['couple_1']?.[0] ||
+    payload.media?.find((m) => m.slot === 'bride' || m.slot === 'couple_1');
+  const groomDesc: PublicMediaDescriptor | undefined =
+    mediaBySlot['groom']?.[0] ||
+    mediaBySlot['couple_2']?.[0] ||
+    payload.media?.find((m) => m.slot === 'groom' || m.slot === 'couple_2');
+
+  const brideUrl = resolveMediaUrl(brideDesc?.src, isPreview) || heroUrl;
+  const groomUrl = resolveMediaUrl(groomDesc?.src, isPreview) || heroUrl;
+
   const defaultGallery = [
     { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: 'Keanggunan di Balik Malam' },
     { src: `${DEFAULT_ASSET_BASE}/images/enchanted-forest.webp`, alt: 'Hutan Keabadian' },
@@ -181,13 +193,13 @@ export function adaptOpalineNocturneData(
         name: partnerOneFullName,
         shortName: partnerOneName,
         parents: partnerOneFamily,
-        portrait: { src: heroUrl, alt: `Potret ${partnerOneName}` },
+        portrait: { src: brideUrl, alt: `Potret ${partnerOneName}` },
       },
       groom: {
         name: partnerTwoFullName,
         shortName: partnerTwoName,
         parents: partnerTwoFamily,
-        portrait: { src: heroUrl, alt: `Potret ${partnerTwoName}` },
+        portrait: { src: groomUrl, alt: `Potret ${partnerTwoName}` },
       },
     },
     media: {

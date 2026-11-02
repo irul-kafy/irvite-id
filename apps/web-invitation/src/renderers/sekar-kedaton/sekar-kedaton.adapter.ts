@@ -33,6 +33,8 @@ export interface SekarKedatonContent {
 
 export interface SekarKedatonMedia {
   hero?: PublicMediaDescriptor;
+  bride?: PublicMediaDescriptor;
+  groom?: PublicMediaDescriptor;
   gallery: PublicMediaDescriptor[];
   bgMusic?: PublicMediaDescriptor;
 }
@@ -113,8 +115,51 @@ export function adaptSekarKedatonMedia(
   };
 
   const hero = resolveSlot('hero').find((m) => m.type === 'PHOTO');
+
+  const explicitBride =
+    resolveSlot('bride').find((m) => m.type === 'PHOTO') ||
+    resolveSlot('couple_1').find((m) => m.type === 'PHOTO' && m.src !== hero?.src);
+
+  const explicitGroom =
+    resolveSlot('groom').find((m) => m.type === 'PHOTO') ||
+    resolveSlot('couple_2').find((m) => m.type === 'PHOTO' && m.src !== hero?.src);
+
+  const isCustomHero = Boolean(
+    hero?.src && (hero.src.startsWith('blob:') || hero.src.startsWith('data:') || !hero.src.includes('couple-jawa-demo')),
+  );
+
+  let bride = explicitBride;
+  if (!bride) {
+    if (isCustomHero && hero) {
+      bride = hero;
+    } else {
+      bride = {
+        id: 'default-bride',
+        type: 'PHOTO',
+        slot: 'bride',
+        order: 0,
+        src: '/templates/sekar-kedaton/bride-jawa-demo.png',
+      };
+    }
+  }
+
+  let groom = explicitGroom;
+  if (!groom) {
+    if (isCustomHero && hero) {
+      groom = hero;
+    } else {
+      groom = {
+        id: 'default-groom',
+        type: 'PHOTO',
+        slot: 'groom',
+        order: 0,
+        src: '/templates/sekar-kedaton/groom-jawa-demo.png',
+      };
+    }
+  }
+
   const gallery = resolveSlot('gallery').filter((m) => m.type === 'PHOTO').slice(0, 6);
   const bgMusic = resolveSlot('bg-music').find((m) => m.type === 'AUDIO');
 
-  return { hero, gallery, bgMusic };
+  return { hero, bride, groom, gallery, bgMusic };
 }
