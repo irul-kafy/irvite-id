@@ -147,8 +147,7 @@ export class EventsService {
       declined,
       nextEvents,
       templateHighlights,
-    ] = await this.prisma.$transaction(
-      [
+    ] = await Promise.all([
         this.prisma.event.count({ where: scope }),
         this.prisma.event.count({ where: { ...scope, status: 'PUBLISHED' } }),
         this.prisma.event.count({ where: upcoming }),
@@ -176,9 +175,7 @@ export class EventsService {
           orderBy: [{ name: 'asc' }, { id: 'asc' }],
           select: { id: true, name: true, themeCode: true },
         }),
-      ],
-      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
-    );
+    ]);
     const rsvp = {
       totalInvitations,
       attending,

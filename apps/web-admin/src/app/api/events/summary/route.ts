@@ -9,7 +9,7 @@ export async function GET() {
     const base = process.env.INTERNAL_API_URL || 'http://localhost:3000';
     const response = await fetch(`${base}/api/v1/events/summary`, {
       headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(25000),
     });
     if (!response.ok) {
       const result = NextResponse.json({ message: 'Ringkasan belum dapat dimuat.' }, { status: response.status, headers });

@@ -153,7 +153,7 @@ export default function DashboardPage() {
         setLoading(true);
 
         setError('');
-        const response = await fetch('/api/events/summary', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+        const response = await fetch('/api/events/summary', { cache: 'no-store', signal: AbortSignal.timeout(30000) });
         if (response.status === 401) {
           router.push('/login');
           return;
