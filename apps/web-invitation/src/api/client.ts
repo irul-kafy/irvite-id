@@ -8,9 +8,21 @@ export interface PublicTemplatePackage {
   previewImageUrl: string | null;
 }
 
+function getInternalApiBaseUrl(): string {
+  if (process.env.INTERNAL_API_URL && process.env.INTERNAL_API_URL.trim()) {
+    return process.env.INTERNAL_API_URL.trim();
+  }
+  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
+    return process.env.NEXT_PUBLIC_API_URL.trim();
+  }
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    return 'https://irvite-api.vercel.app';
+  }
+  return 'http://127.0.0.1:3000';
+}
 export async function fetchPublicTemplatePackages(): Promise<PublicTemplatePackage[]> {
   try {
-    const baseUrl = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000';
+    const baseUrl = getInternalApiBaseUrl();
     const response = await fetch(`${baseUrl}/templates/public/packages`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
     if (!response.ok) return [];
     return await response.json() as PublicTemplatePackage[];
@@ -19,7 +31,7 @@ export async function fetchPublicTemplatePackages(): Promise<PublicTemplatePacka
 
 export async function fetchPublishedTemplate(id: string): Promise<(NonNullable<PublicInvitationResponse['template']> & { name: string }) | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const baseUrl = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000';
+  const baseUrl = getInternalApiBaseUrl();
   const response = await fetch(`${baseUrl}/templates/public/packages/${id}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Template preview could not be loaded');
@@ -30,7 +42,7 @@ export async function fetchPublicInvitation(
   uniqueCode: string,
 ): Promise<PublicInvitationResponse | null> {
   // Use INTERNAL_API_URL or fallback to localhost port 3000
-  const baseUrl = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000';
+  const baseUrl = getInternalApiBaseUrl();
   const res = await fetch(`${baseUrl}/invitations/public/${uniqueCode}`, {
     // Next.js config to bypass cache for dynamic data
     cache: 'no-store',
@@ -50,7 +62,7 @@ export async function fetchPublicInvitation(
 export async function fetchPublicEvent(
   slug: string,
 ): Promise<PublicEventResponse | null> {
-  const baseUrl = process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000';
+  const baseUrl = getInternalApiBaseUrl();
   const res = await fetch(`${baseUrl}/events/public/${slug}`, {
     cache: 'no-store',
   });
@@ -76,7 +88,7 @@ export async function fetchPublicTemplateAvailability(): Promise<
 > {
   const isServer = typeof window === 'undefined';
   const url = isServer
-    ? (process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000') + '/templates/public/availability'
+    ? getInternalApiBaseUrl() + '/templates/public/availability'
     : '/api-proxy/templates/public/availability';
 
   try {

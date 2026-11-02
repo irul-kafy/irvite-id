@@ -1,10 +1,16 @@
 /** @type {import('next').NextConfig} */
+const apiBase =
+  process.env.INTERNAL_API_URL ||
+  (process.env.NODE_ENV === 'production' || process.env.VERCEL
+    ? 'https://irvite-api.vercel.app'
+    : 'http://127.0.0.1:3000');
+
 const nextConfig = {
   async rewrites() {
     return [
       {
         source: '/api-proxy/:path*',
-        destination: `${process.env.INTERNAL_API_URL || 'http://127.0.0.1:3000'}/:path*`, // Proxy to Backend
+        destination: `${apiBase}/:path*`, // Proxy to Backend
       },
     ];
   },
