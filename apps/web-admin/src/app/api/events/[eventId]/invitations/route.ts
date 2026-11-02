@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCanonicalPublicInvitationUrl } from '../../../../../utils/url';
+import { getCanonicalPublicInvitationUrl, getInternalApiBaseUrl } from '../../../../../utils/url';
 
 export async function GET(
   request: Request,
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/events/${eventId}/invitations`, {
       method: 'GET',
       headers: {
@@ -44,10 +44,18 @@ export async function GET(
     // Inject canonical URL safely on the server side
     if (data.data && Array.isArray(data.data)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data.data = data.data.map((inv: any) => ({
-        ...inv,
-        canonicalUrl: getCanonicalPublicInvitationUrl(inv.uniqueCode)
-      }));
+      data.data = data.data.map((inv: any) => {
+        let canonicalUrl: string | null = null;
+        try {
+          canonicalUrl = getCanonicalPublicInvitationUrl(inv.uniqueCode);
+        } catch {
+          canonicalUrl = null;
+        }
+        return {
+          ...inv,
+          canonicalUrl,
+        };
+      });
     }
 
     return NextResponse.json(data);

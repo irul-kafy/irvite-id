@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCanonicalPublicEventUrl } from '@/utils/url';
+import { getCanonicalPublicEventUrl, getInternalApiBaseUrl } from '@/utils/url';
 
 export async function GET(
   request: Request,
@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/events/${eventId}`, {
       method: 'GET',
       headers: {
@@ -84,7 +84,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
 
     const res = await fetch(`${internalUrl}/events/${eventId}`, {
       method: 'PATCH',
@@ -137,7 +137,7 @@ export async function DELETE(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
 
     const res = await fetch(`${internalUrl}/events/${eventId}`, {
       method: 'DELETE',

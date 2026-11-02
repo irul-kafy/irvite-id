@@ -9,10 +9,31 @@
   return baseUrl;
 }
 
+export function getInternalApiBaseUrl(): string {
+  if (process.env.INTERNAL_API_URL && process.env.INTERNAL_API_URL.trim()) {
+    return process.env.INTERNAL_API_URL.trim().replace(/\/+$/, '');
+  }
+  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
+    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '');
+  }
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+    return 'https://irvite-api.vercel.app';
+  }
+  return 'http://localhost:3000';
+}
+
 export function getCanonicalPublicInvitationUrl(uniqueCode: string): string {
-  let baseUrl = process.env.PUBLIC_INVITATION_URL;
+  let baseUrl =
+    process.env.PUBLIC_INVITATION_URL ||
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
   if (!baseUrl) {
-    throw new Error('PUBLIC_INVITATION_URL is not configured');
+    const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
+    const isProd = process.env.NODE_ENV === 'production' || isVercel;
+    if (isProd) {
+      baseUrl = 'https://irvite-id.vercel.app';
+    } else {
+      throw new Error('PUBLIC_INVITATION_URL is not configured');
+    }
   }
   baseUrl = remapLegacyPreviewOrigin(baseUrl);
 
@@ -50,7 +71,13 @@ export function getCanonicalPublicEventUrl(slug: string): string {
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
     process.env.PUBLIC_INVITATION_URL;
   if (!baseUrl) {
-    throw new Error('Public invitation origin is not configured');
+    const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
+    const isProd = process.env.NODE_ENV === 'production' || isVercel;
+    if (isProd) {
+      baseUrl = 'https://irvite-id.vercel.app';
+    } else {
+      throw new Error('Public invitation origin is not configured');
+    }
   }
   baseUrl = remapLegacyPreviewOrigin(baseUrl);
 

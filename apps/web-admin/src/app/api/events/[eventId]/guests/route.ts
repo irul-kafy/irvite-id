@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCanonicalPublicInvitationUrl } from '../../../../../utils/url';
+import { getCanonicalPublicInvitationUrl, getInternalApiBaseUrl } from '../../../../../utils/url';
 
 interface GuestInvitationUpstream {
   uniqueCode: string;
@@ -48,7 +48,7 @@ export async function GET(
       }
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const queryString = queryParams.toString();
     const targetUrl = queryString
       ? `${internalUrl}/events/${eventId}/guests?${queryString}`
@@ -83,11 +83,17 @@ export async function GET(
     if (data.data && Array.isArray(data.data)) {
       data.data = data.data.map((guest: GuestUpstream) => {
         if (guest.invitation && guest.invitation.uniqueCode) {
+          let canonicalUrl: string | null = null;
+          try {
+            canonicalUrl = getCanonicalPublicInvitationUrl(guest.invitation.uniqueCode);
+          } catch {
+            canonicalUrl = null;
+          }
           return {
             ...guest,
             invitation: {
               ...guest.invitation,
-              canonicalUrl: getCanonicalPublicInvitationUrl(guest.invitation.uniqueCode),
+              canonicalUrl,
             },
           };
         }
@@ -127,7 +133,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
 
     const res = await fetch(`${internalUrl}/events/${eventId}/guests`, {
       method: 'POST',

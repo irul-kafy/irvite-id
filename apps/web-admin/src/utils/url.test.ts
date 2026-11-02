@@ -1,20 +1,66 @@
+function setOrDeleteEnv(key: string, val: string | undefined) {
+  if (val === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = val;
+  }
+}
+
 ﻿import test from 'node:test';
 import assert from 'node:assert';
 import {
+  getInternalApiBaseUrl,
   getCanonicalPublicInvitationUrl,
   getCanonicalPublicEventUrl,
   getTrustedInvitationOrigin,
   getCanonicalTemplateDemoUrl,
 } from './url';
 
+test('getInternalApiBaseUrl', async (t) => {
+  const origInternal = process.env.INTERNAL_API_URL;
+  const origNextPublic = process.env.NEXT_PUBLIC_API_URL;
+  const origNodeEnv = process.env.NODE_ENV;
+  const origVercel = process.env.VERCEL;
+
+  t.afterEach(() => {
+    setOrDeleteEnv('INTERNAL_API_URL', origInternal);
+    setOrDeleteEnv('NEXT_PUBLIC_API_URL', origNextPublic);
+    setOrDeleteEnv('NODE_ENV', origNodeEnv);
+    setOrDeleteEnv('VERCEL', origVercel);
+  });
+
+  await t.test('defaults to localhost:3000 in dev when unset', () => {
+    delete process.env.INTERNAL_API_URL;
+    delete process.env.NEXT_PUBLIC_API_URL;
+    delete process.env.VERCEL;
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'development';
+    assert.strictEqual(getInternalApiBaseUrl(), 'http://localhost:3000');
+  });
+
+  await t.test('uses INTERNAL_API_URL when set', () => {
+    process.env.INTERNAL_API_URL = 'https://custom-api.example.com/';
+    assert.strictEqual(getInternalApiBaseUrl(), 'https://custom-api.example.com');
+  });
+
+  await t.test('falls back to irvite-api.vercel.app in production', () => {
+    delete process.env.INTERNAL_API_URL;
+    delete process.env.NEXT_PUBLIC_API_URL;
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'production';
+    assert.strictEqual(getInternalApiBaseUrl(), 'https://irvite-api.vercel.app');
+  });
+});
+
 test('getCanonicalPublicInvitationUrl', async (t) => {
   const originalEnv = process.env.PUBLIC_INVITATION_URL;
+  const originalOrigin = process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
   const originalNodeEnv = process.env.NODE_ENV;
 
   t.afterEach(() => {
-    process.env.PUBLIC_INVITATION_URL = originalEnv;
-    // @ts-expect-error Mock process.env
-    process.env.NODE_ENV = originalNodeEnv;
+    setOrDeleteEnv('PUBLIC_INVITATION_URL', originalEnv);
+    setOrDeleteEnv('NEXT_PUBLIC_INVITATION_ORIGIN', originalOrigin);
+    setOrDeleteEnv('NODE_ENV', originalNodeEnv);
   });
 
   await t.test('constructs valid URL correctly', () => {
@@ -27,8 +73,17 @@ test('getCanonicalPublicInvitationUrl', async (t) => {
     assert.strictEqual(getCanonicalPublicInvitationUrl('xyz123'), 'https://invites.example.com/i/xyz123');
   });
 
-  await t.test('throws if env var is missing', () => {
+  await t.test('falls back to NEXT_PUBLIC_INVITATION_ORIGIN when PUBLIC_INVITATION_URL is missing', () => {
     delete process.env.PUBLIC_INVITATION_URL;
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://invites.example.com';
+    assert.strictEqual(getCanonicalPublicInvitationUrl('xyz123'), 'https://invites.example.com/i/xyz123');
+  });
+
+  await t.test('throws if env var is missing in development', () => {
+    delete process.env.PUBLIC_INVITATION_URL;
+    delete process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'development';
     assert.throws(() => getCanonicalPublicInvitationUrl('xyz123'), /PUBLIC_INVITATION_URL is not configured/);
   });
 
@@ -61,10 +116,9 @@ test('getCanonicalPublicEventUrl', async (t) => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   t.afterEach(() => {
-    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = originalOrigin;
-    process.env.PUBLIC_INVITATION_URL = originalUrl;
-    // @ts-expect-error Mock process.env
-    process.env.NODE_ENV = originalNodeEnv;
+    setOrDeleteEnv('NEXT_PUBLIC_INVITATION_ORIGIN', originalOrigin);
+    setOrDeleteEnv('PUBLIC_INVITATION_URL', originalUrl);
+    setOrDeleteEnv('NODE_ENV', originalNodeEnv);
   });
 
   await t.test('constructs valid event slug URL using NEXT_PUBLIC_INVITATION_ORIGIN', () => {
@@ -104,10 +158,9 @@ test('getTrustedInvitationOrigin', async (t) => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   t.afterEach(() => {
-    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = originalOrigin;
-    process.env.PUBLIC_INVITATION_URL = originalUrl;
-    // @ts-expect-error Mock process.env
-    process.env.NODE_ENV = originalNodeEnv;
+    setOrDeleteEnv('NEXT_PUBLIC_INVITATION_ORIGIN', originalOrigin);
+    setOrDeleteEnv('PUBLIC_INVITATION_URL', originalUrl);
+    setOrDeleteEnv('NODE_ENV', originalNodeEnv);
   });
 
   await t.test('remaps ephemeral Vercel preview deployment URLs to canonical production invitation origin', () => {
@@ -172,10 +225,9 @@ test('getCanonicalTemplateDemoUrl', async (t) => {
   const originalEnv = process.env.NODE_ENV;
 
   t.afterEach(() => {
-    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = originalOrigin;
-    process.env.PUBLIC_INVITATION_URL = originalUrl;
-    // @ts-expect-error Mock process.env
-    process.env.NODE_ENV = originalEnv;
+    setOrDeleteEnv('NEXT_PUBLIC_INVITATION_ORIGIN', originalOrigin);
+    setOrDeleteEnv('PUBLIC_INVITATION_URL', originalUrl);
+    setOrDeleteEnv('NODE_ENV', originalEnv);
   });
 
   await t.test('trusted invitation origin: https://example-invitation.test + /templates/ivory-garden/demo -> https://example-invitation.test/templates/ivory-garden/demo', () => {

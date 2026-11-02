@@ -190,14 +190,13 @@ export default function InvitationDistributionPage({
       if (!eventRes.ok) {
         throw new Error('Gagal memuat informasi event.');
       }
+      const eventData = await eventRes.json();
+      setEvent(eventData);
+
       if (!guestsRes.ok) {
         throw new Error('Gagal memuat daftar tamu.');
       }
-
-      const eventData = await eventRes.json();
       const guestsResponse = await guestsRes.json();
-
-      setEvent(eventData);
       setGuests(guestsResponse.data || []);
       if (guestsResponse.meta) {
         setMeta(guestsResponse.meta);
@@ -229,15 +228,16 @@ export default function InvitationDistributionPage({
         if (!eventRes.ok) {
           throw new Error('Gagal memuat informasi event.');
         }
+        const eventData = await eventRes.json();
+        if (!ignore) {
+          setEvent(eventData);
+        }
+
         if (!guestsRes.ok) {
           throw new Error('Gagal memuat daftar tamu.');
         }
-
-        const eventData = await eventRes.json();
         const guestsResponse = await guestsRes.json();
-
         if (!ignore) {
-          setEvent(eventData);
           setGuests(guestsResponse.data || []);
           if (guestsResponse.meta) {
             setMeta(guestsResponse.meta);

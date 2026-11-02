@@ -199,10 +199,16 @@ export default function GuestListPage({
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
-  const invitationOrigin =
+  const rawInvitationOrigin =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
     process.env.PUBLIC_INVITATION_URL ||
-    'http://localhost:3002';
+    'https://irvite-id.vercel.app';
+  const invitationOrigin =
+    rawInvitationOrigin.includes('irvite-ez56n3ver') ||
+    rawInvitationOrigin.includes('irvite-id-57xk') ||
+    (rawInvitationOrigin.includes('irvite-') && rawInvitationOrigin.includes('.vercel.app') && !rawInvitationOrigin.includes('irvite-id.vercel.app'))
+      ? 'https://irvite-id.vercel.app'
+      : rawInvitationOrigin;
 
   const loadPageData = async (pageToLoad: number) => {
     setLoading(true);
@@ -221,14 +227,13 @@ export default function GuestListPage({
       if (!eventRes.ok) {
         throw new Error('Gagal memuat informasi event.');
       }
+      const eventData = await eventRes.json();
+      setEvent(eventData);
+
       if (!guestsRes.ok) {
         throw new Error('Gagal memuat daftar tamu.');
       }
-
-      const eventData = await eventRes.json();
       const guestsResponse = await guestsRes.json();
-
-      setEvent(eventData);
       setGuests(guestsResponse.data || []);
       if (guestsResponse.meta) {
         setMeta(guestsResponse.meta);
@@ -260,15 +265,16 @@ export default function GuestListPage({
         if (!eventRes.ok) {
           throw new Error('Gagal memuat informasi event.');
         }
+        const eventData = await eventRes.json();
+        if (!ignore) {
+          setEvent(eventData);
+        }
+
         if (!guestsRes.ok) {
           throw new Error('Gagal memuat daftar tamu.');
         }
-
-        const eventData = await eventRes.json();
         const guestsResponse = await guestsRes.json();
-
         if (!ignore) {
-          setEvent(eventData);
           setGuests(guestsResponse.data || []);
           if (guestsResponse.meta) {
             setMeta(guestsResponse.meta);
