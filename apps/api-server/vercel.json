@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "installCommand": "cd ../.. && npm install --include=dev --legacy-peer-deps",
-  "buildCommand": "cd ../.. && npx prisma@5.22.0 generate --schema=packages/database/prisma/schema.prisma && npm run build --workspace apps/api-server",
+  "installCommand": "cd ../.. && npm install --legacy-peer-deps",
+  "buildCommand": "cd ../.. && npx prisma@5.22.0 generate --schema=packages/database/prisma/schema.prisma && npx tsc -p apps/api-server/tsconfig.build.json",
   "rewrites": [
     {
       "source": "/(.*)",

@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "npx nest build",
-    "vercel-build": "npx prisma@5.22.0 generate --schema=../../packages/database/prisma/schema.prisma && npx nest build",
+    "build": "tsc -p tsconfig.build.json",
+    "vercel-build": "npx prisma@5.22.0 generate --schema=../../packages/database/prisma/schema.prisma && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
