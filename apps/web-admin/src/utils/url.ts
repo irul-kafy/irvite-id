@@ -1,8 +1,20 @@
-﻿export function getCanonicalPublicInvitationUrl(uniqueCode: string): string {
-  const baseUrl = process.env.PUBLIC_INVITATION_URL;
+﻿function remapLegacyPreviewOrigin(baseUrl: string): string {
+  if (
+    baseUrl.includes('irvite-ez56n3ver') ||
+    baseUrl.includes('irvite-id-57xk') ||
+    (baseUrl.includes('irvite-') && baseUrl.includes('.vercel.app') && !baseUrl.includes('irvite-id.vercel.app'))
+  ) {
+    return 'https://irvite-id.vercel.app';
+  }
+  return baseUrl;
+}
+
+export function getCanonicalPublicInvitationUrl(uniqueCode: string): string {
+  let baseUrl = process.env.PUBLIC_INVITATION_URL;
   if (!baseUrl) {
     throw new Error('PUBLIC_INVITATION_URL is not configured');
   }
+  baseUrl = remapLegacyPreviewOrigin(baseUrl);
 
   let urlObj: URL;
   try {
@@ -34,12 +46,13 @@
 }
 
 export function getCanonicalPublicEventUrl(slug: string): string {
-  const baseUrl =
+  let baseUrl =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
     process.env.PUBLIC_INVITATION_URL;
   if (!baseUrl) {
     throw new Error('Public invitation origin is not configured');
   }
+  baseUrl = remapLegacyPreviewOrigin(baseUrl);
 
   let urlObj: URL;
   try {
@@ -81,12 +94,14 @@ export function getCanonicalPublicEventUrl(slug: string): string {
  * - Returns null if missing or invalid (never silently falls back to localhost in production)
  */
 export function getTrustedInvitationOrigin(): string | null {
-  const baseUrl =
+  let baseUrl =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
     process.env.PUBLIC_INVITATION_URL;
   if (!baseUrl) {
     return null;
   }
+
+  baseUrl = remapLegacyPreviewOrigin(baseUrl);
 
   let urlObj: URL;
   try {

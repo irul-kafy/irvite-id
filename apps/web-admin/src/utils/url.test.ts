@@ -110,6 +110,14 @@ test('getTrustedInvitationOrigin', async (t) => {
     process.env.NODE_ENV = originalNodeEnv;
   });
 
+  await t.test('remaps ephemeral Vercel preview deployment URLs to canonical production invitation origin', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://irvite-ez56n3ver-khoirul2.vercel.app';
+    assert.strictEqual(getTrustedInvitationOrigin(), 'https://irvite-id.vercel.app');
+
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://irvite-preview-123.vercel.app';
+    assert.strictEqual(getTrustedInvitationOrigin(), 'https://irvite-id.vercel.app');
+  });
+
   await t.test('returns valid origin for HTTPS URL', () => {
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://invitation.example.com';
     assert.strictEqual(getTrustedInvitationOrigin(), 'https://invitation.example.com');
