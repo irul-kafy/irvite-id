@@ -53,6 +53,7 @@ export default function GuestEditPage({
     name: '',
     category: 'REGULAR',
     maxPax: 1,
+    tableNumber: '',
     phoneNumber: '',
     email: '',
     customGreeting: '',
@@ -83,6 +84,7 @@ export default function GuestEditPage({
           name: guestData.name || '',
           category: guestData.category || 'REGULAR',
           maxPax: guestData.maxPax || 1,
+          tableNumber: (guestData as any).tableNumber || '',
           phoneNumber: guestData.phoneNumber || '',
           email: guestData.email || '',
           customGreeting: guestData.customGreeting || '',
@@ -399,6 +401,43 @@ export default function GuestEditPage({
                 />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', display: 'block' }}>
                   Jumlah tamu yang diizinkan untuk undangan ini.
+                </span>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="guest-table-number"
+                  style={{
+                    display: 'block',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.375rem',
+                  }}
+                >
+                  Nomor Meja <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-tertiary)' }}>(Opsional)</span>
+                </label>
+                <input
+                  id="guest-table-number"
+                  type="text"
+                  disabled={saving}
+                  placeholder="Contoh: Meja 05 / VIP 1"
+                  value={formData.tableNumber}
+                  onChange={(e) => setFormData({ ...formData, tableNumber: e.target.value })}
+                  className="admin-input"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: 'var(--radius-md, 6px)',
+                    border: '1px solid var(--admin-border)',
+                    background: 'var(--admin-bg, #F8F6F1)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', display: 'block' }}>
+                  Kosongkan bila pesta standing / tanpa nomor meja.
                 </span>
               </div>
             </div>

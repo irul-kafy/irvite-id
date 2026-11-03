@@ -101,6 +101,9 @@ export class GuestsService {
     if (createGuestDto.maxPax !== undefined) {
       data.maxPax = createGuestDto.maxPax;
     }
+    if (createGuestDto.tableNumber !== undefined) {
+      data.tableNumber = createGuestDto.tableNumber;
+    }
 
     const guest = await this.prisma.guest.create({
       data,
@@ -197,6 +200,9 @@ export class GuestsService {
     if (updateGuestDto.maxPax !== undefined) {
       data.maxPax = updateGuestDto.maxPax;
     }
+    if (updateGuestDto.tableNumber !== undefined) {
+      data.tableNumber = updateGuestDto.tableNumber;
+    }
 
     try {
       const guest = await this.prisma.guest.update({
@@ -229,6 +235,7 @@ export class GuestsService {
       phoneNumber: true,
       category: true,
       maxPax: true,
+      tableNumber: true,
       createdAt: true,
     };
   }

@@ -293,6 +293,7 @@ export class InvitationsService {
             name: true,
             customGreeting: true,
             maxPax: true,
+            tableNumber: true,
           },
         },
         event: {
@@ -371,6 +372,7 @@ export class InvitationsService {
         name: invitation.guest.name,
         customGreeting: invitation.guest.customGreeting,
         maxPax: invitation.guest.maxPax,
+        tableNumber: (invitation.guest as any).tableNumber ?? null,
       },
       event: {
         title: invitation.event.title,

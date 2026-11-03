@@ -430,6 +430,7 @@ export default function SekarKedatonRenderer({
                     }
                     guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
                     maxPax={data.guest?.maxPax || 2}
+                    tableNumber={data.guest?.tableNumber}
                   />
                 </div>
               </div>

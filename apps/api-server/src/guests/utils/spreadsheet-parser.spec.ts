@@ -39,6 +39,7 @@ describe('spreadsheet-parser', () => {
         phoneNumber: '6281234567890',
         email: 'budi@example.com',
         maxPax: 2,
+        tableNumber: null,
         isValid: true,
         errors: [],
         hasFormula: false,
@@ -51,6 +52,7 @@ describe('spreadsheet-parser', () => {
         phoneNumber: null,
         email: null,
         maxPax: 1,
+        tableNumber: null,
         isValid: true,
         errors: [],
         hasFormula: false,
@@ -65,6 +67,21 @@ describe('spreadsheet-parser', () => {
       await expect(parseSpreadsheetBuffer(buffer, 'xlsx')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('parses optional Meja column correctly when present', async () => {
+      const buffer = await createXlsxBuffer(
+        ['Nama Tamu', 'Kategori', 'No. WhatsApp', 'Email', 'Jumlah Tamu', 'Meja'],
+        [
+          ['Budi Santoso', 'VIP', '081234567890', 'budi@example.com', 2, 'Meja 08'],
+          ['Andi', 'REGULAR', '', '', 1, 'VIP 1'],
+        ],
+      );
+
+      const result = await parseSpreadsheetBuffer(buffer, 'xlsx');
+      expect(result.validRowsCount).toBe(2);
+      expect(result.rows[0].tableNumber).toBe('Meja 08');
+      expect(result.rows[1].tableNumber).toBe('VIP 1');
     });
 
     it('rejects file when duplicate canonical header exists', async () => {

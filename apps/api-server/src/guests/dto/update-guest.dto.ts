@@ -34,4 +34,8 @@ export class UpdateGuestDto {
   @IsInt()
   @Min(1)
   maxPax?: number;
+
+  @IsOptional()
+  @IsString()
+  tableNumber?: string | null;
 }

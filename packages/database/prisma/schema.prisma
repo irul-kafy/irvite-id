@@ -120,6 +120,7 @@ model Guest {
   phoneNumber    String?  @map("phone_number")
   category       String   @default("REGULAR")
   maxPax         Int      @default(1) @map("max_pax")
+  tableNumber    String?  @map("table_number")
   createdAt      DateTime @default(now()) @map("created_at")
 
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)

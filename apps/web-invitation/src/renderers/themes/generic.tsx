@@ -862,6 +862,7 @@ export default function GenericTheme({
                       canonicalUrl={resolvedQrUrl}
                       guestName={guest?.name || 'Tamu Undangan'}
                       maxPax={guest?.maxPax ?? 2}
+                    tableNumber={data.guest?.tableNumber}
                     />
                   </div>
                 </div>

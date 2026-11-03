@@ -7,9 +7,10 @@ interface QRDisplayProps {
   canonicalUrl: string;
   guestName?: string;
   maxPax?: number;
+  tableNumber?: string | null;
 }
 
-export default function QRDisplay({ canonicalUrl, guestName, maxPax }: QRDisplayProps) {
+export default function QRDisplay({ canonicalUrl, guestName, maxPax, tableNumber }: QRDisplayProps) {
   return (
     <div className="qr-container" id="guest-qr">
       <span className="qr-badge">TIKET REGISTRASI TAMU</span>
@@ -19,6 +20,29 @@ export default function QRDisplay({ canonicalUrl, guestName, maxPax }: QRDisplay
           <strong>{guestName}</strong>
           {maxPax && maxPax > 1 ? <span> • Maks. {maxPax} Orang</span> : null}
         </p>
+      )}
+      {tableNumber && (
+        <div
+          className="qr-table-badge"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            margin: '0.25rem auto 0.5rem',
+            padding: '4px 14px',
+            borderRadius: '999px',
+            background: 'rgba(197, 163, 101, 0.16)',
+            color: '#c5a365',
+            border: '1px solid rgba(197, 163, 101, 0.35)',
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            letterSpacing: '0.02em',
+          }}
+        >
+          <span>📍</span>
+          <span>Meja: {tableNumber}</span>
+        </div>
       )}
       <div className="qr-box">
         <QRCodeSVG

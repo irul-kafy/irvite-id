@@ -436,6 +436,7 @@ export class GuestsImportService {
               phoneNumber: cleanPhone,
               email: cleanEmail,
               maxPax: cleanMaxPax,
+              tableNumber: (row as any).tableNumber ? String((row as any).tableNumber).trim() : null,
             },
             select: { id: true },
           });

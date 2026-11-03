@@ -72,3 +72,4 @@ test('Scanner Camera Facing Mode (Front/Back) UI & Architecture Contract', async
     );
   });
 });
+

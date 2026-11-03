@@ -164,7 +164,7 @@ interface ResolveData {
   status?: 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
   scannedPax?: number;
   remainingPax?: number;
-  guest: { name: string; maxPax: number; category?: string | null; customGreeting?: string | null };
+  guest: { name: string; maxPax: number; category?: string | null; customGreeting?: string | null; tableNumber?: string | null };
   event?: EventBanner | null;
   rsvp?: { response: string; pax?: number | null };
   attendance?: { scannedPax: number; scannedAt: string } | null;
@@ -791,6 +791,11 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </p>
           <h2 className="scan-guest__name">{guest.name}</h2>
           <div className="scan-guest__tags">
+            {guest.tableNumber && (
+              <span className="scan-tag scan-tag--table" style={{ background: '#047857', color: '#ecfdf5', fontWeight: 700 }}>
+                📍 Meja: {guest.tableNumber}
+              </span>
+            )}
             {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
             <span className={`scan-tag scan-tag--rsvp-${rsvpTone}`}>RSVP: {rsvpLabel}</span>
           </div>
@@ -874,6 +879,26 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </div>
           <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
           <p className="scan-result__name">{guest.name}</p>
+          {guest.tableNumber && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                margin: '0.25rem auto 0.5rem',
+                padding: '0.35rem 0.85rem',
+                borderRadius: '999px',
+                background: '#064e3b',
+                color: '#6ee7b7',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                border: '1px solid rgba(110, 231, 183, 0.4)',
+              }}
+            >
+              <span>📍 Silakan Arahkan ke:</span>
+              <strong style={{ color: '#ffffff' }}>Meja {guest.tableNumber}</strong>
+            </div>
+          )}
           {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
           {result ? (
             <div className="scan-result__details">

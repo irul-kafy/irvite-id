@@ -33,4 +33,8 @@ export class CreateGuestDto {
   @IsInt()
   @Min(1)
   maxPax?: number;
+
+  @IsOptional()
+  @IsString()
+  tableNumber?: string | null;
 }

@@ -38,6 +38,7 @@ interface GuestItem {
   phoneNumber?: string | null;
   category: string;
   maxPax: number;
+  tableNumber?: string | null;
   createdAt: string;
   invitation?: GuestInvitation | null;
 }
@@ -1149,8 +1150,26 @@ export default function GuestListPage({
                     >
                       {/* Name & Custom Greeting */}
                       <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
-                          {guest.name}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
+                            {guest.name}
+                          </span>
+                          {guest.tableNumber && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                background: 'rgba(5, 150, 105, 0.12)',
+                                color: '#059669',
+                                border: '1px solid rgba(5, 150, 105, 0.25)',
+                              }}
+                              title={`Nomor Meja: ${guest.tableNumber}`}
+                            >
+                              Meja: {guest.tableNumber}
+                            </span>
+                          )}
                         </div>
                         {guest.customGreeting && (
                           <div
@@ -1532,8 +1551,25 @@ export default function GuestListPage({
                   {/* Card Header: Name + Category */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
-                        {guest.name}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
+                          {guest.name}
+                        </span>
+                        {guest.tableNumber && (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '999px',
+                              background: 'rgba(5, 150, 105, 0.12)',
+                              color: '#059669',
+                              border: '1px solid rgba(5, 150, 105, 0.25)',
+                            }}
+                          >
+                            Meja: {guest.tableNumber}
+                          </span>
+                        )}
                       </div>
                       {guest.customGreeting && (
                         <div style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: '0.125rem' }}>

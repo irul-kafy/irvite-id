@@ -214,6 +214,7 @@ export class AttendanceService {
         maxPax,
         category: invitation.guest.category ?? null,
         customGreeting: invitation.guest.customGreeting ?? null,
+        tableNumber: (invitation.guest as any).tableNumber ?? null,
       },
       rsvp: {
         response: rsvpResponse,
@@ -288,7 +289,15 @@ export class AttendanceService {
       );
     }
 
-    return result;
+    return {
+      ...result,
+      guest: {
+        name: invitation.guest.name,
+        maxPax: invitation.guest.maxPax,
+        category: invitation.guest.category ?? null,
+        tableNumber: (invitation.guest as any).tableNumber ?? null,
+      },
+    };
   }
 
   async undoCheckIn(

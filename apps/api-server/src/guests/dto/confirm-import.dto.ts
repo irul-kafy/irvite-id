@@ -37,6 +37,11 @@ export class ConfirmImportRowDto {
   maxPax?: number | null;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  tableNumber?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   importAnyway?: boolean;
 }

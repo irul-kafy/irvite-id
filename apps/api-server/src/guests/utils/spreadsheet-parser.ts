@@ -11,6 +11,7 @@ export interface ParsedRowData {
   phoneNumber: string | null;
   email: string | null;
   maxPax: number;
+  tableNumber: string | null;
   isValid: boolean;
   errors: string[];
   hasFormula: boolean;
@@ -30,6 +31,7 @@ const CANONICAL_COLUMNS = {
   PHONE: 'no. whatsapp',
   EMAIL: 'email',
   MAX_PAX: 'jumlah tamu',
+  TABLE_NUMBER: 'meja',
 } as const;
 
 // Helper to normalize header string for matching
@@ -180,6 +182,15 @@ export async function parseSpreadsheetBuffer(
       normalized === 'kuota tamu'
     ) {
       headerMap['MAX_PAX'] = colNumber;
+    } else if (
+      normalized === CANONICAL_COLUMNS.TABLE_NUMBER ||
+      normalized === 'nomor meja' ||
+      normalized === 'no meja' ||
+      normalized === 'no. meja' ||
+      normalized === 'table' ||
+      normalized === 'table number'
+    ) {
+      headerMap['TABLE_NUMBER'] = colNumber;
     } else {
       unusedColumns.push(rawVal);
     }
@@ -234,13 +245,15 @@ export async function parseSpreadsheetBuffer(
     const phoneCell = getCellData(headerMap['PHONE']);
     const emailCell = getCellData(headerMap['EMAIL']);
     const paxCell = getCellData(headerMap['MAX_PAX']);
+    const tableCell = getCellData(headerMap['TABLE_NUMBER']);
 
     if (
       nameCell.formula ||
       categoryCell.formula ||
       phoneCell.formula ||
       emailCell.formula ||
-      paxCell.formula
+      paxCell.formula ||
+      tableCell.formula
     ) {
       hasFormula = true;
       errors.push('FORMULA_NOT_ALLOWED');
@@ -288,6 +301,17 @@ export async function parseSpreadsheetBuffer(
       }
     }
 
+    // 5b. Validate Table Number (optional, max 50 chars)
+    let tableNumber: string | null = null;
+    if (tableCell.value) {
+      const rawTable = tableCell.value.trim();
+      if (rawTable.length > 50) {
+        errors.push('INVALID_TABLE_NUMBER');
+      } else {
+        tableNumber = rawTable;
+      }
+    }
+
     // 5. Validate Max Pax (optional, default 1, integer 1..50)
     let maxPax = 1;
     if (paxCell.value) {
@@ -311,6 +335,7 @@ export async function parseSpreadsheetBuffer(
       phoneNumber,
       email,
       maxPax,
+      tableNumber,
       isValid: errors.length === 0,
       errors,
       hasFormula,
