@@ -5,7 +5,7 @@ import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
-import { shouldRenderSereneGuest, shouldRenderSereneRsvp } from '../mode-gating';
+import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
 import { formatCeremonyDate, formatCeremonyDateShort, formatCeremonyTimeRange, parseTargetEpoch } from '../datetime-formatter';
 import { Scene, Florals, Gunungan, Kawung, Petals } from './ornaments';
 import s from './sekar-kedaton.module.css';
@@ -81,7 +81,8 @@ export default function SekarKedatonRenderer({
   const audio = useRef<HTMLAudioElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
-  const rsvpVisible = shouldRenderSereneRsvp(mode, data.guest, data.rsvp) && Boolean(uniqueCode);
+  const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+  const rsvpVisible = showRsvpAndQr && shouldRenderSereneRsvp(mode, data.guest, data.rsvp);
   const audioSrc = mediaSrc(media.bgMusic?.src, isPreview);
   const heroSrc = mediaSrc(media.hero?.src, isPreview);
   const brideSrc = mediaSrc(media.bride?.src, isPreview);
@@ -403,35 +404,37 @@ export default function SekarKedatonRenderer({
             </section>
           )}
 
-          <section id="rsvp" className={`${s.section} ${s.rsvp}`}>
-            <div className={s.rsvpIntro} data-reveal="left">
-              <p className={s.eyebrow}>Kehadiran &amp; Registrasi Tamu</p>
-              <h2>Sebuah tempat<br /><em>untuk Anda.</em></h2>
-              <p>Kami menantikan kehadiran Anda untuk melengkapi hari bahagia ini. Silakan konfirmasi kehadiran melalui RSVP dan tunjukkan kode QR saat registrasi di lokasi acara.</p>
-              <Kawung />
-            </div>
-            <div className={s.rsvpQrGrid} data-reveal="right">
-              <div className={s.rsvpCardSlot}>
-                <RsvpForm
-                  key={uniqueCode || 'preview-rsvp'}
-                  uniqueCode={uniqueCode || 'simulasi-tamu'}
-                  maxPax={data.guest?.maxPax || 2}
-                  initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
-                />
+          {showRsvpAndQr && (
+            <section id="rsvp" className={`${s.section} ${s.rsvp}`}>
+              <div className={s.rsvpIntro} data-reveal="left">
+                <p className={s.eyebrow}>Kehadiran &amp; Registrasi Tamu</p>
+                <h2>Sebuah tempat<br /><em>untuk Anda.</em></h2>
+                <p>Kami menantikan kehadiran Anda untuk melengkapi hari bahagia ini. Silakan konfirmasi kehadiran melalui RSVP dan tunjukkan kode QR saat registrasi di lokasi acara.</p>
+                <Kawung />
               </div>
-              <div className={s.qrCardSlot}>
-                <QRDisplay
-                  canonicalUrl={
-                    canonicalUrl ||
-                    (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
-                    'https://irvite.id/i/SIMULASI-TAMU'
-                  }
-                  guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
-                  maxPax={data.guest?.maxPax || 2}
-                />
+              <div className={s.rsvpQrGrid} data-reveal="right">
+                <div className={s.rsvpCardSlot}>
+                  <RsvpForm
+                    key={uniqueCode || 'preview-rsvp'}
+                    uniqueCode={uniqueCode || 'simulasi-tamu'}
+                    maxPax={data.guest?.maxPax || 2}
+                    initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
+                  />
+                </div>
+                <div className={s.qrCardSlot}>
+                  <QRDisplay
+                    canonicalUrl={
+                      canonicalUrl ||
+                      (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+                      'https://irvite.id/i/SIMULASI-TAMU'
+                    }
+                    guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
+                    maxPax={data.guest?.maxPax || 2}
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           <section className={`${s.section} ${s.closing}`} data-motion>
             <Scene />
@@ -452,7 +455,7 @@ export default function SekarKedatonRenderer({
             {ceremonies.length > 0 && <a href="#events">Acara</a>}
             {gallery.length > 0 && <a href="#gallery">Galeri</a>}
             {Boolean(content.giftAccounts?.length) && <a href="#gift">Gift</a>}
-            <a href="#rsvp">RSVP &amp; QR</a>
+            {showRsvpAndQr && <a href="#rsvp">RSVP &amp; QR</a>}
           </nav>
         </main>
       )}

@@ -7,6 +7,7 @@ import {
   shouldRenderGuestQr,
   shouldRenderGiftSection,
   resolveCoverGuestName,
+  shouldRenderRsvpAndQr,
 } from './mode-gating';
 
 test('Renderer Mode Safety & Gating (Pure Logic Contract)', async (t) => {
@@ -70,5 +71,28 @@ test('Renderer Mode Safety & Gating (Pure Logic Contract)', async (t) => {
 
     // Gift / QRIS is deferred and suppressed even in PERSONAL mode
     assert.strictEqual(shouldRenderGiftSection(), false);
+  });
+
+  await t.test('shouldRenderRsvpAndQr: strictly suppresses RSVP & QR on PUBLIC (/e/:slug)', () => {
+    // PUBLIC mode: must ALWAYS be false, regardless of uniqueCode
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', undefined, false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', null, false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', '', false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', 'some-code', false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr(undefined, 'some-code', false), false);
+
+    // PERSONAL mode without uniqueCode: must be false
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', undefined, false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', null, false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', '', false), false);
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', '   ', false), false);
+
+    // PERSONAL mode with valid uniqueCode: must be true
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', 'ABCD12', false), true);
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONALIZED', 'ABCD12', false), true);
+
+    // Template Studio preview: must be true to allow previewing RSVP and QR components
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', undefined, true), true);
+    assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', undefined, true), true);
   });
 });

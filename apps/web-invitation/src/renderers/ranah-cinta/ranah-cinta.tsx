@@ -5,7 +5,7 @@ import type { RendererProps } from '../registry';
 import InvitationTemplate from './InvitationTemplate';
 import { adaptRanahCintaData } from './ranah-cinta.adapter';
 import type { Guest } from './types';
-import { shouldRenderSereneGuest } from '../mode-gating';
+import { shouldRenderSereneGuest, shouldRenderRsvpAndQr } from '../mode-gating';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { getCanonicalInvitationUrl } from '../../utils/url';
@@ -19,6 +19,7 @@ export default function RanahCintaRenderer({
 }: RendererProps) {
   const invitationData = adaptRanahCintaData(data, isPreview);
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
+  const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
 
   const guest: Guest = guestVisible && data.guest
     ? {
@@ -33,30 +34,30 @@ export default function RanahCintaRenderer({
 
   const features = {
     ...invitationData.features,
-    rsvp: true,
+    rsvp: showRsvpAndQr,
   };
 
-  const rsvpSlot = (
+  const rsvpSlot = showRsvpAndQr ? (
     <RsvpForm
       key={uniqueCode || 'preview-rsvp'}
       uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
     />
-  );
+  ) : null;
 
   const effectiveCanonicalUrl =
     canonicalUrl ||
     (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
     'https://irvite.id/i/SIMULASI-TAMU';
 
-  const qrSlot = (
+  const qrSlot = showRsvpAndQr ? (
     <QRDisplay
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
     />
-  );
+  ) : null;
 
   return (
     <InvitationTemplate

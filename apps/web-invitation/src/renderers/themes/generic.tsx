@@ -9,6 +9,7 @@ import {
   shouldRenderGuestPersonalization,
   shouldRenderRsvp,
   shouldRenderGuestQr,
+  shouldRenderRsvpAndQr,
   resolveCoverGuestName,
   shouldRenderGiftSection,
 } from '../mode-gating';
@@ -627,9 +628,10 @@ export default function GenericTheme({
       : 'https://irvite.id/i/preview-tamu');
 
   const showUnifiedRsvpAndQr =
-    (shouldRenderRsvp(effectiveMode, !!guest, !!rsvp) && Boolean(guest && rsvp)) ||
-    shouldRenderGuestQr(effectiveMode, isPreview) ||
-    isPreview;
+    shouldRenderRsvpAndQr(effectiveMode, uniqueCode, isPreview) &&
+    ((shouldRenderRsvp(effectiveMode, !!guest, !!rsvp) && Boolean(guest && rsvp)) ||
+      shouldRenderGuestQr(effectiveMode, isPreview) ||
+      isPreview);
 
   let sectionIndex = 0;
 

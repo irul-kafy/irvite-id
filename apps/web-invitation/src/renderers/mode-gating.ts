@@ -22,6 +22,21 @@ export function shouldRenderSereneRsvp(
   return resolveSereneEffectiveMode(mode) === 'PERSONALIZED' && Boolean(guest) && Boolean(rsvp);
 }
 
+/**
+ * Unified gate for both RSVP and Check-in QR ticket:
+ * In PUBLIC mode (/e/:slug), strictly NEVER render RSVP or QR code.
+ * Only in PERSONAL mode (/i/:uniqueCode) with a valid uniqueCode, or in Studio preview.
+ */
+export function shouldRenderRsvpAndQr(
+  mode?: InvitationMode,
+  uniqueCode?: string | null,
+  isPreview?: boolean,
+): boolean {
+  if (isPreview) return true;
+  const isPersonal = mode === 'PERSONAL' || mode === 'PERSONALIZED';
+  return Boolean(isPersonal && uniqueCode && uniqueCode.trim().length > 0);
+}
+
 export function countSereneRendererQr(): number {
   return 0;
 }

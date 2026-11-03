@@ -5,7 +5,7 @@ import type { RendererProps } from '../registry';
 import InvitationTemplate from './InvitationTemplate';
 import { adaptOpalineNocturneData } from './opaline-nocturne.adapter';
 import type { Guest, RsvpSubmission } from './types';
-import { shouldRenderSereneGuest } from '../mode-gating';
+import { shouldRenderSereneGuest, shouldRenderRsvpAndQr } from '../mode-gating';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { getCanonicalInvitationUrl } from '../../utils/url';
@@ -19,6 +19,7 @@ export default function OpalineNocturneRenderer({
 }: RendererProps) {
   const invitationData = adaptOpalineNocturneData(data, isPreview);
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
+  const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
 
   const guest: Guest | undefined = guestVisible && data.guest
     ? {
@@ -30,8 +31,8 @@ export default function OpalineNocturneRenderer({
     : undefined;
 
   const features = {
-    rsvp: true,
-    guestQr: true,
+    rsvp: showRsvpAndQr,
+    guestQr: showRsvpAndQr,
     wishes: false,
     livestream: false,
   };
@@ -49,27 +50,27 @@ export default function OpalineNocturneRenderer({
     });
   };
 
-  const rsvpSlot = (
+  const rsvpSlot = showRsvpAndQr ? (
     <RsvpForm
       key={uniqueCode || 'preview-rsvp'}
       uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
     />
-  );
+  ) : null;
 
   const effectiveCanonicalUrl =
     canonicalUrl ||
     (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
     'https://irvite.id/i/SIMULASI-TAMU';
 
-  const qrSlot = (
+  const qrSlot = showRsvpAndQr ? (
     <QRDisplay
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
     />
-  );
+  ) : null;
 
   return (
     <InvitationTemplate
