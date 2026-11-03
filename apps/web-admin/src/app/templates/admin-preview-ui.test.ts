@@ -149,5 +149,14 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
       catalogContent.includes('target="_blank"'),
       'Preview link must open in a new tab (target="_blank")'
     );
+
+    // 4. AdminRootShell must bypass AdminShell for preview routes to prevent admin menu and header
+    const adminRootShell = path.resolve(__dirname, '../../components/admin-root-shell.tsx');
+    assert.ok(fs.existsSync(adminRootShell));
+    const adminRootShellContent = fs.readFileSync(adminRootShell, 'utf8');
+    assert.ok(
+      adminRootShellContent.includes('/preview'),
+      'AdminRootShell must bypass AdminShell for /preview routes to avoid admin sidebar and header'
+    );
   });
 });

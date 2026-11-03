@@ -24,8 +24,8 @@ export default function AdminRootShell({ children }: { children: React.ReactNode
     }
   }, []);
 
-  // /login route renders independently without the admin shell
-  if (pathname === '/login') {
+  // /login and standalone full-screen preview routes render independently without the admin sidebar and header shell
+  if (pathname === '/login' || pathname?.endsWith('/preview') || (pathname?.includes('/templates/') && pathname?.includes('/preview'))) {
     return <>{children}</>;
   }
 

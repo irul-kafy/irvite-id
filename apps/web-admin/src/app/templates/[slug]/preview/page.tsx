@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { FIXED_CATALOG_TEMPLATES } from '../../utils/catalog-registry';
@@ -15,8 +15,13 @@ export default function TemplateAdminPreviewPage() {
 
   const [viewportDevice, setViewportDevice] = useState<ViewportDevice>('desktop');
   const [deviceZoom, setDeviceZoom] = useState<number>(100);
+  const [iframeLoaded, setIframeLoaded] = useState<boolean>(false);
 
   const catalogItem = FIXED_CATALOG_TEMPLATES.find((t) => t.slug === slug);
+
+  useEffect(() => {
+    setIframeLoaded(false);
+  }, [slug]);
 
   const invitationOrigin =
     getTrustedInvitationOrigin() ||
@@ -451,15 +456,50 @@ export default function TemplateAdminPreviewPage() {
               position: 'relative',
             }}
           >
+            {!iframeLoaded && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#131c18',
+                  color: '#ebd5a7',
+                  gap: '12px',
+                  zIndex: 2,
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    border: '3px solid rgba(197, 163, 101, 0.25)',
+                    borderTopColor: '#c5a365',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                  Memuat pratinjau {catalogItem.displayName}...
+                </span>
+              </div>
+            )}
+
             {previewIframeSrc && (
               <iframe
                 src={previewIframeSrc}
                 title={`Pratinjau ${catalogItem.displayName}`}
+                onLoad={() => setIframeLoaded(true)}
                 style={{
                   width: '100%',
                   height: '100%',
                   border: 'none',
                   background: '#ffffff',
+                  opacity: iframeLoaded ? 1 : 0,
+                  transition: 'opacity 0.25s ease',
                 }}
               />
             )}
