@@ -217,7 +217,7 @@ export function validateEventContent(
   if (!definition) {
     // Legacy or template without strict registered definition: only null / empty allowed
     const nonVersionKeys = Object.keys(rawObj).filter(
-      (k) => k !== '_schemaVersion',
+      (k) => k !== '_schemaVersion' && k !== 'integrations',
     );
     if (nonVersionKeys.length > 0) {
       throw new BadRequestException(
@@ -232,11 +232,21 @@ export function validateEventContent(
     declaredKeys.set(field.key, field);
   }
 
-  // Reject undeclared fields at root
+  // Reject undeclared fields at root (except _schemaVersion and internal platform integrations)
   for (const key of Object.keys(rawObj)) {
-    if (key === '_schemaVersion') continue;
+    if (key === '_schemaVersion' || key === 'integrations') continue;
     if (!declaredKeys.has(key)) {
       throw new BadRequestException(`Undeclared content field: ${key}`);
+    }
+  }
+
+  if (rawObj.integrations !== undefined) {
+    if (
+      typeof rawObj.integrations !== 'object' ||
+      rawObj.integrations === null ||
+      Array.isArray(rawObj.integrations)
+    ) {
+      throw new BadRequestException('integrations must be an object');
     }
   }
 

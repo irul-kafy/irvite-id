@@ -90,6 +90,33 @@ describe('template-content.validator', () => {
         '_templateKey',
       );
     });
+
+    it('allows internal integrations metadata and omits it from public normalized output', () => {
+      const content = {
+        partnerOneName: 'Laras',
+        partnerTwoName: 'Bagas',
+        timeZone: 'Asia/Jakarta',
+        integrations: {
+          googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+          googleSheetUpdatedAt: '2026-11-03T00:00:00.000Z',
+        },
+      };
+      const result = validateEventContent(content, 'SEKAR_KEDATON');
+      expect(result).not.toBeNull();
+      expect(result?.partnerOneName).toBe('Laras');
+      expect(result?.partnerTwoName).toBe('Bagas');
+      expect((result as any)?.integrations).toBeUndefined();
+    });
+
+    it('rejects integrations if it is not an object', () => {
+      const content = {
+        partnerOneName: 'Laras',
+        integrations: 'invalid-string',
+      };
+      expect(() => validateEventContent(content, 'SEKAR_KEDATON')).toThrow(
+        'integrations must be an object',
+      );
+    });
   });
 
   describe('field type, length, and format validation', () => {

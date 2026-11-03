@@ -309,7 +309,25 @@ export class EventsService {
 
     if (content !== undefined) {
       const validatedContent = validateEventContent(content, activeThemeCode);
-      dataToUpdate.content = validatedContent as Prisma.InputJsonValue;
+      const existingContentObj =
+        existingEvent.content &&
+        typeof existingEvent.content === 'object' &&
+        !Array.isArray(existingEvent.content)
+          ? (existingEvent.content as Record<string, unknown>)
+          : {};
+      const incomingContentObj =
+        content && typeof content === 'object' && !Array.isArray(content)
+          ? (content as Record<string, unknown>)
+          : {};
+
+      const integrationsToPreserve =
+        incomingContentObj.integrations || existingContentObj.integrations;
+
+      const contentToSave = validatedContent ? { ...validatedContent } : null;
+      if (contentToSave && integrationsToPreserve) {
+        contentToSave.integrations = integrationsToPreserve;
+      }
+      dataToUpdate.content = (contentToSave ?? Prisma.DbNull) as Prisma.InputJsonValue;
     }
 
     try {
