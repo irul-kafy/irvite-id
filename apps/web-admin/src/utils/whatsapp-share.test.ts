@@ -1,10 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { buildWhatsAppShareUrl, isLocalhostUrl } from './whatsapp-share';
+import { buildWhatsAppShareUrl, isLocalhostUrl, normalizeWhatsAppPhone } from './whatsapp-share';
 
 test('buildWhatsAppShareUrl', async (t) => {
   await t.test('produces valid wa.me URL', () => {
     const url = buildWhatsAppShareUrl('John Doe', 'Pernikahan Agung', 'https://irvite.id/i/abc123');
+    assert.ok(url.startsWith('https://wa.me/?text='));
+  });
+
+  await t.test('includes target phone number when provided (with 62 prefix)', () => {
+    const url = buildWhatsAppShareUrl('Intan Permata', 'Pernikahan Agung', 'https://irvite.id/i/abc123', '6281234567814');
+    assert.ok(url.startsWith('https://wa.me/6281234567814?text='));
+  });
+
+  await t.test('converts leading 08 phone number to 628', () => {
+    const url = buildWhatsAppShareUrl('Intan Permata', 'Pernikahan Agung', 'https://irvite.id/i/abc123', '081234567814');
+    assert.ok(url.startsWith('https://wa.me/6281234567814?text='));
+  });
+
+  await t.test('strips non-digits from formatted phone numbers', () => {
+    const url = buildWhatsAppShareUrl('Intan Permata', 'Pernikahan Agung', 'https://irvite.id/i/abc123', '+62 812-3456-7814');
+    assert.ok(url.startsWith('https://wa.me/6281234567814?text='));
+  });
+
+  await t.test('falls back to generic wa.me/?text= if phone number is empty', () => {
+    const url = buildWhatsAppShareUrl('Intan Permata', 'Pernikahan Agung', 'https://irvite.id/i/abc123', '');
     assert.ok(url.startsWith('https://wa.me/?text='));
   });
 

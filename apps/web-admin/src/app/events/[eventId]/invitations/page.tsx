@@ -893,7 +893,7 @@ export default function InvitationDistributionPage({
                                 Lihat
                               </a>
                               <a
-                                href={buildWhatsAppShareUrl(guest.name, event?.title || '', inv.canonicalUrl)}
+                                href={buildWhatsAppShareUrl(guest.name, event?.title || '', inv.canonicalUrl, guest.phoneNumber)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="btn btn-ghost btn-sm"
@@ -1055,7 +1055,7 @@ export default function InvitationDistributionPage({
                           Lihat
                         </a>
                         <a
-                          href={buildWhatsAppShareUrl(guest.name, event?.title || '', inv.canonicalUrl)}
+                          href={buildWhatsAppShareUrl(guest.name, event?.title || '', inv.canonicalUrl, guest.phoneNumber)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-ghost btn-sm"

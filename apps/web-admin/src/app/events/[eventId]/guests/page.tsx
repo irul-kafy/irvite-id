@@ -14,6 +14,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { buildExportUrl } from '../../utils/export-url-builder';
+import { buildWhatsAppShareUrl } from '@/utils/whatsapp-share';
 
 interface AttendanceRecord {
   scannedAt: string;
@@ -115,6 +116,15 @@ function IconExternal() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconWhatsApp() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="currentColor"/>
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
     </svg>
   );
 }
@@ -1418,6 +1428,33 @@ export default function GuestListPage({
                                 <IconCopy />
                                 {isCopied ? 'Tersalin!' : 'Salin Link'}
                               </button>
+
+                              <a
+                                id={`guest-wa-${guest.id}`}
+                                href={buildWhatsAppShareUrl(guest.name, event?.title || '', personalUrl, guest.phoneNumber)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.375rem',
+                                  textDecoration: 'none',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 600,
+                                  color: '#15803d',
+                                  background: '#f0fdf4',
+                                  border: '1px solid rgba(22, 163, 74, 0.25)',
+                                }}
+                                title={
+                                  guest.phoneNumber
+                                    ? `Kirim Undangan langsung ke WhatsApp ${guest.name} (${guest.phoneNumber})`
+                                    : `Kirim Undangan ke WhatsApp ${guest.name}`
+                                }
+                              >
+                                <IconWhatsApp />
+                                Kirim WA
+                              </a>
                             </>
                           )}
 
@@ -1639,6 +1676,31 @@ export default function GuestListPage({
                           <IconCopy />
                           {isCopied ? 'Tersalin' : 'Salin'}
                         </button>
+                        <a
+                          href={buildWhatsAppShareUrl(guest.name, event?.title || '', personalUrl, guest.phoneNumber)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost btn-sm"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.375rem',
+                            color: '#15803d',
+                            background: '#f0fdf4',
+                            border: '1px solid rgba(22, 163, 74, 0.25)',
+                            padding: '0.5rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                          title={
+                            guest.phoneNumber
+                              ? `Kirim Undangan ke WhatsApp ${guest.name} (${guest.phoneNumber})`
+                              : `Kirim Undangan ke WhatsApp ${guest.name}`
+                          }
+                        >
+                          <IconWhatsApp />
+                          Kirim WA
+                        </a>
                       </>
                     )}
                     <button
