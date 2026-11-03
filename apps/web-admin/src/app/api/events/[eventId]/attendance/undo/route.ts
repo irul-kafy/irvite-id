@@ -1,26 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-function isAllowedOrigin(origin: string | null, request: Request): boolean {
-  if (!origin) return false;
-  const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-  if (origin === expectedOrigin) return true;
-
-  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
-  if (host && (origin === `https://${host}` || origin === `http://${host}`)) {
-    return true;
-  }
-
-  try {
-    const url = new URL(origin);
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
-    if (url.hostname === 'irvite-id.vercel.app') return true;
-    if (url.hostname.startsWith('irvite-') && url.hostname.endsWith('.vercel.app')) return true;
-  } catch {
-    return false;
-  }
-  return false;
-}
+import { isValidAdminOrigin } from '../../../../../../utils/origin';
 
 export async function POST(
   request: Request,
@@ -28,8 +8,7 @@ export async function POST(
 ) {
   const { eventId } = await params;
   try {
-    const origin = request.headers.get('origin');
-    if (!isAllowedOrigin(origin, request)) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -84,3 +63,4 @@ export async function POST(
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
+

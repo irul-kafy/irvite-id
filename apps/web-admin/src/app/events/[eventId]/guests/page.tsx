@@ -206,6 +206,7 @@ export default function GuestListPage({
   const invitationOrigin =
     rawInvitationOrigin.includes('irvite-ez56n3ver') ||
     rawInvitationOrigin.includes('irvite-id-57xk') ||
+    rawInvitationOrigin.includes('irvite-admin') ||
     (rawInvitationOrigin.includes('irvite-') && rawInvitationOrigin.includes('.vercel.app') && !rawInvitationOrigin.includes('irvite-id.vercel.app'))
       ? 'https://irvite-id.vercel.app'
       : rawInvitationOrigin;

@@ -16,3 +16,4 @@ export class UndoCheckInDto {
   @IsUUID()
   guestId?: string;
 }
+

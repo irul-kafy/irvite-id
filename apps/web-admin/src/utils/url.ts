@@ -2,6 +2,7 @@ function remapLegacyPreviewOrigin(baseUrl: string): string {
   if (
     baseUrl.includes('irvite-ez56n3ver') ||
     baseUrl.includes('irvite-id-57xk') ||
+    baseUrl.includes('irvite-admin') ||
     (baseUrl.includes('irvite-') && baseUrl.includes('.vercel.app') && !baseUrl.includes('irvite-id.vercel.app'))
   ) {
     return 'https://irvite-id.vercel.app';
