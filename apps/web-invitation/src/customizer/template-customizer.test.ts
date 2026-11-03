@@ -45,6 +45,12 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
         dataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
         order: 0,
       };
+      state.storyPhoto = {
+        slot: 'story',
+        previewUrl: 'blob:http://localhost:3002/custom-story-123',
+        dataUrl: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+        order: 0,
+      };
       state.galleryPhotos = [
         {
           slot: 'gallery',
@@ -74,6 +80,10 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
       assert.equal(
         updated.mediaBySlot?.gallery?.[0]?.src,
         'blob:http://localhost:3002/custom-gallery-1',
+      );
+      assert.equal(
+        updated.mediaBySlot?.story?.[0]?.src,
+        'blob:http://localhost:3002/custom-story-123',
       );
     }
   });

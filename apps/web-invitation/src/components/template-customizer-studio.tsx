@@ -203,7 +203,7 @@ export function TemplateCustomizerStudio({
   );
 
   const handleSinglePhotoUpload = async (
-    slot: 'hero' | 'closing' | 'bride' | 'groom',
+    slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story',
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
@@ -227,7 +227,7 @@ export function TemplateCustomizerStudio({
           ? 'closingPhoto'
           : slot === 'bride'
             ? 'bridePhoto'
-            : 'groomPhoto';
+            : slot === 'groom' ? 'groomPhoto' : 'storyPhoto';
 
     setState((prev) => ({
       ...prev,
@@ -367,6 +367,7 @@ export function TemplateCustomizerStudio({
     (state.heroPhoto ? 1 : 0) +
     (state.bridePhoto ? 1 : 0) +
     (state.groomPhoto ? 1 : 0) +
+    (state.storyPhoto ? 1 : 0) +
     (state.closingPhoto ? 1 : 0) +
     state.galleryPhotos.length;
 
@@ -950,10 +951,56 @@ export function TemplateCustomizerStudio({
                 </div>
               </div>
 
+              {/* Story Photo (Aetheria, Opaline Nocturne, Ranah Cinta) */}
+              {themeCode !== 'SEKAR_KEDATON' && (
+                <div className="irv-studio-photo-box">
+                  <div className="irv-studio-label">
+                    <span>4. Foto Cerita / Kisah (Story Window)</span>
+                    <span className="irv-studio-label__hint">
+                      Opsional • {themeCode === 'AETHERIA' ? 'Jendela "Every path led to you"' : 'Seksi Kisah Cinta'}
+                    </span>
+                  </div>
+                  {state.storyPhoto && (
+                    <div className="irv-studio-photo-preview-row">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={state.storyPhoto.previewUrl}
+                        alt="Pratinjau Foto Kisah"
+                        className="irv-studio-photo-thumb"
+                      />
+                      <div style={{ fontSize: '0.76rem', color: '#394640' }}>
+                        <strong>{state.storyPhoto.fileName || 'Foto Kisah Terpilih'}</strong>
+                        <div>Tampil di seksi perjalanan kisah cinta mempelai</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="irv-studio-photo-actions">
+                    <label className="irv-studio-upload-btn">
+                      <span>📤 Pilih Foto Kisah Cinta</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                        style={{ display: 'none' }}
+                        onChange={(e) => handleSinglePhotoUpload('story', e)}
+                      />
+                    </label>
+                    {state.storyPhoto && (
+                      <button
+                        type="button"
+                        className="irv-studio-remove-btn"
+                        onClick={() => updateField('storyPhoto', null)}
+                      >
+                        Gunakan Foto Contoh
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Gallery Photos */}
               <div className="irv-studio-photo-box">
                 <div className="irv-studio-label">
-                  <span>4. Galeri Momen Bahagia</span>
+                  <span>{themeCode !== 'SEKAR_KEDATON' ? '5. Galeri Momen Bahagia' : '4. Galeri Momen Bahagia'}</span>
                   <span className="irv-studio-label__hint">
                     {state.galleryPhotos.length}/4 Foto • Maks. 25 MB/foto
                   </span>
@@ -1014,7 +1061,7 @@ export function TemplateCustomizerStudio({
               {themeCode !== 'SEKAR_KEDATON' && (
                 <div className="irv-studio-photo-box">
                   <div className="irv-studio-label">
-                    <span>5. Foto Penutup (Closing Portrait)</span>
+                    <span>6. Foto Penutup (Closing Portrait)</span>
                     <span className="irv-studio-label__hint">Opsional • Maks. 25 MB</span>
                   </div>
                   {state.closingPhoto && (

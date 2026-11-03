@@ -18,7 +18,7 @@ export interface GiftAccountFormState {
 }
 
 export interface CustomPhotoItem {
-  slot: 'hero' | 'closing' | 'gallery' | 'bride' | 'groom';
+  slot: 'hero' | 'closing' | 'gallery' | 'bride' | 'groom' | 'story';
   previewUrl: string; // blob:... or /templates/...
   dataUrl?: string; // compressed data:image/jpeg;base64,... for admin submission
   fileName?: string;
@@ -43,6 +43,7 @@ export interface ClientCustomizationState {
   heroPhoto: CustomPhotoItem | null;
   bridePhoto?: CustomPhotoItem | null;
   groomPhoto?: CustomPhotoItem | null;
+  storyPhoto?: CustomPhotoItem | null;
   closingPhoto: CustomPhotoItem | null;
   galleryPhotos: CustomPhotoItem[];
 }
@@ -209,6 +210,7 @@ export function extractInitialCustomizationState(
     heroPhoto: null,
     bridePhoto: null,
     groomPhoto: null,
+    storyPhoto: null,
     closingPhoto: null,
     galleryPhotos: [],
   };
@@ -360,6 +362,21 @@ export function applyClientCustomizationToFixture(
     ];
   }
 
+  if (state.storyPhoto?.previewUrl) {
+    const storyDescriptor: PublicMediaDescriptor = {
+      id: 'custom-story-photo',
+      type: 'PHOTO',
+      slot: 'story',
+      order: 0,
+      src: state.storyPhoto.previewUrl,
+    };
+    baseMediaBySlot['story'] = [storyDescriptor];
+    updatedMediaList = [
+      storyDescriptor,
+      ...updatedMediaList.filter((m) => m.slot !== 'story'),
+    ];
+  }
+
   if (state.closingPhoto?.previewUrl) {
     const closingDescriptor: PublicMediaDescriptor = {
       id: 'custom-closing-photo',
@@ -507,6 +524,13 @@ export function buildDraftSubmissionPayload(params: {
       order: 0,
     });
   }
+  if (state.storyPhoto?.dataUrl && upperTheme !== 'SEKAR_KEDATON') {
+    photos.push({
+      slot: 'story',
+      dataUrl: state.storyPhoto.dataUrl,
+      order: 0,
+    });
+  }
   if (state.closingPhoto?.dataUrl && upperTheme !== 'SEKAR_KEDATON') {
     photos.push({
       slot: 'closing',
@@ -579,6 +603,7 @@ export function buildWhatsappOrderUrl(params: {
   const venueStr = firstCeremony?.venue || '-';
   const uploadedPhotoCount =
     (params.state.heroPhoto ? 1 : 0) +
+    (params.state.storyPhoto ? 1 : 0) +
     (params.state.closingPhoto ? 1 : 0) +
     params.state.galleryPhotos.length;
 
