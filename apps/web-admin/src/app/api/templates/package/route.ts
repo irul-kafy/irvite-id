@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 const MAX_REQUEST_BYTES = 32 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
-    const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-    if (request.headers.get('origin') !== expectedOrigin) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
     const contentLength = Number(request.headers.get('content-length') || '0');

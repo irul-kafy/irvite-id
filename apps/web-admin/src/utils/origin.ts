@@ -2,8 +2,9 @@
  * Validates that an incoming request origin matches the expected web-admin origin.
  * Supports:
  * 1. Configured WEB_ADMIN_ORIGIN (e.g. http://localhost:3001 or https://irvite-admin.vercel.app)
- * 2. Same-host request matching (requesting directly from the active host domain)
- * 3. Official Irvite admin domains (e.g. irvite-admin.vercel.app, irvite-id-57xk.vercel.app)
+ * 2. Same-host request matching (requesting directly from the active host domain via host / x-forwarded-host)
+ * 3. Official Irvite admin domains (e.g. irvite-admin.vercel.app, irvite-id-57xk.vercel.app, irvite.id, *.irvite.id)
+ * 4. Localhost and development loopback origins
  */
 export function isValidAdminOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
@@ -17,12 +18,30 @@ export function isValidAdminOrigin(request: Request): boolean {
     return true;
   }
 
-  if (
-    origin === 'https://irvite-admin.vercel.app' ||
-    origin === 'https://irvite-id-57xk.vercel.app' ||
-    (origin.startsWith('https://irvite-') && origin.endsWith('.vercel.app') && !origin.includes('irvite-id.vercel.app'))
-  ) {
-    return true;
+  try {
+    const originUrl = new URL(origin);
+    const h = originUrl.hostname.toLowerCase();
+
+    // Local development loopback
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]') {
+      return true;
+    }
+
+    // Irvite domains & subdomains
+    if (h === 'irvite.id' || h.endsWith('.irvite.id')) {
+      return true;
+    }
+
+    // Official Vercel admin and preview deployments (excluding public invitation app irvite-id.vercel.app)
+    if (
+      h === 'irvite-admin.vercel.app' ||
+      h === 'irvite-id-57xk.vercel.app' ||
+      (h.startsWith('irvite-') && h.endsWith('.vercel.app') && h !== 'irvite-id.vercel.app')
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
   }
 
   return false;

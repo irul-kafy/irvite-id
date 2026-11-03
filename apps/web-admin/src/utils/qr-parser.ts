@@ -19,6 +19,8 @@ export function parseQRData(input: string, trustedOrigin: string): string | null
       url.hostname === '127.0.0.1' ||
       url.hostname === '::1' ||
       url.hostname === '[::1]' ||
+      url.hostname === 'irvite.id' ||
+      url.hostname.endsWith('.irvite.id') ||
       (url.hostname.startsWith('irvite-') && url.hostname.endsWith('.vercel.app')) ||
       url.hostname.endsWith('.vercel.app');
 

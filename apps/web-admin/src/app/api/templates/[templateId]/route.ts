@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function GET(
   request: Request,
@@ -53,10 +54,7 @@ export async function PATCH(
   { params }: { params: Promise<{ templateId: string }> }
 ) {
   try {
-    const origin = request.headers.get('origin');
-    const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-
-    if (origin !== expectedOrigin) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function POST(
   request: Request,
@@ -7,11 +8,7 @@ export async function POST(
 ) {
   const { eventId } = await params;
   try {
-    const origin = request.headers.get('origin');
-    const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-    
-    // Strict origin check for CSRF mitigation
-    if (origin !== expectedOrigin) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

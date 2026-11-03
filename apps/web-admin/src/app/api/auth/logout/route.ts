@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get('origin');
-    const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-    
-    if (origin !== expectedOrigin) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCanonicalPublicInvitationUrl } from '@/utils/url';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    const origin = request.headers.get('origin');
-    const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-
-    if (origin !== expectedOrigin) {
+    if (!isValidAdminOrigin(request)) {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 

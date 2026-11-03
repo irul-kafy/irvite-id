@@ -1,16 +1,15 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { isValidAdminOrigin } from '@/utils/origin';
 
 type Context = { params: Promise<{ eventId: string; mediaId: string }> };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function PATCH(request: Request, context: Context) {
-  const origin = request.headers.get('origin');
-  const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-  if (origin !== expectedOrigin) {
-    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-  }
+  if (!isValidAdminOrigin(request)) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
 
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
@@ -53,11 +52,9 @@ export async function PATCH(request: Request, context: Context) {
 }
 
 export async function DELETE(request: Request, context: Context) {
-  const origin = request.headers.get('origin');
-  const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
-  if (origin !== expectedOrigin) {
-    return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
-  }
+  if (!isValidAdminOrigin(request)) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
 
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;

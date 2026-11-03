@@ -40,6 +40,11 @@ test('strict QR parser tests', async (t) => {
     assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');
   });
 
+  await t.test('accepts custom domain irvite.id QR code', () => {
+    const url = 'https://irvite.id/i/abcDEF123_-abcDEF123_-';
+    assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');
+  });
+
   await t.test('accepts valid canonical URL', () => {
     const url = 'https://invitations.example.com/i/abcDEF123_-abcDEF123_-';
     assert.strictEqual(parseQRData(url, TRUSTED_ORIGIN), 'abcDEF123_-abcDEF123_-');

@@ -1,5 +1,6 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function GET(request: Request) {
   try {
@@ -70,12 +71,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const origin = request.headers.get("origin");
-    const expectedOrigin =
-      process.env.WEB_ADMIN_ORIGIN || "http://localhost:3001";
-
-    if (origin !== expectedOrigin) {
-      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    if (!isValidAdminOrigin(request)) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
     const contentType = request.headers.get("content-type") || "";
