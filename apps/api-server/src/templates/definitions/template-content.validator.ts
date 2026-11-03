@@ -227,6 +227,13 @@ export function validateEventContent(
     return null;
   }
 
+  const contentFieldKeys = Object.keys(rawObj).filter(
+    (k) => k !== '_schemaVersion' && k !== 'integrations',
+  );
+  if (contentFieldKeys.length === 0) {
+    return null;
+  }
+
   const declaredKeys = new Map<string, ContentFieldDefinition>();
   for (const field of definition.contentFields) {
     declaredKeys.set(field.key, field);

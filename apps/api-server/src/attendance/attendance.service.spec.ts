@@ -23,6 +23,7 @@ describe('AttendanceService', () => {
       attendance: {
         create: jest.fn(),
         findUnique: jest.fn(),
+        findMany: jest.fn(),
         updateMany: jest.fn(),
       },
       attendanceCheckIn: {
@@ -869,6 +870,83 @@ describe('AttendanceService', () => {
       expect(result.success).toBe(true);
       expect(result.connected).toBe(true);
       expect(prisma.event.update).toHaveBeenCalled();
+    });
+
+    it('resyncGoogleSheet sends all attendances to webhookUrl and returns count', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+          },
+        },
+      });
+      (prisma.attendance.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'att-1',
+          scannedPax: 2,
+          scannedAt: new Date('2026-10-15T10:00:00Z'),
+          invitation: {
+            guest: {
+              id: 'g1',
+              name: 'John Doe',
+              category: 'VIP',
+              maxPax: 2,
+            },
+          },
+          staff: { email: 'scanner@irvite.id' },
+          checkIns: [],
+        },
+      ]);
+
+      const globalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ result: 'success' }),
+      } as any);
+
+      try {
+        const res = await service.resyncGoogleSheet('e1', 'u1', Role.SUPER_ADMIN);
+        expect(res.success).toBe(true);
+        expect(res.syncedCount).toBe(1);
+        expect(global.fetch).toHaveBeenCalledWith(
+          'https://script.google.com/macros/s/xyz/exec',
+          expect.objectContaining({
+            method: 'POST',
+            body: expect.stringContaining('John Doe'),
+          }),
+        );
+      } finally {
+        global.fetch = globalFetch;
+      }
+    });
+
+    it('resyncGoogleSheet throws BadRequestException if webhookUrl not configured', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        content: {},
+      });
+
+      await expect(
+        service.resyncGoogleSheet('e1', 'u1', Role.SUPER_ADMIN),
+      ).rejects.toThrow('Tautan Webhook Google Sheets belum diatur');
     });
   });
 });

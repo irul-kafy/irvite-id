@@ -276,7 +276,7 @@ export class AttendanceService {
     );
 
     if (result.result === 'CHECKED_IN') {
-      void this.dispatchGoogleSheetSync(
+      await this.dispatchGoogleSheetSync(
         eventId,
         invitation.guest,
         pax,
@@ -814,6 +814,82 @@ export class AttendanceService {
         `Gagal menghubungi endpoint Google Sheets: ${err?.message || 'Timeout / Network Error'}. Pastikan URL Webhook benar dan dapat diakses publik.`,
       );
     }
+  }
+
+  async resyncGoogleSheet(eventId: string, userId: string, role: Role) {
+    const event = await this.authorizeEventOperator(eventId, userId, role);
+
+    const content =
+      event.content && typeof event.content === 'object'
+        ? (event.content as Record<string, any>)
+        : {};
+    const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
+
+    if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+      throw new BadRequestException(
+        'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
+      );
+    }
+
+    const attendances = await this.db.attendance.findMany({
+      where: { eventId },
+      include: {
+        invitation: { include: { guest: true } },
+        checkIns: { orderBy: { scannedAt: 'asc' } },
+        staff: { select: { email: true } },
+      },
+    });
+
+    if (attendances.length === 0) {
+      return {
+        success: true,
+        syncedCount: 0,
+        message: 'Belum ada data kehadiran untuk disinkronkan ke Google Sheets.',
+      };
+    }
+
+    let syncedCount = 0;
+    for (const att of attendances) {
+      const guest = att.invitation?.guest;
+      if (!guest) continue;
+
+      const payload = {
+        event: 'GUEST_CHECK_IN',
+        eventId: event.id,
+        eventTitle: event.title,
+        guestId: guest.id,
+        guestName: guest.name,
+        category: guest.category || 'REGULAR',
+        scannedPax: att.scannedPax,
+        totalScannedPax: att.scannedPax,
+        maxPax: guest.maxPax,
+        remainingPax: Math.max(0, guest.maxPax - att.scannedPax),
+        status: att.scannedPax >= guest.maxPax ? 'COMPLETE' : 'PARTIAL',
+        scannedAt: att.scannedAt.toISOString(),
+        scannedBy: att.staff?.email || 'Staff Scanner',
+        isTest: false,
+      };
+
+      try {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(6000),
+        });
+        syncedCount++;
+      } catch (err: any) {
+        this.logger.warn(
+          `Failed to resync check-in for guest ${guest.name} to Google Sheet: ${err?.message || err}`,
+        );
+      }
+    }
+
+    return {
+      success: true,
+      syncedCount,
+      message: `Berhasil menyinkronkan ${syncedCount} data kehadiran tamu ke Google Sheets!`,
+    };
   }
 
   private async dispatchGoogleSheetSync(

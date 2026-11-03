@@ -85,6 +85,21 @@ export class AttendanceController {
     );
   }
 
+  @Post('google-sheet/resync')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  resyncGoogleSheet(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.resyncGoogleSheet(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
+
   @Get('report')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Header('Cache-Control', 'no-store')

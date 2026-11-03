@@ -258,6 +258,7 @@ export default function LiveAttendanceMonitorPage({
   const [sheetWebhookUrl, setSheetWebhookUrl] = useState('');
   const [sheetSaving, setSheetSaving] = useState(false);
   const [sheetTesting, setSheetTesting] = useState(false);
+  const [sheetResyncing, setSheetResyncing] = useState(false);
   const [sheetMessage, setSheetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sampleScript, setSampleScript] = useState(DEFAULT_APPS_SCRIPT_TEMPLATE);
   const [copiedScript, setCopiedScript] = useState(false);
@@ -389,6 +390,24 @@ export default function LiveAttendanceMonitorPage({
       setSheetMessage({ type: 'error', text: err instanceof Error ? err.message : 'Uji coba gagal.' });
     } finally {
       setSheetTesting(false);
+    }
+  };
+
+  const handleResyncAllAttendance = async () => {
+    setSheetResyncing(true);
+    setSheetMessage(null);
+    try {
+      const res = await fetch(`/api/events/${eventId}/attendance/google-sheet/resync`, {
+        method: 'POST',
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.message || 'Sinkronisasi gagal.');
+
+      setSheetMessage({ type: 'success', text: resData.message || 'Berhasil menyinkronkan seluruh data hadir ke Google Sheets!' });
+    } catch (err: unknown) {
+      setSheetMessage({ type: 'error', text: err instanceof Error ? err.message : 'Sinkronisasi gagal.' });
+    } finally {
+      setSheetResyncing(false);
     }
   };
 
@@ -899,14 +918,25 @@ export default function LiveAttendanceMonitorPage({
               </button>
 
               {sheetWebhookUrl.trim().length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleTestSheetPing}
-                  disabled={sheetTesting || sheetSaving}
-                >
-                  {sheetTesting ? 'Menguji...' : '⚡ Uji Coba Kirim Data (Test Ping)'}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleTestSheetPing}
+                    disabled={sheetTesting || sheetSaving || sheetResyncing}
+                  >
+                    {sheetTesting ? 'Menguji...' : '⚡ Uji Coba Kirim Data (Test Ping)'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleResyncAllAttendance}
+                    disabled={sheetTesting || sheetSaving || sheetResyncing}
+                    title="Kirim ulang seluruh data tamu yang sudah hadir ke Google Sheets"
+                  >
+                    {sheetResyncing ? 'Menyinkronkan...' : '🔄 Sinkronkan Seluruh Tamu Hadir'}
+                  </button>
+                </>
               )}
             </div>
 
