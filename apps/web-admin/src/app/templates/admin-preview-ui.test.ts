@@ -124,4 +124,27 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
     assert.ok(cssContent.includes('.template-card__preview-btn:disabled'), 'Must declare disabled state for preview');
     assert.ok(cssContent.includes('.template-card__use-btn:disabled'), 'Must declare disabled state for use');
   });
+  await t.test('Admin In-App Preview Contract: preview stays within irvite-admin without client lead tools', () => {
+    // 1. In-admin dedicated preview page must exist
+    const previewPageRoute = path.resolve(__dirname, '[slug]/preview/page.tsx');
+    assert.ok(fs.existsSync(previewPageRoute), '[slug]/preview/page.tsx must exist in admin app');
+
+    // 2. Admin catalog page must render in-admin preview modal and internal preview link
+    const catalogPage = path.resolve(__dirname, 'page.tsx');
+    assert.ok(fs.existsSync(catalogPage));
+    const catalogContent = fs.readFileSync(catalogPage, 'utf8');
+
+    assert.ok(
+      catalogContent.includes("href={`/templates/${cat.slug}/preview`}"),
+      'Preview link must point to internal admin route (/templates/:slug/preview), not public client URL'
+    );
+    assert.ok(
+      catalogContent.includes('catalog-preview-modal'),
+      'Catalog page must render catalog-preview-modal for immediate in-admin preview'
+    );
+    assert.ok(
+      catalogContent.includes('demo?embed=true'),
+      'Preview iframe must load with ?embed=true to suppress client lead / data entry tools'
+    );
+  });
 });

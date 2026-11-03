@@ -22,6 +22,7 @@ interface TemplateCustomizerStudioProps {
   templateCategory: string;
   initialFixture: RendererData;
   defaultOpenCustomizer?: boolean;
+  adminMode?: boolean;
 }
 
 type StudioTab = 'couple' | 'schedule' | 'photos' | 'words' | 'patent';
@@ -74,6 +75,7 @@ export function TemplateCustomizerStudio({
   templateCategory,
   initialFixture,
   defaultOpenCustomizer = false,
+  adminMode = false,
 }: TemplateCustomizerStudioProps) {
   const defaultState = useMemo(
     () => extractInitialCustomizationState(initialFixture),
@@ -376,18 +378,29 @@ export function TemplateCustomizerStudio({
       {/* ── Top Floating Sandbox Control Bar ── */}
       <header className="irv-studio-bar" role="region" aria-label="Panel Kontrol Simulasi Undangan">
         <div className="irv-studio-bar__left">
-          <Link href="/templates" className="irv-studio-bar__back">
-            ← Katalog
-          </Link>
+          {adminMode ? (
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="irv-studio-bar__back"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+            >
+              ← Kembali
+            </button>
+          ) : (
+            <Link href="/templates" className="irv-studio-bar__back">
+              ← Katalog
+            </Link>
+          )}
           <div className="irv-studio-bar__title-group">
             <span className="irv-studio-bar__template-name">
               {templateDisplayName}
             </span>
             <span
               className="irv-studio-bar__sandbox-pill"
-              title="Ini adalah halaman pratinjau simulasi pribadi Anda, bukan tautan undangan publik aktif."
+              title={adminMode ? "Pratinjau template untuk admin" : "Ini adalah halaman pratinjau simulasi pribadi Anda, bukan tautan undangan publik aktif."}
             >
-              🔒 Pratinjau Simulasi
+              {adminMode ? "🔒 Pratinjau Admin" : "🔒 Pratinjau Simulasi"}
             </span>
           </div>
         </div>
@@ -445,6 +458,7 @@ export function TemplateCustomizerStudio({
           )}
         </div>
 
+        {!adminMode && (
         <div className="irv-studio-bar__actions">
           <button
             type="button"
@@ -468,9 +482,11 @@ export function TemplateCustomizerStudio({
             ✅ Sudah Fix? Kirim ke Admin
           </button>
         </div>
+        )}
       </header>
 
       {/* ── Interactive Side Drawer ── */}
+      {!adminMode && (
       <aside
         className={`irv-studio-drawer ${drawerOpen ? 'is-open' : ''}`}
         aria-label="Editor Personalisasi Klien"
@@ -1213,6 +1229,7 @@ export function TemplateCustomizerStudio({
           </button>
         </div>
       </aside>
+      )}
 
       {/* ── Live Preview Stage (Figma-Style Canvas & Device Frame) ── */}
       <div className={`irv-studio-preview-stage is-device-${viewportDevice}`}>
@@ -1263,7 +1280,7 @@ export function TemplateCustomizerStudio({
       </div>
 
       {/* ── Submit to Super Admin & WhatsApp Modal ── */}
-      {showOrderModal && (
+      {!adminMode && showOrderModal && (
         <div
           className="irv-studio-modal-backdrop"
           role="dialog"

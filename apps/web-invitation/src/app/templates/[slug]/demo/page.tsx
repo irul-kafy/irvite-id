@@ -6,12 +6,14 @@ import {
 import { getDemoFixture } from '../../../../demo';
 import {
   isTemplateProductionActivated,
+  RenderTheme,
 } from '../../../../renderers/registry';
 import { fetchPublicTemplateAvailability } from '../../../../api/client';
 import { TemplateCustomizerStudio } from '../../../../components/template-customizer-studio';
 
 interface DemoPageProps {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ admin?: string; previewOnly?: string; embed?: string }>;
 }
 
 export async function generateMetadata({
@@ -43,8 +45,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function TemplateDemoPage({ params }: DemoPageProps) {
+export default async function TemplateDemoPage({ params, searchParams }: DemoPageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const isEmbed = resolvedSearchParams.embed === 'true' || resolvedSearchParams.embed === '1';
+  const isAdmin = resolvedSearchParams.admin === 'true' || resolvedSearchParams.admin === '1' || resolvedSearchParams.previewOnly === 'true';
+
   const catalogItem = getCatalogTemplateBySlug(slug);
 
   // Fail closed if slug not in catalog
@@ -72,6 +78,20 @@ export default async function TemplateDemoPage({ params }: DemoPageProps) {
     notFound();
   }
 
+  if (isEmbed) {
+    return (
+      <main style={{ minHeight: '100vh', background: 'transparent' }}>
+        <RenderTheme
+          themeCode={catalogItem.themeCode}
+          data={fixture}
+          uniqueCode=""
+          isPreview={true}
+          mode="PUBLIC"
+        />
+      </main>
+    );
+  }
+
   return (
     <main>
       <TemplateCustomizerStudio
@@ -80,6 +100,7 @@ export default async function TemplateDemoPage({ params }: DemoPageProps) {
         templateDisplayName={catalogItem.displayName}
         templateCategory={catalogItem.category}
         initialFixture={fixture}
+        adminMode={isAdmin}
       />
     </main>
   );

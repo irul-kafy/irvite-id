@@ -30,6 +30,10 @@ export default function TemplateCatalogPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [updatingStatusTheme, setUpdatingStatusTheme] = useState<string | null>(null);
 
+  // Live Preview Modal State (In-Admin)
+  const [previewItem, setPreviewItem] = useState<JoinedCatalogTemplate | null>(null);
+  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('mobile');
+
   // Permanent Delete Modal State
   const [templateToDelete, setTemplateToDelete] = useState<DbTemplateRecord | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
@@ -37,6 +41,18 @@ export default function TemplateCatalogPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const hasTrustedOrigin = Boolean(getTrustedInvitationOrigin());
+
+  // Close preview or delete modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPreviewItem(null);
+        setTemplateToDelete(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Session verification and DB templates fetch
   useEffect(() => {
@@ -575,54 +591,30 @@ export default function TemplateCatalogPage() {
 
                     {/* Action Footer */}
                     <div className="template-card__actions">
-                      {demoUrl ? (
-                        <a
-                          id={`preview-${cat.slug}`}
-                          href={demoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="template-card__btn template-card__btn--preview"
-                          aria-label={`Buka demo publik ${cat.displayName}`}
+                      <a
+                        id={`preview-${cat.slug}`}
+                        href={`/templates/${cat.slug}/preview`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setPreviewItem(item);
+                        }}
+                        className="template-card__btn template-card__btn--preview"
+                        aria-label={`Buka pratinjau admin ${cat.displayName}`}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="16"
+                          height="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
                         >
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="16"
-                            height="16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            aria-hidden="true"
-                          >
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                          Preview
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          id={`preview-${cat.slug}`}
-                          disabled
-                          className="template-card__btn template-card__btn--preview"
-                          title="Origin undangan publik belum dikonfigurasi (NEXT_PUBLIC_INVITATION_ORIGIN)"
-                          style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                          aria-label={`Preview ${cat.displayName} dinonaktifkan: origin belum dikonfigurasi`}
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="16"
-                            height="16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            aria-hidden="true"
-                          >
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                          Preview
-                        </button>
-                      )}
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Preview
+                      </a>
 
                       <button
                         type="button"
@@ -1059,6 +1051,205 @@ export default function TemplateCatalogPage() {
               >
                 {isDeleting ? 'Menghapus...' : 'Delete Permanently'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Live Preview Modal (In-Admin) */}
+      {previewItem && (
+        <div
+          className="catalog-preview-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="preview-modal-title"
+        >
+          <div
+            className="catalog-preview-modal__backdrop"
+            onClick={() => setPreviewItem(null)}
+          />
+          <div
+            className="catalog-preview-modal__container"
+            style={{
+              maxWidth:
+                previewDevice === 'desktop'
+                  ? '960px'
+                  : previewDevice === 'tablet'
+                  ? '680px'
+                  : '460px',
+              transition: 'max-width 0.25s ease',
+            }}
+          >
+            <div className="catalog-preview-modal__header">
+              <div>
+                <span className="catalog-preview-modal__badge">
+                  Pratinjau Admin • {previewItem.catalogItem.category}
+                </span>
+                <h2 id="preview-modal-title" className="catalog-preview-modal__title">
+                  {previewItem.catalogItem.displayName}
+                </h2>
+              </div>
+              <div className="catalog-preview-modal__actions">
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    background: 'var(--admin-surface-raised, #f5f5f4)',
+                    borderRadius: '6px',
+                    padding: '2px',
+                    border: '1px solid var(--admin-border, #e7e5e4)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('mobile')}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: previewDevice === 'mobile' ? 'var(--admin-surface, #ffffff)' : 'transparent',
+                      color: previewDevice === 'mobile' ? 'var(--admin-accent, #2563eb)' : 'var(--admin-text-secondary, #57534e)',
+                      fontWeight: previewDevice === 'mobile' ? 600 : 400,
+                      boxShadow: previewDevice === 'mobile' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                    title="Layar HP (Mobile)"
+                  >
+                    📱 HP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('tablet')}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: previewDevice === 'tablet' ? 'var(--admin-surface, #ffffff)' : 'transparent',
+                      color: previewDevice === 'tablet' ? 'var(--admin-accent, #2563eb)' : 'var(--admin-text-secondary, #57534e)',
+                      fontWeight: previewDevice === 'tablet' ? 600 : 400,
+                      boxShadow: previewDevice === 'tablet' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                    title="Layar Tablet"
+                  >
+                    📲 Tablet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice('desktop')}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: previewDevice === 'desktop' ? 'var(--admin-surface, #ffffff)' : 'transparent',
+                      color: previewDevice === 'desktop' ? 'var(--admin-accent, #2563eb)' : 'var(--admin-text-secondary, #57534e)',
+                      fontWeight: previewDevice === 'desktop' ? 600 : 400,
+                      boxShadow: previewDevice === 'desktop' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                    title="Layar Desktop"
+                  >
+                    🖥️ Desktop
+                  </button>
+                </div>
+
+                <a
+                  href={`/templates/${previewItem.catalogItem.slug}/preview`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="template-card__btn"
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '12px',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Buka pratinjau di tab baru (tetap di irvite-admin)"
+                >
+                  Tab Baru ↗
+                </a>
+
+                {previewItem.canUse && (
+                  <button
+                    type="button"
+                    className="template-card__btn template-card__btn--select"
+                    style={{ padding: '4px 12px', fontSize: '12px' }}
+                    onClick={() => {
+                      const item = previewItem;
+                      setPreviewItem(null);
+                      handleUseTemplate(item);
+                    }}
+                  >
+                    Use Template
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="catalog-preview-modal__close"
+                  onClick={() => setPreviewItem(null)}
+                  aria-label="Tutup Pratinjau"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="catalog-preview-modal__body"
+              style={{
+                height: '75vh',
+                padding: '1.25rem',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                overflow: 'hidden',
+                background: 'var(--admin-surface-inset, #f0f0ee)',
+              }}
+            >
+              <div
+                className="studio-preview__device-frame"
+                style={{
+                  width:
+                    previewDevice === 'desktop'
+                      ? '100%'
+                      : previewDevice === 'tablet'
+                      ? '560px'
+                      : '360px',
+                  height: '100%',
+                  maxHeight: '680px',
+                  borderRadius: previewDevice === 'desktop' ? '12px' : '36px',
+                  padding: previewDevice === 'desktop' ? '0' : '10px',
+                  background: previewDevice === 'desktop' ? 'transparent' : '#000000',
+                  boxShadow:
+                    previewDevice === 'desktop'
+                      ? '0 10px 25px rgba(0,0,0,0.1)'
+                      : '0 20px 40px rgba(0,0,0,0.3)',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <iframe
+                  src={`${
+                    getTrustedInvitationOrigin() ||
+                    (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+                      ? 'https://irvite-id.vercel.app'
+                      : 'http://localhost:3002')
+                  }/templates/${previewItem.catalogItem.slug}/demo?embed=true`}
+                  title={`Pratinjau ${previewItem.catalogItem.displayName}`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    borderRadius: previewDevice === 'desktop' ? '12px' : '26px',
+                    background: '#ffffff',
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
