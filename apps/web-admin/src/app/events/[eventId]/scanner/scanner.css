@@ -87,6 +87,63 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.25s ease;
+}
+
+.scanner-video--mirrored {
+  transform: scaleX(-1);
+}
+
+.scanner-flip-camera-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.scanner-flip-camera-btn:hover {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: scale(1.03);
+}
+
+.scanner-flip-camera-btn:active {
+  transform: scale(0.96);
+}
+
+.scanner-flip-camera-btn svg {
+  flex-shrink: 0;
+  transition: transform 0.35s ease;
+}
+
+.scanner-flip-camera-btn:hover svg {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 480px) {
+  .scanner-flip-camera-btn {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+    gap: 4px;
+    top: 8px;
+    right: 8px;
+  }
 }
 
 .scanner-overlay {

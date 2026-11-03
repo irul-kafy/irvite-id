@@ -240,6 +240,33 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     }
   }, []);
 
+  // Camera Facing State: 'environment' (rear/back) or 'user' (front/selfie)
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('irvite_scanner_camera_facing');
+        if (saved === 'user' || saved === 'environment') return saved;
+      } catch {
+        // ignore
+      }
+    }
+    return 'environment';
+  });
+
+  const toggleCameraFacing = useCallback(() => {
+    stopScanner();
+    setScanStatus('INITIALIZING');
+    setCameraFacing((prev) => {
+      const next = prev === 'environment' ? 'user' : 'environment';
+      try {
+        localStorage.setItem('irvite_scanner_camera_facing', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, [stopScanner]);
+
   // Initialize Scanner - High-speed hardware-accelerated detection with optimized ZXing fallback
   useEffect(() => {
     mountedRef.current = true;
@@ -301,7 +328,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           const constraints: MediaStreamConstraints = {
             audio: false,
             video: {
-              facingMode: { ideal: 'environment' },
+              facingMode: { ideal: cameraFacing },
               width: { ideal: 1280, max: 1920 },
               height: { ideal: 720, max: 1080 },
             },
@@ -313,7 +340,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           } catch {
             stream = await navigator.mediaDevices.getUserMedia({
               audio: false,
-              video: { facingMode: { ideal: 'environment' } },
+              video: { facingMode: { ideal: cameraFacing } },
             });
           }
 
@@ -400,7 +427,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
             {
               audio: false,
               video: {
-                facingMode: { ideal: 'environment' },
+                facingMode: { ideal: cameraFacing },
                 width: { ideal: 1280, max: 1920 },
                 height: { ideal: 720, max: 1080 },
               },
@@ -415,7 +442,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               {
                 audio: false,
                 video: {
-                  facingMode: { ideal: 'environment' },
+                  facingMode: { ideal: cameraFacing },
                 },
               },
               videoRef.current,
@@ -443,8 +470,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       mountedRef.current = false;
       stopScanner();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopScanner]);
+  }, [cameraFacing, stopScanner]);
 
   // Handle Input (Camera or Manual)
   async function handleRawInput(input: string) {
@@ -980,7 +1006,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       >
         <video
           ref={videoRef}
-          className="scanner-video"
+          className={`scanner-video${cameraFacing === 'user' ? ' scanner-video--mirrored' : ''}`}
           playsInline
           muted
         />
@@ -989,6 +1015,34 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         {scanStatus === 'READY' && scanState === 'IDLE' && (
           <div className="scanner-laser" aria-hidden="true" />
         )}
+
+        {/* Floating Flip Camera Toggle Button (Front/Back) */}
+        <button
+          type="button"
+          id="btn-flip-camera"
+          className="scanner-flip-camera-btn"
+          onClick={toggleCameraFacing}
+          title={cameraFacing === 'environment' ? 'Klik untuk ganti ke Kamera Depan' : 'Klik untuk ganti ke Kamera Belakang'}
+          aria-label={`Ganti ke ${cameraFacing === 'environment' ? 'kamera depan' : 'kamera belakang'}`}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="15"
+            height="15"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M20 16v-4a4 4 0 0 0-4-4H4" />
+            <polyline points="8 4 4 8 8 12" />
+            <path d="M4 8v4a4 4 0 0 0 4 4h12" />
+            <polyline points="16 20 20 16 16 12" />
+          </svg>
+          <span>{cameraFacing === 'environment' ? 'Kamera Belakang' : 'Kamera Depan'}</span>
+        </button>
 
         {/* Overlay statuses */}
         <div className="scanner-overlay" aria-live="polite">
