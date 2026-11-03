@@ -15,33 +15,29 @@ const nextConfig = {
     ];
   },
   async headers() {
-    const adminOrigin = process.env.NEXT_PUBLIC_TRUSTED_ADMIN_ORIGIN || 'http://localhost:3001';
+    const adminOrigin =
+      process.env.NEXT_PUBLIC_TRUSTED_ADMIN_ORIGIN ||
+      'https://irvite-admin.vercel.app http://localhost:3000 http://localhost:3001';
 
     return [
-      // Default headers for all routes
+      // Preview and Template Demo embed routes: allow framing from trusted admin origin
       {
-        source: '/((?!preview).*)',
+        source: '/(preview/.*|templates/.*/demo)',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          {
+            key: 'Content-Security-Policy',
+            value: `frame-ancestors 'self' ${adminOrigin} https://irvite-admin.vercel.app https://*.vercel.app http://localhost:3000 http://localhost:3001`,
+          },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      // Default headers for all other routes
+      {
+        source: '/((?!preview|templates/.*/demo).*)',
         headers: [
           { key: 'Referrer-Policy', value: 'no-referrer' },
           { key: 'X-Frame-Options', value: 'DENY' },
-        ],
-      },
-      // Preview route: allow embedding only from the trusted admin origin
-      {
-        source: '/preview/:path*',
-        headers: [
-          { key: 'Referrer-Policy', value: 'no-referrer' },
-          // Allow framing only from admin origin
-          {
-            key: 'Content-Security-Policy',
-            value: `frame-ancestors ${adminOrigin}`,
-          },
-          // X-Frame-Options does not support per-origin; CSP takes precedence in modern browsers.
-          // For legacy browser compatibility, allow SAMEORIGIN is the closest safe approximation.
-          // The postMessage origin check is the authoritative security gate.
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          // No auth/session cookies needed for preview
-          { key: 'Cache-Control', value: 'no-store' },
         ],
       },
     ];
