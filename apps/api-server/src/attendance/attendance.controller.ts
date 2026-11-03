@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { AttendanceService } from './attendance.service';
 import { ResolveAttendanceDto } from './dto/resolve-attendance.dto';
 import { CheckInDto } from './dto/check-in.dto';
+import { UndoCheckInDto } from './dto/undo-check-in.dto';
 import { GoogleSheetConfigDto } from './dto/google-sheet-config.dto';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -156,6 +157,24 @@ export class AttendanceController {
       user.role,
       dto.code,
       dto.pax,
+    );
+  }
+
+  @Post('undo')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  undoCheckIn(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UndoCheckInDto,
+  ) {
+    return this.attendanceService.undoCheckIn(
+      eventId,
+      user.id,
+      user.role,
+      dto.code,
+      dto.invitationId,
+      dto.guestId,
     );
   }
 }

@@ -144,6 +144,26 @@ export default function DashboardPage() {
   const [refresh, setRefresh] = useState(0);
   const [publishedEventsCount, setPublishedEventsCount] = useState(0);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [showGuide, setShowGuide] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('irvite_hide_onboarding_guide');
+      if (saved === 'true') {
+        setShowGuide(false);
+      }
+    }
+  }, []);
+
+  const toggleGuide = () => {
+    setShowGuide((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('irvite_hide_onboarding_guide', next ? 'false' : 'true');
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -320,6 +340,138 @@ export default function DashboardPage() {
             Desain paten siap pakai
           </div>
         </div>
+      </section>
+
+      {/* ── Onboarding Quick Start Guide (Heuristic 10: Help & Documentation) ── */}
+      <section
+        className="dash-onboarding"
+        style={{
+          marginBottom: '2rem',
+          background: 'var(--surface-primary, #ffffff)',
+          border: '1px solid var(--admin-border, #e5e7eb)',
+          borderRadius: '12px',
+          padding: '1.25rem 1.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showGuide ? '1.25rem' : '0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <span style={{ fontSize: '1.25rem', color: '#059669' }}>✨</span>
+            <div>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Panduan Cepat Memulai Acara (5 Langkah Alur Kerja IRVITE)
+              </h2>
+              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                Alur standar persiapan dari pembuatan acara hingga scan kehadiran di meja registrasi.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={toggleGuide}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}
+          >
+            {showGuide ? 'Sembunyikan Panduan ▲' : 'Buka Panduan ▼'}
+          </button>
+        </div>
+
+        {showGuide && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              borderTop: '1px solid var(--admin-border, #f3f4f6)',
+              paddingTop: '1.25rem',
+            }}
+          >
+            {/* Step 1 */}
+            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  Langkah 1
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Dasar</span>
+              </div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Buat Acara Baru</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                Input nama mempelai, tanggal akad & resepsi, serta lokasi venue.
+              </p>
+              <Link href="/events/create" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                + Buat Event
+              </Link>
+            </div>
+
+            {/* Step 2 */}
+            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  Langkah 2
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Desain</span>
+              </div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Pilih Template</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                Pilih tema (Sekar Kedaton, Aetheria), unggah foto & rekening hadiah.
+              </p>
+              <Link href="/templates" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                Katalog Desain
+              </Link>
+            </div>
+
+            {/* Step 3 */}
+            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  Langkah 3
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Data Tamu</span>
+              </div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Kelola Daftar Tamu</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                Impor file Excel/CSV atau Google Sheets, atur kuota pax & kategori VIP.
+              </p>
+              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                Kelola Tamu
+              </Link>
+            </div>
+
+            {/* Step 4 */}
+            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  Langkah 4
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Distribusi</span>
+              </div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Bagikan Undangan</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                Generate link personal unik tamu & kirim pesan WhatsApp otomatis 1-klik.
+              </p>
+              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                Kirim via WA
+              </Link>
+            </div>
+
+            {/* Step 5 */}
+            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  Langkah 5
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Hari-H</span>
+              </div>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Scan & Live Monitor</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                Buka scanner kamera di pintu masuk & pantau sinkronisasi Google Sheets.
+              </p>
+              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
+                Buka Scanner
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ── Main Operational Layout ── */}

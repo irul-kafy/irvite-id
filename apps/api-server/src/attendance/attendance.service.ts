@@ -291,6 +291,143 @@ export class AttendanceService {
     return result;
   }
 
+  async undoCheckIn(
+    eventId: string,
+    userId: string,
+    _role: Role,
+    code?: string,
+    invitationId?: string,
+    guestId?: string,
+  ) {
+    await this.authorizeEvent(eventId, userId);
+
+    let invitation: {
+      id: string;
+      guest: { id: string; name: string; category: string; maxPax: number; eventId: string };
+    } | null = null;
+
+    if (code && typeof code === 'string' && code.trim()) {
+      invitation = await this.db.invitation.findUnique({
+        where: { uniqueCode: code.trim() },
+        include: { guest: true },
+      });
+    } else if (invitationId && typeof invitationId === 'string') {
+      invitation = await this.db.invitation.findUnique({
+        where: { id: invitationId },
+        include: { guest: true },
+      });
+    } else if (guestId && typeof guestId === 'string') {
+      invitation = await this.db.invitation.findFirst({
+        where: { guestId, eventId },
+        include: { guest: true },
+      });
+    } else {
+      throw new BadRequestException('Kode undangan, invitationId, atau guestId diperlukan untuk mengurungkan check-in.');
+    }
+
+    if (
+      !invitation ||
+      !invitation.guest ||
+      invitation.guest.eventId !== eventId
+    ) {
+      throw new NotFoundException('Data undangan tidak ditemukan untuk acara ini');
+    }
+
+    const attendance = await this.db.attendance.findUnique({
+      where: { invitationId: invitation.id },
+      include: {
+        checkIns: {
+          orderBy: { scannedAt: 'desc' },
+        },
+      },
+    });
+
+    if (!attendance || attendance.scannedPax <= 0) {
+      throw new BadRequestException('Tamu ini belum memiliki riwayat kehadiran untuk diurungkan');
+    }
+
+    const maxPax = invitation.guest.maxPax;
+
+    const rollbackResult = await this.db.$transaction(async (tx) => {
+      const checkIns = await tx.attendanceCheckIn.findMany({
+        where: { attendanceId: attendance.id },
+        orderBy: { scannedAt: 'desc' },
+      });
+
+      let rolledBackPax = 0;
+      if (checkIns.length > 0) {
+        const latest = checkIns[0];
+        rolledBackPax = latest.scannedPax;
+        await tx.attendanceCheckIn.delete({
+          where: { id: latest.id },
+        });
+
+        const remainingCheckIns = checkIns.slice(1);
+        const newScannedPax = remainingCheckIns.reduce((sum, c) => sum + c.scannedPax, 0);
+
+        if (newScannedPax <= 0) {
+          await tx.attendance.delete({
+            where: { id: attendance.id },
+          });
+          return {
+            result: 'UNDONE' as const,
+            rolledBackPax,
+            scannedPax: 0,
+            remainingPax: maxPax,
+            status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+          };
+        } else {
+          const prevLatest = remainingCheckIns[0];
+          await tx.attendance.update({
+            where: { id: attendance.id },
+            data: {
+              scannedPax: newScannedPax,
+              scannedAt: prevLatest.scannedAt,
+              scannedById: prevLatest.scannedById,
+            },
+          });
+          return {
+            result: 'UNDONE' as const,
+            rolledBackPax,
+            scannedPax: newScannedPax,
+            remainingPax: Math.max(0, maxPax - newScannedPax),
+            status: 'PARTIAL' as AttendanceCheckInStatus,
+          };
+        }
+      } else {
+        rolledBackPax = attendance.scannedPax;
+        await tx.attendance.delete({
+          where: { id: attendance.id },
+        });
+        return {
+          result: 'UNDONE' as const,
+          rolledBackPax,
+          scannedPax: 0,
+          remainingPax: maxPax,
+          status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+        };
+      }
+    });
+
+    // Notify Google Sheets webhook if connected
+    await this.dispatchGoogleSheetSync(
+      eventId,
+      invitation.guest,
+      -rollbackResult.rolledBackPax,
+      rollbackResult.scannedPax,
+      maxPax,
+      rollbackResult.remainingPax,
+      rollbackResult.status,
+      userId,
+    );
+
+    return {
+      ...rollbackResult,
+      guestName: invitation.guest.name,
+      message: 'Check-in untuk ' + invitation.guest.name + ' (' + rollbackResult.rolledBackPax + ' pax) berhasil diurungkan.',
+    };
+  }
+
   private async executeAtomicCheckIn(
     invitationId: string,
     eventId: string,

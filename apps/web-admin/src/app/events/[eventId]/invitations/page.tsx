@@ -164,6 +164,7 @@ export default function InvitationDistributionPage({
   const [error, setError] = useState<string>('');
   const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
   const [bulkGenerating, setBulkGenerating] = useState<boolean>(false);
+  const [bulkProgress, setBulkProgress] = useState<number>(0);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
@@ -270,12 +271,20 @@ export default function InvitationDistributionPage({
     }
 
     setBulkGenerating(true);
+    setBulkProgress(15);
     setActionMessage(null);
+
+    const progressTimer = setInterval(() => {
+      setBulkProgress((prev) => (prev >= 85 ? prev : prev + 15));
+    }, 250);
 
     try {
       const res = await fetch(`/api/events/${eventId}/invitations/bulk`, {
         method: 'POST',
       });
+
+      clearInterval(progressTimer);
+      setBulkProgress(100);
 
       if (res.status === 401) {
         router.push('/login');
@@ -309,7 +318,11 @@ export default function InvitationDistributionPage({
         text: err instanceof Error ? err.message : 'Gagal melakukan bulk generate undangan.',
       });
     } finally {
-      setBulkGenerating(false);
+      clearInterval(progressTimer);
+      setTimeout(() => {
+        setBulkGenerating(false);
+        setBulkProgress(0);
+      }, 500);
     }
   };
 
@@ -519,6 +532,72 @@ export default function InvitationDistributionPage({
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Determinate Bulk Generation Progress Bar (Heuristic 1: Visibility of System Status) */}
+      {bulkGenerating && (
+        <div
+          role="status"
+          aria-live="polite"
+          id="bulk-generation-progress"
+          style={{
+            marginBottom: '1.25rem',
+            padding: '1.125rem 1.25rem',
+            borderRadius: 'var(--radius-md, 10px)',
+            background: 'var(--surface-primary, #ffffff)',
+            border: '1px solid #10b981',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.08)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.625rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                }}
+              />
+              Sedang Membuat Undangan Personal Secara Massal...
+            </span>
+            <span style={{ color: '#059669', fontFamily: 'monospace', fontWeight: 700 }}>
+              {bulkProgress}%
+            </span>
+          </div>
+          <div
+            style={{
+              width: '100%',
+              height: '8px',
+              background: '#e5e7eb',
+              borderRadius: '999px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${bulkProgress}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #10b981, #059669)',
+                borderRadius: '999px',
+                transition: 'width 0.25s ease-in-out',
+              }}
+            />
+          </div>
+          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            Menghasilkan tautan personal dan kode 22-karakter unik untuk semua tamu secara aman...
+          </p>
         </div>
       )}
 

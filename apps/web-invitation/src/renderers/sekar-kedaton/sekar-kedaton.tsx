@@ -67,7 +67,7 @@ export default function SekarKedatonRenderer({
   mode = 'PUBLIC',
   isPreview = false,
 }: RendererProps) {
-  const content = adaptSekarKedatonContent(data.event.content);
+  const content = adaptSekarKedatonContent(data.event.content, data.event.title);
   const media = adaptSekarKedatonMedia(data.mediaBySlot, data.media);
   const [opened, setOpened] = useState(false);
   const [leaving, setLeaving] = useState(false);

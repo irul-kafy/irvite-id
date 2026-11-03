@@ -1,4 +1,4 @@
-﻿function remapLegacyPreviewOrigin(baseUrl: string): string {
+function remapLegacyPreviewOrigin(baseUrl: string): string {
   if (
     baseUrl.includes('irvite-ez56n3ver') ||
     baseUrl.includes('irvite-id-57xk') ||
@@ -168,9 +168,14 @@ export function getCanonicalTemplateDemoUrl(demoPath: string | null | undefined)
   if (!demoPath || typeof demoPath !== 'string' || !demoPath.trim()) {
     return null;
   }
-  const origin = getTrustedInvitationOrigin();
+  let origin = getTrustedInvitationOrigin();
   if (!origin) {
-    return null;
+    const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
+    if (isVercel || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))) {
+      origin = 'https://irvite-id.vercel.app';
+    } else {
+      return null;
+    }
   }
   const trimmed = demoPath.trim();
   const cleanPath = trimmed.startsWith('/') ? trimmed : '/' + trimmed;

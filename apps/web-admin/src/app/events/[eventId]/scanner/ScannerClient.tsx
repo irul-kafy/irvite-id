@@ -206,6 +206,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [selectedPax, setSelectedPax] = useState<number>(1);
   const [manualInput, setManualInput] = useState<string>('');
   const [lastCheckInResult, setLastCheckInResult] = useState<LastCheckInResult | null>(null);
+  const [undoing, setUndoing] = useState<boolean>(false);
+  const [undoSuccessToast, setUndoSuccessToast] = useState<string>('');
   const [eventBanner, setEventBanner] = useState<EventBanner | null>(null);
 
   // Bottom sheet state
@@ -599,6 +601,48 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     }
   };
 
+  const handleUndoCheckIn = async () => {
+    if (!mountedRef.current || undoing) return;
+    setUndoing(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`/api/events/${eventId}/attendance/undo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: rawCode }),
+      });
+
+      if (!mountedRef.current) return;
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setErrorMessage(errorData.message || 'Gagal mengurungkan check-in.');
+        setUndoing(false);
+        return;
+      }
+
+      const undoData = await res.json();
+      setUndoSuccessToast(undoData.message || 'Check-in berhasil diurungkan.');
+
+      setScanState('IDLE');
+      lockRef.current = false;
+      setTimeout(() => {
+        setUndoSuccessToast('');
+      }, 4500);
+    } catch {
+      if (!mountedRef.current) return;
+      setErrorMessage('Terjadi gangguan jaringan saat mengurungkan check-in.');
+    } finally {
+      setUndoing(false);
+    }
+  };
+
   const handleReset = () => {
     setScanState('IDLE');
     setRawCode('');
@@ -832,9 +876,30 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           <div className="scan-autoclose" aria-hidden="true">
             <span className="scan-autoclose__bar" />
           </div>
-          <button className="reset-btn" onClick={closeSheet}>
-            Scan Tamu Berikutnya
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginTop: '1rem', width: '100%' }}>
+            <button className="reset-btn" onClick={closeSheet} style={{ width: '100%' }}>
+              Scan Tamu Berikutnya
+            </button>
+            <button
+              type="button"
+              onClick={handleUndoCheckIn}
+              disabled={undoing}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: '1px solid rgba(220, 38, 38, 0.4)',
+                color: '#dc2626',
+                borderRadius: '8px',
+                padding: '0.625rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: undoing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {undoing ? 'Mengurungkan...' : '↩ Salah Input? Urungkan Check-in'}
+            </button>
+          </div>
         </div>
       );
     }
@@ -881,6 +946,31 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
   return (
     <div className="scanner-layout">
+      {undoSuccessToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '1rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            background: '#059669',
+            color: '#ffffff',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '8px',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            maxWidth: '90vw',
+          }}
+        >
+          <span>✓</span>
+          <span>{undoSuccessToast}</span>
+        </div>
+      )}
       {/* Viewport Area */}
       <div
         className={`scanner-viewport-container${

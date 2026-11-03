@@ -25,10 +25,13 @@ describe('AttendanceService', () => {
         findUnique: jest.fn(),
         findMany: jest.fn(),
         updateMany: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
       },
       attendanceCheckIn: {
         create: jest.fn(),
         findMany: jest.fn(),
+        delete: jest.fn(),
       },
       $transaction: jest.fn(async (cb: any) => await cb(mockPrisma)),
     };
@@ -947,6 +950,160 @@ describe('AttendanceService', () => {
       await expect(
         service.resyncGoogleSheet('e1', 'u1', Role.SUPER_ADMIN),
       ).rejects.toThrow('Tautan Webhook Google Sheets belum diatur');
+    });
+  });
+
+  describe('undoCheckIn', () => {
+    it('rolls back single checkIn and resets status to NOT_CHECKED_IN', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'u1',
+      });
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        uniqueCode: 'pPK_1Bskw6sCjPd2UlxOMA',
+        guest: {
+          id: 'g1',
+          name: 'Salsabila Anjani',
+          category: 'VIP',
+          maxPax: 2,
+          eventId: 'e1',
+        },
+      });
+      (prisma.attendance.findUnique as jest.Mock).mockResolvedValue({
+        id: 'att-1',
+        scannedPax: 2,
+        scannedAt: new Date('2026-11-03T10:00:00Z'),
+      });
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'ci-1',
+          attendanceId: 'att-1',
+          scannedPax: 2,
+          scannedAt: new Date('2026-11-03T10:00:00Z'),
+          scannedById: 'u1',
+        },
+      ]);
+      (prisma.attendanceCheckIn.delete as jest.Mock).mockResolvedValue({});
+      (prisma.attendance.delete as jest.Mock).mockResolvedValue({});
+
+      const result = await service.undoCheckIn(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+        'pPK_1Bskw6sCjPd2UlxOMA',
+      );
+
+      expect(result.result).toBe('UNDONE');
+      expect(result.rolledBackPax).toBe(2);
+      expect(result.scannedPax).toBe(0);
+      expect(result.remainingPax).toBe(2);
+      expect(result.status).toBe('NOT_CHECKED_IN');
+      expect(prisma.attendance.delete).toHaveBeenCalledWith({ where: { id: 'att-1' } });
+    });
+
+    it('rolls back latest partial checkIn and keeps previous checkIn count', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'u1',
+      });
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        uniqueCode: 'pPK_1Bskw6sCjPd2UlxOMA',
+        guest: {
+          id: 'g1',
+          name: 'Rangga Wijaya',
+          category: 'VIP',
+          maxPax: 4,
+          eventId: 'e1',
+        },
+      });
+      (prisma.attendance.findUnique as jest.Mock).mockResolvedValue({
+        id: 'att-1',
+        scannedPax: 3,
+        scannedAt: new Date('2026-11-03T10:30:00Z'),
+      });
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'ci-2',
+          attendanceId: 'att-1',
+          scannedPax: 1,
+          scannedAt: new Date('2026-11-03T10:30:00Z'),
+          scannedById: 'u1',
+        },
+        {
+          id: 'ci-1',
+          attendanceId: 'att-1',
+          scannedPax: 2,
+          scannedAt: new Date('2026-11-03T10:00:00Z'),
+          scannedById: 'u1',
+        },
+      ]);
+      (prisma.attendanceCheckIn.delete as jest.Mock).mockResolvedValue({});
+      (prisma.attendance.update as jest.Mock).mockResolvedValue({});
+
+      const result = await service.undoCheckIn(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+        'pPK_1Bskw6sCjPd2UlxOMA',
+      );
+
+      expect(result.result).toBe('UNDONE');
+      expect(result.rolledBackPax).toBe(1);
+      expect(result.scannedPax).toBe(2);
+      expect(result.remainingPax).toBe(2);
+      expect(result.status).toBe('PARTIAL');
+      expect(prisma.attendance.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'att-1' },
+          data: expect.objectContaining({ scannedPax: 2 }),
+        }),
+      );
+    });
+
+    it('throws BadRequestException if guest has no check-in to undo', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'u1',
+      });
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'inv-1',
+        uniqueCode: 'pPK_1Bskw6sCjPd2UlxOMA',
+        guest: {
+          id: 'g1',
+          name: 'Belum Hadir',
+          category: 'REGULAR',
+          maxPax: 2,
+          eventId: 'e1',
+        },
+      });
+      (prisma.attendance.findUnique as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.undoCheckIn('e1', 'u1', Role.SUPER_ADMIN, 'pPK_1Bskw6sCjPd2UlxOMA'),
+      ).rejects.toThrow('belum memiliki riwayat');
     });
   });
 });
