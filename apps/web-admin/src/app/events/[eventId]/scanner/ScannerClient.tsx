@@ -209,6 +209,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [undoing, setUndoing] = useState<boolean>(false);
   const [undoSuccessToast, setUndoSuccessToast] = useState<string>('');
   const [eventBanner, setEventBanner] = useState<EventBanner | null>(null);
+  const [showStaffGuideModal, setShowStaffGuideModal] = useState<boolean>(false);
 
   // Bottom sheet state
   const [sheetClosing, setSheetClosing] = useState<boolean>(false);
@@ -1014,6 +1015,132 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </button>
         </form>
       </div>
+
+      {/* Staff SOP Quick Guide Trigger */}
+      <div style={{ textAlign: 'center', margin: '0.25rem 0 0.75rem 0' }}>
+        <button
+          type="button"
+          onClick={() => setShowStaffGuideModal(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary, #6b7280)',
+            fontSize: '0.8125rem',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
+        >
+          <span>📖</span> SOP Ringkas Petugas Scan
+        </button>
+      </div>
+
+      {/* Staff SOP Guide Modal */}
+      {showStaffGuideModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="SOP Petugas Scan Kehadiran"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0, 0, 0, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setShowStaffGuideModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface-primary, #ffffff)',
+              borderRadius: '16px',
+              padding: '1.5rem',
+              maxWidth: '520px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>📋</span>
+                <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  SOP Petugas Scan Meja Registrasi
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowStaffGuideModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  color: 'var(--text-secondary)',
+                  padding: '0.25rem',
+                }}
+                aria-label="Tutup panduan"
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <strong style={{ fontSize: '0.875rem', color: '#166534' }}>1. Pindai QR Tamu Otomatis</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#14532d', lineHeight: 1.4 }}>
+                  Dekatkan QR tiket/layar ponsel tamu ke kamera (15–25 cm). Kamera akan berbunyi beep/getar dan menampilkan data tamu seketika.
+                </p>
+              </div>
+
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <strong style={{ fontSize: '0.875rem', color: '#1e293b' }}>2. Cek Kuota & Rombongan (Pax)</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#334155', lineHeight: 1.4 }}>
+                  Lihat jumlah <em>Maks. Pax</em> pada kartu. Bila tamu datang sebagian (misal 1 dari 2), atur jumlah pax sebelum klik check-in.
+                </p>
+              </div>
+
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <strong style={{ fontSize: '0.875rem', color: '#1e293b' }}>3. Input Manual Bila Layar Tamu Rusak</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#334155', lineHeight: 1.4 }}>
+                  Jika kamera silau atau layar tamu gelap/retak, ketik 22-karakter unik undangan pada kolom input di bawah kamera lalu klik Kirim Kode.
+                </p>
+              </div>
+
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca' }}>
+                <strong style={{ fontSize: '0.875rem', color: '#991b1b' }}>4. Salah Input? Urungkan Seketika</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#7f1d1d', lineHeight: 1.4 }}>
+                  Bila salah scan atau keliru hitung pax, segera tekan tombol merah <strong>"↩ Salah Input? Urungkan Check-in"</strong> di kartu scan. Data langsung dibatalkan di sistem & spreadsheet.
+                </p>
+              </div>
+
+              <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                <strong style={{ fontSize: '0.875rem', color: '#166534' }}>5. Pantau Live Monitor</strong>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#14532d', lineHeight: 1.4 }}>
+                  Gunakan tombol <em>⚡ Buka Live Monitor Kehadiran</em> di atas untuk memantau sisa kapasitas dan kehadiran tamu VIP.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowStaffGuideModal(false)}
+              className="btn btn-primary"
+              style={{ width: '100%', marginTop: '1.25rem', padding: '0.625rem' }}
+            >
+              Saya Mengerti, Lanjutkan Scan
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error Message for Logic (shown below camera when the sheet is closed) */}
       {errorMessage && scanStatus === 'READY' && scanState === 'IDLE' && (

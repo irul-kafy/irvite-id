@@ -145,21 +145,36 @@ export default function DashboardPage() {
   const [publishedEventsCount, setPublishedEventsCount] = useState(0);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
   const [showGuide, setShowGuide] = useState<boolean>(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('irvite_hide_onboarding_guide');
+      const cached = localStorage.getItem('irvite_auth_role');
+      if (cached) setUserRole(cached);
+      const saved = localStorage.getItem('irvite_hide_staff_guide');
       if (saved === 'true') {
         setShowGuide(false);
       }
     }
+
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user?.role) {
+          setUserRole(data.user.role);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('irvite_auth_role', data.user.role);
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const toggleGuide = () => {
     setShowGuide((prev) => {
       const next = !prev;
       if (typeof window !== 'undefined') {
-        localStorage.setItem('irvite_hide_onboarding_guide', next ? 'false' : 'true');
+        localStorage.setItem('irvite_hide_staff_guide', next ? 'false' : 'true');
       }
       return next;
     });
@@ -342,137 +357,139 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Onboarding Quick Start Guide (Heuristic 10: Help & Documentation) ── */}
-      <section
-        className="dash-onboarding"
-        style={{
-          marginBottom: '2rem',
-          background: 'var(--surface-primary, #ffffff)',
-          border: '1px solid var(--admin-border, #e5e7eb)',
-          borderRadius: '12px',
-          padding: '1.25rem 1.5rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showGuide ? '1.25rem' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <span style={{ fontSize: '1.25rem', color: '#059669' }}>✨</span>
-            <div>
-              <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                Panduan Cepat Memulai Acara (5 Langkah Alur Kerja IRVITE)
-              </h2>
-              <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                Alur standar persiapan dari pembuatan acara hingga scan kehadiran di meja registrasi.
-              </p>
+      {/* ── Buku Panduan Operasional Staf (Hanya tampil untuk akun peran STAFF) ── */}
+      {userRole === 'STAFF' && (
+        <section
+          className="dash-onboarding"
+          style={{
+            marginBottom: '2rem',
+            background: 'var(--surface-primary, #ffffff)',
+            border: '1px solid #10b981',
+            borderRadius: '12px',
+            padding: '1.25rem 1.5rem',
+            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showGuide ? '1.25rem' : '0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <span style={{ fontSize: '1.25rem', color: '#059669' }}>📋</span>
+              <div>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  Buku Panduan Operasional Staf (Meja Registrasi & Scanner Kehadiran)
+                </h2>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  SOP resmi bagi petugas crew / gatekeeper untuk menyambut tamu dan memindai kehadiran secara cepat dan aman.
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={toggleGuide}
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}
+            >
+              {showGuide ? 'Sembunyikan Panduan ▲' : 'Buka Panduan ▼'}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={toggleGuide}
-            className="btn btn-ghost btn-sm"
-            style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}
-          >
-            {showGuide ? 'Sembunyikan Panduan ▲' : 'Buka Panduan ▼'}
-          </button>
-        </div>
 
-        {showGuide && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '1rem',
-              borderTop: '1px solid var(--admin-border, #f3f4f6)',
-              paddingTop: '1.25rem',
-            }}
-          >
-            {/* Step 1 */}
-            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Langkah 1
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Dasar</span>
+          {showGuide && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem',
+                borderTop: '1px solid var(--admin-border, #f3f4f6)',
+                paddingTop: '1.25rem',
+              }}
+            >
+              {/* Step 1 */}
+              <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Tahap 1
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Persiapan</span>
+                </div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Buka Scanner Kamera</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                  Buka menu Scanner acara di HP atau tablet Anda. Pastikan browser diberikan izin akses kamera video.
+                </p>
+                <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem', textAlign: 'center' }}>
+                  Buka Daftar Acara
+                </Link>
               </div>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Buat Acara Baru</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                Input nama mempelai, tanggal akad & resepsi, serta lokasi venue.
-              </p>
-              <Link href="/events/create" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
-                + Buat Event
-              </Link>
-            </div>
 
-            {/* Step 2 */}
-            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Langkah 2
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Desain</span>
+              {/* Step 2 */}
+              <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Tahap 2
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Penerimaan</span>
+                </div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Scan QR Tamu</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                  Arahkan kamera ke QR undangan tamu di layar HP atau fisik tiket. Sistem otomatis mencatat check-in.
+                </p>
+                <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, padding: '0.35rem 0' }}>
+                  ✓ Check-in Instan Otomatis
+                </div>
               </div>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Pilih Template</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                Pilih tema (Sekar Kedaton, Aetheria), unggah foto & rekening hadiah.
-              </p>
-              <Link href="/templates" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
-                Katalog Desain
-              </Link>
-            </div>
 
-            {/* Step 3 */}
-            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Langkah 3
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Data Tamu</span>
+              {/* Step 3 */}
+              <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Tahap 3
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Alternatif</span>
+                </div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Input Manual 22-Karakter</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                  Bila kamera silau atau layar tamu retak, ketik kode 22-karakter unik undangan pada kolom input di bawah kamera.
+                </p>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '0.35rem 0' }}>
+                  Mendukung penyesuaian pax rombongan
+                </div>
               </div>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Kelola Daftar Tamu</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                Impor file Excel/CSV atau Google Sheets, atur kuota pax & kategori VIP.
-              </p>
-              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
-                Kelola Tamu
-              </Link>
-            </div>
 
-            {/* Step 4 */}
-            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Langkah 4
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Distribusi</span>
+              {/* Step 4 */}
+              <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Tahap 4
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Koreksi</span>
+                </div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Urungkan Bila Salah Input</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                  Jika salah scan atau jumlah pax keliru, klik tombol <strong>"Urungkan Check-in"</strong> pada kartu hasil scan seketika.
+                </p>
+                <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, padding: '0.35rem 0' }}>
+                  ↩ Kuota & Sheets Otomatis Ditarik
+                </div>
               </div>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Bagikan Undangan</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                Generate link personal unik tamu & kirim pesan WhatsApp otomatis 1-klik.
-              </p>
-              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
-                Kirim via WA
-              </Link>
-            </div>
 
-            {/* Step 5 */}
-            <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                  Langkah 5
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Hari-H</span>
+              {/* Step 5 */}
+              <div style={{ padding: '0.875rem', borderRadius: '8px', background: 'var(--surface-subtle, #f9fafb)', border: '1px solid var(--admin-border, #f3f4f6)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    Tahap 5
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Monitoring</span>
+                </div>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Pantau Live Monitor</h3>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
+                  Gunakan tab Live Monitor untuk melihat total tamu hadir, tamu VIP yang masuk, dan kapasitas ruangan secara real-time.
+                </p>
+                <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem', textAlign: 'center' }}>
+                  Buka Live Monitor
+                </Link>
               </div>
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Scan & Live Monitor</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                Buka scanner kamera di pintu masuk & pantau sinkronisasi Google Sheets.
-              </p>
-              <Link href="/events" className="btn btn-secondary btn-sm" style={{ width: '100%', fontSize: '0.75rem', padding: '0.35rem 0.5rem' }}>
-                Buka Scanner
-              </Link>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      )}
 
       {/* ── Main Operational Layout ── */}
       <div className="dash-layout">
