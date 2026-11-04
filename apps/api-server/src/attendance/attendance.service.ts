@@ -159,19 +159,57 @@ export class AttendanceService {
   async resolve(eventId: string, userId: string, _role: Role, code: string) {
     const authorizedEvent = await this.authorizeEvent(eventId, userId);
 
-    const invitation = await this.db.invitation.findUnique({
-      where: { uniqueCode: code },
-      include: {
-        guest: true,
-        attendances: {
-          include: {
-            checkIns: {
-              orderBy: { scannedAt: 'desc' },
+    let invitation: any;
+    try {
+      invitation = await this.db.invitation.findUnique({
+        where: { uniqueCode: code },
+        include: {
+          guest: true,
+          attendances: {
+            include: {
+              checkIns: {
+                orderBy: { scannedAt: 'desc' },
+              },
             },
           },
         },
-      },
-    });
+      });
+    } catch (err: unknown) {
+      const isMissingCol =
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        (err.code === 'P2022' || String(err.message).includes('table_number'));
+
+      if (isMissingCol) {
+        invitation = await this.db.invitation.findUnique({
+          where: { uniqueCode: code },
+          select: {
+            id: true,
+            status: true,
+            rsvpPax: true,
+            uniqueCode: true,
+            guest: {
+              select: {
+                id: true,
+                eventId: true,
+                name: true,
+                maxPax: true,
+                category: true,
+                customGreeting: true,
+              },
+            },
+            attendances: {
+              include: {
+                checkIns: {
+                  orderBy: { scannedAt: 'desc' },
+                },
+              },
+            },
+          },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (
       !invitation ||
@@ -250,10 +288,39 @@ export class AttendanceService {
       throw new BadRequestException('Pax must be at least 1');
     }
 
-    const invitation = await this.db.invitation.findUnique({
-      where: { uniqueCode: code },
-      include: { guest: true },
-    });
+    let invitation: any;
+    try {
+      invitation = await this.db.invitation.findUnique({
+        where: { uniqueCode: code },
+        include: { guest: true },
+      });
+    } catch (err: unknown) {
+      const isMissingCol =
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        (err.code === 'P2022' || String(err.message).includes('table_number'));
+
+      if (isMissingCol) {
+        invitation = await this.db.invitation.findUnique({
+          where: { uniqueCode: code },
+          select: {
+            id: true,
+            status: true,
+            rsvpPax: true,
+            uniqueCode: true,
+            guest: {
+              select: {
+                id: true,
+                eventId: true,
+                name: true,
+                maxPax: true,
+              },
+            },
+          },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (
       !invitation ||

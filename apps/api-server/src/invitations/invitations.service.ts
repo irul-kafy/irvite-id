@@ -282,41 +282,87 @@ export class InvitationsService {
     const context =
       await this.publicAccessService.getEligibleContext(uniqueCode);
 
-    const invitation = await this.prisma.invitation.findUnique({
-      where: { id: context.invitationId },
-      select: {
-        customMessage: true,
-        status: true,
-        rsvpPax: true,
-        guest: {
-          select: {
-            name: true,
-            customGreeting: true,
-            maxPax: true,
-            tableNumber: true,
+    let invitation;
+    try {
+      invitation = await this.prisma.invitation.findUnique({
+        where: { id: context.invitationId },
+        select: {
+          customMessage: true,
+          status: true,
+          rsvpPax: true,
+          guest: {
+            select: {
+              name: true,
+              customGreeting: true,
+              maxPax: true,
+              tableNumber: true,
+            },
           },
-        },
-        event: {
-          select: {
-            title: true,
-            description: true,
-            eventDate: true,
-            locationDetails: true,
-            content: true,
-            template: {
-              select: {
-                themeCode: true,
-                config: true,
-                assets: {
-                  select: { id: true, slot: true, mimeType: true, order: true },
-                  orderBy: [{ slot: 'asc' }, { order: 'asc' }],
+          event: {
+            select: {
+              title: true,
+              description: true,
+              eventDate: true,
+              locationDetails: true,
+              content: true,
+              template: {
+                select: {
+                  themeCode: true,
+                  config: true,
+                  assets: {
+                    select: { id: true, slot: true, mimeType: true, order: true },
+                    orderBy: [{ slot: 'asc' }, { order: 'asc' }],
+                  },
                 },
               },
             },
           },
         },
-      },
-    });
+      });
+    } catch (err: unknown) {
+      const isMissingCol =
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        (err.code === 'P2022' || String(err.message).includes('table_number'));
+
+      if (isMissingCol) {
+        invitation = await this.prisma.invitation.findUnique({
+          where: { id: context.invitationId },
+          select: {
+            customMessage: true,
+            status: true,
+            rsvpPax: true,
+            guest: {
+              select: {
+                name: true,
+                customGreeting: true,
+                maxPax: true,
+              },
+            },
+            event: {
+              select: {
+                title: true,
+                description: true,
+                eventDate: true,
+                locationDetails: true,
+                content: true,
+                template: {
+                  select: {
+                    themeCode: true,
+                    config: true,
+                    assets: {
+                      select: { id: true, slot: true, mimeType: true, order: true },
+                      orderBy: [{ slot: 'asc' }, { order: 'asc' }],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     if (!invitation) {
       throw new NotFoundException('Invitation not found');

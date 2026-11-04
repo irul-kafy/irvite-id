@@ -428,18 +428,40 @@ export class GuestsImportService {
       // 7. Atomic transaction: Guest + Invitation
       try {
         const txResult = await this.prisma.$transaction(async (tx) => {
-          const guest = await tx.guest.create({
-            data: {
-              eventId,
-              name: cleanName,
-              category: cleanCategory,
-              phoneNumber: cleanPhone,
-              email: cleanEmail,
-              maxPax: cleanMaxPax,
-              tableNumber: (row as any).tableNumber ? String((row as any).tableNumber).trim() : null,
-            },
-            select: { id: true },
-          });
+          let guest: { id: string };
+          try {
+            guest = await tx.guest.create({
+              data: {
+                eventId,
+                name: cleanName,
+                category: cleanCategory,
+                phoneNumber: cleanPhone,
+                email: cleanEmail,
+                maxPax: cleanMaxPax,
+                tableNumber: (row as any).tableNumber ? String((row as any).tableNumber).trim() : null,
+              },
+              select: { id: true },
+            });
+          } catch (err: unknown) {
+            const isMissingCol =
+              err instanceof Prisma.PrismaClientKnownRequestError &&
+              (err.code === 'P2022' || String(err.message).includes('table_number'));
+            if (isMissingCol) {
+              guest = await tx.guest.create({
+                data: {
+                  eventId,
+                  name: cleanName,
+                  category: cleanCategory,
+                  phoneNumber: cleanPhone,
+                  email: cleanEmail,
+                  maxPax: cleanMaxPax,
+                },
+                select: { id: true },
+              });
+            } else {
+              throw err;
+            }
+          }
 
           const invitation =
             await this.invitationsService.createInvitationWithRetry(tx, {

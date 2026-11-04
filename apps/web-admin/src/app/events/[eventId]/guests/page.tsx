@@ -243,7 +243,8 @@ export default function GuestListPage({
       setEvent(eventData);
 
       if (!guestsRes.ok) {
-        throw new Error('Gagal memuat daftar tamu.');
+        const errorData = await guestsRes.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Gagal memuat daftar tamu.');
       }
       const guestsResponse = await guestsRes.json();
       setGuests(guestsResponse.data || []);

@@ -105,12 +105,24 @@ export class GuestsService {
       data.tableNumber = createGuestDto.tableNumber;
     }
 
-    const guest = await this.prisma.guest.create({
-      data,
-      select: this.safeGuestSelect(),
-    });
-
-    return guest;
+    try {
+      const guest = await this.prisma.guest.create({
+        data,
+        select: this.safeGuestSelect(true),
+      });
+      return guest;
+    } catch (err: unknown) {
+      if (this.isMissingTableNumberColumn(err)) {
+        const fallbackData = { ...data };
+        delete (fallbackData as any).tableNumber;
+        const guest = await this.prisma.guest.create({
+          data: fallbackData,
+          select: this.safeGuestSelect(false),
+        });
+        return { ...guest, tableNumber: null };
+      }
+      throw err;
+    }
   }
 
   async findAll(
@@ -125,27 +137,55 @@ export class GuestsService {
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
 
-    const [total, data] = await Promise.all([
-      this.prisma.guest.count({ where: { eventId } }),
-      this.prisma.guest.findMany({
-        where: { eventId },
-        skip,
-        take: limit,
-        select: this.safeGuestListSelect(),
-      }),
-    ]);
+    try {
+      const [total, data] = await Promise.all([
+        this.prisma.guest.count({ where: { eventId } }),
+        this.prisma.guest.findMany({
+          where: { eventId },
+          skip,
+          take: limit,
+          select: this.safeGuestListSelect(true),
+        }),
+      ]);
 
-    const lastPage = Math.ceil(total / limit);
+      const lastPage = Math.ceil(total / limit);
 
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        lastPage,
-      },
-    };
+      return {
+        data,
+        meta: {
+          total,
+          page,
+          limit,
+          lastPage,
+        },
+      };
+    } catch (err: unknown) {
+      if (this.isMissingTableNumberColumn(err)) {
+        const [total, rawData] = await Promise.all([
+          this.prisma.guest.count({ where: { eventId } }),
+          this.prisma.guest.findMany({
+            where: { eventId },
+            skip,
+            take: limit,
+            select: this.safeGuestListSelect(false),
+          }),
+        ]);
+
+        const data = rawData.map((g) => ({ ...g, tableNumber: null }));
+        const lastPage = Math.ceil(total / limit);
+
+        return {
+          data,
+          meta: {
+            total,
+            page,
+            limit,
+            lastPage,
+          },
+        };
+      }
+      throw err;
+    }
   }
 
   async findOne(
@@ -156,19 +196,38 @@ export class GuestsService {
   ) {
     await this.assertEventAccessible(eventId, currentUserId, role);
 
-    const guest = await this.prisma.guest.findFirst({
-      where: {
-        id,
-        eventId,
-      },
-      select: this.safeGuestSelect(),
-    });
+    try {
+      const guest = await this.prisma.guest.findFirst({
+        where: {
+          id,
+          eventId,
+        },
+        select: this.safeGuestSelect(true),
+      });
 
-    if (!guest) {
-      throw new NotFoundException('Guest not found');
+      if (!guest) {
+        throw new NotFoundException('Guest not found');
+      }
+
+      return guest;
+    } catch (err: unknown) {
+      if (this.isMissingTableNumberColumn(err)) {
+        const guest = await this.prisma.guest.findFirst({
+          where: {
+            id,
+            eventId,
+          },
+          select: this.safeGuestSelect(false),
+        });
+
+        if (!guest) {
+          throw new NotFoundException('Guest not found');
+        }
+
+        return { ...guest, tableNumber: null };
+      }
+      throw err;
     }
-
-    return guest;
   }
 
   async update(
@@ -211,22 +270,55 @@ export class GuestsService {
           eventId,
         },
         data,
-        select: this.safeGuestSelect(),
+        select: this.safeGuestSelect(true),
       });
       return guest;
-    } catch (error) {
+    } catch (error: unknown) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
         throw new NotFoundException('Guest not found');
       }
+      if (this.isMissingTableNumberColumn(error)) {
+        const fallbackData = { ...data };
+        delete (fallbackData as any).tableNumber;
+        try {
+          const guest = await this.prisma.guest.update({
+            where: {
+              id,
+              eventId,
+            },
+            data: fallbackData,
+            select: this.safeGuestSelect(false),
+          });
+          return { ...guest, tableNumber: null };
+        } catch (subErr) {
+          if (
+            subErr instanceof Prisma.PrismaClientKnownRequestError &&
+            subErr.code === 'P2025'
+          ) {
+            throw new NotFoundException('Guest not found');
+          }
+          throw subErr;
+        }
+      }
       throw error;
     }
   }
 
-  private safeGuestSelect(): Prisma.GuestSelect {
-    return {
+  private isMissingTableNumberColumn(err: unknown): boolean {
+    if (!err) return false;
+    const msg = String((err as any).message || '');
+    return (
+      (err instanceof Prisma.PrismaClientKnownRequestError &&
+        (err.code === 'P2022' || msg.includes('table_number'))) ||
+      msg.includes('table_number')
+    );
+  }
+
+  private safeGuestSelect(includeTableNumber = true): Prisma.GuestSelect {
+    const select: Prisma.GuestSelect = {
       id: true,
       eventId: true,
       name: true,
@@ -235,14 +327,17 @@ export class GuestsService {
       phoneNumber: true,
       category: true,
       maxPax: true,
-      tableNumber: true,
       createdAt: true,
     };
+    if (includeTableNumber) {
+      select.tableNumber = true;
+    }
+    return select;
   }
 
-  private safeGuestListSelect(): Prisma.GuestSelect {
+  private safeGuestListSelect(includeTableNumber = true): Prisma.GuestSelect {
     return {
-      ...this.safeGuestSelect(),
+      ...this.safeGuestSelect(includeTableNumber),
       invitation: {
         select: {
           uniqueCode: true,
