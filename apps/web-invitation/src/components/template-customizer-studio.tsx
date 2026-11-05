@@ -484,7 +484,7 @@ export function TemplateCustomizerStudio({
             className={`irv-studio-btn irv-studio-btn--customize ${drawerOpen ? 'is-active' : ''}`}
             onClick={() => setDrawerOpen((prev) => !prev)}
           >
-            {drawerOpen ? '👁️ Tutup Panel Edit' : '✏️ Coba Isi Data & Foto Anda'}
+            {drawerOpen ? '✕ Tutup Panel' : 'Ubah Data & Foto'}
           </button>
 
           <button
@@ -497,7 +497,7 @@ export function TemplateCustomizerStudio({
               setShowOrderModal(true);
             }}
           >
-            ✅ Sudah Fix? Kirim ke Admin
+            Pesan Sekarang →
           </button>
         </div>
         )}
@@ -1188,7 +1188,7 @@ export function TemplateCustomizerStudio({
               setShowOrderModal(true);
             }}
           >
-            ✅ Sudah Fix dengan Tampilan Ini? Kirim ke Admin →
+            Cocok dengan Tampilan Ini? Pesan Sekarang →
           </button>
         </div>
       </aside>
