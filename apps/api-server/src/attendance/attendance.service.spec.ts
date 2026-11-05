@@ -972,6 +972,64 @@ describe('AttendanceService', () => {
         service.resyncGoogleSheet('e1', 'u1', Role.SUPER_ADMIN),
       ).rejects.toThrow('Tautan Webhook Google Sheets belum diatur');
     });
+
+    it('testGoogleSheetWebhook throws descriptive error when Google returns 401', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+        email: 'admin@irvite.id',
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl:
+              'https://script.google.com/macros/s/xyz/exec',
+          },
+        },
+      });
+
+      const globalFetch = global.fetch;
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+      } as any);
+
+      try {
+        await expect(
+          service.testGoogleSheetWebhook('e1', 'u1', Role.SUPER_ADMIN),
+        ).rejects.toThrow('HTTP 401 Unauthorized');
+      } finally {
+        global.fetch = globalFetch;
+      }
+    });
+
+    it('testGoogleSheetWebhook rejects /dev URLs immediately', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        title: 'Wedding Test',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/dev',
+          },
+        },
+      });
+
+      await expect(
+        service.testGoogleSheetWebhook('e1', 'u1', Role.SUPER_ADMIN),
+      ).rejects.toThrow('pengujian internal Google (.../dev)');
+    });
   });
 
   describe('undoCheckIn', () => {

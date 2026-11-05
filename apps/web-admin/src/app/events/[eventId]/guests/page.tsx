@@ -3,9 +3,9 @@
 function IconTrash() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 5h14M8 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M5 5l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-      <line x1="8" y1="9" x2="8" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="12" y1="9" x2="12" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <path d="M3 5h14M8 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M5 5l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="8" y1="9" x2="8" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="12" y1="9" x2="12" y2="15" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -68,7 +68,7 @@ interface PaginationMeta {
 function IconArrowLeft() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 10H4M9 5l-5 5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M16 10H4M9 5l-5 5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -76,7 +76,7 @@ function IconArrowLeft() {
 function IconUpload() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 16V4M8 8l4-4 4 4M4 20h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 16V4M8 8l4-4 4 4M4 20h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -84,9 +84,9 @@ function IconUpload() {
 function IconUserPlus() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-      <path d="M2 18c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-      <path d="M16 8h4M18 6v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <path d="M2 18c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M16 8h4M18 6v4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -94,10 +94,10 @@ function IconUserPlus() {
 function IconUsers() {
   return (
     <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M14 3.5c1.5.5 2.5 1.8 2.5 3.5s-1 3-2.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M18 18c0-2.5-1.5-4.5-4-5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.6" fill="none" />
+      <path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M14 3.5c1.5.5 2.5 1.8 2.5 3.5s-1 3-2.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M18 18c0-2.5-1.5-4.5-4-5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -105,7 +105,7 @@ function IconUsers() {
 function IconSparkles() {
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8L10 2z" fill="currentColor"/>
+      <path d="M10 2l1.8 5.2L17 9l-5.2 1.8L10 16l-1.8-5.2L3 9l5.2-1.8L10 2z" fill="currentColor" />
     </svg>
   );
 }
@@ -113,8 +113,8 @@ function IconSparkles() {
 function IconCopy() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M4 13H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none" />
+      <path d="M4 13H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -122,7 +122,7 @@ function IconCopy() {
 function IconExternal() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -130,8 +130,8 @@ function IconExternal() {
 function IconWhatsApp() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="currentColor"/>
-      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="currentColor" />
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
     </svg>
   );
 }
@@ -161,7 +161,7 @@ function IconCheckDouble({ style, className }: { style?: React.CSSProperties; cl
 function IconDownload() {
   return (
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 3v10m0 0l-4-4m4 4l4-4M3 17h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10 3v10m0 0l-4-4m4 4l4-4M3 17h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -169,7 +169,7 @@ function IconDownload() {
 function IconChevronDown() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -177,7 +177,7 @@ function IconChevronDown() {
 function IconEdit() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none"/>
+      <path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }
@@ -185,7 +185,7 @@ function IconEdit() {
 function IconPhone() {
   return (
     <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 4.5A2.5 2.5 0 0 1 4.5 2h1.8a1 1 0 0 1 .95.68l1 3a1 1 0 0 1-.24 1.05l-1.2 1.2a11.05 11.05 0 0 0 5.06 5.06l1.2-1.2a1 1 0 0 1 1.05-.24l3 1a1 1 0 0 1 .68.95v1.8a2.5 2.5 0 0 1-2.5 2.5h-.5C8.94 18 2 11.06 2 3.5v-.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M2 4.5A2.5 2.5 0 0 1 4.5 2h1.8a1 1 0 0 1 .95.68l1 3a1 1 0 0 1-.24 1.05l-1.2 1.2a11.05 11.05 0 0 0 5.06 5.06l1.2-1.2a1 1 0 0 1 1.05-.24l3 1a1 1 0 0 1 .68.95v1.8a2.5 2.5 0 0 1-2.5 2.5h-.5C8.94 18 2 11.06 2 3.5v-.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -193,8 +193,8 @@ function IconPhone() {
 function IconMail() {
   return (
     <svg width="13" height="13" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M2 6l8 5 8-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none" />
+      <path d="M2 6l8 5 8-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -322,9 +322,9 @@ export default function GuestListPage({
     'https://irvite-id.vercel.app';
   const invitationOrigin =
     rawInvitationOrigin.includes('irvite-ez56n3ver') ||
-    rawInvitationOrigin.includes('irvite-id-57xk') ||
-    rawInvitationOrigin.includes('irvite-admin') ||
-    (rawInvitationOrigin.includes('irvite-') && rawInvitationOrigin.includes('.vercel.app') && !rawInvitationOrigin.includes('irvite-id.vercel.app'))
+      rawInvitationOrigin.includes('irvite-id-57xk') ||
+      rawInvitationOrigin.includes('irvite-admin') ||
+      (rawInvitationOrigin.includes('irvite-') && rawInvitationOrigin.includes('.vercel.app') && !rawInvitationOrigin.includes('irvite-id.vercel.app'))
       ? 'https://irvite-id.vercel.app'
       : rawInvitationOrigin;
 
@@ -705,14 +705,14 @@ export default function GuestListPage({
         prev.map((g) =>
           g.id === guestId
             ? {
-                ...g,
-                invitation: {
-                  uniqueCode: createdInvitation.uniqueCode,
-                  status: createdInvitation.status || 'PENDING',
-                  rsvpPax: createdInvitation.rsvpPax,
-                  attendances: [],
-                },
-              }
+              ...g,
+              invitation: {
+                uniqueCode: createdInvitation.uniqueCode,
+                status: createdInvitation.status || 'PENDING',
+                rsvpPax: createdInvitation.rsvpPax,
+                attendances: [],
+              },
+            }
             : g
         )
       );
@@ -1152,11 +1152,10 @@ export default function GuestListPage({
               actionMessage.type === 'success'
                 ? 'var(--status-success, #059669)'
                 : 'var(--status-danger, #dc2626)',
-            border: `1px solid ${
-              actionMessage.type === 'success'
-                ? 'rgba(5, 150, 105, 0.25)'
-                : 'rgba(220, 38, 38, 0.25)'
-            }`,
+            border: `1px solid ${actionMessage.type === 'success'
+              ? 'rgba(5, 150, 105, 0.25)'
+              : 'rgba(220, 38, 38, 0.25)'
+              }`,
           }}
         >
           <span>{actionMessage.text}</span>
@@ -1464,9 +1463,9 @@ export default function GuestListPage({
                   const isWaSent = waSentMap[guest.id]
                     ? waSentMap[guest.id] !== 'UNSENT'
                     : (inv?.status === 'SENT' ||
-                       inv?.status === 'OPENED' ||
-                       inv?.status === 'RSVP_YES' ||
-                       inv?.status === 'RSVP_NO');
+                      inv?.status === 'OPENED' ||
+                      inv?.status === 'RSVP_YES' ||
+                      inv?.status === 'RSVP_NO');
                   const waSentTimestamp = waSentMap[guest.id] && waSentMap[guest.id] !== 'UNSENT'
                     ? waSentMap[guest.id]
                     : null;
@@ -1922,9 +1921,9 @@ export default function GuestListPage({
               const isWaSent = waSentMap[guest.id]
                 ? waSentMap[guest.id] !== 'UNSENT'
                 : (inv?.status === 'SENT' ||
-                   inv?.status === 'OPENED' ||
-                   inv?.status === 'RSVP_YES' ||
-                   inv?.status === 'RSVP_NO');
+                  inv?.status === 'OPENED' ||
+                  inv?.status === 'RSVP_YES' ||
+                  inv?.status === 'RSVP_NO');
 
               return (
                 <div
@@ -2524,8 +2523,8 @@ export default function GuestListPage({
                   {isPublishing
                     ? 'Memproses...'
                     : event?.status === 'PUBLISHED'
-                    ? 'Matikan Undangan'
-                    : 'Aktifkan Undangan'}
+                      ? 'Matikan Undangan'
+                      : 'Aktifkan Undangan'}
                 </button>
               </div>
 
@@ -2588,8 +2587,8 @@ export default function GuestListPage({
                   {isTogglingPortal
                     ? 'Memproses...'
                     : event?.clientPortalEnabled !== false
-                    ? 'Kunci Portal'
-                    : 'Buka Portal'}
+                      ? 'Kunci Portal'
+                      : 'Buka Portal'}
                 </button>
               </div>
             </div>

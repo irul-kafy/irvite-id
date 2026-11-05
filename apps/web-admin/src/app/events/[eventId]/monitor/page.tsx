@@ -352,7 +352,14 @@ export default function LiveAttendanceMonitorPage({
     if (trimmed.includes('docs.google.com/spreadsheets')) {
       setSheetMessage({
         type: 'error',
-        text: 'Tautan docs.google.com/spreadsheets/... adalah tautan dokumen spreadsheet biasa, bukan URL Webhook Apps Script. Silakan ikuti 5 langkah panduan di bawah untuk membuat Web App (awalan https://script.google.com/macros/s/...).',
+        text: 'Tautan docs.google.com/spreadsheets/... adalah tautan dokumen spreadsheet biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan di bawah untuk membuat Web App (awalan https://script.google.com/macros/s/...).',
+      });
+      return;
+    }
+    if (trimmed.includes('/dev')) {
+      setSheetMessage({
+        type: 'error',
+        text: 'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL resmi yang berakhiran .../exec dari menu Deploy > New deployment / Manage deployments.',
       });
       return;
     }
@@ -905,7 +912,22 @@ export default function LiveAttendanceMonitorPage({
                     lineHeight: 1.5,
                   }}
                 >
-                  <strong>⚠️ Perhatian:</strong> Tautan di atas adalah link dokumen spreadsheet biasa, bukan URL Webhook Apps Script. Server kami tidak dapat mengirim data ke link dokumen biasa. Silakan ikuti panduan 5 langkah di bawah untuk membuat Web App (awalan <code>https://script.google.com/macros/s/...</code>).
+                  <strong>⚠️ Perhatian:</strong> Tautan di atas adalah link dokumen spreadsheet biasa, bukan URL Webhook Apps Script. Server kami tidak dapat mengirim data ke link dokumen biasa. Silakan ikuti panduan langkah di bawah untuk membuat Web App (awalan <code>https://script.google.com/macros/s/...</code>).
+                </div>
+              )}
+              {sheetWebhookUrl.includes('/dev') && (
+                <div
+                  style={{
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: '6px',
+                    background: '#fef2f2',
+                    color: '#991b1b',
+                    border: '1px solid #fecaca',
+                    fontSize: '0.75rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong>❌ URL Mode Dev Terdeteksi:</strong> Tautan Anda berakhiran <code>/dev</code>. URL ini adalah mode pengujian internal Google yang selalu meminta login (HTTP 401). Silakan gunakan URL resmi yang berakhiran <code>/exec</code> (dari menu <em>Deploy &rarr; New deployment / Manage deployments</em>).
                 </div>
               )}
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
@@ -971,9 +993,51 @@ export default function LiveAttendanceMonitorPage({
                 <li>Buka Google Spreadsheet baru di akun Google WO.</li>
                 <li>Pilih menu <strong>Extensions (Ekstensi) &rarr; Apps Script</strong>.</li>
                 <li>Tempelkan kode di atas, lalu klik tombol <strong>Deploy (Terapkan) &rarr; New deployment (Penerapan baru)</strong>.</li>
-                <li>Pilih jenis <strong>Web app (Aplikasi Web)</strong>, atur akses ke <strong>Anyone (Siapa saja)</strong>, lalu Deploy.</li>
-                <li>Salin Web App URL yang diberikan dan tempelkan ke kolom input di atas!</li>
+                <li>
+                  Pilih jenis <strong>Web app (Aplikasi Web)</strong>, lalu perhatikan pengaturan wajib:
+                  <ul style={{ margin: '0.25rem 0 0.25rem 1rem', padding: 0 }}>
+                    <li><strong>Execute as:</strong> Me (email akun Google Anda)</li>
+                    <li>
+                      <strong>Who has access:</strong>{' '}
+                      <span style={{ backgroundColor: '#ecfdf5', color: '#047857', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                        Anyone (Siapa saja)
+                      </span>{' '}
+                      <em>(Wajib &quot;Anyone&quot;, jangan pilih &quot;Only myself&quot; agar server dapat mengirim webhook).</em>
+                    </li>
+                  </ul>
+                </li>
+                <li>Klik tombol <strong>Deploy</strong>, lalu salin Web App URL (yang berakhiran <code>/exec</code>) dan tempelkan ke kolom input di atas!</li>
               </ol>
+
+              {/* Troubleshooting Note for HTTP 401 */}
+              <div
+                style={{
+                  marginTop: '0.25rem',
+                  padding: '0.75rem 1rem',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: '8px',
+                  fontSize: '0.8125rem',
+                  color: '#1e40af',
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <span>💡</span>
+                  <span>Solusi Cepat jika Muncul Error HTTP 401:</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#1d4ed8' }}>
+                  Pesan <em>&quot;Google endpoint mengembalikan kode HTTP 401&quot;</em> berarti Google memblokir akses karena perizinan Web App belum disetel ke &quot;Anyone&quot; atau Anda menyalin URL /dev.
+                  <ol style={{ margin: '0.25rem 0 0 1.25rem', padding: 0 }}>
+                    <li>Buka kembali Apps Script di Google Sheets.</li>
+                    <li>Klik <strong>Deploy</strong> (kanan atas) &rarr; pilih <strong>Manage deployments</strong>.</li>
+                    <li>Klik ikon ✏️ <strong>Edit</strong> pada deployment yang aktif.</li>
+                    <li>Ubah kolom <strong>Who has access</strong> dari <em>&quot;Only myself&quot;</em> menjadi <strong>&quot;Anyone&quot;</strong>.</li>
+                    <li>Di kolom <strong>Version</strong>, pilih <strong>New version</strong> &rarr; klik <strong>Deploy</strong>.</li>
+                    <li>Salin URL baru dan simpan kembali di IRVITE Admin!</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           </div>
         </div>

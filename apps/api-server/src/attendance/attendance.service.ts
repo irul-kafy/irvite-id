@@ -1044,6 +1044,18 @@ export class AttendanceService {
         : {};
 
     const cleanUrl = webhookUrl ? webhookUrl.trim() : null;
+    if (cleanUrl) {
+      if (cleanUrl.includes('/dev')) {
+        throw new BadRequestException(
+          'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL Deployment resmi yang berakhiran ".../exec". (Buka Apps Script > Deploy > New deployment > Web app > Who has access: Anyone > Deploy).',
+        );
+      }
+      if (cleanUrl.includes('docs.google.com/spreadsheets')) {
+        throw new BadRequestException(
+          'Tautan yang dimasukkan adalah link dokumen Google Sheets biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan pembuatan Web App di modal integrasi.',
+        );
+      }
+    }
     integrations.googleSheetWebhookUrl = cleanUrl || null;
     integrations.googleSheetUpdatedAt = new Date().toISOString();
     currentContent.integrations = integrations;
@@ -1084,6 +1096,18 @@ export class AttendanceService {
       );
     }
 
+    if (webhookUrl.includes('/dev')) {
+      throw new BadRequestException(
+        'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL Deployment resmi yang berakhiran ".../exec". (Buka Apps Script > Deploy > New deployment > Web app > Who has access: Anyone > Deploy).',
+      );
+    }
+
+    if (webhookUrl.includes('docs.google.com/spreadsheets')) {
+      throw new BadRequestException(
+        'Tautan yang dimasukkan adalah link dokumen Google Sheets biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan pembuatan Web App di modal integrasi.',
+      );
+    }
+
     const user = await this.db.user.findUnique({
       where: { id: userId },
       select: { email: true },
@@ -1111,10 +1135,26 @@ export class AttendanceService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testPayload),
+        redirect: 'follow',
         signal: AbortSignal.timeout(10000),
       });
 
       if (!res.ok && res.status >= 400) {
+        if (res.status === 401) {
+          throw new Error(
+            'Google menolak akses (HTTP 401 Unauthorized). Pengaturan izin di Google Apps Script belum disetel ke "Anyone" (Siapa saja). Silakan buka Apps Script > Deploy > Manage deployments > Edit > Ubah "Who has access" menjadi "Anyone" > Deploy ulang.',
+          );
+        }
+        if (res.status === 403) {
+          throw new Error(
+            'Google menolak akses (HTTP 403 Forbidden). Akun Google Workspace Anda membatasi akses publik. Pastikan opsi "Who has access" disetel ke "Anyone" (Siapa saja).',
+          );
+        }
+        if (res.status === 404) {
+          throw new Error(
+            'URL Webhook tidak ditemukan di Google (HTTP 404 Not Found). Pastikan URL Web App benar dan berakhiran "/exec".',
+          );
+        }
         throw new Error(
           `Google endpoint mengembalikan kode HTTP ${res.status}`,
         );
@@ -1129,7 +1169,7 @@ export class AttendanceService {
       const errMsg =
         err instanceof Error ? err.message : 'Timeout / Network Error';
       throw new BadRequestException(
-        `Gagal menghubungi endpoint Google Sheets: ${errMsg}. Pastikan URL Webhook benar dan dapat diakses publik.`,
+        `Gagal menghubungi endpoint Google Sheets: ${errMsg}`,
       );
     }
   }

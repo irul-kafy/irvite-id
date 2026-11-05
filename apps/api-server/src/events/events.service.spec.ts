@@ -265,14 +265,11 @@ describe('EventsService', () => {
           },
         }),
       );
-      const updateCalls = (prisma.event.update as jest.Mock).mock
-        .calls as Array<
+      const calls1 = (prisma.event.update as jest.Mock).mock.calls as Array<
         [{ where: { id: string }; data: Record<string, unknown> }]
       >;
-      const matchedCall = updateCalls.find(
-        (call) => call[0]?.where?.id === 'event-1',
-      );
-      expect(matchedCall?.[0]?.data).not.toHaveProperty('clientPortalEnabled');
+      const matched1 = calls1.find((c) => c[0].where.id === 'event-1');
+      expect(matched1?.[0].data.clientPortalEnabled).toBeUndefined();
     });
 
     it('regenerates clientKey inside content without passing regenerateClientKey to root prisma data', async () => {
@@ -283,10 +280,10 @@ describe('EventsService', () => {
         content: { title: 'Test Event' },
       });
       (prisma.event.update as jest.Mock).mockImplementation(
-        (args: { data: { content?: Record<string, unknown> } }) => ({
+        (params: { data: { content?: Record<string, unknown> } }) => ({
           id: 'event-1',
           createdAt: new Date('2026-01-01T00:00:00Z'),
-          content: args.data.content,
+          content: params.data.content,
         }),
       );
 
@@ -296,14 +293,11 @@ describe('EventsService', () => {
 
       expect(typeof res.clientKey).toBe('string');
       expect(res.clientKey?.length).toBe(24);
-      const updateCalls = (prisma.event.update as jest.Mock).mock
-        .calls as Array<
+      const calls2 = (prisma.event.update as jest.Mock).mock.calls as Array<
         [{ where: { id: string }; data: Record<string, unknown> }]
       >;
-      const matchedCall = updateCalls.find(
-        (call) => call[0]?.where?.id === 'event-1',
-      );
-      expect(matchedCall?.[0]?.data).not.toHaveProperty('regenerateClientKey');
+      const matched2 = calls2.find((c) => c[0].where.id === 'event-1');
+      expect(matched2?.[0].data.regenerateClientKey).toBeUndefined();
     });
   });
 
