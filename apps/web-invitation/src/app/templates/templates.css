@@ -90,6 +90,7 @@ html.dark {
   font-family: var(--sans);
   display: flex;
   flex-direction: column;
+  padding-top: 72px;
   transition: background-color 0.35s ease, color 0.35s ease;
   position: relative;
   overflow-x: hidden;
@@ -113,29 +114,43 @@ html.dark .cat-page::before {
   background: radial-gradient(ellipse 65% 55% at 50% 0%, rgba(212, 175, 55, 0.06), transparent 70%);
 }
 
-/* ── Main Site Header (Identical to Landing Page) ───────────────────────────── */
+/* ── Main Site Header (Fixed to Top, Identical to Landing Page) ────────────── */
 .cat-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   width: 100%;
   height: 72px;
-  background: #fbfbf9;
+  background: rgba(251, 251, 249, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(24, 30, 27, 0.08);
-  z-index: 100;
+  box-shadow: 0 2px 16px rgba(24, 30, 27, 0.03);
+  z-index: 1000;
   display: flex;
   align-items: center;
   margin: 0;
   padding: 0;
   border-radius: 0;
-  box-shadow: none;
   max-width: none;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+html.dark .cat-nav {
+  background: rgba(18, 22, 20, 0.94);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 768px) {
   .cat-nav {
+    height: 64px;
     margin: 0;
     width: 100%;
     padding: 0;
+  }
+
+  .cat-page {
+    padding-top: 64px;
   }
 }
 

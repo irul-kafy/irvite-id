@@ -484,8 +484,9 @@ export default async function LandingPage() {
       : [];
 
   return (
-    <main>
+    <>
       <LandingNavbar />
+      <main className="landing-main">
       <HeroSection />
       <FeatureStrip />
       <CatalogSection templates={templates} />
@@ -495,6 +496,7 @@ export default async function LandingPage() {
       <CTASection />
       <Footer />
       <WaFab />
-    </main>
+      </main>
+    </>
   );
 }
