@@ -219,6 +219,39 @@ export function MediaManager({ eventId, templateId }: MediaManagerProps) {
           />
         ))
       )}
+
+      {/* Render any orphan media items from slots no longer in template definition so admin can delete them */}
+      {(() => {
+        const knownSlotKeys = new Set(slots.map((s) => s.key));
+        const orphanSlots = Object.keys(mediaBySlot).filter((k) => !knownSlotKeys.has(k) && mediaBySlot[k].length > 0);
+        if (orphanSlots.length === 0) return null;
+        return (
+          <div style={{ marginTop: '1rem', borderTop: '1px dashed var(--border-color, #e5e7eb)', paddingTop: '1.5rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-secondary, #6b7280)', marginBottom: '0.5rem' }}>
+              Media Tambahan / Slot Nonaktif ({orphanSlots.length} slot)
+            </h3>
+            <p className="text-sm text-muted" style={{ marginBottom: '1rem' }}>
+              Media berikut tersimpan dari slot yang tidak lagi digunakan oleh template aktif saat ini. Anda dapat menghapusnya jika sudah tidak dibutuhkan.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {orphanSlots.map((slotKey) => (
+                <MediaSlotCard
+                  key={slotKey}
+                  eventId={eventId}
+                  slot={{
+                    key: slotKey,
+                    label: `Slot Nonaktif: ${slotKey.toUpperCase()}`,
+                    mediaType: 'PHOTO',
+                    multiple: true,
+                  }}
+                  items={mediaBySlot[slotKey]}
+                  onMediaChanged={loadMedia}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

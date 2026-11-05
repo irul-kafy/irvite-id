@@ -917,7 +917,14 @@ export class EventsService {
   }
 
   async createPublicDraft(dto: CreatePublicDraftDto) {
-    const normalizedThemeCode = (dto.themeCode || '').trim().toUpperCase();
+    let normalizedThemeCode = (dto.themeCode || '')
+      .trim()
+      .toUpperCase()
+      .replace(/-/g, '_');
+    if (normalizedThemeCode === 'RANAH_ASMARA')
+      normalizedThemeCode = 'RANAH_CINTA';
+    if (normalizedThemeCode === 'ENCHANTED_WOODLAND')
+      normalizedThemeCode = 'AETHERIA';
     const template = await this.prisma.template.findFirst({
       where: {
         themeCode: normalizedThemeCode,

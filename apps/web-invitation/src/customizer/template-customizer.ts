@@ -198,6 +198,19 @@ const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
 };
 
 /**
+ * Normalizes any template themeCode or slug variant (e.g. 'ranah-asmara', 'ranah-cinta', 'sekar-kedaton')
+ * to the canonical dictionary key (e.g. 'RANAH_CINTA', 'SEKAR_KEDATON').
+ */
+export function normalizeThemeKey(code?: string): string {
+  const upper = (code || '').trim().toUpperCase().replace(/-/g, '_');
+  if (upper === 'RANAH_ASMARA' || upper === 'RANAH_CINTA') return 'RANAH_CINTA';
+  if (upper === 'ENCHANTED_WOODLAND' || upper === 'AETHERIA') return 'AETHERIA';
+  if (upper === 'OPALINE_NOCTURNE') return 'OPALINE_NOCTURNE';
+  if (upper === 'SEKAR_KEDATON') return 'SEKAR_KEDATON';
+  return upper;
+}
+
+/**
  * Returns the exact photo slots supported by a given template themeCode.
  * For any future template not yet in TEMPLATE_PHOTO_SLOT_SCHEMAS, it dynamically
  * inspects the template's fixture media slots so the Studio always matches the template content.
@@ -206,7 +219,7 @@ export function getTemplatePhotoSlotsConfig(
   themeCode: string,
   fixture?: RendererData,
 ): readonly TemplatePhotoSlotConfig[] {
-  const normalized = (themeCode || '').trim().toUpperCase();
+  const normalized = normalizeThemeKey(themeCode);
   if (TEMPLATE_PHOTO_SLOT_SCHEMAS[normalized]) {
     return TEMPLATE_PHOTO_SLOT_SCHEMAS[normalized];
   }
@@ -687,7 +700,7 @@ export function buildDraftSubmissionPayload(params: {
   state: ClientCustomizationState;
 }) {
   const { themeCode, clientName, clientWhatsapp, clientNotes, state } = params;
-  const upperTheme = themeCode.trim().toUpperCase();
+  const upperTheme = normalizeThemeKey(themeCode);
 
   const p1 = state.partnerOneName.trim() || 'Mempelai Wanita';
   const p2 = state.partnerTwoName.trim() || 'Mempelai Pria';
@@ -862,8 +875,9 @@ export function buildWhatsappOrderUrl(params: {
     ? firstCeremony.startDateTime.replace('T', ' Pukul ')
     : '-';
   const venueStr = firstCeremony?.venue || '-';
-  const uploadedPhotoCount = params.themeCode
-    ? countSupportedUploadedPhotos(params.themeCode, params.state)
+  const upperTheme = normalizeThemeKey(params.themeCode);
+  const uploadedPhotoCount = upperTheme
+    ? countSupportedUploadedPhotos(upperTheme, params.state)
     : (params.state.heroPhoto ? 1 : 0) +
       (params.state.bridePhoto ? 1 : 0) +
       (params.state.groomPhoto ? 1 : 0) +
@@ -872,7 +886,7 @@ export function buildWhatsappOrderUrl(params: {
       params.state.galleryPhotos.length;
 
   const lines = [
-    `Halo Admin *IRVITE*, saya sudah mencoba simulasi personalisasi undangan dan *SUDAH FIX* dengan data berikut:`,
+    `Halo Admin *IRVITE*, saya sudah melakukan simulasi personalisasi undangan dan ingin memesan dengan rincian berikut:`,
     ``,
     `▸ *Kode Draf Dashboard:* #${params.referenceCode}`,
     `▸ *Template:* ${params.templateDisplayName} (Ketentuan Desain IRVITE)`,

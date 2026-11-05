@@ -187,6 +187,28 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
       'Opaline Nocturne must have all 6 photo slots',
     );
 
+    // Verify slugs and aliases with hyphens map accurately
+    assert.deepEqual(
+      getTemplatePhotoSlotsConfig('ranah-cinta').map((s) => s.slot),
+      ['hero', 'bride', 'groom'],
+      'Ranah Cinta slug must resolve to exactly 3 photo slots',
+    );
+    assert.deepEqual(
+      getTemplatePhotoSlotsConfig('ranah-asmara').map((s) => s.slot),
+      ['hero', 'bride', 'groom'],
+      'Ranah Asmara alias must resolve to exactly 3 photo slots',
+    );
+    assert.deepEqual(
+      getTemplatePhotoSlotsConfig('sekar-kedaton').map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'gallery'],
+      'Sekar Kedaton slug must resolve to exactly 4 photo slots',
+    );
+    assert.deepEqual(
+      getTemplatePhotoSlotsConfig('enchanted-woodland').map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'story', 'gallery', 'closing'],
+      'Enchanted Woodland alias must resolve to all 6 photo slots',
+    );
+
     // Verify Ranah Cinta draft submission never includes unsupported slots
     const ranahFixture = getDemoFixture('RANAH_CINTA')!;
     const ranahState = extractInitialCustomizationState(ranahFixture);
