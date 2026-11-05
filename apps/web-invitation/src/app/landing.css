@@ -987,33 +987,37 @@ h1 em {
 
 /* ── Testimonials ─────────────────────────────────────────────────────────── */
 .testimonials {
-  padding-block: 100px;
+  padding-block: 72px 80px;
   text-align: center;
   background: #fbfbf9;
 }
 
+.testimonials .eyebrow {
+  margin-bottom: 20px;
+}
+
 .testimonial-quote {
-  max-width: 900px;
+  max-width: 740px;
   margin: 0 auto;
   font-family: var(--serif);
-  font-size: 46px;
+  font-size: clamp(1.2rem, 2.2vw, 1.625rem);
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.22;
+  letter-spacing: -0.01em;
+  line-height: 1.55;
   color: #181e1b;
 }
 
 .testimonial-person {
-  margin-top: 38px;
+  margin-top: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 13px;
+  gap: 12px;
 }
 
 .testimonial-person > span {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border: 1px solid var(--primary);
@@ -1035,13 +1039,13 @@ h1 em {
 
 .testimonial-person strong {
   color: #181e1b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .testimonial-person small {
   color: var(--ink-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* ── Final CTA ────────────────────────────────────────────────────────────── */
