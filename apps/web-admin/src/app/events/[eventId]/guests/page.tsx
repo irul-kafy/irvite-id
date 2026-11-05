@@ -130,6 +130,27 @@ function IconWhatsApp() {
   );
 }
 
+function IconCheckDouble({ style, className }: { style?: React.CSSProperties; className?: string }) {
+  return (
+    <svg
+      style={style}
+      className={className}
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 6 7 17l-5-5" />
+      <path d="m22 10-7.5 7.5L13 16" />
+    </svg>
+  );
+}
+
 
 function IconDownload() {
   return (
@@ -194,6 +215,58 @@ export default function GuestListPage({
   const [generatingGuestId, setGeneratingGuestId] = useState<string | null>(null);
   const [deletingGuestId, setDeletingGuestId] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [waSentMap, setWaSentMap] = useState<Record<string, string>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const stored = window.localStorage.getItem(`irvite_wa_sent_${eventId}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (!eventId) return;
+    try {
+      const stored = localStorage.getItem(`irvite_wa_sent_${eventId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setTimeout(() => setWaSentMap(parsed), 0);
+      }
+    } catch {
+      // Ignore
+    }
+  }, [eventId]);
+
+  const markGuestWaSent = (guestId: string) => {
+    const now = new Date().toISOString();
+    setWaSentMap((prev) => {
+      const next = { ...prev, [guestId]: now };
+      try {
+        localStorage.setItem(`irvite_wa_sent_${eventId}`, JSON.stringify(next));
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  };
+
+  const toggleGuestWaSent = (guestId: string, currentSent: boolean) => {
+    setWaSentMap((prev) => {
+      const next = { ...prev };
+      if (currentSent) {
+        next[guestId] = 'UNSENT';
+      } else {
+        next[guestId] = new Date().toISOString();
+      }
+      try {
+        localStorage.setItem(`irvite_wa_sent_${eventId}`, JSON.stringify(next));
+      } catch {
+        // Ignore
+      }
+      return next;
+    });
+  };
 
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
@@ -1139,6 +1212,15 @@ export default function GuestListPage({
                   const personalUrl = inv
                     ? `${invitationOrigin.replace(/\/+$/, '')}/i/${inv.uniqueCode}`
                     : '';
+                  const isWaSent = waSentMap[guest.id]
+                    ? waSentMap[guest.id] !== 'UNSENT'
+                    : (inv?.status === 'SENT' ||
+                       inv?.status === 'OPENED' ||
+                       inv?.status === 'RSVP_YES' ||
+                       inv?.status === 'RSVP_NO');
+                  const waSentTimestamp = waSentMap[guest.id] && waSentMap[guest.id] !== 'UNSENT'
+                    ? waSentMap[guest.id]
+                    : null;
 
                   return (
                     <tr
@@ -1240,29 +1322,82 @@ export default function GuestListPage({
                       {/* Invitation Status */}
                       <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
                         {inv ? (
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.375rem',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              color: 'var(--status-success, #059669)',
-                              background: 'var(--status-success-bg, #ecfdf5)',
-                              padding: '0.25rem 0.625rem',
-                              borderRadius: '999px',
-                            }}
-                          >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', alignItems: 'flex-start' }}>
                             <span
                               style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                background: 'currentColor',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.375rem',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                color: 'var(--status-success, #059669)',
+                                background: 'var(--status-success-bg, #ecfdf5)',
+                                padding: '0.25rem 0.625rem',
+                                borderRadius: '999px',
                               }}
-                            />
-                            Undangan Tersedia
-                          </span>
+                            >
+                              <span
+                                style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: '50%',
+                                  background: 'currentColor',
+                                }}
+                              />
+                              Undangan Tersedia
+                            </span>
+
+                            {isWaSent ? (
+                              <span
+                                id={`badge-wa-sent-${guest.id}`}
+                                onClick={() => toggleGuestWaSent(guest.id, isWaSent)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 600,
+                                  color: '#15803d',
+                                  background: '#dcfce7',
+                                  border: '1px solid rgba(22, 163, 74, 0.35)',
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  userSelect: 'none',
+                                }}
+                                title={
+                                  waSentTimestamp
+                                    ? `Terkirim via WhatsApp: ${new Date(waSentTimestamp).toLocaleString('id-ID')}. Klik untuk ubah status.`
+                                    : 'Undangan sudah dikirim via WhatsApp. Klik untuk ubah status.'
+                                }
+                              >
+                                <IconCheckDouble style={{ width: 12, height: 12 }} />
+                                Sudah Dikirim WA
+                              </span>
+                            ) : (
+                              <span
+                                id={`badge-wa-pending-${guest.id}`}
+                                onClick={() => toggleGuestWaSent(guest.id, isWaSent)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  fontSize: '0.6875rem',
+                                  fontWeight: 500,
+                                  color: 'var(--text-tertiary, #6b7280)',
+                                  background: 'rgba(0,0,0,0.03)',
+                                  border: '1px solid var(--admin-border, rgba(0,0,0,0.08))',
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  userSelect: 'none',
+                                }}
+                                title="Belum dikirim via WhatsApp. Klik untuk tandai manual."
+                              >
+                                Belum Dikirim WA
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span
                             style={{
@@ -1454,6 +1589,7 @@ export default function GuestListPage({
                                 href={buildWhatsAppShareUrl(guest.name, event?.title || '', personalUrl, guest.phoneNumber)}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={() => markGuestWaSent(guest.id)}
                                 className="btn btn-ghost btn-sm"
                                 style={{
                                   display: 'inline-flex',
@@ -1462,18 +1598,18 @@ export default function GuestListPage({
                                   textDecoration: 'none',
                                   fontSize: '0.75rem',
                                   fontWeight: 600,
-                                  color: '#15803d',
-                                  background: '#f0fdf4',
-                                  border: '1px solid rgba(22, 163, 74, 0.25)',
+                                  color: isWaSent ? '#047857' : '#15803d',
+                                  background: isWaSent ? '#ecfdf5' : '#f0fdf4',
+                                  border: isWaSent ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(22, 163, 74, 0.25)',
                                 }}
                                 title={
                                   guest.phoneNumber
-                                    ? `Kirim Undangan langsung ke WhatsApp ${guest.name} (${guest.phoneNumber})`
-                                    : `Kirim Undangan ke WhatsApp ${guest.name}`
+                                    ? `${isWaSent ? 'Sudah pernah dikirim. Klik untuk kirim ulang ke' : 'Kirim Undangan langsung ke'} WhatsApp ${guest.name} (${guest.phoneNumber})`
+                                    : `${isWaSent ? 'Sudah pernah dikirim. Klik untuk kirim ulang ke' : 'Kirim Undangan ke'} WhatsApp ${guest.name}`
                                 }
                               >
-                                <IconWhatsApp />
-                                Kirim WA
+                                {isWaSent ? <IconCheckDouble /> : <IconWhatsApp />}
+                                {isWaSent ? 'Kirim Ulang WA' : 'Kirim WA'}
                               </a>
                             </>
                           )}
@@ -1534,6 +1670,12 @@ export default function GuestListPage({
               const personalUrl = inv
                 ? `${invitationOrigin.replace(/\/+$/, '')}/i/${inv.uniqueCode}`
                 : '';
+              const isWaSent = waSentMap[guest.id]
+                ? waSentMap[guest.id] !== 'UNSENT'
+                : (inv?.status === 'SENT' ||
+                   inv?.status === 'OPENED' ||
+                   inv?.status === 'RSVP_YES' ||
+                   inv?.status === 'RSVP_NO');
 
               return (
                 <div
@@ -1644,6 +1786,47 @@ export default function GuestListPage({
                         <span style={{ color: 'var(--text-tertiary)' }}>Belum Check-in</span>
                       )}
                     </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>WhatsApp:</span>
+                      {isWaSent ? (
+                        <span
+                          onClick={() => toggleGuestWaSent(guest.id, isWaSent)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: '#15803d',
+                            background: '#dcfce7',
+                            border: '1px solid rgba(22, 163, 74, 0.3)',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                          title="Klik untuk ubah status"
+                        >
+                          <IconCheckDouble style={{ width: 12, height: 12 }} />
+                          Sudah Dikirim
+                        </span>
+                      ) : (
+                        <span
+                          onClick={() => toggleGuestWaSent(guest.id, isWaSent)}
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--text-tertiary)',
+                            background: 'rgba(0,0,0,0.03)',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                          title="Klik untuk tandai sudah dikirim"
+                        >
+                          Belum Dikirim
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Card Actions */}
@@ -1717,26 +1900,27 @@ export default function GuestListPage({
                           href={buildWhatsAppShareUrl(guest.name, event?.title || '', personalUrl, guest.phoneNumber)}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => markGuestWaSent(guest.id)}
                           className="btn btn-ghost btn-sm"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.375rem',
-                            color: '#15803d',
-                            background: '#f0fdf4',
-                            border: '1px solid rgba(22, 163, 74, 0.25)',
+                            color: isWaSent ? '#047857' : '#15803d',
+                            background: isWaSent ? '#ecfdf5' : '#f0fdf4',
+                            border: isWaSent ? '1px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(22, 163, 74, 0.25)',
                             padding: '0.5rem',
                             fontWeight: 600,
                             textDecoration: 'none',
                           }}
                           title={
                             guest.phoneNumber
-                              ? `Kirim Undangan ke WhatsApp ${guest.name} (${guest.phoneNumber})`
-                              : `Kirim Undangan ke WhatsApp ${guest.name}`
+                              ? `${isWaSent ? 'Sudah pernah dikirim. Klik untuk kirim ulang ke' : 'Kirim Undangan ke'} WhatsApp ${guest.name} (${guest.phoneNumber})`
+                              : `${isWaSent ? 'Sudah pernah dikirim. Klik untuk kirim ulang ke' : 'Kirim Undangan ke'} WhatsApp ${guest.name}`
                           }
                         >
-                          <IconWhatsApp />
-                          Kirim WA
+                          {isWaSent ? <IconCheckDouble /> : <IconWhatsApp />}
+                          {isWaSent ? 'Kirim Ulang WA' : 'Kirim WA'}
                         </a>
                       </>
                     )}
