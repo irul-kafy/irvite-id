@@ -182,3 +182,25 @@ export function getCanonicalTemplateDemoUrl(demoPath: string | null | undefined)
   const cleanPath = trimmed.startsWith('/') ? trimmed : '/' + trimmed;
   return origin + cleanPath;
 }
+
+/**
+ * Constructs the canonical public URL to the Client Portal ("Portal Kelola Tamu Klien").
+ * Accessible via /kelola/[eventId]~[clientKey].
+ */
+export function getCanonicalClientPortalUrl(eventId: string, clientKey: string): string {
+  let baseUrl =
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
+    process.env.PUBLIC_INVITATION_URL;
+  if (!baseUrl) {
+    const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
+    const isProd = process.env.NODE_ENV === 'production' || isVercel;
+    if (isProd) {
+      baseUrl = 'https://irvite-id.vercel.app';
+    } else {
+      baseUrl = 'http://localhost:3002';
+    }
+  }
+  baseUrl = remapLegacyPreviewOrigin(baseUrl);
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return `${normalizedBase}/kelola/${eventId}~${clientKey}`;
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCanonicalPublicEventUrl, getInternalApiBaseUrl } from '@/utils/url';
+import { getCanonicalPublicEventUrl, getCanonicalClientPortalUrl, getInternalApiBaseUrl } from '@/utils/url';
 import { isValidAdminOrigin } from '@/utils/origin';
 
 export async function GET(
@@ -50,9 +50,19 @@ export async function GET(
       }
     }
 
+    let clientPortalUrl: string | null = null;
+    if (data?.id && data?.clientKey) {
+      try {
+        clientPortalUrl = getCanonicalClientPortalUrl(data.id, data.clientKey);
+      } catch {
+        clientPortalUrl = null;
+      }
+    }
+
     return NextResponse.json({
       ...data,
       canonicalUrl,
+      clientPortalUrl,
     });
   } catch {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });

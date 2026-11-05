@@ -50,6 +50,8 @@ interface EventSummary {
   eventDate: string;
   locationDetails?: string | null;
   status: string;
+  clientKey?: string;
+  clientPortalUrl?: string | null;
 }
 
 interface PaginationMeta {
@@ -282,6 +284,8 @@ export default function GuestListPage({
 
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [portalModalOpen, setPortalModalOpen] = useState<boolean>(false);
+  const [isPortalCopied, setIsPortalCopied] = useState<boolean>(false);
 
   const rawInvitationOrigin =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
@@ -294,6 +298,22 @@ export default function GuestListPage({
     (rawInvitationOrigin.includes('irvite-') && rawInvitationOrigin.includes('.vercel.app') && !rawInvitationOrigin.includes('irvite-id.vercel.app'))
       ? 'https://irvite-id.vercel.app'
       : rawInvitationOrigin;
+
+  const clientPortalUrl =
+    event?.clientPortalUrl ||
+    (event?.clientKey
+      ? `${invitationOrigin.replace(/\/+$/, '')}/kelola/${event.id}~${event.clientKey}`
+      : `${invitationOrigin.replace(/\/+$/, '')}/kelola/${eventId}`);
+
+  const handleCopyPortalLink = async () => {
+    try {
+      await navigator.clipboard.writeText(clientPortalUrl);
+      setIsPortalCopied(true);
+      setTimeout(() => setIsPortalCopied(false), 2500);
+    } catch {
+      prompt('Salin Tautan Portal Klien:', clientPortalUrl);
+    }
+  };
 
   const loadPageData = async (pageToLoad: number) => {
     setLoading(true);
@@ -888,6 +908,27 @@ export default function GuestListPage({
               </div>
             )}
           </div>
+
+          <button
+            id="guests-client-portal-btn"
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setPortalModalOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              fontWeight: 600,
+              padding: '0.625rem 1rem',
+              borderColor: '#10b981',
+              color: '#047857',
+              backgroundColor: '#ecfdf5',
+            }}
+            title="Buka atau bagikan portal kelola tamu khusus untuk pengantin / klien"
+          >
+            <span>📱</span>
+            Portal Klien
+          </button>
 
           <button
             id="guests-live-monitor-btn"
@@ -2020,6 +2061,162 @@ export default function GuestListPage({
             </div>
           )}
         </>
+      )}
+
+      {/* Modal Portal Klien (Pengantin) */}
+      {portalModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setPortalModalOpen(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '1.75rem',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  color: '#111827',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                <span>📱</span>
+                <span>Portal Kelola Tamu Klien</span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPortalModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: '#4b5563',
+                lineHeight: 1.5,
+                margin: '0 0 1.25rem 0',
+              }}
+            >
+              Kirimkan tautan ajaib ini kepada pasangan pengantin. Mereka dapat langsung mengelola tamu, menambahkan tamu baru, membagikan undangan langsung via WhatsApp, dan memantau RSVP <strong>tanpa perlu membuat akun atau login ke dashboard admin</strong>.
+            </p>
+
+            <div
+              style={{
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.8125rem',
+                  color: '#1f2937',
+                  wordBreak: 'break-all',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {clientPortalUrl}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyPortalLink}
+                style={{
+                  flexShrink: 0,
+                  padding: '0.5rem 0.875rem',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: isPortalCopied ? '#059669' : '#111827',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                {isPortalCopied ? '✓ Tersalin!' : 'Salin Tautan'}
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+              }}
+            >
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setPortalModalOpen(false)}
+              >
+                Tutup
+              </button>
+              <a
+                href={clientPortalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  textDecoration: 'none',
+                  backgroundColor: '#059669',
+                }}
+              >
+                <span>Buka Portal</span>
+                <span>↗</span>
+              </a>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Responsive Styles Injection */}

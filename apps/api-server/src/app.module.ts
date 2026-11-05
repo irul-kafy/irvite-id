@@ -20,6 +20,7 @@ import { StaffEventsModule } from './staff-events/staff-events.module';
 import { ScannerModule } from './scanner/scanner.module';
 import { StaffModule } from './staff/staff.module';
 import { ReportsModule } from './reports/reports.module';
+import { ClientPortalModule } from './client-portal/client-portal.module';
 import { validateEnvironment } from './common/validate-environment';
 
 @Module({
@@ -46,6 +47,7 @@ import { validateEnvironment } from './common/validate-environment';
     ScannerModule,
     StaffModule,
     ReportsModule,
+    ClientPortalModule,
     ThrottlerModule.forRoot([
       {
         name: 'default',

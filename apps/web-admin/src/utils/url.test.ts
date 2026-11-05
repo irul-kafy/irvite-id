@@ -14,6 +14,7 @@ import {
   getCanonicalPublicEventUrl,
   getTrustedInvitationOrigin,
   getCanonicalTemplateDemoUrl,
+  getCanonicalClientPortalUrl,
 } from './url';
 
 test('getInternalApiBaseUrl', async (t) => {
@@ -271,5 +272,42 @@ test('getCanonicalTemplateDemoUrl', async (t) => {
     assert.strictEqual(getCanonicalTemplateDemoUrl('   '), null);
     assert.strictEqual(getCanonicalTemplateDemoUrl(null), null);
     assert.strictEqual(getCanonicalTemplateDemoUrl(undefined), null);
+  });
+});
+
+test('getCanonicalClientPortalUrl', async (t) => {
+  const origNextPublic = process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
+  const origPublic = process.env.PUBLIC_INVITATION_URL;
+  const origVercel = process.env.VERCEL;
+  const origNodeEnv = process.env.NODE_ENV;
+
+  t.afterEach(() => {
+    setOrDeleteEnv('NEXT_PUBLIC_INVITATION_ORIGIN', origNextPublic);
+    setOrDeleteEnv('PUBLIC_INVITATION_URL', origPublic);
+    setOrDeleteEnv('VERCEL', origVercel);
+    setOrDeleteEnv('NODE_ENV', origNodeEnv);
+  });
+
+  await t.test('constructs valid portal URL with eventId and clientKey in dev', () => {
+    delete process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
+    delete process.env.PUBLIC_INVITATION_URL;
+    delete process.env.VERCEL;
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'development';
+
+    const url = getCanonicalClientPortalUrl('evt-123', 'key-abc');
+    assert.strictEqual(url, 'http://localhost:3002/kelola/evt-123~key-abc');
+  });
+
+  await t.test('uses NEXT_PUBLIC_INVITATION_ORIGIN when specified', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://custom-invitation.com';
+    const url = getCanonicalClientPortalUrl('evt-456', 'key-xyz');
+    assert.strictEqual(url, 'https://custom-invitation.com/kelola/evt-456~key-xyz');
+  });
+
+  await t.test('remaps legacy preview domains', () => {
+    process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://irvite-ez56n3ver.vercel.app';
+    const url = getCanonicalClientPortalUrl('evt-789', 'key-999');
+    assert.strictEqual(url, 'https://irvite-id.vercel.app/kelola/evt-789~key-999');
   });
 });

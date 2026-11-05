@@ -1030,32 +1030,27 @@ export class AttendanceService {
   ) {
     const event = await this.authorizeEventOperator(eventId, userId, role);
 
-    const currentContent: Prisma.InputJsonObject =
+    const currentContent: Record<string, unknown> =
       event.content &&
       typeof event.content === 'object' &&
       !Array.isArray(event.content)
-        ? { ...(event.content as Prisma.InputJsonObject) }
+        ? { ...(event.content as Record<string, unknown>) }
         : {};
-    const integrations: Prisma.InputJsonObject =
+    const integrations: Record<string, unknown> =
       currentContent.integrations &&
       typeof currentContent.integrations === 'object' &&
       !Array.isArray(currentContent.integrations)
-        ? { ...(currentContent.integrations as Prisma.InputJsonObject) }
+        ? { ...(currentContent.integrations as Record<string, unknown>) }
         : {};
 
     const cleanUrl = webhookUrl ? webhookUrl.trim() : null;
-    const updatedContent: Prisma.InputJsonObject = {
-      ...currentContent,
-      integrations: {
-        ...integrations,
-        googleSheetWebhookUrl: cleanUrl || null,
-        googleSheetUpdatedAt: new Date().toISOString(),
-      },
-    };
+    integrations.googleSheetWebhookUrl = cleanUrl || null;
+    integrations.googleSheetUpdatedAt = new Date().toISOString();
+    currentContent.integrations = integrations;
 
     await this.db.event.update({
       where: { id: eventId },
-      data: { content: updatedContent },
+      data: { content: currentContent as Prisma.InputJsonObject },
     });
 
     return {

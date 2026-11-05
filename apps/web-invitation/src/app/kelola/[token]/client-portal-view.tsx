@@ -1,0 +1,1128 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import {
+  buildWhatsAppShareUrl,
+  generateGuestsCsv,
+  normalizeWhatsAppPhone,
+} from '@/utils/whatsapp-share';
+
+export interface PortalInvitation {
+  id: string;
+  uniqueCode: string;
+  status: 'PENDING' | 'SENT' | 'OPENED' | 'RSVP_YES' | 'RSVP_NO';
+  rsvpPax: number | null;
+  updatedAt: string;
+}
+
+export interface PortalGuest {
+  id: string;
+  name: string;
+  category: string;
+  phoneNumber: string | null;
+  email: string | null;
+  tableNumber: string | null;
+  maxPax: number;
+  customGreeting: string | null;
+  createdAt: string;
+  invitation: PortalInvitation | null;
+  isWaSent: boolean;
+  hasAttended: boolean;
+}
+
+export interface PortalEvent {
+  id: string;
+  title: string;
+  slug: string;
+  eventDate: string;
+  status: string;
+  locationDetails: string | null;
+  clientKey: string;
+}
+
+export interface PortalStats {
+  totalGuests: number;
+  totalPax: number;
+  waSentCount: number;
+  waPendingCount: number;
+  rsvpYesCount: number;
+  rsvpYesPax: number;
+  rsvpNoCount: number;
+  rsvpPendingCount: number;
+  attendedCount: number;
+}
+
+interface ClientPortalViewProps {
+  initialEvent: PortalEvent;
+  initialStats: PortalStats;
+  initialGuests: PortalGuest[];
+  accessKey: string;
+}
+
+type FilterTab = 'all' | 'wa_unsent' | 'wa_sent' | 'rsvp_yes' | 'rsvp_pending';
+
+export function ClientPortalView({
+  initialEvent,
+  initialGuests,
+  accessKey,
+}: ClientPortalViewProps) {
+  const [event] = useState<PortalEvent>(initialEvent);
+  const [guests, setGuests] = useState<PortalGuest[]>(initialGuests);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<PortalGuest | null>(null);
+  const [deletingGuest, setDeletingGuest] = useState<PortalGuest | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    category: 'REGULAR',
+    phoneNumber: '',
+    tableNumber: '',
+    maxPax: 1,
+    customGreeting: '',
+  });
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((prev) => (prev === msg ? null : prev));
+    }, 3200);
+  };
+
+  // Recalculate stats live
+  const stats = useMemo(() => {
+    let totalPax = 0;
+    let waSentCount = 0;
+    let waPendingCount = 0;
+    let rsvpYesCount = 0;
+    let rsvpYesPax = 0;
+    let rsvpNoCount = 0;
+    let rsvpPendingCount = 0;
+    let attendedCount = 0;
+
+    for (const g of guests) {
+      totalPax += g.maxPax || 1;
+      if (g.isWaSent) {
+        waSentCount++;
+      } else {
+        waPendingCount++;
+      }
+
+      const invStatus = g.invitation?.status;
+      if (invStatus === 'RSVP_YES') {
+        rsvpYesCount++;
+        rsvpYesPax += g.invitation?.rsvpPax || g.maxPax || 1;
+      } else if (invStatus === 'RSVP_NO') {
+        rsvpNoCount++;
+      } else {
+        rsvpPendingCount++;
+      }
+
+      if (g.hasAttended) attendedCount++;
+    }
+
+    return {
+      totalGuests: guests.length,
+      totalPax,
+      waSentCount,
+      waPendingCount,
+      rsvpYesCount,
+      rsvpYesPax,
+      rsvpNoCount,
+      rsvpPendingCount,
+      attendedCount,
+    };
+  }, [guests]);
+
+  // Filter & Search
+  const filteredGuests = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+
+    return guests.filter((g) => {
+      // Search
+      if (q) {
+        const matchName = g.name.toLowerCase().includes(q);
+        const matchPhone = g.phoneNumber && g.phoneNumber.includes(q);
+        const matchTable = g.tableNumber && g.tableNumber.toLowerCase().includes(q);
+        const matchCat = g.category.toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchTable && !matchCat) {
+          return false;
+        }
+      }
+
+      // Filter tabs
+      if (activeFilter === 'wa_unsent') return !g.isWaSent;
+      if (activeFilter === 'wa_sent') return g.isWaSent;
+      if (activeFilter === 'rsvp_yes') return g.invitation?.status === 'RSVP_YES';
+      if (activeFilter === 'rsvp_pending') {
+        const s = g.invitation?.status;
+        return s === 'PENDING' || s === 'SENT' || s === 'OPENED';
+      }
+
+      return true;
+    });
+  }, [guests, searchQuery, activeFilter]);
+
+  const getInvitationUrl = (uniqueCode: string): string => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/i/${encodeURIComponent(uniqueCode)}`;
+    }
+    return `/i/${encodeURIComponent(uniqueCode)}`;
+  };
+
+  // WhatsApp Share Action
+  const handleShareWhatsApp = async (guest: PortalGuest) => {
+    if (!guest.invitation?.uniqueCode) {
+      showToast('Undangan tamu belum siap.');
+      return;
+    }
+
+    const invitationUrl = getInvitationUrl(guest.invitation.uniqueCode);
+    const waUrl = buildWhatsAppShareUrl(
+      guest.name,
+      event.title,
+      invitationUrl,
+      guest.phoneNumber,
+      guest.customGreeting,
+    );
+
+    // Open WhatsApp in new tab / app
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+    // Immediately mark as sent in UI
+    setGuests((prev) =>
+      prev.map((g) =>
+        g.id === guest.id
+          ? {
+              ...g,
+              isWaSent: true,
+              invitation: g.invitation
+                ? {
+                    ...g.invitation,
+                    status:
+                      g.invitation.status === 'PENDING'
+                        ? 'SENT'
+                        : g.invitation.status,
+                  }
+                : null,
+            }
+          : g,
+      ),
+    );
+
+    showToast(`WhatsApp untuk ${guest.name} dibuka! Status ditandai terkirim.`);
+
+    // Persist to backend
+    try {
+      await fetch(
+        `/api-proxy/api/v1/client-portal/${event.id}/guests/${guest.id}/wa-status?key=${accessKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isSent: true }),
+        },
+      );
+    } catch {
+      // Background failure ignored
+    }
+  };
+
+  // Copy Link Action
+  const handleCopyLink = async (guest: PortalGuest) => {
+    if (!guest.invitation?.uniqueCode) return;
+    const url = getInvitationUrl(guest.invitation.uniqueCode);
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(`Tautan undangan untuk ${guest.name} berhasil disalin!`);
+    } catch {
+      // Fallback
+      prompt('Salin tautan berikut:', url);
+    }
+  };
+
+  // Export CSV Action
+  const handleExportCsv = () => {
+    const csvRows = guests.map((g) => {
+      let rsvpStatus = 'Belum Respon';
+      if (g.invitation?.status === 'RSVP_YES') rsvpStatus = 'Hadir';
+      if (g.invitation?.status === 'RSVP_NO') rsvpStatus = 'Tidak Hadir';
+
+      return {
+        name: g.name,
+        category: g.category,
+        phoneNumber: g.phoneNumber,
+        tableNumber: g.tableNumber,
+        maxPax: g.maxPax,
+        isWaSent: g.isWaSent,
+        rsvpStatus,
+        rsvpPax: g.invitation?.rsvpPax,
+        invitationUrl: g.invitation ? getInvitationUrl(g.invitation.uniqueCode) : '',
+      };
+    });
+
+    const csvContent = generateGuestsCsv(csvRows);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Daftar_Tamu_${event.slug || 'undangan'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Berkas CSV berhasil diunduh!');
+  };
+
+  // Open Modal Create
+  const handleOpenAddModal = () => {
+    setFormData({
+      name: '',
+      category: 'REGULAR',
+      phoneNumber: '',
+      tableNumber: '',
+      maxPax: 1,
+      customGreeting: '',
+    });
+    setIsAddModalOpen(true);
+  };
+
+  // Open Modal Edit
+  const handleOpenEditModal = (guest: PortalGuest) => {
+    setEditingGuest(guest);
+    setFormData({
+      name: guest.name,
+      category: guest.category || 'REGULAR',
+      phoneNumber: guest.phoneNumber || '',
+      tableNumber: guest.tableNumber || '',
+      maxPax: guest.maxPax || 1,
+      customGreeting: guest.customGreeting || '',
+    });
+  };
+
+  // Submit Save Guest (Add or Edit)
+  const handleSubmitGuest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      showToast('Nama tamu wajib diisi.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (editingGuest) {
+        // PATCH
+        const res = await fetch(
+          `/api-proxy/api/v1/client-portal/${event.id}/guests/${editingGuest.id}?key=${accessKey}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: formData.name.trim(),
+              category: formData.category,
+              phoneNumber: formData.phoneNumber.trim() || null,
+              tableNumber: formData.tableNumber.trim() || null,
+              maxPax: Number(formData.maxPax) || 1,
+              customGreeting: formData.customGreeting.trim() || null,
+            }),
+          },
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Gagal memperbarui tamu');
+        }
+
+        const updated: PortalGuest = await res.json();
+        setGuests((prev) =>
+          prev.map((g) => (g.id === updated.id ? { ...g, ...updated } : g)),
+        );
+        showToast(`Tamu "${updated.name}" berhasil diperbarui.`);
+        setEditingGuest(null);
+      } else {
+        // POST
+        const res = await fetch(
+          `/api-proxy/api/v1/client-portal/${event.id}/guests?key=${accessKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: formData.name.trim(),
+              category: formData.category,
+              phoneNumber: formData.phoneNumber.trim() || null,
+              tableNumber: formData.tableNumber.trim() || null,
+              maxPax: Number(formData.maxPax) || 1,
+              customGreeting: formData.customGreeting.trim() || null,
+            }),
+          },
+        );
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Gagal menambahkan tamu');
+        }
+
+        const created: PortalGuest = await res.json();
+        setGuests((prev) => [created, ...prev]);
+        showToast(`Tamu "${created.name}" berhasil ditambahkan!`);
+        setIsAddModalOpen(false);
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Terjadi kesalahan');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Submit Delete Guest
+  const handleConfirmDelete = async () => {
+    if (!deletingGuest) return;
+    setIsSaving(true);
+
+    try {
+      const res = await fetch(
+        `/api-proxy/api/v1/client-portal/${event.id}/guests/${deletingGuest.id}?key=${accessKey}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Gagal menghapus tamu');
+      }
+
+      setGuests((prev) => prev.filter((g) => g.id !== deletingGuest.id));
+      showToast(`Tamu "${deletingGuest.name}" dihapus.`);
+      setDeletingGuest(null);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Gagal menghapus');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Format event date
+  const eventDateFormatted = useMemo(() => {
+    try {
+      const d = new Date(event.eventDate);
+      return d.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return event.eventDate;
+    }
+  }, [event.eventDate]);
+
+  return (
+    <div className="portal-root">
+      {/* Top Navigation Bar */}
+      <header className="portal-topbar">
+        <div className="portal-topbar-brand">
+          <span className="portal-brand-title">IRVITE</span>
+          <span className="portal-brand-badge">Portal Pengantin</span>
+        </div>
+        <div className="portal-topbar-actions">
+          {event.slug && (
+            <Link
+              href={`/e/${event.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="portal-preview-link"
+            >
+              <span>Lihat Undangan</span>
+              <span>↗</span>
+            </Link>
+          )}
+        </div>
+      </header>
+
+      <main className="portal-container">
+        {/* Hero / Event Card */}
+        <section className="portal-hero">
+          <div className="portal-hero-header">
+            <div>
+              <span className="portal-hero-tag">Kelola Undangan Pernikahan</span>
+              <h1 className="portal-hero-title">{event.title}</h1>
+              <div className="portal-hero-meta">
+                <span className="portal-hero-meta-item">
+                  <span>📅</span>
+                  <span>{eventDateFormatted}</span>
+                </span>
+                {event.locationDetails && (
+                  <span className="portal-hero-meta-item">
+                    <span>📍</span>
+                    <span>{event.locationDetails}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <p className="portal-hero-desc">
+            Bagikan undangan langsung ke WhatsApp tamu Anda hanya dengan satu sentuhan.
+            Tamu akan menerima salam pembuka yang ramah beserta tautan undangan pribadi mereka.
+          </p>
+        </section>
+
+        {/* Stats Grid */}
+        <section className="portal-stats-grid">
+          <div className="portal-stat-card">
+            <span className="portal-stat-label">👥 Total Tamu</span>
+            <span className="portal-stat-value">{stats.totalGuests}</span>
+            <span className="portal-stat-sub">Kapasitas: {stats.totalPax} Pax</span>
+          </div>
+
+          <div className="portal-stat-card stat-success">
+            <span className="portal-stat-label">💬 Sudah Kirim WA</span>
+            <span className="portal-stat-value">{stats.waSentCount}</span>
+            <span className="portal-stat-sub">
+              {stats.totalGuests > 0
+                ? `${Math.round((stats.waSentCount / stats.totalGuests) * 100)}% selesai`
+                : '0%'}
+            </span>
+          </div>
+
+          <div
+            className={`portal-stat-card ${
+              stats.waPendingCount > 0 ? 'stat-urgent' : ''
+            }`}
+          >
+            <span className="portal-stat-label">⏳ Belum Kirim WA</span>
+            <span className="portal-stat-value">{stats.waPendingCount}</span>
+            <span className="portal-stat-sub">Perlu dibagikan</span>
+          </div>
+
+          <div className="portal-stat-card stat-success">
+            <span className="portal-stat-label">✅ Konfirmasi Hadir</span>
+            <span className="portal-stat-value">{stats.rsvpYesCount}</span>
+            <span className="portal-stat-sub">{stats.rsvpYesPax} Pax hadir</span>
+          </div>
+
+          <div className="portal-stat-card">
+            <span className="portal-stat-label">❓ Belum Respon</span>
+            <span className="portal-stat-value">{stats.rsvpPendingCount}</span>
+            <span className="portal-stat-sub">Menunggu RSVP</span>
+          </div>
+        </section>
+
+        {/* Toolbar: Search, Filters, Add Guest */}
+        <section className="portal-toolbar">
+          <div className="portal-search-wrap">
+            <span className="portal-search-icon">🔍</span>
+            <input
+              type="text"
+              className="portal-search-input"
+              placeholder="Cari nama, nomor WA, atau meja..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="portal-toolbar-actions">
+            {/* Filter Tabs */}
+            <div className="portal-filter-tabs">
+              <button
+                type="button"
+                className={`portal-filter-tab ${
+                  activeFilter === 'all' ? 'active' : ''
+                }`}
+                onClick={() => setActiveFilter('all')}
+              >
+                Semua
+                <span className="badge-count">{stats.totalGuests}</span>
+              </button>
+              <button
+                type="button"
+                className={`portal-filter-tab ${
+                  activeFilter === 'wa_unsent' ? 'active' : ''
+                }`}
+                onClick={() => setActiveFilter('wa_unsent')}
+              >
+                Belum Kirim
+                <span className="badge-count">{stats.waPendingCount}</span>
+              </button>
+              <button
+                type="button"
+                className={`portal-filter-tab ${
+                  activeFilter === 'wa_sent' ? 'active' : ''
+                }`}
+                onClick={() => setActiveFilter('wa_sent')}
+              >
+                Sudah Kirim
+                <span className="badge-count">{stats.waSentCount}</span>
+              </button>
+              <button
+                type="button"
+                className={`portal-filter-tab ${
+                  activeFilter === 'rsvp_yes' ? 'active' : ''
+                }`}
+                onClick={() => setActiveFilter('rsvp_yes')}
+              >
+                Hadir
+                <span className="badge-count">{stats.rsvpYesCount}</span>
+              </button>
+              <button
+                type="button"
+                className={`portal-filter-tab ${
+                  activeFilter === 'rsvp_pending' ? 'active' : ''
+                }`}
+                onClick={() => setActiveFilter('rsvp_pending')}
+              >
+                Belum RSVP
+                <span className="badge-count">{stats.rsvpPendingCount}</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="btn-portal-secondary"
+              onClick={handleExportCsv}
+              title="Unduh daftar tamu ke format CSV / Excel"
+            >
+              <span>📥</span>
+              <span>CSV</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn-portal-primary"
+              onClick={handleOpenAddModal}
+            >
+              <span>+</span>
+              <span>Tambah Tamu</span>
+            </button>
+          </div>
+        </section>
+
+        {/* Empty State */}
+        {filteredGuests.length === 0 && (
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 'var(--portal-radius-lg)',
+              border: '1px solid var(--portal-card-border)',
+              padding: '3rem 1.5rem',
+              textAlign: 'center',
+              color: 'var(--portal-text-muted)',
+            }}
+          >
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📭</div>
+            <h3
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: 700,
+                color: 'var(--portal-text-main)',
+                margin: '0 0 0.5rem 0',
+              }}
+            >
+              Tidak ada tamu yang sesuai
+            </h3>
+            <p style={{ fontSize: '0.875rem', margin: 0 }}>
+              {searchQuery
+                ? `Tidak ditemukan hasil untuk "${searchQuery}". Coba kata kunci lain.`
+                : 'Belum ada tamu pada kategori filter ini.'}
+            </p>
+          </div>
+        )}
+
+        {/* 1. Desktop & Tablet Table View */}
+        {filteredGuests.length > 0 && (
+          <div className="portal-table-container">
+            <table className="portal-table">
+              <thead>
+                <tr>
+                  <th>Tamu</th>
+                  <th>Kategori & Meja</th>
+                  <th>Status Kirim WA</th>
+                  <th>Status RSVP</th>
+                  <th style={{ textAlign: 'right' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredGuests.map((guest) => {
+                  const invStatus = guest.invitation?.status;
+                  const isSent = guest.isWaSent;
+
+                  return (
+                    <tr key={guest.id}>
+                      <td>
+                        <div className="portal-guest-name">{guest.name}</div>
+                        <div className="portal-guest-contact">
+                          {guest.phoneNumber ? (
+                            <span>📱 {normalizeWhatsAppPhone(guest.phoneNumber)}</span>
+                          ) : (
+                            <span style={{ color: '#9ca3af' }}>Tanpa nomor WA</span>
+                          )}
+                          {guest.customGreeting && (
+                            <span
+                              style={{
+                                fontStyle: 'italic',
+                                color: 'var(--portal-text-light)',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              &quot;{guest.customGreeting}&quot;
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <span
+                            className={`portal-badge ${
+                              guest.category === 'VIP'
+                                ? 'badge-vip'
+                                : 'badge-regular'
+                            }`}
+                          >
+                            {guest.category}
+                          </span>
+                          <span className="portal-badge badge-regular">
+                            {guest.maxPax} Pax
+                          </span>
+                          {guest.tableNumber && (
+                            <span className="portal-badge badge-regular">
+                              Meja {guest.tableNumber}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        {isSent ? (
+                          <span className="portal-badge badge-sent">
+                            ✓ Terkirim
+                          </span>
+                        ) : (
+                          <span className="portal-badge badge-pending">
+                            ⏳ Belum Terkirim
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        {invStatus === 'RSVP_YES' && (
+                          <span className="portal-badge badge-rsvp-yes">
+                            ✓ Hadir ({guest.invitation?.rsvpPax || guest.maxPax} Pax)
+                          </span>
+                        )}
+                        {invStatus === 'RSVP_NO' && (
+                          <span className="portal-badge badge-rsvp-no">
+                            ✕ Tidak Hadir
+                          </span>
+                        )}
+                        {(!invStatus ||
+                          invStatus === 'PENDING' ||
+                          invStatus === 'SENT' ||
+                          invStatus === 'OPENED') && (
+                          <span className="portal-badge badge-rsvp-pending">
+                            Belum Respon
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        <div
+                          className="table-actions"
+                          style={{ justifyContent: 'flex-end' }}
+                        >
+                          <button
+                            type="button"
+                            className={`btn-wa-action ${
+                              isSent ? 'wa-sent' : 'wa-unsent'
+                            }`}
+                            onClick={() => handleShareWhatsApp(guest)}
+                            title={isSent ? 'Kirim ulang via WhatsApp' : 'Kirim via WhatsApp'}
+                          >
+                            <span>💬</span>
+                            <span>{isSent ? 'Kirim Ulang' : 'Kirim WA'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-icon-action"
+                            onClick={() => handleCopyLink(guest)}
+                            title="Salin Tautan Undangan"
+                          >
+                            🔗
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-icon-action"
+                            onClick={() => handleOpenEditModal(guest)}
+                            title="Edit Tamu"
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-icon-action danger"
+                            onClick={() => setDeletingGuest(guest)}
+                            title="Hapus Tamu"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 2. Mobile Card List (< 769px) */}
+        {filteredGuests.length > 0 && (
+          <div className="portal-card-list">
+            {filteredGuests.map((guest) => {
+              const invStatus = guest.invitation?.status;
+              const isSent = guest.isWaSent;
+
+              return (
+                <div
+                  key={guest.id}
+                  className={`portal-guest-card ${
+                    isSent ? 'card-sent' : 'card-highlight-urgent'
+                  }`}
+                >
+                  <div className="portal-card-header">
+                    <div>
+                      <div className="portal-card-title">{guest.name}</div>
+                      <div className="portal-card-meta" style={{ marginTop: '0.25rem' }}>
+                        {guest.phoneNumber ? (
+                          <span>📱 {guest.phoneNumber}</span>
+                        ) : (
+                          <span style={{ color: '#9ca3af' }}>Tanpa nomor WA</span>
+                        )}
+                      </div>
+                    </div>
+                    <span
+                      className={`portal-badge ${
+                        guest.category === 'VIP' ? 'badge-vip' : 'badge-regular'
+                      }`}
+                    >
+                      {guest.category}
+                    </span>
+                  </div>
+
+                  <div className="portal-card-badges">
+                    <span className="portal-badge badge-regular">
+                      👥 {guest.maxPax} Pax
+                    </span>
+                    {guest.tableNumber && (
+                      <span className="portal-badge badge-regular">
+                        🪑 Meja {guest.tableNumber}
+                      </span>
+                    )}
+
+                    {isSent ? (
+                      <span className="portal-badge badge-sent">✓ WA Terkirim</span>
+                    ) : (
+                      <span className="portal-badge badge-pending">
+                        ⏳ WA Belum Terkirim
+                      </span>
+                    )}
+
+                    {invStatus === 'RSVP_YES' && (
+                      <span className="portal-badge badge-rsvp-yes">
+                        ✓ Hadir ({guest.invitation?.rsvpPax || guest.maxPax} Pax)
+                      </span>
+                    )}
+                    {invStatus === 'RSVP_NO' && (
+                      <span className="portal-badge badge-rsvp-no">
+                        ✕ Tidak Hadir
+                      </span>
+                    )}
+                    {(!invStatus ||
+                      invStatus === 'PENDING' ||
+                      invStatus === 'SENT' ||
+                      invStatus === 'OPENED') && (
+                      <span className="portal-badge badge-rsvp-pending">
+                        Belum Respon
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Big Thumb-Friendly WhatsApp Button */}
+                  <button
+                    type="button"
+                    className={`portal-card-wa-btn ${
+                      isSent ? 'wa-sent' : 'wa-unsent'
+                    }`}
+                    onClick={() => handleShareWhatsApp(guest)}
+                  >
+                    <span>💬</span>
+                    <span>
+                      {isSent ? 'Kirim Ulang Undangan WA' : 'Kirim Undangan WhatsApp'}
+                    </span>
+                  </button>
+
+                  <div className="portal-card-actions-sub">
+                    <button
+                      type="button"
+                      className="portal-sub-btn"
+                      onClick={() => handleCopyLink(guest)}
+                    >
+                      <span>🔗 Salin Link</span>
+                    </button>
+
+                    <div style={{ display: 'flex', gap: '0.375rem' }}>
+                      <button
+                        type="button"
+                        className="portal-sub-btn"
+                        onClick={() => handleOpenEditModal(guest)}
+                      >
+                        <span>✏️ Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="portal-sub-btn danger"
+                        onClick={() => setDeletingGuest(guest)}
+                      >
+                        <span>🗑️ Hapus</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* Floating Action Button for Mobile */}
+      <button
+        type="button"
+        className="portal-fab"
+        onClick={handleOpenAddModal}
+        aria-label="Tambah Tamu Baru"
+      >
+        <span style={{ fontSize: '1.75rem', lineHeight: 1 }}>+</span>
+      </button>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="portal-toast" role="status">
+          <span>🔔</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Modal Add / Edit Guest */}
+      {(isAddModalOpen || editingGuest) && (
+        <div className="portal-modal-backdrop" onClick={() => {
+          setIsAddModalOpen(false);
+          setEditingGuest(null);
+        }}>
+          <div
+            className="portal-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="portal-modal-header">
+              <h2 className="portal-modal-title">
+                {editingGuest ? 'Edit Data Tamu' : 'Tambah Tamu Baru'}
+              </h2>
+              <button
+                type="button"
+                className="portal-modal-close"
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setEditingGuest(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitGuest}>
+              <div className="portal-form-group">
+                <label className="portal-form-label">Nama Lengkap Tamu *</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Contoh: Budi Santoso & Pasangan"
+                  className="portal-form-input"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="portal-form-group">
+                <label className="portal-form-label">Kategori Tamu</label>
+                <select
+                  className="portal-form-select"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                >
+                  <option value="REGULAR">REGULAR (Umum)</option>
+                  <option value="VIP">VIP</option>
+                  <option value="KELUARGA">KELUARGA</option>
+                  <option value="TEMAN">TEMAN</option>
+                  <option value="KANTOR">TEMAN KANTOR</option>
+                </select>
+              </div>
+
+              <div className="portal-form-group">
+                <label className="portal-form-label">Nomor WhatsApp</label>
+                <input
+                  type="tel"
+                  placeholder="Contoh: 081234567890 atau 62812..."
+                  className="portal-form-input"
+                  value={formData.phoneNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phoneNumber: e.target.value })
+                  }
+                />
+                <div className="portal-form-hint">
+                  Undangan dapat langsung dikirim ke nomor ini lewat tombol Kirim WA.
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="portal-form-group">
+                  <label className="portal-form-label">Jumlah Kuota (Pax)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    className="portal-form-input"
+                    value={formData.maxPax}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        maxPax: parseInt(e.target.value, 10) || 1,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="portal-form-group">
+                  <label className="portal-form-label">Nomor Meja</label>
+                  <input
+                    type="text"
+                    placeholder="Opsional (misal: A-1)"
+                    className="portal-form-input"
+                    value={formData.tableNumber}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tableNumber: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="portal-form-group">
+                <label className="portal-form-label">Pesan Tambahan Khusus (Opsional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Pesan salam personal untuk tamu ini..."
+                  className="portal-form-textarea"
+                  value={formData.customGreeting}
+                  onChange={(e) =>
+                    setFormData({ ...formData, customGreeting: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="portal-modal-actions">
+                <button
+                  type="button"
+                  className="btn-portal-secondary"
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setEditingGuest(null);
+                  }}
+                  disabled={isSaving}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn-portal-primary"
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Menyimpan...' : 'Simpan Tamu'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Confirm Delete */}
+      {deletingGuest && (
+        <div className="portal-modal-backdrop" onClick={() => setDeletingGuest(null)}>
+          <div
+            className="portal-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px' }}
+          >
+            <div className="portal-modal-header">
+              <h2 className="portal-modal-title" style={{ color: '#b91c1c' }}>
+                Hapus Tamu
+              </h2>
+              <button
+                type="button"
+                className="portal-modal-close"
+                onClick={() => setDeletingGuest(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.9375rem', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
+              Apakah Anda yakin ingin menghapus <strong>{deletingGuest.name}</strong> dari daftar tamu? Tautan undangannya tidak akan dapat digunakan lagi.
+            </p>
+
+            <div className="portal-modal-actions">
+              <button
+                type="button"
+                className="btn-portal-secondary"
+                onClick={() => setDeletingGuest(null)}
+                disabled={isSaving}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 'var(--portal-radius-md)',
+                  padding: '0.625rem 1.125rem',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                }}
+                onClick={handleConfirmDelete}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -20,6 +20,7 @@ import {
   getTemplateDefinition,
   validateEventContent,
 } from '../templates/definitions';
+import { computeDefaultClientKey } from '../client-portal/client-portal.service';
 
 @Injectable()
 export class EventsService {
@@ -209,7 +210,18 @@ export class EventsService {
       throw new NotFoundException(`Event not found`);
     }
 
-    return event;
+    const clientKey =
+      (typeof event.content === 'object' &&
+      event.content &&
+      'clientKey' in event.content &&
+      typeof (event.content as { clientKey?: unknown }).clientKey === 'string'
+        ? (event.content as { clientKey: string }).clientKey
+        : undefined) || computeDefaultClientKey(event.id, event.createdAt);
+
+    return {
+      ...event,
+      clientKey,
+    };
   }
 
   async update(
