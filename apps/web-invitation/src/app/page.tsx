@@ -64,17 +64,18 @@ function HeroSection() {
             strokeWidth="1.2"
           />
         </svg>
-        <p className="eyebrow">UNDANGAN DIGITAL, DIRANCANG DENGAN RASA</p>
+        <p className="eyebrow">PLATFORM UNDANGAN DIGITAL &amp; KELOLA TAMU</p>
         <h1>
-          Momen berharga,
+          Sambut setiap tamu,
           <br />
-          <em>disampaikan dengan</em>
+          <em>rayakan setiap momen</em>
           <br />
-          indah.
+          dengan sempurna.
         </h1>
         <p className="lead">
-          Undangan digital yang personal, tenang, dan mudah digunakan—dari
-          kesan pertama hingga tamu tiba di hari bahagia.
+          Undangan digital personal dan terkelola rapi—mulai dari pembagian
+          tautan eksklusif, kepastian konfirmasi kehadiran (RSVP), hingga
+          kemudahan registrasi tamu di lokasi acara.
         </p>
         <div className="hero-actions">
           <a id="hero-catalog-btn" className="button primary" href="#katalog">
