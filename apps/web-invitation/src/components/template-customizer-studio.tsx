@@ -507,7 +507,7 @@ export function TemplateCustomizerStudio({
             </button>
           </div>
           <p className="irv-studio-drawer__subtitle">
-            Coba masukkan nama, jadwal, dan foto Anda untuk melihat hasil langsung di sebelah kanan. Tata letak & font dikunci paten oleh <strong>IRVITE</strong>.
+            Coba masukkan nama, jadwal, dan foto Anda untuk melihat hasil langsung di sebelah kiri. Tata letak & font dikunci paten oleh <strong>IRVITE</strong>.
           </p>
         </div>
 

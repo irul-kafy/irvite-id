@@ -214,7 +214,7 @@
 /* ── Preview Viewport Wrapper (Figma Canvas) ── */
 .irv-studio-preview-stage {
   padding-top: 60px;
-  transition: margin-left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: margin-right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   height: 100vh;
   box-sizing: border-box;
   overflow: hidden;
@@ -409,7 +409,8 @@
 
 @media (min-width: 1024px) {
   .irv-studio-shell.is-drawer-open .irv-studio-preview-stage {
-    margin-left: 430px;
+    margin-right: 430px;
+    margin-left: 0;
   }
 }
 
@@ -417,18 +418,20 @@
 .irv-studio-drawer {
   position: fixed;
   top: 60px;
-  left: 0;
+  right: 0;
+  left: auto;
   bottom: 0;
   width: 430px;
   max-width: 100vw;
   z-index: 9985;
   background: #fbfbf9;
   color: #181e1b;
-  border-right: 1px solid #e2ddd3;
-  box-shadow: 12px 0 36px rgba(15, 31, 24, 0.16);
+  border-left: 1px solid #e2ddd3;
+  border-right: none;
+  box-shadow: -12px 0 36px rgba(15, 31, 24, 0.16);
   display: flex;
   flex-direction: column;
-  transform: translateX(-100%);
+  transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   font-family: var(--font-sans, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif);
 }
