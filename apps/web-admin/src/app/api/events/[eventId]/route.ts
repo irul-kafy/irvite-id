@@ -119,7 +119,19 @@ export async function PATCH(
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    let clientPortalUrl: string | null = null;
+    if (data?.id && data?.clientKey) {
+      try {
+        clientPortalUrl = getCanonicalClientPortalUrl(data.id, data.clientKey);
+      } catch {
+        clientPortalUrl = null;
+      }
+    }
+
+    return NextResponse.json({
+      ...data,
+      clientPortalUrl,
+    });
   } catch {
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }

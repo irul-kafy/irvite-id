@@ -320,7 +320,12 @@ export class EventsService {
       }
     }
 
-    const { content, ...safeUpdateData } = updateEventDto;
+    const {
+      content,
+      clientPortalEnabled,
+      regenerateClientKey,
+      ...safeUpdateData
+    } = updateEventDto;
     const dataToUpdate: Prisma.EventUpdateInput = {
       ...safeUpdateData,
     };
@@ -366,15 +371,14 @@ export class EventsService {
       }
     }
 
-    if (updateEventDto.clientPortalEnabled !== undefined) {
+    if (clientPortalEnabled !== undefined) {
       if (!contentToUpdateObj) {
         contentToUpdateObj = { ...existingContentObj };
       }
-      contentToUpdateObj.clientPortalEnabled =
-        updateEventDto.clientPortalEnabled;
+      contentToUpdateObj.clientPortalEnabled = clientPortalEnabled;
     }
 
-    if (updateEventDto.regenerateClientKey) {
+    if (regenerateClientKey) {
       if (!contentToUpdateObj) {
         contentToUpdateObj = { ...existingContentObj };
       }
@@ -387,7 +391,7 @@ export class EventsService {
 
     try {
       const updatedEvent = await this.prisma.event.update({
-        where: whereScope,
+        where: { id: existingEvent.id },
         data: dataToUpdate,
         select: this.selectSafeEvent(),
       });

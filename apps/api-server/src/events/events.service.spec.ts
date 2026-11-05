@@ -238,6 +238,73 @@ describe('EventsService', () => {
         'Remove template-specific media before changing template',
       );
     });
+
+    it('updates clientPortalEnabled inside content without passing it to root prisma data', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        templateId: 'tpl-1',
+        content: { title: 'Test Event' },
+      });
+      (prisma.event.update as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        content: { title: 'Test Event', clientPortalEnabled: false },
+      });
+
+      const res = await service.update('event-1', 'admin-1', Role.ADMIN, {
+        clientPortalEnabled: false,
+      });
+
+      expect(res.clientPortalEnabled).toBe(false);
+      expect(prisma.event.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'event-1' },
+          data: {
+            content: { title: 'Test Event', clientPortalEnabled: false },
+          },
+        }),
+      );
+      const updateCalls = (prisma.event.update as jest.Mock).mock
+        .calls as Array<
+        [{ where: { id: string }; data: Record<string, unknown> }]
+      >;
+      const matchedCall = updateCalls.find(
+        (call) => call[0]?.where?.id === 'event-1',
+      );
+      expect(matchedCall?.[0]?.data).not.toHaveProperty('clientPortalEnabled');
+    });
+
+    it('regenerates clientKey inside content without passing regenerateClientKey to root prisma data', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        templateId: 'tpl-1',
+        content: { title: 'Test Event' },
+      });
+      (prisma.event.update as jest.Mock).mockImplementation(
+        (args: { data: { content?: Record<string, unknown> } }) => ({
+          id: 'event-1',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          content: args.data.content,
+        }),
+      );
+
+      const res = await service.update('event-1', 'admin-1', Role.ADMIN, {
+        regenerateClientKey: true,
+      });
+
+      expect(typeof res.clientKey).toBe('string');
+      expect(res.clientKey?.length).toBe(24);
+      const updateCalls = (prisma.event.update as jest.Mock).mock
+        .calls as Array<
+        [{ where: { id: string }; data: Record<string, unknown> }]
+      >;
+      const matchedCall = updateCalls.find(
+        (call) => call[0]?.where?.id === 'event-1',
+      );
+      expect(matchedCall?.[0]?.data).not.toHaveProperty('regenerateClientKey');
+    });
   });
 
   describe('resolvePublic', () => {
