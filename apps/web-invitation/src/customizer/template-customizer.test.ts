@@ -7,6 +7,8 @@ import {
   applyClientCustomizationToFixture,
   buildDraftSubmissionPayload,
   buildWhatsappOrderUrl,
+  getTemplatePhotoSlotsConfig,
+  countSupportedUploadedPhotos,
 } from './template-customizer';
 
 test('Client Personalization Studio & Draft Submission Contract', async (t) => {
@@ -155,5 +157,89 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
     assert.ok(decoded.includes('Nara & Arka'));
     assert.ok(decoded.includes('Nara Pramudita'));
   });
-});
 
+  await t.test('getTemplatePhotoSlotsConfig enforces exact per-template photo slot counts and dynamic future template fallback', () => {
+    const ranahSlots = getTemplatePhotoSlotsConfig('RANAH_CINTA');
+    assert.deepEqual(
+      ranahSlots.map((s) => s.slot),
+      ['hero', 'bride', 'groom'],
+      'Ranah Cinta must have exactly 3 photo slots (hero, bride, groom)',
+    );
+
+    const sekarSlots = getTemplatePhotoSlotsConfig('SEKAR_KEDATON');
+    assert.deepEqual(
+      sekarSlots.map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'gallery'],
+      'Sekar Kedaton must have exactly 4 photo slots (hero, bride, groom, gallery)',
+    );
+
+    const aetheriaSlots = getTemplatePhotoSlotsConfig('AETHERIA');
+    assert.deepEqual(
+      aetheriaSlots.map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'story', 'gallery', 'closing'],
+      'Aetheria must have all 6 photo slots',
+    );
+
+    const opalineSlots = getTemplatePhotoSlotsConfig('OPALINE_NOCTURNE');
+    assert.deepEqual(
+      opalineSlots.map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'story', 'gallery', 'closing'],
+      'Opaline Nocturne must have all 6 photo slots',
+    );
+
+    // Verify Ranah Cinta draft submission never includes unsupported slots
+    const ranahFixture = getDemoFixture('RANAH_CINTA')!;
+    const ranahState = extractInitialCustomizationState(ranahFixture);
+    ranahState.heroPhoto = {
+      slot: 'hero',
+      previewUrl: 'blob:1',
+      dataUrl: 'data:image/jpeg;base64,AA==',
+      order: 0,
+    };
+    ranahState.bridePhoto = {
+      slot: 'bride',
+      previewUrl: 'blob:2',
+      dataUrl: 'data:image/jpeg;base64,BB==',
+      order: 0,
+    };
+    ranahState.groomPhoto = {
+      slot: 'groom',
+      previewUrl: 'blob:3',
+      dataUrl: 'data:image/jpeg;base64,CC==',
+      order: 0,
+    };
+    ranahState.storyPhoto = {
+      slot: 'story',
+      previewUrl: 'blob:4',
+      dataUrl: 'data:image/jpeg;base64,DD==',
+      order: 0,
+    };
+    ranahState.closingPhoto = {
+      slot: 'closing',
+      previewUrl: 'blob:5',
+      dataUrl: 'data:image/jpeg;base64,EE==',
+      order: 0,
+    };
+    ranahState.galleryPhotos = [
+      {
+        slot: 'gallery',
+        previewUrl: 'blob:6',
+        dataUrl: 'data:image/jpeg;base64,FF==',
+        order: 0,
+      },
+    ];
+
+    assert.equal(countSupportedUploadedPhotos('RANAH_CINTA', ranahState), 3);
+
+    const ranahPayload = buildDraftSubmissionPayload({
+      themeCode: 'RANAH_CINTA',
+      clientName: 'Salma',
+      clientWhatsapp: '08123456789',
+      state: ranahState,
+    });
+    assert.deepEqual(
+      ranahPayload.photos.map((p) => p.slot),
+      ['hero', 'bride', 'groom'],
+    );
+  });
+});

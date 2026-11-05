@@ -223,8 +223,16 @@ export class EventsService {
 
     const clientPortalEnabled = content.clientPortalEnabled !== false;
 
+    let safeContent = event.content;
+    if ('_mediaFallback' in content) {
+      const restContent = { ...content };
+      delete restContent._mediaFallback;
+      safeContent = restContent as Prisma.JsonValue;
+    }
+
     return {
       ...event,
+      content: safeContent,
       clientKey,
       clientPortalEnabled,
     };
@@ -368,6 +376,9 @@ export class EventsService {
         } else if (existingContentObj.clientKey) {
           contentToUpdateObj.clientKey = existingContentObj.clientKey;
         }
+        if (existingContentObj._mediaFallback) {
+          contentToUpdateObj._mediaFallback = existingContentObj._mediaFallback;
+        }
       }
     }
 
@@ -411,8 +422,16 @@ export class EventsService {
 
       const clientPortalEnabled = updatedContent.clientPortalEnabled !== false;
 
+      let safeUpdatedContent = updatedEvent.content;
+      if ('_mediaFallback' in updatedContent) {
+        const restUpdatedContent = { ...updatedContent };
+        delete restUpdatedContent._mediaFallback;
+        safeUpdatedContent = restUpdatedContent as Prisma.JsonValue;
+      }
+
       return {
         ...updatedEvent,
+        content: safeUpdatedContent,
         clientKey,
         clientPortalEnabled,
       };
@@ -1011,9 +1030,11 @@ export class EventsService {
 
     // Save optional compressed client preview photos into event media slots
     let savedPhotosCount = 0;
+    const mediaFallbackMap: Record<string, string> = {};
+    const slotCounts = new Map<string, number>();
     const definition = getTemplateDefinition(template.themeCode);
     if (definition && Array.isArray(dto.photos) && dto.photos.length > 0) {
-      const photosToProcess = dto.photos.slice(0, 5);
+      const photosToProcess = dto.photos.slice(0, 15);
       for (let i = 0; i < photosToProcess.length; i++) {
         const photoInput = photosToProcess[i];
         if (
@@ -1029,6 +1050,10 @@ export class EventsService {
         );
         if (!slotDef) continue;
 
+        const currentSlotCount = slotCounts.get(slotKey) ?? 0;
+        const maxAllowed = slotDef.maxItems ?? (slotDef.multiple ? 12 : 1);
+        if (currentSlotCount >= maxAllowed) continue;
+
         const dataUrlMatch =
           /^data:image\/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i.exec(
             photoInput.dataUrl.trim(),
@@ -1036,7 +1061,8 @@ export class EventsService {
         if (!dataUrlMatch) continue;
 
         try {
-          const buffer = Buffer.from(dataUrlMatch[1], 'base64');
+          const base64Clean = dataUrlMatch[1].replace(/\s+/g, '');
+          const buffer = Buffer.from(base64Clean, 'base64');
           if (buffer.length === 0 || buffer.length > 5 * 1024 * 1024) {
             continue;
           }
@@ -1048,7 +1074,11 @@ export class EventsService {
             continue;
           }
           const key = this.mediaStorageService.generateKey(sig.extension);
-          await this.mediaStorageService.writeFile(key, buffer);
+          try {
+            await this.mediaStorageService.writeFile(key, buffer);
+          } catch {
+            // Serverless ephemeral FS error; persisted in _mediaFallback below
+          }
           await this.prisma.media.create({
             data: {
               eventId: newEvent.id,
@@ -1056,15 +1086,46 @@ export class EventsService {
               url: key,
               type: MediaType.PHOTO,
               order:
-                typeof photoInput.order === 'number' ? photoInput.order : i,
+                typeof photoInput.order === 'number'
+                  ? photoInput.order
+                  : currentSlotCount,
             },
           });
+          mediaFallbackMap[key] = base64Clean;
+          slotCounts.set(slotKey, currentSlotCount + 1);
           savedPhotosCount++;
         } catch (err) {
           this.logger.warn(
             `Failed to persist client draft photo for event ${newEvent.id}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
+      }
+    }
+
+    if (
+      Object.keys(mediaFallbackMap).length > 0 &&
+      typeof this.prisma.event?.update === 'function'
+    ) {
+      try {
+        const baseContent =
+          validatedContent &&
+          typeof validatedContent === 'object' &&
+          !Array.isArray(validatedContent)
+            ? validatedContent
+            : {};
+        await this.prisma.event.update({
+          where: { id: newEvent.id },
+          data: {
+            content: {
+              ...baseContent,
+              _mediaFallback: mediaFallbackMap,
+            },
+          },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to persist _mediaFallback for event ${newEvent.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 

@@ -17,12 +17,271 @@ export interface GiftAccountFormState {
   accountHolder: string;
 }
 
+export type CustomPhotoSlotKey =
+  | 'hero'
+  | 'bride'
+  | 'groom'
+  | 'story'
+  | 'gallery'
+  | 'closing';
+
 export interface CustomPhotoItem {
-  slot: 'hero' | 'closing' | 'gallery' | 'bride' | 'groom' | 'story';
+  slot: CustomPhotoSlotKey;
   previewUrl: string; // blob:... or /templates/...
   dataUrl?: string; // compressed data:image/jpeg;base64,... for admin submission
   fileName?: string;
   order: number;
+}
+
+export interface TemplatePhotoSlotConfig {
+  slot: CustomPhotoSlotKey;
+  title: string;
+  hint: string;
+  description: string;
+  uploadButtonLabel: string;
+  resetButtonLabel: string;
+  multiple: boolean;
+  maxItems: number;
+}
+
+const DEFAULT_SLOT_CATALOG: Record<
+  CustomPhotoSlotKey,
+  TemplatePhotoSlotConfig
+> = {
+  hero: {
+    slot: 'hero',
+    title: 'Foto Utama Mempelai (Hero / Sampul)',
+    hint: 'Maks. 25 MB (JPG, PNG, WebP)',
+    description: 'Tampil langsung di bingkai utama undangan',
+    uploadButtonLabel: '📤 Pilih Foto Utama dari Perangkat',
+    resetButtonLabel: 'Gunakan Foto Contoh',
+    multiple: false,
+    maxItems: 1,
+  },
+  bride: {
+    slot: 'bride',
+    title: 'Foto Mempelai Wanita',
+    hint: 'Opsional • Bingkai 01',
+    description: 'Tampil khusus di bingkai 01 Mempelai Wanita',
+    uploadButtonLabel: '📤 Pilih Foto Mempelai Wanita',
+    resetButtonLabel: 'Gunakan Foto Default',
+    multiple: false,
+    maxItems: 1,
+  },
+  groom: {
+    slot: 'groom',
+    title: 'Foto Mempelai Pria',
+    hint: 'Opsional • Bingkai 02',
+    description: 'Tampil khusus di bingkai 02 Mempelai Pria',
+    uploadButtonLabel: '📤 Pilih Foto Mempelai Pria',
+    resetButtonLabel: 'Gunakan Foto Default',
+    multiple: false,
+    maxItems: 1,
+  },
+  story: {
+    slot: 'story',
+    title: 'Foto Cerita / Kisah (Story Window)',
+    hint: 'Opsional • Seksi Kisah Cinta',
+    description: 'Tampil di seksi perjalanan kisah cinta mempelai',
+    uploadButtonLabel: '📤 Pilih Foto Kisah Cinta',
+    resetButtonLabel: 'Gunakan Foto Contoh',
+    multiple: false,
+    maxItems: 1,
+  },
+  gallery: {
+    slot: 'gallery',
+    title: 'Galeri Momen Bahagia',
+    hint: 'Maks. 25 MB/foto',
+    description: 'Tampil di galeri foto kenangan mempelai',
+    uploadButtonLabel: '📤 Tambah Foto Galeri',
+    resetButtonLabel: 'Reset Galeri',
+    multiple: true,
+    maxItems: 6,
+  },
+  closing: {
+    slot: 'closing',
+    title: 'Foto Penutup (Closing Portrait)',
+    hint: 'Opsional • Maks. 25 MB',
+    description: 'Tampil di bagian penutup undangan',
+    uploadButtonLabel: '📤 Pilih Foto Penutup',
+    resetButtonLabel: 'Reset',
+    multiple: false,
+    maxItems: 1,
+  },
+};
+
+const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
+  string,
+  readonly TemplatePhotoSlotConfig[]
+> = {
+  RANAH_CINTA: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Utama Pasangan (Hero)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.bride,
+      title: 'Foto Mempelai Wanita (Anak Daro)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.groom,
+      title: 'Foto Mempelai Pria (Marapulai)',
+    },
+  ],
+  SEKAR_KEDATON: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Utama Pasangan (Hero)',
+    },
+    DEFAULT_SLOT_CATALOG.bride,
+    DEFAULT_SLOT_CATALOG.groom,
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      title: 'Galeri Ronce Kenangan',
+      maxItems: 6,
+    },
+  ],
+  AETHERIA: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Utama Mempelai (Hero / Intro)',
+    },
+    DEFAULT_SLOT_CATALOG.bride,
+    DEFAULT_SLOT_CATALOG.groom,
+    {
+      ...DEFAULT_SLOT_CATALOG.story,
+      hint: 'Opsional • Jendela "Every path led to you"',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      title: 'Galeri Fragmen Kenangan',
+      maxItems: 6,
+    },
+    DEFAULT_SLOT_CATALOG.closing,
+  ],
+  OPALINE_NOCTURNE: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Cover & Hero Pasangan',
+    },
+    DEFAULT_SLOT_CATALOG.bride,
+    DEFAULT_SLOT_CATALOG.groom,
+    DEFAULT_SLOT_CATALOG.story,
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      title: 'Galeri Momen Bahagia',
+      maxItems: 4,
+    },
+    DEFAULT_SLOT_CATALOG.closing,
+  ],
+  CLASSIC_LETTER: [
+    DEFAULT_SLOT_CATALOG.hero,
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      maxItems: 6,
+    },
+  ],
+  VELVET_LETTER: [
+    DEFAULT_SLOT_CATALOG.hero,
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      maxItems: 6,
+    },
+  ],
+  GENERIC: [
+    DEFAULT_SLOT_CATALOG.hero,
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      maxItems: 6,
+    },
+  ],
+};
+
+/**
+ * Returns the exact photo slots supported by a given template themeCode.
+ * For any future template not yet in TEMPLATE_PHOTO_SLOT_SCHEMAS, it dynamically
+ * inspects the template's fixture media slots so the Studio always matches the template content.
+ */
+export function getTemplatePhotoSlotsConfig(
+  themeCode: string,
+  fixture?: RendererData,
+): readonly TemplatePhotoSlotConfig[] {
+  const normalized = (themeCode || '').trim().toUpperCase();
+  if (TEMPLATE_PHOTO_SLOT_SCHEMAS[normalized]) {
+    return TEMPLATE_PHOTO_SLOT_SCHEMAS[normalized];
+  }
+
+  // Dynamic derivation for future templates based on fixture media slots
+  if (fixture) {
+    const detectedSlots = new Set<string>();
+    if (fixture.mediaBySlot) {
+      for (const k of Object.keys(fixture.mediaBySlot)) {
+        detectedSlots.add(k.toLowerCase());
+      }
+    }
+    if (Array.isArray(fixture.media)) {
+      for (const item of fixture.media) {
+        if (item.type === 'PHOTO' && item.slot) {
+          detectedSlots.add(item.slot.toLowerCase());
+        }
+      }
+    }
+
+    const orderedKeys: CustomPhotoSlotKey[] = [
+      'hero',
+      'bride',
+      'groom',
+      'story',
+      'gallery',
+      'closing',
+    ];
+    const dynamicConfigs: TemplatePhotoSlotConfig[] = [];
+    for (const key of orderedKeys) {
+      if (
+        detectedSlots.has(key) ||
+        (key === 'bride' && detectedSlots.has('couple_1')) ||
+        (key === 'groom' && detectedSlots.has('couple_2'))
+      ) {
+        if (key === 'gallery') {
+          const fixtureGalleryCount =
+            fixture.mediaBySlot?.gallery?.length ||
+            (fixture.media || []).filter((m) => m.slot === 'gallery').length ||
+            6;
+          dynamicConfigs.push({
+            ...DEFAULT_SLOT_CATALOG.gallery,
+            maxItems: Math.max(1, fixtureGalleryCount),
+          });
+        } else {
+          dynamicConfigs.push(DEFAULT_SLOT_CATALOG[key]);
+        }
+      }
+    }
+    if (dynamicConfigs.length > 0) {
+      return dynamicConfigs;
+    }
+  }
+
+  return TEMPLATE_PHOTO_SLOT_SCHEMAS.AETHERIA;
+}
+
+export function countSupportedUploadedPhotos(
+  themeCode: string,
+  state: ClientCustomizationState,
+  fixture?: RendererData,
+): number {
+  const slots = getTemplatePhotoSlotsConfig(themeCode, fixture);
+  let total = 0;
+  for (const s of slots) {
+    if (s.slot === 'hero' && state.heroPhoto) total += 1;
+    else if (s.slot === 'bride' && state.bridePhoto) total += 1;
+    else if (s.slot === 'groom' && state.groomPhoto) total += 1;
+    else if (s.slot === 'story' && state.storyPhoto) total += 1;
+    else if (s.slot === 'closing' && state.closingPhoto) total += 1;
+    else if (s.slot === 'gallery') {
+      total += Math.min(state.galleryPhotos.length, s.maxItems);
+    }
+  }
+  return total;
 }
 
 export interface ClientCustomizationState {
@@ -312,21 +571,10 @@ export function applyClientCustomizationToFixture(
       order: 0,
       src: state.heroPhoto.previewUrl,
     };
-    const couple1Descriptor: PublicMediaDescriptor = {
-      id: 'custom-couple-1-photo',
-      type: 'PHOTO',
-      slot: 'couple_1',
-      order: 0,
-      src: state.heroPhoto.previewUrl,
-    };
     baseMediaBySlot['hero'] = [heroDescriptor];
-    baseMediaBySlot['couple_1'] = [couple1Descriptor];
     updatedMediaList = [
       heroDescriptor,
-      couple1Descriptor,
-      ...updatedMediaList.filter(
-        (m) => m.slot !== 'hero' && m.slot !== 'couple_1',
-      ),
+      ...updatedMediaList.filter((m) => m.slot !== 'hero'),
     ];
   }
 
@@ -342,7 +590,9 @@ export function applyClientCustomizationToFixture(
     baseMediaBySlot['couple_1'] = [brideDescriptor];
     updatedMediaList = [
       brideDescriptor,
-      ...updatedMediaList.filter((m) => m.slot !== 'bride' && m.slot !== 'couple_1'),
+      ...updatedMediaList.filter(
+        (m) => m.slot !== 'bride' && m.slot !== 'couple_1',
+      ),
     ];
   }
 
@@ -358,7 +608,9 @@ export function applyClientCustomizationToFixture(
     baseMediaBySlot['couple_2'] = [groomDescriptor];
     updatedMediaList = [
       groomDescriptor,
-      ...updatedMediaList.filter((m) => m.slot !== 'groom' && m.slot !== 'couple_2'),
+      ...updatedMediaList.filter(
+        (m) => m.slot !== 'groom' && m.slot !== 'couple_2',
+      ),
     ];
   }
 
@@ -452,10 +704,7 @@ export function buildDraftSubmissionPayload(params: {
       if (c.endDateTime && c.endDateTime.trim() !== '') {
         item.endDateTime = c.endDateTime.trim();
       }
-      if (
-        c.mapsUrl &&
-        /^https?:\/\/[^\s]+$/i.test(c.mapsUrl.trim())
-      ) {
+      if (c.mapsUrl && /^https?:\/\/[^\s]+$/i.test(c.mapsUrl.trim())) {
         item.mapsUrl = c.mapsUrl.trim();
       }
       return item;
@@ -498,55 +747,65 @@ export function buildDraftSubmissionPayload(params: {
     if (state.openingText.trim()) content.openingText = state.openingText.trim();
     if (state.quoteText.trim()) content.statement = state.quoteText.trim();
     if (state.prayerText.trim()) content.prayer = state.prayerText.trim();
-    if (state.prayerSource.trim()) content.prayerSource = state.prayerSource.trim();
-    if (state.closingText.trim()) content.closingMessage = state.closingText.trim();
+    if (state.prayerSource.trim())
+      content.prayerSource = state.prayerSource.trim();
+    if (state.closingText.trim())
+      content.closingMessage = state.closingText.trim();
   }
 
+  const supportedSlots = getTemplatePhotoSlotsConfig(upperTheme);
+  const supportedSlotMap = new Map(supportedSlots.map((s) => [s.slot, s]));
+
   const photos: Array<{ slot: string; dataUrl: string; order: number }> = [];
-  if (state.heroPhoto?.dataUrl) {
+  if (state.heroPhoto?.dataUrl && supportedSlotMap.has('hero')) {
     photos.push({
       slot: 'hero',
       dataUrl: state.heroPhoto.dataUrl,
       order: 0,
     });
   }
-  if (state.bridePhoto?.dataUrl) {
+  if (state.bridePhoto?.dataUrl && supportedSlotMap.has('bride')) {
     photos.push({
       slot: 'bride',
       dataUrl: state.bridePhoto.dataUrl,
       order: 0,
     });
   }
-  if (state.groomPhoto?.dataUrl) {
+  if (state.groomPhoto?.dataUrl && supportedSlotMap.has('groom')) {
     photos.push({
       slot: 'groom',
       dataUrl: state.groomPhoto.dataUrl,
       order: 0,
     });
   }
-  if (state.storyPhoto?.dataUrl && upperTheme !== 'SEKAR_KEDATON') {
+  if (state.storyPhoto?.dataUrl && supportedSlotMap.has('story')) {
     photos.push({
       slot: 'story',
       dataUrl: state.storyPhoto.dataUrl,
       order: 0,
     });
   }
-  if (state.closingPhoto?.dataUrl && upperTheme !== 'SEKAR_KEDATON') {
+  if (state.closingPhoto?.dataUrl && supportedSlotMap.has('closing')) {
     photos.push({
       slot: 'closing',
       dataUrl: state.closingPhoto.dataUrl,
       order: 0,
     });
   }
-  state.galleryPhotos.forEach((p, idx) => {
-    if (p.dataUrl) {
-      photos.push({
-        slot: 'gallery',
-        dataUrl: p.dataUrl,
-        order: idx,
+  const gallerySlotCfg = supportedSlotMap.get('gallery');
+  if (gallerySlotCfg) {
+    state.galleryPhotos
+      .slice(0, gallerySlotCfg.maxItems)
+      .forEach((p, idx) => {
+        if (p.dataUrl) {
+          photos.push({
+            slot: 'gallery',
+            dataUrl: p.dataUrl,
+            order: idx,
+          });
+        }
       });
-    }
-  });
+  }
 
   const firstCeremony = state.ceremonies[0];
   const tzOffset =
@@ -556,7 +815,8 @@ export function buildDraftSubmissionPayload(params: {
         ? '+09:00'
         : '+07:00';
   const eventDate =
-    firstCeremony?.startDateTime && !isNaN(Date.parse(firstCeremony.startDateTime))
+    firstCeremony?.startDateTime &&
+    !isNaN(Date.parse(firstCeremony.startDateTime))
       ? `${firstCeremony.startDateTime.slice(0, 16)}:00${tzOffset}`
       : new Date(Date.now() + 90 * 86400000).toISOString();
 
@@ -585,6 +845,7 @@ export function buildWhatsappOrderUrl(params: {
   adminPhone?: string;
   referenceCode: string;
   templateDisplayName: string;
+  themeCode?: string;
   clientName: string;
   clientWhatsapp: string;
   clientNotes?: string;
@@ -601,11 +862,14 @@ export function buildWhatsappOrderUrl(params: {
     ? firstCeremony.startDateTime.replace('T', ' Pukul ')
     : '-';
   const venueStr = firstCeremony?.venue || '-';
-  const uploadedPhotoCount =
-    (params.state.heroPhoto ? 1 : 0) +
-    (params.state.storyPhoto ? 1 : 0) +
-    (params.state.closingPhoto ? 1 : 0) +
-    params.state.galleryPhotos.length;
+  const uploadedPhotoCount = params.themeCode
+    ? countSupportedUploadedPhotos(params.themeCode, params.state)
+    : (params.state.heroPhoto ? 1 : 0) +
+      (params.state.bridePhoto ? 1 : 0) +
+      (params.state.groomPhoto ? 1 : 0) +
+      (params.state.storyPhoto ? 1 : 0) +
+      (params.state.closingPhoto ? 1 : 0) +
+      params.state.galleryPhotos.length;
 
   const lines = [
     `Halo Admin *IRVITE*, saya sudah mencoba simulasi personalisasi undangan dan *SUDAH FIX* dengan data berikut:`,

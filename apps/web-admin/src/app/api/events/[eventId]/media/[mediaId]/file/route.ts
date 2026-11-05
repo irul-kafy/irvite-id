@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 type Context = { params: Promise<{ eventId: string; mediaId: string }> };
 
@@ -18,7 +19,7 @@ export async function GET(_request: Request, context: Context) {
   }
 
   try {
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const response = await fetch(internalUrl + '/events/' + eventId + '/media/' + mediaId + '/file', {
       headers: {
         Authorization: 'Bearer ' + token,

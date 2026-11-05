@@ -7,11 +7,14 @@ import {
   type ClientCustomizationState,
   type CeremonyFormState,
   type GiftAccountFormState,
+  type CustomPhotoSlotKey,
   PATENTED_DESIGN_RULES,
   extractInitialCustomizationState,
   applyClientCustomizationToFixture,
   buildDraftSubmissionPayload,
   buildWhatsappOrderUrl,
+  getTemplatePhotoSlotsConfig,
+  countSupportedUploadedPhotos,
 } from '../customizer/template-customizer';
 import './template-customizer-studio.css';
 
@@ -80,6 +83,17 @@ export function TemplateCustomizerStudio({
   const defaultState = useMemo(
     () => extractInitialCustomizationState(initialFixture),
     [initialFixture],
+  );
+
+  const photoSlotsConfig = useMemo(
+    () => getTemplatePhotoSlotsConfig(themeCode, initialFixture),
+    [themeCode, initialFixture],
+  );
+
+  const galleryMaxItems = useMemo(
+    () =>
+      photoSlotsConfig.find((s) => s.slot === 'gallery')?.maxItems ?? 6,
+    [photoSlotsConfig],
   );
 
   const [state, setState] = useState<ClientCustomizationState>(defaultState);
@@ -260,7 +274,7 @@ export function TemplateCustomizerStudio({
       }
     }
 
-    const files = validFiles.slice(0, 4);
+    const files = validFiles.slice(0, galleryMaxItems);
     if (files.length === 0) {
       e.target.value = '';
       return;
@@ -284,7 +298,10 @@ export function TemplateCustomizerStudio({
 
     setState((prev) => ({
       ...prev,
-      galleryPhotos: [...prev.galleryPhotos, ...newItems].slice(0, 4),
+      galleryPhotos: [...prev.galleryPhotos, ...newItems].slice(
+        0,
+        galleryMaxItems,
+      ),
     }));
     e.target.value = '';
   };
@@ -345,6 +362,7 @@ export function TemplateCustomizerStudio({
       const whatsappUrl = buildWhatsappOrderUrl({
         referenceCode,
         templateDisplayName,
+        themeCode,
         clientName,
         clientWhatsapp,
         clientNotes,
@@ -364,13 +382,11 @@ export function TemplateCustomizerStudio({
     }
   };
 
-  const uploadedPhotoCount =
-    (state.heroPhoto ? 1 : 0) +
-    (state.bridePhoto ? 1 : 0) +
-    (state.groomPhoto ? 1 : 0) +
-    (state.storyPhoto ? 1 : 0) +
-    (state.closingPhoto ? 1 : 0) +
-    state.galleryPhotos.length;
+  const uploadedPhotoCount = countSupportedUploadedPhotos(
+    themeCode,
+    state,
+    initialFixture,
+  );
 
   return (
     <div
@@ -833,285 +849,162 @@ export function TemplateCustomizerStudio({
           {activeTab === 'photos' && (
             <>
               <div className="irv-studio-section-banner">
-                🖼️ Unggah foto prewedding Anda untuk melihat kecocokannya dengan bingkai artistik <strong>{templateDisplayName}</strong>. Saat Anda klik <em>Kirim ke Admin</em>, foto ini juga ikut terkirim ke Dashboard Super Admin!
+                🖼️ Template <strong>{templateDisplayName}</strong> menyediakan{' '}
+                <strong>{photoSlotsConfig.length} bagian foto</strong> sesuai
+                tata letak aslinya. Unggah foto Anda untuk melihat pratinjau
+                langsung dan mengirimkannya ke Dashboard Super Admin!
               </div>
 
-              {/* Hero Photo */}
-              <div className="irv-studio-photo-box">
-                <div className="irv-studio-label">
-                  <span>1. Foto Utama Mempelai (Hero / Sampul)</span>
-                  <span className="irv-studio-label__hint">Maks. 25 MB (JPG, PNG, WebP)</span>
-                </div>
-                {state.heroPhoto && (
-                  <div className="irv-studio-photo-preview-row">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={state.heroPhoto.previewUrl}
-                      alt="Pratinjau Hero"
-                      className="irv-studio-photo-thumb"
-                    />
-                    <div style={{ fontSize: '0.76rem', color: '#394640' }}>
-                      <strong>{state.heroPhoto.fileName || 'Foto Utama Terpilih'}</strong>
-                      <div>Tampil langsung di bingkai utama undangan</div>
-                    </div>
-                  </div>
-                )}
-                <div className="irv-studio-photo-actions">
-                  <label className="irv-studio-upload-btn">
-                    <span>📤 Pilih Foto Utama dari Perangkat</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleSinglePhotoUpload('hero', e)}
-                    />
-                  </label>
-                  {state.heroPhoto && (
-                    <button
-                      type="button"
-                      className="irv-studio-remove-btn"
-                      onClick={() => updateField('heroPhoto', null)}
-                    >
-                      Gunakan Foto Contoh
-                    </button>
-                  )}
-                </div>
-              </div>
+              {photoSlotsConfig.map((slotCfg, idx) => {
+                const slotNumber = idx + 1;
 
-              {/* Bride Photo */}
-              <div className="irv-studio-photo-box">
-                <div className="irv-studio-label">
-                  <span>2. Foto Mempelai Wanita ({state.partnerOneName || 'The Bride'})</span>
-                  <span className="irv-studio-label__hint">Opsional • Bingkai 01</span>
-                </div>
-                {state.bridePhoto && (
-                  <div className="irv-studio-photo-preview-row">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={state.bridePhoto.previewUrl}
-                      alt="Pratinjau Mempelai Wanita"
-                      className="irv-studio-photo-thumb"
-                    />
-                    <div style={{ fontSize: '0.76rem', color: '#394640' }}>
-                      <strong>{state.bridePhoto.fileName || 'Foto Mempelai Wanita'}</strong>
-                      <div>Tampil khusus di bingkai 01 Mempelai Wanita</div>
-                    </div>
-                  </div>
-                )}
-                <div className="irv-studio-photo-actions">
-                  <label className="irv-studio-upload-btn">
-                    <span>📤 Pilih Foto Mempelai Wanita</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleSinglePhotoUpload('bride', e)}
-                    />
-                  </label>
-                  {state.bridePhoto && (
-                    <button
-                      type="button"
-                      className="irv-studio-remove-btn"
-                      onClick={() => updateField('bridePhoto', null)}
-                    >
-                      Gunakan Foto Default
-                    </button>
-                  )}
-                </div>
-              </div>
+                if (slotCfg.slot === 'gallery') {
+                  return (
+                    <div key={slotCfg.slot} className="irv-studio-photo-box">
+                      <div className="irv-studio-label">
+                        <span>
+                          {slotNumber}. {slotCfg.title}
+                        </span>
+                        <span className="irv-studio-label__hint">
+                          {state.galleryPhotos.length}/{slotCfg.maxItems} Foto •{' '}
+                          {slotCfg.hint}
+                        </span>
+                      </div>
 
-              {/* Groom Photo */}
-              <div className="irv-studio-photo-box">
-                <div className="irv-studio-label">
-                  <span>3. Foto Mempelai Pria ({state.partnerTwoName || 'The Groom'})</span>
-                  <span className="irv-studio-label__hint">Opsional • Bingkai 02</span>
-                </div>
-                {state.groomPhoto && (
-                  <div className="irv-studio-photo-preview-row">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={state.groomPhoto.previewUrl}
-                      alt="Pratinjau Mempelai Pria"
-                      className="irv-studio-photo-thumb"
-                    />
-                    <div style={{ fontSize: '0.76rem', color: '#394640' }}>
-                      <strong>{state.groomPhoto.fileName || 'Foto Mempelai Pria'}</strong>
-                      <div>Tampil khusus di bingkai 02 Mempelai Pria</div>
-                    </div>
-                  </div>
-                )}
-                <div className="irv-studio-photo-actions">
-                  <label className="irv-studio-upload-btn">
-                    <span>📤 Pilih Foto Mempelai Pria</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleSinglePhotoUpload('groom', e)}
-                    />
-                  </label>
-                  {state.groomPhoto && (
-                    <button
-                      type="button"
-                      className="irv-studio-remove-btn"
-                      onClick={() => updateField('groomPhoto', null)}
-                    >
-                      Gunakan Foto Default
-                    </button>
-                  )}
-                </div>
-              </div>
+                      {state.galleryPhotos.length > 0 && (
+                        <div className="irv-studio-gallery-grid">
+                          {state.galleryPhotos
+                            .slice(0, slotCfg.maxItems)
+                            .map((item, gIdx) => (
+                              <div
+                                key={gIdx}
+                                className="irv-studio-gallery-item"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={item.previewUrl}
+                                  alt={`Galeri Klien ${gIdx + 1}`}
+                                />
+                                <button
+                                  type="button"
+                                  title="Hapus foto ini"
+                                  onClick={() =>
+                                    updateField(
+                                      'galleryPhotos',
+                                      state.galleryPhotos.filter(
+                                        (_, i) => i !== gIdx,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
 
-              {/* Story Photo (Aetheria, Opaline Nocturne, Ranah Cinta) */}
-              {themeCode !== 'SEKAR_KEDATON' && (
-                <div className="irv-studio-photo-box">
-                  <div className="irv-studio-label">
-                    <span>4. Foto Cerita / Kisah (Story Window)</span>
-                    <span className="irv-studio-label__hint">
-                      Opsional • {themeCode === 'AETHERIA' ? 'Jendela "Every path led to you"' : 'Seksi Kisah Cinta'}
-                    </span>
-                  </div>
-                  {state.storyPhoto && (
-                    <div className="irv-studio-photo-preview-row">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={state.storyPhoto.previewUrl}
-                        alt="Pratinjau Foto Kisah"
-                        className="irv-studio-photo-thumb"
-                      />
-                      <div style={{ fontSize: '0.76rem', color: '#394640' }}>
-                        <strong>{state.storyPhoto.fileName || 'Foto Kisah Terpilih'}</strong>
-                        <div>Tampil di seksi perjalanan kisah cinta mempelai</div>
+                      <div className="irv-studio-photo-actions">
+                        {state.galleryPhotos.length < slotCfg.maxItems && (
+                          <label className="irv-studio-upload-btn">
+                            <span>{slotCfg.uploadButtonLabel}</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                              multiple
+                              style={{ display: 'none' }}
+                              onChange={handleGalleryPhotoUpload}
+                            />
+                          </label>
+                        )}
+                        {state.galleryPhotos.length > 0 && (
+                          <button
+                            type="button"
+                            className="irv-studio-remove-btn"
+                            onClick={() => updateField('galleryPhotos', [])}
+                          >
+                            {slotCfg.resetButtonLabel}
+                          </button>
+                        )}
                       </div>
                     </div>
-                  )}
-                  <div className="irv-studio-photo-actions">
-                    <label className="irv-studio-upload-btn">
-                      <span>📤 Pilih Foto Kisah Cinta</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleSinglePhotoUpload('story', e)}
-                      />
-                    </label>
-                    {state.storyPhoto && (
-                      <button
-                        type="button"
-                        className="irv-studio-remove-btn"
-                        onClick={() => updateField('storyPhoto', null)}
-                      >
-                        Gunakan Foto Contoh
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
+                  );
+                }
 
-              {/* Gallery Photos */}
-              <div className="irv-studio-photo-box">
-                <div className="irv-studio-label">
-                  <span>{themeCode !== 'SEKAR_KEDATON' ? '5. Galeri Momen Bahagia' : '4. Galeri Momen Bahagia'}</span>
-                  <span className="irv-studio-label__hint">
-                    {state.galleryPhotos.length}/4 Foto • Maks. 25 MB/foto
-                  </span>
-                </div>
+                const singleSlot = slotCfg.slot as Exclude<
+                  CustomPhotoSlotKey,
+                  'gallery'
+                >;
+                const stateKey =
+                  singleSlot === 'hero'
+                    ? 'heroPhoto'
+                    : singleSlot === 'bride'
+                      ? 'bridePhoto'
+                      : singleSlot === 'groom'
+                        ? 'groomPhoto'
+                        : singleSlot === 'story'
+                          ? 'storyPhoto'
+                          : 'closingPhoto';
 
-                {state.galleryPhotos.length > 0 && (
-                  <div className="irv-studio-gallery-grid">
-                    {state.galleryPhotos.map((item, idx) => (
-                      <div key={idx} className="irv-studio-gallery-item">
+                const currentPhoto = state[stateKey];
+                const dynamicTitle =
+                  singleSlot === 'bride'
+                    ? `${slotCfg.title} (${state.partnerOneName || 'Mempelai Wanita'})`
+                    : singleSlot === 'groom'
+                      ? `${slotCfg.title} (${state.partnerTwoName || 'Mempelai Pria'})`
+                      : slotCfg.title;
+
+                return (
+                  <div key={slotCfg.slot} className="irv-studio-photo-box">
+                    <div className="irv-studio-label">
+                      <span>
+                        {slotNumber}. {dynamicTitle}
+                      </span>
+                      <span className="irv-studio-label__hint">
+                        {slotCfg.hint}
+                      </span>
+                    </div>
+                    {currentPhoto && (
+                      <div className="irv-studio-photo-preview-row">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={item.previewUrl}
-                          alt={`Galeri Klien ${idx + 1}`}
+                          src={currentPhoto.previewUrl}
+                          alt={`Pratinjau ${slotCfg.title}`}
+                          className="irv-studio-photo-thumb"
                         />
+                        <div style={{ fontSize: '0.76rem', color: '#394640' }}>
+                          <strong>
+                            {currentPhoto.fileName || slotCfg.title}
+                          </strong>
+                          <div>{slotCfg.description}</div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="irv-studio-photo-actions">
+                      <label className="irv-studio-upload-btn">
+                        <span>{slotCfg.uploadButtonLabel}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                          style={{ display: 'none' }}
+                          onChange={(e) =>
+                            handleSinglePhotoUpload(singleSlot, e)
+                          }
+                        />
+                      </label>
+                      {currentPhoto && (
                         <button
                           type="button"
-                          title="Hapus foto ini"
-                          onClick={() =>
-                            updateField(
-                              'galleryPhotos',
-                              state.galleryPhotos.filter((_, i) => i !== idx),
-                            )
-                          }
+                          className="irv-studio-remove-btn"
+                          onClick={() => updateField(stateKey, null)}
                         >
-                          ✕
+                          {slotCfg.resetButtonLabel}
                         </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="irv-studio-photo-actions">
-                  {state.galleryPhotos.length < 4 && (
-                    <label className="irv-studio-upload-btn">
-                      <span>📤 Tambah Foto Galeri</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                        multiple
-                        style={{ display: 'none' }}
-                        onChange={handleGalleryPhotoUpload}
-                      />
-                    </label>
-                  )}
-                  {state.galleryPhotos.length > 0 && (
-                    <button
-                      type="button"
-                      className="irv-studio-remove-btn"
-                      onClick={() => updateField('galleryPhotos', [])}
-                    >
-                      Reset Galeri
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Closing Photo */}
-              {themeCode !== 'SEKAR_KEDATON' && (
-                <div className="irv-studio-photo-box">
-                  <div className="irv-studio-label">
-                    <span>6. Foto Penutup (Closing Portrait)</span>
-                    <span className="irv-studio-label__hint">Opsional • Maks. 25 MB</span>
-                  </div>
-                  {state.closingPhoto && (
-                    <div className="irv-studio-photo-preview-row">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={state.closingPhoto.previewUrl}
-                        alt="Pratinjau Penutup"
-                        className="irv-studio-photo-thumb"
-                      />
-                      <div style={{ fontSize: '0.76rem', color: '#394640' }}>
-                        <strong>
-                          {state.closingPhoto.fileName || 'Foto Penutup Terpilih'}
-                        </strong>
-                      </div>
+                      )}
                     </div>
-                  )}
-                  <div className="irv-studio-photo-actions">
-                    <label className="irv-studio-upload-btn">
-                      <span>📤 Pilih Foto Penutup</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                        style={{ display: 'none' }}
-                        onChange={(e) => handleSinglePhotoUpload('closing', e)}
-                      />
-                    </label>
-                    {state.closingPhoto && (
-                      <button
-                        type="button"
-                        className="irv-studio-remove-btn"
-                        onClick={() => updateField('closingPhoto', null)}
-                      >
-                        Reset
-                      </button>
-                    )}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </>
           )}
 

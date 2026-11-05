@@ -117,6 +117,62 @@ export class PublicMediaService {
     };
   }
 
+  async resolveEventFallbackBufferBySlug(
+    slug: string,
+    key: string,
+  ): Promise<Buffer | null> {
+    try {
+      if (typeof this.prisma.event?.findUnique !== 'function') return null;
+      const ev = await this.prisma.event.findUnique({
+        where: { slug },
+        select: { content: true },
+      });
+      return this.extractFallbackBuffer(ev?.content, key);
+    } catch {
+      return null;
+    }
+  }
+
+  async resolveEventFallbackBufferByUniqueCode(
+    uniqueCode: string,
+    key: string,
+  ): Promise<Buffer | null> {
+    try {
+      const context =
+        await this.publicAccessService.getEligibleContext(uniqueCode);
+      if (typeof this.prisma.event?.findUnique !== 'function') return null;
+      const ev = await this.prisma.event.findUnique({
+        where: { id: context.eventId },
+        select: { content: true },
+      });
+      return this.extractFallbackBuffer(ev?.content, key);
+    } catch {
+      return null;
+    }
+  }
+
+  private extractFallbackBuffer(
+    rawContent: unknown,
+    key: string,
+  ): Buffer | null {
+    const contentObj =
+      rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
+        ? (rawContent as Record<string, unknown>)
+        : null;
+    const fallbackMap =
+      contentObj?._mediaFallback &&
+      typeof contentObj._mediaFallback === 'object' &&
+      !Array.isArray(contentObj._mediaFallback)
+        ? (contentObj._mediaFallback as Record<string, unknown>)
+        : null;
+    const base64Data = fallbackMap?.[key];
+    if (typeof base64Data === 'string' && base64Data.length > 0) {
+      const buf = Buffer.from(base64Data, 'base64');
+      if (buf.length > 0) return buf;
+    }
+    return null;
+  }
+
   private getMimeType(storageKey: string): string {
     const extension = storageKey.split('.').pop()?.toLowerCase();
     switch (extension) {

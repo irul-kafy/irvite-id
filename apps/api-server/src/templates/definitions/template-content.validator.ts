@@ -227,8 +227,16 @@ export function validateEventContent(
     return null;
   }
 
+  const INTERNAL_PLATFORM_KEYS = new Set([
+    '_schemaVersion',
+    'integrations',
+    'clientPortalEnabled',
+    'clientKey',
+    '_mediaFallback',
+  ]);
+
   const contentFieldKeys = Object.keys(rawObj).filter(
-    (k) => k !== '_schemaVersion' && k !== 'integrations',
+    (k) => !INTERNAL_PLATFORM_KEYS.has(k),
   );
   if (contentFieldKeys.length === 0) {
     return null;
@@ -239,9 +247,9 @@ export function validateEventContent(
     declaredKeys.set(field.key, field);
   }
 
-  // Reject undeclared fields at root (except _schemaVersion and internal platform integrations)
+  // Reject undeclared fields at root (except internal platform keys)
   for (const key of Object.keys(rawObj)) {
-    if (key === '_schemaVersion' || key === 'integrations') continue;
+    if (INTERNAL_PLATFORM_KEYS.has(key)) continue;
     if (!declaredKeys.has(key)) {
       throw new BadRequestException(`Undeclared content field: ${key}`);
     }

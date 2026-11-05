@@ -135,9 +135,15 @@ export function adaptRanahCintaData(
 
   const coverMedia = findMedia('COVER') || `${DEFAULT_ASSET_BASE}/ranah-landscape.png`;
   const heroMedia = findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
-  const couple1Media = findMedia('COUPLE_1') || findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
-  const couple2Media = findMedia('COUPLE_2');
-  const bgMusic = findMedia('BACKGROUND_MUSIC');
+  const couple1Media =
+    findMedia('BRIDE') ||
+    findMedia('COUPLE_1') ||
+    `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+  const couple2Media =
+    findMedia('GROOM') ||
+    findMedia('COUPLE_2') ||
+    `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+  const bgMusic = findMedia('BG-MUSIC') || findMedia('BACKGROUND_MUSIC');
 
   const rawEventDate = payload.event.eventDate || '2026-11-22T08:00:00+07:00';
   const dateLabel =

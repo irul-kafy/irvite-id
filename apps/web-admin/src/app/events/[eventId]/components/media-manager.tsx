@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MediaSlotCard, MediaSlotDefinition, MediaItem } from './media-slot-card';
@@ -155,6 +155,9 @@ export function MediaManager({ eventId, templateId }: MediaManagerProps) {
     mediaBySlot[slotKey].sort((a, b) => a.order - b.order || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
+  const photoSlotsCount = slots.filter((s) => s.mediaType === 'PHOTO').length;
+  const audioSlotsCount = slots.filter((s) => s.mediaType === 'AUDIO').length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div className="flex-between" style={{ alignItems: 'flex-start' }}>
@@ -163,7 +166,9 @@ export function MediaManager({ eventId, templateId }: MediaManagerProps) {
             Pengelola Media Template
           </h2>
           <p className="text-sm text-muted" style={{ margin: '0.25rem 0 0 0' }}>
-            Unggah foto dan audio sesuai slot yang disediakan template acara.
+            {slots.length > 0
+              ? `Template ini menyediakan ${photoSlotsCount} bagian foto${audioSlotsCount > 0 ? ` dan ${audioSlotsCount} slot musik latar` : ''} sesuai isi konten template.`
+              : 'Unggah foto dan audio sesuai slot yang disediakan template acara.'}
           </p>
         </div>
         <button
@@ -198,11 +203,17 @@ export function MediaManager({ eventId, templateId }: MediaManagerProps) {
           </div>
         </div>
       ) : (
-        slots.map((slot) => (
+        slots.map((slot, index) => (
           <MediaSlotCard
             key={slot.key}
             eventId={eventId}
-            slot={slot}
+            slot={{
+              ...slot,
+              label:
+                slot.mediaType === 'PHOTO'
+                  ? `${index + 1}. ${slot.label}`
+                  : slot.label,
+            }}
             items={mediaBySlot[slot.key] || []}
             onMediaChanged={loadMedia}
           />

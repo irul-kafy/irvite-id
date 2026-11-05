@@ -79,6 +79,48 @@ export class MediaService {
     };
   }
 
+  private async resolveFallbackBuffer(
+    eventId: string,
+    storageKey: string,
+  ): Promise<Buffer | null> {
+    try {
+      if (typeof this.prisma.event?.findFirst !== 'function') {
+        return null;
+      }
+      const ev = await this.prisma.event.findFirst({
+        where: { id: eventId },
+        select: { content: true },
+      });
+      const contentObj =
+        ev?.content &&
+        typeof ev.content === 'object' &&
+        !Array.isArray(ev.content)
+          ? (ev.content as Record<string, unknown>)
+          : null;
+      const fallbackMap =
+        contentObj?._mediaFallback &&
+        typeof contentObj._mediaFallback === 'object' &&
+        !Array.isArray(contentObj._mediaFallback)
+          ? (contentObj._mediaFallback as Record<string, unknown>)
+          : null;
+      const base64Data = fallbackMap?.[storageKey];
+      if (typeof base64Data === 'string' && base64Data.length > 0) {
+        const buf = Buffer.from(base64Data, 'base64');
+        if (buf.length > 0) {
+          if (typeof this.storageService.writeFile === 'function') {
+            await this.storageService
+              .writeFile(storageKey, buf)
+              .catch(() => undefined);
+          }
+          return buf;
+        }
+      }
+    } catch {
+      // Ignore fallback lookup errors
+    }
+    return null;
+  }
+
   async previewFile(
     eventId: string,
     mediaId: string,
@@ -128,6 +170,17 @@ export class MediaService {
       );
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+        const fallbackBuffer = await this.resolveFallbackBuffer(
+          eventId,
+          media.url,
+        );
+        if (fallbackBuffer) {
+          return new StreamableFile(fallbackBuffer, {
+            type,
+            length: fallbackBuffer.length,
+            disposition: 'inline',
+          });
+        }
         throw new NotFoundException('Image not found');
       }
       throw error;
@@ -273,6 +326,47 @@ export class MediaService {
         },
         select: this.safeSelect(),
       });
+
+      // Also persist base64 fallback for photos/thumbnails so serverless instances never lose images
+      if (
+        (dto.type === MediaType.PHOTO || dto.type === MediaType.THUMBNAIL) &&
+        file.buffer.length <= 5 * 1024 * 1024 &&
+        typeof this.prisma.event?.update === 'function'
+      ) {
+        try {
+          const ev = await this.prisma.event.findFirst({
+            where: { id: eventId },
+            select: { content: true },
+          });
+          const existingContent =
+            ev?.content &&
+            typeof ev.content === 'object' &&
+            !Array.isArray(ev.content)
+              ? (ev.content as Record<string, unknown>)
+              : {};
+          const existingFallback =
+            existingContent._mediaFallback &&
+            typeof existingContent._mediaFallback === 'object' &&
+            !Array.isArray(existingContent._mediaFallback)
+              ? (existingContent._mediaFallback as Record<string, string>)
+              : {};
+          await this.prisma.event.update({
+            where: { id: eventId },
+            data: {
+              content: {
+                ...existingContent,
+                _mediaFallback: {
+                  ...existingFallback,
+                  [key]: file.buffer.toString('base64'),
+                },
+              },
+            },
+          });
+        } catch {
+          // Non-fatal if fallback persistence fails
+        }
+      }
+
       return media;
     } catch (error) {
       try {

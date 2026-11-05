@@ -10,13 +10,18 @@ export class MediaStorageService {
   constructor() {
     // Read at construction, after ConfigModule has loaded .env.
     const storagePath = process.env.MEDIA_STORAGE_PATH;
-    this.storageRoot = storagePath
-      ? path.resolve(storagePath)
+    const defaultDir = process.env.VERCEL
+      ? path.resolve('/tmp', 'storage/media')
       : path.resolve(process.cwd(), 'storage/media');
+    this.storageRoot = storagePath ? path.resolve(storagePath) : defaultDir;
 
-    // Ensure directory exists
-    if (!fs.existsSync(this.storageRoot)) {
-      fs.mkdirSync(this.storageRoot, { recursive: true });
+    // Ensure directory exists (ignore read-only FS errors in serverless environments)
+    try {
+      if (!fs.existsSync(this.storageRoot)) {
+        fs.mkdirSync(this.storageRoot, { recursive: true });
+      }
+    } catch {
+      // Handled gracefully at write/read time with DB fallback
     }
   }
 

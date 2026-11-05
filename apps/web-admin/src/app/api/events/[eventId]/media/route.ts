@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { isValidAdminOrigin } from '@/utils/origin';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 type Context = { params: Promise<{ eventId: string }> };
 
@@ -21,7 +22,7 @@ export async function GET(request: Request, context: Context) {
   try {
     const url = new URL(request.url);
     const query = url.search;
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const response = await fetch(internalUrl + '/events/' + eventId + '/media' + query, {
       method: 'GET',
       headers: {
@@ -69,7 +70,7 @@ export async function POST(request: Request, context: Context) {
       return NextResponse.json({ message: 'File is required' }, { status: 400 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const response = await fetch(internalUrl + '/events/' + eventId + '/media', {
       method: 'POST',
       headers: {

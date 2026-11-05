@@ -48,6 +48,33 @@ export class PublicEventMediaController {
     } catch (e) {
       const error = e as NodeJS.ErrnoException;
       if (error.code === 'ENOENT') {
+        const fallbackBuf =
+          typeof this.publicMediaService.resolveEventFallbackBufferBySlug ===
+          'function'
+            ? await this.publicMediaService.resolveEventFallbackBufferBySlug(
+                slug,
+                key,
+              )
+            : null;
+        if (fallbackBuf) {
+          if (typeof this.storageService.writeFile === 'function') {
+            await this.storageService
+              .writeFile(key, fallbackBuf)
+              .catch(() => undefined);
+          }
+          res.status(HttpStatus.OK);
+          res.header('Content-Type', mimeType);
+          res.header('Accept-Ranges', 'bytes');
+          res.header('Content-Length', fallbackBuf.length.toString());
+          res.header(
+            'Cache-Control',
+            'no-store, no-cache, must-revalidate, proxy-revalidate',
+          );
+          res.header('X-Content-Type-Options', 'nosniff');
+          res.header('Content-Disposition', 'inline');
+          if (isHead) return res.end();
+          return res.end(fallbackBuf);
+        }
         this.logger.error(`Physical file missing for media key: ${key}`);
         throw new NotFoundException('Media not found');
       }

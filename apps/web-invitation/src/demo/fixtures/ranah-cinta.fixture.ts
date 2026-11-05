@@ -80,25 +80,54 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
   },
   media: [
     {
-      id: 'demo-cover',
-      slot: 'cover',
-      src: '/templates/ranah-cinta/ranah-landscape.png',
+      id: 'demo-hero',
+      slot: 'hero',
+      src: '/templates/ranah-cinta/couple-hero.jpg',
       type: 'PHOTO',
       order: 0,
     },
     {
-      id: 'demo-hero',
-      slot: 'hero',
+      id: 'demo-bride',
+      slot: 'bride',
       src: '/templates/ranah-cinta/couple-hero.jpg',
       type: 'PHOTO',
       order: 1,
     },
     {
-      id: 'demo-couple-1',
-      slot: 'couple_1',
+      id: 'demo-groom',
+      slot: 'groom',
       src: '/templates/ranah-cinta/couple-hero.jpg',
       type: 'PHOTO',
       order: 2,
     },
   ],
+  mediaBySlot: {
+    hero: [
+      {
+        id: 'demo-hero',
+        slot: 'hero',
+        src: '/templates/ranah-cinta/couple-hero.jpg',
+        type: 'PHOTO',
+        order: 0,
+      },
+    ],
+    bride: [
+      {
+        id: 'demo-bride',
+        slot: 'bride',
+        src: '/templates/ranah-cinta/couple-hero.jpg',
+        type: 'PHOTO',
+        order: 1,
+      },
+    ],
+    groom: [
+      {
+        id: 'demo-groom',
+        slot: 'groom',
+        src: '/templates/ranah-cinta/couple-hero.jpg',
+        type: 'PHOTO',
+        order: 2,
+      },
+    ],
+  },
 };

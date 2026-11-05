@@ -136,6 +136,7 @@ export function MediaSlotCard({
   const [reorderingId, setReorderingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [brokenImageIds, setBrokenImageIds] = useState<Record<string, boolean>>({});
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
@@ -434,16 +435,37 @@ export function MediaSlotCard({
                       borderRadius: 'var(--radius-sm)',
                       overflow: 'hidden',
                       border: '1px solid var(--admin-border)',
-                      background: '#000',
+                      background: 'var(--admin-surface-muted, #f3f4f6)',
                       flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-<img
-                      src={`/api/events/${eventId}/media/${items[0].id}/file`}
-                      alt={slot.label}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                    {brokenImageIds[items[0].id] ? (
+                      <div
+                        style={{
+                          padding: '0.5rem',
+                          textAlign: 'center',
+                          fontSize: '0.7rem',
+                          color: 'var(--text-secondary)',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        <div style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>🖼️</div>
+                        Unggah ulang file
+                      </div>
+                    ) : (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={`/api/events/${eventId}/media/${items[0].id}/file`}
+                        alt={slot.label}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={() =>
+                          setBrokenImageIds((prev) => ({ ...prev, [items[0].id]: true }))
+                        }
+                      />
+                    )}
                   </div>
                 ) : (
                   /* AUDIO SAFE METADATA ONLY (DO NOT use image preview endpoint) */
@@ -550,13 +572,38 @@ export function MediaSlotCard({
                         flexDirection: 'column',
                       }}
                     >
-                      <div style={{ height: '140px', background: '#000', overflow: 'hidden' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-<img
-                          src={`/api/events/${eventId}/media/${item.id}/file`}
-                          alt={`Foto galeri ${idx + 1}`}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
+                      <div
+                        style={{
+                          height: '140px',
+                          background: 'var(--admin-surface-muted, #f3f4f6)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {brokenImageIds[item.id] ? (
+                          <div
+                            style={{
+                              padding: '0.5rem',
+                              textAlign: 'center',
+                              fontSize: '0.72rem',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            🖼️ Pratinjau tidak tersedia
+                          </div>
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={`/api/events/${eventId}/media/${item.id}/file`}
+                            alt={`Foto galeri ${idx + 1}`}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={() =>
+                              setBrokenImageIds((prev) => ({ ...prev, [item.id]: true }))
+                            }
+                          />
+                        )}
                       </div>
                       <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <div className="flex-between mb-2">
