@@ -24,6 +24,7 @@ export interface EventItemSummary {
   locationAddress?: string | null;
   locationDetails?: string | null;
   mapsUrl?: string | null;
+  content?: Record<string, unknown> | null;
   googleSheetSync?: {
     connected?: boolean;
     syncStatus?: 'SUCCESS' | 'FAILED' | 'PENDING';
@@ -44,6 +45,8 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
 
     const eventDate = event.eventDate ? new Date(event.eventDate) : null;
     const isDraft = event.status === 'DRAFT' || (typeof event.title === 'string' && /Draf Klien/i.test(event.title));
+    const contentObj = (event.content && typeof event.content === 'object' ? event.content : {}) as Record<string, unknown>;
+    const contentIntegrations = (contentObj.integrations && typeof contentObj.integrations === 'object' ? contentObj.integrations : {}) as Record<string, unknown>;
 
     // 1. Draf Klien Baru dari Studio Simulasi
     if (isDraft) {
@@ -115,7 +118,12 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
         (event.venueName && event.venueName.trim()) ||
         (event.locationAddress && event.locationAddress.trim()) ||
         (event.locationDetails && event.locationDetails.trim()) ||
-        (event.mapsUrl && event.mapsUrl.trim())
+        (event.mapsUrl && event.mapsUrl.trim()) ||
+        (typeof contentObj.venue === 'string' && contentObj.venue.trim()) ||
+        (typeof contentObj.venueName === 'string' && contentObj.venueName.trim()) ||
+        (typeof contentObj.locationAddress === 'string' && contentObj.locationAddress.trim()) ||
+        (typeof contentObj.address === 'string' && contentObj.address.trim()) ||
+        (typeof contentObj.mapsUrl === 'string' && contentObj.mapsUrl.trim())
       );
 
       if (diffDays >= 0 && diffDays <= 14 && !hasLocation) {
@@ -124,7 +132,7 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
           category: 'READINESS',
           level: 'WARNING',
           title: `Lokasi Belum Diisi: ${event.title || 'Acara'}`,
-          message: `Acara tinggal ${diffDays} hari namun data venue dan peta maps belum dilengkapi.`,
+          message: `Acara tinggal ${diffDays === 0 ? 'hari ini' : `${diffDays} hari lagi`} namun data venue dan peta maps belum dilengkapi.`,
           actionUrl: `/events/${event.id}/edit`,
           tag: 'Perlu Dilengkapi',
           tagColor: 'amber',
@@ -134,8 +142,15 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
     }
 
     // 4. Status Integrasi Google Sheet
-    if (event.googleSheetSync) {
-      if (event.googleSheetSync.syncStatus === 'FAILED') {
+    const sheetSync = event.googleSheetSync || (contentIntegrations.googleSheetWebhookUrl ? {
+      connected: true,
+      syncStatus: 'SUCCESS' as const,
+      lastSyncedAt: typeof contentIntegrations.googleSheetUpdatedAt === 'string' ? contentIntegrations.googleSheetUpdatedAt : null,
+      sheetName: 'Google Sheets',
+    } : null);
+
+    if (sheetSync) {
+      if (sheetSync.syncStatus === 'FAILED') {
         notifications.push({
           id: `sheet-failed-${event.id}`,
           category: 'SHEET_SYNC',
@@ -145,19 +160,19 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
           actionUrl: `/events/${event.id}/guests`,
           tag: 'Gagal Sync',
           tagColor: 'rose',
-          createdAt: event.googleSheetSync.lastSyncedAt || new Date().toISOString(),
+          createdAt: sheetSync.lastSyncedAt || new Date().toISOString(),
         });
-      } else if (event.googleSheetSync.connected) {
+      } else if (sheetSync.connected) {
         notifications.push({
           id: `sheet-ok-${event.id}`,
           category: 'SHEET_SYNC',
           level: 'INFO',
           title: `Google Sheet Terhubung: ${event.title || 'Acara'}`,
-          message: `Tersambung ke spreadsheet "${event.googleSheetSync.sheetName || 'Buku Tamu'}".`,
+          message: `Tersambung ke spreadsheet "${sheetSync.sheetName || 'Buku Tamu'}".`,
           actionUrl: `/events/${event.id}/guests`,
           tag: 'Sheet Aktif',
           tagColor: 'emerald',
-          createdAt: event.googleSheetSync.lastSyncedAt || new Date().toISOString(),
+          createdAt: sheetSync.lastSyncedAt || new Date().toISOString(),
         });
       }
     }
@@ -226,7 +241,7 @@ export function buildScannerNotifications(scannerEvents: EventItemSummary[]): Ad
 
 export async function GET() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  const token = cookieStore.get('auth_token')?.value || cookieStore.get('token')?.value;
 
   if (!token) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -240,25 +255,45 @@ export async function GET() {
 
   try {
     // Ambil daftar event aktif (hingga 40 event untuk mendeteksi event terdekat & draf)
-    const eventsRes = await fetch(`${apiBase}/api/v1/events?limit=40`, {
+    let eventsRes = await fetch(`${apiBase}/events?limit=40`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
       cache: 'no-store',
     });
 
+    if (eventsRes.status === 404) {
+      eventsRes = await fetch(`${apiBase}/api/v1/events?limit=40`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      });
+    }
+
     if (!eventsRes.ok) {
       if (eventsRes.status === 401) {
-        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        const res = NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+        res.cookies.delete('auth_token');
+        return res;
       }
 
-      // Jika role adalah SCANNER, coba ambil dari endpoint scanner
-      const scannerRes = await fetch(`${apiBase}/api/v1/scanner/events`, {
+      // Jika role adalah SCANNER atau endpoint event mengembalikan Forbidden (403), ambil dari endpoint scanner
+      let scannerRes = await fetch(`${apiBase}/scanner/events`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         cache: 'no-store',
       }).catch(() => null);
+
+      if (!scannerRes || scannerRes.status === 404) {
+        scannerRes = await fetch(`${apiBase}/api/v1/scanner/events`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          cache: 'no-store',
+        }).catch(() => null);
+      }
 
       if (scannerRes && scannerRes.ok) {
         const scannerData = await scannerRes.json().catch(() => []);
@@ -269,8 +304,12 @@ export async function GET() {
       return NextResponse.json({ notifications: [] }, { headers });
     }
 
-    const eventsData = await eventsRes.json();
-    const events: EventItemSummary[] = Array.isArray(eventsData.data) ? eventsData.data : [];
+    const eventsData = await eventsRes.json().catch(() => null);
+    const events: EventItemSummary[] = Array.isArray(eventsData?.data)
+      ? eventsData.data
+      : Array.isArray(eventsData)
+      ? eventsData
+      : [];
 
     const notifications = buildAdminNotifications(events);
 

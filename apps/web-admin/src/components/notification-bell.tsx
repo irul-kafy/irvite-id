@@ -142,13 +142,30 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !readIds.includes(n.id)).length;
 
+  const handleToggle = () => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        void fetch('/api/notifications', { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && Array.isArray(data.notifications)) {
+              setNotifications(data.notifications);
+            }
+          })
+          .catch(() => {});
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="admin-bell-wrapper" ref={containerRef}>
       <button
         id="admin-notification-bell"
         type="button"
         className={`admin-header__bell-btn ${isOpen ? 'is-active' : ''}`}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggle}
         aria-label={unreadCount > 0 ? `Buka notifikasi (${unreadCount} belum dibaca)` : 'Buka notifikasi'}
         aria-expanded={isOpen}
         title="Notifikasi & Pengingat Event"

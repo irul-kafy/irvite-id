@@ -3,14 +3,16 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import Module from 'node:module';
 
-let mockToken: string | undefined;
+let mockCookies: Record<string, string> = {};
 const originalRequire = (Module.prototype as any).require;
 (Module.prototype as any).require = function (id: string) {
   if (id === 'next/headers') {
     return {
       cookies: async () => ({
-        get: () => (mockToken ? { value: mockToken } : undefined),
-        delete: () => {},
+        get: (name: string) => (mockCookies[name] ? { value: mockCookies[name] } : undefined),
+        delete: (name: string) => {
+          delete mockCookies[name];
+        },
       }),
     };
   }
@@ -178,24 +180,83 @@ describe('Admin Notifications Engine', () => {
     assert.equal(notifications[0].actionUrl, '/events/scan-1/scanner');
   });
 
+  it('detects Google Sheet connection from event content.integrations', () => {
+    const events = [
+      {
+        id: 'evt-gsheet',
+        title: 'Pernikahan Sarah & Anton',
+        status: 'PUBLISHED',
+        content: {
+          integrations: {
+            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+            googleSheetUpdatedAt: '2026-11-05T01:00:00.000Z',
+          },
+        },
+        createdAt: '2026-11-01T00:00:00.000Z',
+      },
+    ];
+
+    const notifications = buildAdminNotifications(events);
+    const sheetNotif = notifications.find((n: any) => n.id === 'sheet-ok-evt-gsheet');
+    assert.ok(sheetNotif, 'Should generate Google Sheet connection notification');
+    assert.equal(sheetNotif.category, 'SHEET_SYNC');
+    assert.equal(sheetNotif.level, 'INFO');
+    assert.equal(sheetNotif.tag, 'Sheet Aktif');
+  });
+
   it('GET /api/notifications returns 401 when token cookie is missing', async () => {
-    mockToken = undefined;
+    mockCookies = {};
     const res = await GET();
     assert.equal(res.status, 401);
     const json = await res.json();
     assert.equal(json.message, 'Unauthorized');
   });
 
-  it('GET /api/notifications returns 200 with notifications when authenticated', async () => {
-    mockToken = 'valid-mock-token';
+  it('GET /api/notifications returns 200 using auth_token cookie', async () => {
+    mockCookies = { auth_token: 'valid-mock-auth-token' };
+    const origFetch = global.fetch;
+    global.fetch = (async (url: string) => {
+      if (url.includes('/events')) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: 'evt-test-1',
+                title: 'Pernikahan Draf Klien #IRV-999',
+                status: 'DRAFT',
+                createdAt: '2026-11-05T00:00:00.000Z',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(null, { status: 404 });
+    }) as any;
+
+    try {
+      const res = await GET();
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.ok(Array.isArray(json.notifications));
+      assert.equal(json.notifications.length, 1);
+      assert.equal(json.notifications[0].category, 'CLIENT_DRAFT');
+    } finally {
+      global.fetch = origFetch;
+      mockCookies = {};
+    }
+  });
+
+  it('GET /api/notifications falls back to token cookie if auth_token is absent', async () => {
+    mockCookies = { token: 'valid-mock-legacy-token' };
     const origFetch = global.fetch;
     global.fetch = (async () => {
       return new Response(
         JSON.stringify({
           data: [
             {
-              id: 'evt-test-1',
-              title: 'Pernikahan Draf Klien #IRV-999',
+              id: 'evt-test-2',
+              title: 'Pernikahan Draf Klien #IRV-888',
               status: 'DRAFT',
               createdAt: '2026-11-05T00:00:00.000Z',
             },
@@ -211,10 +272,50 @@ describe('Admin Notifications Engine', () => {
       const json = await res.json();
       assert.ok(Array.isArray(json.notifications));
       assert.equal(json.notifications.length, 1);
-      assert.equal(json.notifications[0].category, 'CLIENT_DRAFT');
+      assert.equal(json.notifications[0].id, 'draft-evt-test-2');
     } finally {
       global.fetch = origFetch;
-      mockToken = undefined;
+      mockCookies = {};
+    }
+  });
+
+  it('GET /api/notifications fetches scanner events when main endpoint returns 403 Forbidden', async () => {
+    mockCookies = { auth_token: 'scanner-auth-token' };
+    const today = new Date();
+    const origFetch = global.fetch;
+    global.fetch = (async (url: string) => {
+      if (url.includes('/events?limit=40') || url.includes('/api/v1/events?limit=40')) {
+        return new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403 });
+      }
+      if (url.includes('/scanner/events') || url.includes('/api/v1/scanner/events')) {
+        return new Response(
+          JSON.stringify([
+            {
+              id: 'scan-item-1',
+              event: {
+                id: 'event-scan-1',
+                title: 'Resepsi Scanner Staff',
+                eventDate: today.toISOString(),
+                status: 'PUBLISHED',
+              },
+            },
+          ]),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      return new Response(null, { status: 404 });
+    }) as any;
+
+    try {
+      const res = await GET();
+      assert.equal(res.status, 200);
+      const json = await res.json();
+      assert.ok(Array.isArray(json.notifications));
+      assert.equal(json.notifications.length, 1);
+      assert.equal(json.notifications[0].tag, 'Tugas Hari Ini');
+    } finally {
+      global.fetch = origFetch;
+      mockCookies = {};
     }
   });
 });
