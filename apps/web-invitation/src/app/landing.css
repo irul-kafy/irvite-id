@@ -312,21 +312,32 @@ h1 em {
   background: #e5c358 !important;
 }
 
-.hero-proof {
-  margin-top: 42px;
+.hero-features {
+  margin-top: 36px;
   display: flex;
-  gap: 20px;
-  color: var(--secondary-dark);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-weight: 600;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
 }
 
-.hero-proof span + span::before {
-  margin-right: 20px;
-  color: var(--secondary-muted);
-  content: '·';
+.hero-feature-item {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #181e1b;
+  background: var(--paper-deep);
+  border: 1px solid var(--line);
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.hero-feature-item b {
+  color: var(--secondary-dark);
+  margin-right: 6px;
+  font-weight: 700;
+  font-size: 11px;
 }
 
 /* ── Hero Art / Phone Mockup (Matching Screenshot) ────────────────────────── */
@@ -1304,8 +1315,15 @@ footer .brand {
     width: 100%;
   }
 
-  .hero-proof {
-    display: none;
+  .hero-features {
+    margin-top: 24px;
+    gap: 6px 8px;
+    justify-content: flex-start;
+  }
+
+  .hero-feature-item {
+    font-size: 11px;
+    padding: 4px 10px;
   }
 
   .hero-art {

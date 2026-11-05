@@ -9,6 +9,14 @@ import { getGeneralContactUrl } from '../utils/contact';
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
 const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
+
+const HERO_FEATURES = [
+  'Konsultasi gratis',
+  'Desain personal',
+  'Scanner on-site',
+  'Laporan real-time',
+  'QR unik per tamu',
+];
 const MSG_BASIC = 'Halo IRVITE, saya ingin memesan Paket Esensial untuk undangan digital.';
 const MSG_PREMIUM = 'Halo IRVITE, saya ingin memesan Paket Personal dengan Tim Scanner di venue.';
 
@@ -97,38 +105,16 @@ function HeroSection() {
             </button>
           )}
         </div>
-        <div className="hero-proof" aria-label="Ringkasan layanan">
-          <span>DESAIN PERSONAL</span>
-          <span>PROSES TERARAH</span>
-          <span>DUKUNGAN NYATA</span>
+        <div className="hero-features" aria-label="Keunggulan layanan">
+          {HERO_FEATURES.map((item, index) => (
+            <span key={item} className="hero-feature-item">
+              <b>{String(index + 1).padStart(2, '0')}</b> {item}
+            </span>
+          ))}
         </div>
       </div>
 
       <HeroPhoneShowcase />
-    </section>
-  );
-}
-
-// ── Feature Strip ──────────────────────────────────────────────────────────────
-function FeatureStrip() {
-  const items = [
-    'Konsultasi gratis',
-    'Desain personal',
-    'Tim profesional',
-    'Scanner on-site',
-    'Laporan real-time',
-    'QR unik per tamu',
-  ];
-
-  return (
-    <section className="feature-strip" aria-label="Keunggulan layanan">
-      <div className="shell feature-row">
-        {items.map((item, index) => (
-          <span key={item}>
-            <b>{String(index + 1).padStart(2, '0')}</b> {item}
-          </span>
-        ))}
-      </div>
     </section>
   );
 }
@@ -434,7 +420,6 @@ export default async function LandingPage() {
       <LandingNavbar />
       <main className="landing-main">
       <HeroSection />
-      <FeatureStrip />
       <CatalogSection templates={templates} />
       <PackagesSection />
       <ProcessSection />
