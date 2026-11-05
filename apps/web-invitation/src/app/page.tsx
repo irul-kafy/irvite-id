@@ -316,12 +316,11 @@ function ProcessSection() {
       <span id="alur" style={{ display: 'none' }} />
       <div className="section-heading section-heading--process">
         <div>
-          <p className="eyebrow">Cara kerja</p>
-          <h2>Jelas prosesnya. Ringan dijalaninya.</h2>
+          <p className="eyebrow">Alur Pemesanan</p>
+          <h2>Alur praktis dari draf hingga undangan siap disebar.</h2>
         </div>
         <p>
-          Kami memandu setiap tahap dengan alur yang sederhana, tanpa membuat Anda
-          berhadapan dengan kerumitan teknis.
+          Kami memandu setiap tahap dengan alur yang tertata dan transparan, tanpa kerumitan teknis bagi calon pengantin.
         </p>
       </div>
       <div className="process-list">
@@ -432,7 +431,7 @@ function Footer() {
         </div>
         <div className="footer-links">
           <a href="#katalog">Katalog</a>
-          <a href="#cara-kerja">Cara kerja</a>
+          <a href="#cara-kerja">Alur Pemesanan</a>
           <a href="#paket">Paket</a>
           {contactUrl ? (
             <a

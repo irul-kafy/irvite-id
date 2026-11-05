@@ -31,7 +31,7 @@ export function LandingNavbar() {
         <div className="site-nav-group">
           <nav aria-label="Navigasi utama">
             <a href="#katalog">Katalog</a>
-            <a href="#cara-kerja">Cara kerja</a>
+            <a href="#cara-kerja">Alur Pemesanan</a>
             <a href="#paket">Paket</a>
           </nav>
           <div className="nav-actions">

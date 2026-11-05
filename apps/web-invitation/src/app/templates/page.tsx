@@ -74,7 +74,7 @@ export default async function PublicTemplatesPage() {
                 Katalog
               </Link>
               <Link href="/#cara-kerja" className="cat-nav__link">
-                Cara Kerja
+                Alur Pemesanan
               </Link>
               <Link href="/#paket" className="cat-nav__link">
                 Paket

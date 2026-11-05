@@ -923,6 +923,13 @@ h1 em {
   margin-bottom: 48px;
 }
 
+.section-heading--process h2 {
+  font-size: clamp(26px, 3vw, 36px);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  max-width: 620px;
+}
+
 .process-list {
   border-top: 1px solid var(--line-strong);
 }
@@ -954,9 +961,9 @@ h1 em {
 .process-item h3 {
   margin: 0;
   font-family: var(--serif);
-  font-size: 30px;
-  font-weight: 400;
-  line-height: 1.15;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
   color: #181e1b;
 }
 
@@ -1342,8 +1349,12 @@ footer .brand {
     gap: 10px;
   }
 
-  .process-item h3 {
+  .section-heading--process h2 {
     font-size: 26px;
+  }
+
+  .process-item h3 {
+    font-size: 20px;
   }
 
   .package-card {
