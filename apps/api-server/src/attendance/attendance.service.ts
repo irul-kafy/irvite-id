@@ -24,7 +24,7 @@ export class AttendanceService {
   constructor(
     private readonly db: PrismaService,
     private readonly reportsService: ReportsService,
-  ) {}
+  ) { }
 
   private async authorizeEvent(
     eventId: string,
@@ -120,8 +120,8 @@ export class AttendanceService {
     if (!event) return null;
     const content =
       event.content &&
-      typeof event.content === 'object' &&
-      !Array.isArray(event.content)
+        typeof event.content === 'object' &&
+        !Array.isArray(event.content)
         ? (event.content as Record<string, unknown>)
         : {};
     const pick = (key: string): string | null => {
@@ -284,17 +284,17 @@ export class AttendanceService {
       },
       attendance: attendance
         ? {
-            scannedPax: attendance.scannedPax,
-            scannedAt: attendance.scannedAt,
-          }
+          scannedPax: attendance.scannedPax,
+          scannedAt: attendance.scannedAt,
+        }
         : null,
       checkIns: attendance?.checkIns
         ? attendance.checkIns.map((ci) => ({
-            id: ci.id,
-            scannedPax: ci.scannedPax,
-            scannedAt: ci.scannedAt,
-            scannedById: ci.scannedById,
-          }))
+          id: ci.id,
+          scannedPax: ci.scannedPax,
+          scannedAt: ci.scannedAt,
+          scannedById: ci.scannedById,
+        }))
         : [],
     };
   }
@@ -960,11 +960,11 @@ export class AttendanceService {
     const contentObj =
       event.content && typeof event.content === 'object'
         ? (event.content as {
-            integrations?: {
-              googleSheetWebhookUrl?: string | null;
-              googleSheetUpdatedAt?: string | null;
-            };
-          })
+          integrations?: {
+            googleSheetWebhookUrl?: string | null;
+            googleSheetUpdatedAt?: string | null;
+          };
+        })
         : {};
     const googleSheetWebhookUrl =
       contentObj.integrations?.googleSheetWebhookUrl || null;
@@ -1006,11 +1006,11 @@ export class AttendanceService {
     const content =
       event.content && typeof event.content === 'object'
         ? (event.content as {
-            integrations?: {
-              googleSheetWebhookUrl?: string | null;
-              googleSheetUpdatedAt?: string | null;
-            };
-          })
+          integrations?: {
+            googleSheetWebhookUrl?: string | null;
+            googleSheetUpdatedAt?: string | null;
+          };
+        })
         : {};
     const integrations = content.integrations || {};
 
@@ -1032,14 +1032,14 @@ export class AttendanceService {
 
     const currentContent: Record<string, unknown> =
       event.content &&
-      typeof event.content === 'object' &&
-      !Array.isArray(event.content)
+        typeof event.content === 'object' &&
+        !Array.isArray(event.content)
         ? { ...(event.content as Record<string, unknown>) }
         : {};
     const integrations: Record<string, unknown> =
       currentContent.integrations &&
-      typeof currentContent.integrations === 'object' &&
-      !Array.isArray(currentContent.integrations)
+        typeof currentContent.integrations === 'object' &&
+        !Array.isArray(currentContent.integrations)
         ? { ...(currentContent.integrations as Record<string, unknown>) }
         : {};
 
@@ -1069,8 +1069,8 @@ export class AttendanceService {
     const content =
       event.content && typeof event.content === 'object'
         ? (event.content as {
-            integrations?: { googleSheetWebhookUrl?: string | null };
-          })
+          integrations?: { googleSheetWebhookUrl?: string | null };
+        })
         : {};
     const webhookUrl = content.integrations?.googleSheetWebhookUrl;
 
@@ -1140,8 +1140,8 @@ export class AttendanceService {
     const content =
       event.content && typeof event.content === 'object'
         ? (event.content as {
-            integrations?: { googleSheetWebhookUrl?: string | null };
-          })
+          integrations?: { googleSheetWebhookUrl?: string | null };
+        })
         : {};
     const webhookUrl = content.integrations?.googleSheetWebhookUrl;
 
@@ -1238,8 +1238,8 @@ export class AttendanceService {
       const content =
         event.content && typeof event.content === 'object'
           ? (event.content as {
-              integrations?: { googleSheetWebhookUrl?: string | null };
-            })
+            integrations?: { googleSheetWebhookUrl?: string | null };
+          })
           : {};
       const webhookUrl = content.integrations?.googleSheetWebhookUrl;
       if (

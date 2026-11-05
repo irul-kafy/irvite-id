@@ -11,6 +11,7 @@ function IconTrash() {
 }
 
 import { useState, useEffect, use } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { buildExportUrl } from '../../utils/export-url-builder';
@@ -286,6 +287,30 @@ export default function GuestListPage({
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [portalModalOpen, setPortalModalOpen] = useState<boolean>(false);
   const [isPortalCopied, setIsPortalCopied] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Lock body scroll and listen for Escape key when modal is open
+  useEffect(() => {
+    if (!portalModalOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPortalModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [portalModalOpen]);
 
   const rawInvitationOrigin =
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN ||
@@ -2064,20 +2089,27 @@ export default function GuestListPage({
       )}
 
       {/* Modal Portal Klien (Pengantin) */}
-      {portalModalOpen && (
+      {isMounted && portalModalOpen && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           style={{
             position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
             backdropFilter: 'blur(4px)',
-            zIndex: 1000,
+            WebkitBackdropFilter: 'blur(4px)',
+            zIndex: 99999,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '1rem',
+            boxSizing: 'border-box',
           }}
           onClick={() => setPortalModalOpen(false)}
         >
@@ -2087,8 +2119,13 @@ export default function GuestListPage({
               borderRadius: '16px',
               maxWidth: '560px',
               width: '100%',
+              maxHeight: 'calc(100vh - 2rem)',
+              overflowY: 'auto',
               padding: '1.75rem',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              margin: 'auto',
+              boxSizing: 'border-box',
+              position: 'relative',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -2216,7 +2253,8 @@ export default function GuestListPage({
               </a>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Responsive Styles Injection */}

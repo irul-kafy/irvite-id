@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  UnauthorizedException,
-  BadRequestException,
-} from '@nestjs/common';
+import { NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InvitationStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import {
@@ -287,12 +283,7 @@ describe('ClientPortalService', () => {
         status: InvitationStatus.SENT,
       });
 
-      const res = await service.setGuestWaStatus(
-        mockEvent.id,
-        'g-1',
-        validKey,
-        true,
-      );
+      const res = await service.setGuestWaStatus(mockEvent.id, 'g-1', validKey, true);
       expect(res.isWaSent).toBe(true);
       expect(res.status).toBe(InvitationStatus.SENT);
     });
