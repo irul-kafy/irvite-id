@@ -360,59 +360,6 @@ function TestimonialsSection() {
   );
 }
 
-// ── Final CTA Section ──────────────────────────────────────────────────────────
-function CTASection() {
-  const contactUrl = getGeneralContactUrl(MSG_GENERAL);
-
-  return (
-    <section className="cta shell">
-      <div className="cta-content">
-        <div>
-          <p className="eyebrow">Mulai dari percakapan sederhana</p>
-          <h2>Siap membuat kesan pertama yang berharga?</h2>
-        </div>
-        <div className="cta-right">
-          <p>Ceritakan rencana Anda. Konsultasi awal gratis dan tidak mengikat.</p>
-          <div className="cta-actions">
-            {contactUrl ? (
-              <a
-                id="cta-banner-wa"
-                className="button light"
-                href={contactUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <IconWA className="wa-icon" />
-                Mulai konsultasi
-              </a>
-            ) : (
-              <button
-                type="button"
-                id="cta-banner-wa"
-                disabled
-                className="button light"
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                title="Kontak belum dikonfigurasi"
-              >
-                <IconWA className="wa-icon" />
-                Mulai konsultasi
-              </button>
-            )}
-            <Link
-              id="cta-banner-catalog"
-              href="/templates"
-              className="button outline"
-              style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', background: 'transparent' }}
-            >
-              Lihat katalog
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── Footer ─────────────────────────────────────────────────────────────────────
 function Footer() {
   const contactUrl = getGeneralContactUrl(MSG_GENERAL);
@@ -492,7 +439,6 @@ export default async function LandingPage() {
       <PackagesSection />
       <ProcessSection />
       <TestimonialsSection />
-      <CTASection />
       <Footer />
       <WaFab />
       </main>
