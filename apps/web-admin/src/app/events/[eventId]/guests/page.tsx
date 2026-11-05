@@ -10,9 +10,11 @@ function IconTrash() {
   );
 }
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+
+const emptySubscribe = () => () => {};
 import Link from 'next/link';
 import { buildExportUrl } from '../../utils/export-url-builder';
 import { buildWhatsAppShareUrl } from '@/utils/whatsapp-share';
@@ -53,6 +55,7 @@ interface EventSummary {
   status: string;
   clientKey?: string;
   clientPortalUrl?: string | null;
+  clientPortalEnabled?: boolean;
 }
 
 interface PaginationMeta {
@@ -287,11 +290,12 @@ export default function GuestListPage({
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [portalModalOpen, setPortalModalOpen] = useState<boolean>(false);
   const [isPortalCopied, setIsPortalCopied] = useState<boolean>(false);
-  const [isMounted, setIsMounted] = useState<boolean>(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isTogglingPortal, setIsTogglingPortal] = useState<boolean>(false);
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   // Lock body scroll and listen for Escape key when modal is open
   useEffect(() => {
@@ -539,7 +543,13 @@ export default function GuestListPage({
   };
 
   const handlePublishEvent = async () => {
-    if (!confirm('Publikasikan acara ini sekarang? Setelah dipublikasikan, tautan undangan personal tamu dan halaman publik akan segera aktif dan dapat dibuka oleh tamu.')) {
+    const isCurrentlyPublished = event?.status === 'PUBLISHED';
+    const nextStatus = isCurrentlyPublished ? 'DRAFT' : 'PUBLISHED'; // status: 'PUBLISHED'
+    const confirmPrompt = isCurrentlyPublished
+      ? 'Matikan (Offline-kan) tautan undangan digital? Tamu tidak akan dapat membuka tautan undangan digital sampai diaktifkan kembali.'
+      : 'Publikasikan acara ini sekarang? Setelah dipublikasikan, tautan undangan personal tamu dan halaman publik akan segera aktif dan dapat dibuka oleh tamu.';
+
+    if (!confirm(confirmPrompt)) {
       return;
     }
     setIsPublishing(true);
@@ -547,7 +557,7 @@ export default function GuestListPage({
       const res = await fetch(`/api/events/${eventId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'PUBLISHED' }),
+        body: JSON.stringify({ status: nextStatus }),
       });
       if (res.status === 401) {
         router.push('/login');
@@ -555,20 +565,105 @@ export default function GuestListPage({
       }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || 'Gagal mempublikasikan acara');
+        throw new Error(data.message || 'Gagal mengubah status publikasi acara');
       }
-      setEvent((prev) => (prev ? { ...prev, status: 'PUBLISHED' } : null));
+      setEvent((prev) => (prev ? { ...prev, status: nextStatus } : null));
       setActionMessage({
         type: 'success',
-        text: 'Acara berhasil dipublikasikan! Tautan undangan personal tamu kini aktif dan dapat dibuka.',
+        text: isCurrentlyPublished
+          ? 'Undangan digital berhasil dinonaktifkan (Offline). Tamu tidak dapat membuka undangan hingga diaktifkan kembali.'
+          : 'Acara berhasil dipublikasikan (Online)! Tautan undangan personal tamu kini aktif dan dapat dibuka.',
       });
     } catch (err: unknown) {
       setActionMessage({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Gagal mempublikasikan acara',
+        text: err instanceof Error ? err.message : 'Gagal mengubah status acara',
       });
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const handleToggleClientPortal = async () => {
+    const isCurrentlyOpen = event?.clientPortalEnabled !== false;
+    const nextEnabled = !isCurrentlyOpen;
+    const confirmPrompt = isCurrentlyOpen
+      ? 'Kunci akses portal klien? Pengantin tidak akan dapat mengakses daftar tamu atau membagikan undangan lagi melalui tautan portal sampai dibuka kembali.'
+      : 'Buka kembali akses portal klien? Pengantin akan dapat mengakses daftar tamu dan membagikan undangan WhatsApp kembali.';
+
+    if (!confirm(confirmPrompt)) {
+      return;
+    }
+
+    setIsTogglingPortal(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientPortalEnabled: nextEnabled }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mengubah akses portal klien');
+      }
+      setEvent((prev) => (prev ? { ...prev, clientPortalEnabled: nextEnabled } : null));
+      setActionMessage({
+        type: 'success',
+        text: nextEnabled
+          ? 'Akses portal klien berhasil dibuka (Aktif)! Pengantin dapat mengelola tamu kembali.'
+          : 'Akses portal klien berhasil dikunci (Nonaktif). Pengantin tidak dapat mengakses portal hingga dibuka kembali.',
+      });
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal mengubah akses portal',
+      });
+    } finally {
+      setIsTogglingPortal(false);
+    }
+  };
+
+  const handleRegenerateClientKey = async () => {
+    if (!confirm('Buat kunci akses portal baru untuk pengantin? Tautan portal klien yang lama akan otomatis hangus dan tidak dapat dibuka lagi.')) {
+      return;
+    }
+
+    setIsTogglingPortal(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regenerateClientKey: true }),
+      });
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Gagal mereset kunci portal');
+      }
+      const data = await res.json();
+      setEvent((prev) => (prev ? {
+        ...prev,
+        clientKey: data.clientKey,
+        clientPortalUrl: data.clientPortalUrl,
+      } : null));
+      setActionMessage({
+        type: 'success',
+        text: 'Kunci portal berhasil diperbarui! Tautan lama sudah hangus, silakan bagikan tautan baru kepada pengantin.',
+      });
+    } catch (err: unknown) {
+      setActionMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Gagal mereset kunci portal',
+      });
+    } finally {
+      setIsTogglingPortal(false);
     }
   };
 
@@ -708,20 +803,64 @@ export default function GuestListPage({
               Kelola Tamu
             </h1>
           </div>
-          <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-            {event ? (
-              <>
-                Event: <strong style={{ color: 'var(--text-primary)' }}>{event.title}</strong>
-                {event.slug && (
-                  <span style={{ marginLeft: '0.5rem', color: 'var(--admin-accent)', fontSize: '0.8125rem' }}>
-                    (/e/{event.slug})
-                  </span>
-                )}
-              </>
-            ) : (
-              'Memuat informasi event...'
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+            <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+              {event ? (
+                <>
+                  Event: <strong style={{ color: 'var(--text-primary)' }}>{event.title}</strong>
+                  {event.slug && (
+                    <span style={{ marginLeft: '0.5rem', color: 'var(--admin-accent)', fontSize: '0.8125rem' }}>
+                      (/e/{event.slug})
+                    </span>
+                  )}
+                </>
+              ) : (
+                'Memuat informasi event...'
+              )}
+            </p>
+
+            {event && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: event.status === 'PUBLISHED' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                    color: event.status === 'PUBLISHED' ? '#059669' : '#6b7280',
+                    border: `1px solid ${event.status === 'PUBLISHED' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(107, 114, 128, 0.2)'}`,
+                  }}
+                  title={event.status === 'PUBLISHED' ? 'Tautan undangan tamu aktif online' : 'Tautan undangan tamu nonaktif (draf)'}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: event.status === 'PUBLISHED' ? '#10b981' : '#9ca3af' }} />
+                  Undangan: {event.status === 'PUBLISHED' ? 'Online' : 'Offline'}
+                </span>
+
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: event.clientPortalEnabled !== false ? 'rgba(59, 130, 246, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: event.clientPortalEnabled !== false ? '#2563eb' : '#dc2626',
+                    border: `1px solid ${event.clientPortalEnabled !== false ? 'rgba(59, 130, 246, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`,
+                  }}
+                  title={event.clientPortalEnabled !== false ? 'Portal klien terbuka untuk pengantin' : 'Portal klien terkunci oleh admin'}
+                >
+                  <span>{event.clientPortalEnabled !== false ? '📱' : '🔒'}</span>
+                  Portal: {event.clientPortalEnabled !== false ? 'Terbuka' : 'Terkunci'}
+                </span>
+              </div>
             )}
-          </p>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -1039,7 +1178,7 @@ export default function GuestListPage({
         </div>
       )}
 
-      {/* Draft Warning Banner */}
+      {/* Draft / Offline Warning Banner */}
       {event?.status === 'DRAFT' && (
         <div
           role="status"
@@ -1059,13 +1198,13 @@ export default function GuestListPage({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <span className="badge badge--warning">DRAFT</span>
+              <span className="badge badge--warning">OFFLINE / DRAFT</span>
               <strong style={{ color: 'var(--text-primary)', fontSize: '0.9375rem' }}>
-                Status Acara Masih DRAFT
+                Status Undangan Tamu Sedang Nonaktif (Offline)
               </strong>
             </div>
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              Tautan undangan personal tamu (<code>/i/:code</code>) dan halaman publik belum dapat dibuka tamu sampai acara dipublikasikan.
+              Tautan undangan personal tamu (<code>/i/:code</code>) dan landing page (<code>/e/:slug</code>) belum dapat dibuka tamu sampai diaktifkan kembali.
             </p>
           </div>
           <button
@@ -1076,7 +1215,51 @@ export default function GuestListPage({
             disabled={isPublishing}
             style={{ fontWeight: 600 }}
           >
-            {isPublishing ? 'Mempublikasikan...' : 'Publikasikan Acara Sekarang'}
+            {isPublishing ? 'Mempublikasikan...' : 'Aktifkan (Online-kan) Undangan'}
+          </button>
+        </div>
+      )}
+
+      {/* Client Portal Locked Notice Banner */}
+      {event && event.clientPortalEnabled === false && (
+        <div
+          role="status"
+          id="guests-portal-locked-warning"
+          style={{
+            marginBottom: '1.5rem',
+            padding: '0.875rem 1.25rem',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 'var(--radius-md, 8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>🔒</span>
+            <div>
+              <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem', display: 'block' }}>
+                Akses Portal Klien Sedang Dikunci (Nonaktif)
+              </strong>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                Pasangan pengantin tidak dapat membuka portal untuk menambah tamu atau membagikan WhatsApp sampai akses dibuka kembali.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleToggleClientPortal}
+            disabled={isTogglingPortal}
+            style={{
+              fontWeight: 600,
+              fontSize: '0.75rem',
+            }}
+          >
+            {isTogglingPortal ? 'Memproses...' : 'Buka Akses Portal'}
           </button>
         </div>
       )}
@@ -2184,7 +2367,7 @@ export default function GuestListPage({
                 border: '1px solid #e5e7eb',
                 borderRadius: '8px',
                 padding: '0.75rem 1rem',
-                marginBottom: '1.25rem',
+                marginBottom: '0.75rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -2219,6 +2402,196 @@ export default function GuestListPage({
               >
                 {isPortalCopied ? '✓ Tersalin!' : 'Salin Tautan'}
               </button>
+            </div>
+
+            {/* Reset Client Key Action */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                marginBottom: '1.25rem',
+                padding: '0 0.25rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                Ingin mengganti tautan agar link lama tidak bisa diakses lagi?
+              </span>
+              <button
+                type="button"
+                onClick={handleRegenerateClientKey}
+                disabled={isTogglingPortal}
+                style={{
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db',
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  cursor: isTogglingPortal ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                }}
+                title="Membuat kunci baru sehingga tautan portal lama otomatis hangus"
+              >
+                <span>🔄</span>
+                <span>Reset / Buat Kunci Baru</span>
+              </button>
+            </div>
+
+            {/* Dual Switch Controls (Option 3) */}
+            <div
+              style={{
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '1rem',
+                background: '#f9fafb',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.875rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Sakelar Kontrol Tautan
+                </span>
+                <span style={{ fontSize: '0.6875rem', color: '#6b7280' }}>
+                  Kontrol terpisah antara Tamu & Pengantin
+                </span>
+              </div>
+
+              {/* Sakelar 1: Status Undangan Tamu */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  padding: '0.75rem 0.875rem',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '1 1 220px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
+                      1. Status Undangan Tamu
+                    </span>
+                    <span
+                      style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        backgroundColor: event?.status === 'PUBLISHED' ? '#ecfdf5' : '#fef2f2',
+                        color: event?.status === 'PUBLISHED' ? '#047857' : '#b91c1c',
+                        border: `1px solid ${event?.status === 'PUBLISHED' ? '#a7f3d0' : '#fecaca'}`,
+                      }}
+                    >
+                      {event?.status === 'PUBLISHED' ? 'ONLINE (Aktif)' : 'OFFLINE (Draf)'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.4 }}>
+                    {event?.status === 'PUBLISHED'
+                      ? 'Tamu dapat membuka tautan undangan personal (/i/...) dan web (/e/...).'
+                      : 'Tautan tamu dinonaktifkan (tamu tidak dapat membuka undangan).'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handlePublishEvent}
+                  disabled={isPublishing}
+                  style={{
+                    padding: '0.4375rem 0.8125rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    cursor: isPublishing ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    borderColor: event?.status === 'PUBLISHED' ? '#fca5a5' : '#86efac',
+                    backgroundColor: event?.status === 'PUBLISHED' ? '#fef2f2' : '#f0fdf4',
+                    color: event?.status === 'PUBLISHED' ? '#dc2626' : '#16a34a',
+                  }}
+                >
+                  {isPublishing
+                    ? 'Memproses...'
+                    : event?.status === 'PUBLISHED'
+                    ? 'Matikan Undangan'
+                    : 'Aktifkan Undangan'}
+                </button>
+              </div>
+
+              {/* Sakelar 2: Akses Portal Klien */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  padding: '0.75rem 0.875rem',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '1 1 220px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111827' }}>
+                      2. Akses Portal Pengantin
+                    </span>
+                    <span
+                      style={{
+                        padding: '0.125rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        backgroundColor: event?.clientPortalEnabled !== false ? '#eff6ff' : '#fef2f2',
+                        color: event?.clientPortalEnabled !== false ? '#1d4ed8' : '#b91c1c',
+                        border: `1px solid ${event?.clientPortalEnabled !== false ? '#bfdbfe' : '#fecaca'}`,
+                      }}
+                    >
+                      {event?.clientPortalEnabled !== false ? 'TERBUKA (Aktif)' : 'TERKUNCI (Ditutup)'}
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280', lineHeight: 1.4 }}>
+                    {event?.clientPortalEnabled !== false
+                      ? 'Pengantin dapat membuka portal ini untuk kelola tamu dan kirim WA.'
+                      : 'Akses ditutup. Pengantin melihat layar informasi bahwa portal telah ditutup.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleClientPortal}
+                  disabled={isTogglingPortal}
+                  style={{
+                    padding: '0.4375rem 0.8125rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    cursor: isTogglingPortal ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
+                    borderColor: event?.clientPortalEnabled !== false ? '#fca5a5' : '#93c5fd',
+                    backgroundColor: event?.clientPortalEnabled !== false ? '#fef2f2' : '#eff6ff',
+                    color: event?.clientPortalEnabled !== false ? '#dc2626' : '#2563eb',
+                  }}
+                >
+                  {isTogglingPortal
+                    ? 'Memproses...'
+                    : event?.clientPortalEnabled !== false
+                    ? 'Kunci Portal'
+                    : 'Buka Portal'}
+                </button>
+              </div>
             </div>
 
             <div

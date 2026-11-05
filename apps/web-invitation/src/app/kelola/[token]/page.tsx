@@ -51,6 +51,10 @@ async function fetchPortalData(eventId: string, clientKey: string) {
       },
     });
 
+    if (res.status === 403) {
+      return { disabled: true };
+    }
+
     if (!res.ok) {
       return null;
     }
@@ -92,6 +96,64 @@ export default async function ClientPortalPage({
   const { eventId, clientKey } = parseToken(token, key);
 
   const data = await fetchPortalData(eventId, clientKey);
+
+  if (data?.disabled) {
+    return (
+      <div className="portal-root" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            maxWidth: '480px',
+            margin: '4rem 1.5rem',
+            padding: '2.5rem 2rem',
+            background: '#ffffff',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+            textAlign: 'center',
+            border: '1px solid #e5e7eb',
+          }}
+        >
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+          <h1
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              color: '#181e1b',
+              marginBottom: '0.75rem',
+            }}
+          >
+            Akses Portal Telah Ditutup
+          </h1>
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: '#5c6b64',
+              lineHeight: 1.6,
+              marginBottom: '1.5rem',
+            }}
+          >
+            Portal kelola tamu untuk acara ini telah dinonaktifkan oleh penyelenggara atau tim admin karena acara telah selesai. Apabila Anda masih membutuhkan bantuan atau akses data, silakan hubungi tim kami.
+          </p>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#1b4332',
+              color: '#ffffff',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              padding: '0.625rem 1.25rem',
+              borderRadius: '8px',
+              textDecoration: 'none',
+            }}
+          >
+            Kembali ke Beranda IRVITE
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!data || !data.event) {
     return (

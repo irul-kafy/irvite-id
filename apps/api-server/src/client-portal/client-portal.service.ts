@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  ForbiddenException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -91,13 +92,23 @@ export class ClientPortalService {
         'Kunci akses portal klien tidak valid atau telah kedaluwarsa.',
       );
     }
-    const validKey =
-      (typeof event.content === 'object' &&
+
+    const content =
       event.content &&
-      'clientKey' in event.content &&
-      typeof (event.content as { clientKey?: unknown }).clientKey === 'string'
-        ? (event.content as { clientKey: string }).clientKey
-        : undefined) || computeDefaultClientKey(event.id, event.createdAt);
+      typeof event.content === 'object' &&
+      !Array.isArray(event.content)
+        ? (event.content as Record<string, unknown>)
+        : {};
+
+    if (content.clientPortalEnabled === false) {
+      throw new ForbiddenException(
+        'Akses Portal Kelola Tamu telah dinonaktifkan oleh penyelenggara.',
+      );
+    }
+
+    const validKey =
+      (typeof content.clientKey === 'string' ? content.clientKey : undefined) ||
+      computeDefaultClientKey(event.id, event.createdAt);
 
     return { event, validKey };
   }

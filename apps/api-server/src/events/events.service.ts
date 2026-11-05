@@ -210,17 +210,23 @@ export class EventsService {
       throw new NotFoundException(`Event not found`);
     }
 
-    const clientKey =
-      (typeof event.content === 'object' &&
+    const content =
       event.content &&
-      'clientKey' in event.content &&
-      typeof (event.content as { clientKey?: unknown }).clientKey === 'string'
-        ? (event.content as { clientKey: string }).clientKey
-        : undefined) || computeDefaultClientKey(event.id, event.createdAt);
+      typeof event.content === 'object' &&
+      !Array.isArray(event.content)
+        ? (event.content as Record<string, unknown>)
+        : {};
+
+    const clientKey =
+      (typeof content.clientKey === 'string' ? content.clientKey : undefined) ||
+      computeDefaultClientKey(event.id, event.createdAt);
+
+    const clientPortalEnabled = content.clientPortalEnabled !== false;
 
     return {
       ...event,
       clientKey,
+      clientPortalEnabled,
     };
   }
 
@@ -319,28 +325,64 @@ export class EventsService {
       ...safeUpdateData,
     };
 
+    const existingContentObj =
+      existingEvent.content &&
+      typeof existingEvent.content === 'object' &&
+      !Array.isArray(existingEvent.content)
+        ? { ...(existingEvent.content as Record<string, unknown>) }
+        : {};
+
+    let contentToUpdateObj: Record<string, unknown> | null = null;
+
     if (content !== undefined) {
-      const validatedContent = validateEventContent(content, activeThemeCode);
-      const existingContentObj =
-        existingEvent.content &&
-        typeof existingEvent.content === 'object' &&
-        !Array.isArray(existingEvent.content)
-          ? (existingEvent.content as Record<string, unknown>)
-          : {};
-      const incomingContentObj =
-        content && typeof content === 'object' && !Array.isArray(content)
-          ? (content as Record<string, unknown>)
-          : {};
+      if (content === null) {
+        dataToUpdate.content = Prisma.DbNull;
+      } else {
+        const validatedContent = validateEventContent(content, activeThemeCode);
+        const incomingContentObj =
+          content && typeof content === 'object' && !Array.isArray(content)
+            ? (content as Record<string, unknown>)
+            : {};
 
-      const integrationsToPreserve =
-        incomingContentObj.integrations || existingContentObj.integrations;
+        const integrationsToPreserve =
+          incomingContentObj.integrations || existingContentObj.integrations;
 
-      const contentToSave = validatedContent ? { ...validatedContent } : null;
-      if (contentToSave && integrationsToPreserve) {
-        contentToSave.integrations = integrationsToPreserve;
+        contentToUpdateObj = validatedContent ? { ...validatedContent } : {};
+        if (integrationsToPreserve) {
+          contentToUpdateObj.integrations = integrationsToPreserve;
+        }
+        if (incomingContentObj.clientPortalEnabled !== undefined) {
+          contentToUpdateObj.clientPortalEnabled =
+            incomingContentObj.clientPortalEnabled;
+        } else if (existingContentObj.clientPortalEnabled !== undefined) {
+          contentToUpdateObj.clientPortalEnabled =
+            existingContentObj.clientPortalEnabled;
+        }
+        if (incomingContentObj.clientKey) {
+          contentToUpdateObj.clientKey = incomingContentObj.clientKey;
+        } else if (existingContentObj.clientKey) {
+          contentToUpdateObj.clientKey = existingContentObj.clientKey;
+        }
       }
-      dataToUpdate.content = (contentToSave ??
-        Prisma.DbNull) as Prisma.InputJsonValue;
+    }
+
+    if (updateEventDto.clientPortalEnabled !== undefined) {
+      if (!contentToUpdateObj) {
+        contentToUpdateObj = { ...existingContentObj };
+      }
+      contentToUpdateObj.clientPortalEnabled =
+        updateEventDto.clientPortalEnabled;
+    }
+
+    if (updateEventDto.regenerateClientKey) {
+      if (!contentToUpdateObj) {
+        contentToUpdateObj = { ...existingContentObj };
+      }
+      contentToUpdateObj.clientKey = crypto.randomBytes(12).toString('hex');
+    }
+
+    if (contentToUpdateObj) {
+      dataToUpdate.content = contentToUpdateObj as Prisma.InputJsonObject;
     }
 
     try {
@@ -349,7 +391,27 @@ export class EventsService {
         data: dataToUpdate,
         select: this.selectSafeEvent(),
       });
-      return updatedEvent;
+
+      const updatedContent =
+        updatedEvent.content &&
+        typeof updatedEvent.content === 'object' &&
+        !Array.isArray(updatedEvent.content)
+          ? (updatedEvent.content as Record<string, unknown>)
+          : {};
+
+      const clientKey =
+        (typeof updatedContent.clientKey === 'string'
+          ? updatedContent.clientKey
+          : undefined) ||
+        computeDefaultClientKey(updatedEvent.id, updatedEvent.createdAt);
+
+      const clientPortalEnabled = updatedContent.clientPortalEnabled !== false;
+
+      return {
+        ...updatedEvent,
+        clientKey,
+        clientPortalEnabled,
+      };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {

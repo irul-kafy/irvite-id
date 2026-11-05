@@ -5,6 +5,7 @@ import {
   IsUUID,
   MaxLength,
   IsIn,
+  IsBoolean,
   ValidateIf,
 } from 'class-validator';
 import { EVENT_STATUS } from '../event-status';
@@ -38,6 +39,14 @@ export class UpdateEventDto {
 
   @IsOptional()
   content?: unknown;
+
+  @IsOptional()
+  @IsBoolean()
+  clientPortalEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  regenerateClientKey?: boolean;
 
   @ValidateIf((o: UpdateEventDto) => o.status !== undefined)
   @IsIn([EVENT_STATUS.DRAFT, EVENT_STATUS.PUBLISHED], {

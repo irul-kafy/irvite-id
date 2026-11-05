@@ -473,6 +473,32 @@ export function ClientPortalView({
           </p>
         </section>
 
+        {/* Offline / Draft Status Notice for Couple */}
+        {event.status === 'DRAFT' && (
+          <div
+            style={{
+              padding: '1rem 1.25rem',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fde68a',
+              borderRadius: '12px',
+              color: '#92400e',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}
+          >
+            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>ℹ️</span>
+            <div>
+              <strong style={{ fontSize: '0.9375rem', display: 'block', marginBottom: '0.125rem' }}>
+                Tautan Undangan Tamu Sedang Offline (Draf)
+              </strong>
+              <span style={{ fontSize: '0.8125rem', color: '#b45309', lineHeight: 1.4 }}>
+                Admin belum mengaktifkan tautan undangan digital secara online. Anda tetap leluasa menambahkan dan menyusun daftar tamu di sini, namun tautan undangan pribadi tamu belum dapat dibuka oleh tamu sampai admin mengaktifkannya.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <section className="portal-stats-grid">
           <div className="portal-stat-card">
