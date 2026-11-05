@@ -459,6 +459,10 @@
   font-size: 1rem;
   font-weight: 700;
   color: #163026;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .irv-studio-drawer__reset-btn {
@@ -471,6 +475,8 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .irv-studio-drawer__reset-btn:hover {
