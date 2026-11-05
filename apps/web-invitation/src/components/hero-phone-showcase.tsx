@@ -110,17 +110,6 @@ export function HeroPhoneShowcase() {
       <div className="orbit orbit--one" aria-hidden="true" />
       <div className="orbit orbit--two" aria-hidden="true" />
 
-      {/* Floating Card Top - Synced to Current Template */}
-      <div className="floating-card floating-card--top" aria-hidden="true">
-        <svg viewBox="0 0 20 20" className="floating-icon">
-          <path d="M10 2c.4 4.7 2.7 7 7 8-4.3 1-6.6 3.3-7 8-.4-4.7-2.7-7-7-8 4.3-1 6.6-3.3 7-8Z" />
-        </svg>
-        <span>
-          <small>{current.badge}</small>
-          {current.name}
-        </span>
-      </div>
-
       {/* Realistic Phone Frame */}
       <div className="irv-hero-phone">
         {/* Dynamic Island Pill Notch */}
@@ -227,15 +216,6 @@ export function HeroPhoneShowcase() {
             <span className="irv-music-note">♪</span>
           </div>
         </div>
-      </div>
-
-      {/* Floating Card Bottom - Real-time RSVP Stats */}
-      <div className="floating-card floating-card--bottom" aria-hidden="true">
-        <span className="status-dot" />
-        <span>
-          <small>Fitur Eksklusif IRVITE</small>
-          RSVP &amp; QR Pass Tamu
-        </span>
       </div>
     </div>
   );
