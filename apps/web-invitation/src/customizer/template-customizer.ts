@@ -64,7 +64,7 @@ export const PATENTED_DESIGN_RULES: readonly PatentedDesignRule[] = [
     id: 'typography-hierarchy',
     title: 'Tipografi & Hierarki Aksara',
     description:
-      'Kombinasi font serif editorial, ukuran teks, dan spasi huruf dikunci paten agar tetap proporsional di semua layar.',
+      'Kombinasi font serif editorial, ukuran teks, dan spasi huruf merupakan ketentuan baku agar tetap proporsional di semua layar.',
     status: 'LOCKED_PATENT',
   },
   {
@@ -611,7 +611,7 @@ export function buildWhatsappOrderUrl(params: {
     `Halo Admin *IRVITE*, saya sudah mencoba simulasi personalisasi undangan dan *SUDAH FIX* dengan data berikut:`,
     ``,
     `▸ *Kode Draf Dashboard:* #${params.referenceCode}`,
-    `▸ *Template:* ${params.templateDisplayName} (Desain Paten IRVITE)`,
+    `▸ *Template:* ${params.templateDisplayName} (Ketentuan Desain IRVITE)`,
     `▸ *Mempelai:* ${p1} & ${p2}`,
     `▸ *Jadwal Utama:* ${dateStr} (${params.state.timeZone})`,
     `▸ *Lokasi:* ${venueStr}`,

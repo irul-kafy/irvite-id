@@ -19,7 +19,7 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
         'Dengan memohon rahmat dan rida Allah SWT, kami bermaksud menyatukan langkah dalam ikatan pernikahan. Dengan penuh sukacita, kami mengundang Bapak/Ibu/Saudara/i untuk hadir dan memberikan doa restu di hari bahagia kami.',
       statement: 'Bertemu dalam cinta, berpulang pada kita.',
       prayer:
-        'Ya Allah, jadikanlah pernikahan ini tempat kami bertumbuh dalam kebaikan. Lembutkan hati kami untuk saling memahami, lapangkan sabar kami untuk saling menjaga, dan tuntun langkah kami untuk tetap memilih satu sama lain. Semoga rumah yang kami bangun dipenuhi ketenteraman, kasih sayang, dan keberkahan-Mu.',
+        'Ya Allah, jadikanlah pernikahan ini tempat kami bertumbuh dalam kebaikan. Lembutkan hati kami untuk saling memahami, lapangkan sabar untuk saling menjaga, dan penuhi rumah kami dengan ketenteraman, kasih sayang, serta keberkahan-Mu.',
       prayerSource: 'Doa Pernikahan',
       closingMessage:
         'Terima kasih telah menjadi bagian dari kisah kami. Kehadiran, doa, dan kasih yang Anda berikan akan selalu memiliki tempat istimewa di hati kami.',

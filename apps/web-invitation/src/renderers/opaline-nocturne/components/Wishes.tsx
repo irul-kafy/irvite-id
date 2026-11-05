@@ -64,12 +64,17 @@ export function Wishes({
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama Anda"
           />
-          <label htmlFor={`${uid}-wish`}>Doa & ucapan</label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <label htmlFor={`${uid}-wish`}>Doa & ucapan</label>
+            <span style={{ fontSize: "0.75rem", opacity: 0.75 }}>
+              {message.length} / 255 karakter
+            </span>
+          </div>
           <textarea
             id={`${uid}-wish`}
             required
             rows={5}
-            maxLength={2000}
+            maxLength={255}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Semoga cinta selalu menjadi rumah untuk kalian berdua…"

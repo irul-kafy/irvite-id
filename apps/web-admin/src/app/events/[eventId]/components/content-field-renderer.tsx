@@ -51,7 +51,8 @@ export function ContentFieldRenderer({
   const strValue = typeof value === 'string' ? value : '';
 
   switch (field.type) {
-    case 'text':
+    case 'text': {
+      const isNickname = field.key === 'partnerOneName' || field.key === 'partnerTwoName';
       return (
         <div className="form-group">
           <label htmlFor={`field-${field.key}`} className="form-label">
@@ -66,7 +67,15 @@ export function ContentFieldRenderer({
             maxLength={field.maxLength}
             disabled={disabled}
             placeholder={`Masukkan ${field.label.toLowerCase()}`}
-            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (isNickname && /[0-9]/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onChange={(e) => {
+              const nextVal = isNickname ? e.target.value.replace(/[0-9]/g, '') : e.target.value;
+              onChange(nextVal);
+            }}
           />
           {field.maxLength && (
             <span className="form-hint" style={{ textAlign: 'right', display: 'block' }}>
@@ -75,8 +84,10 @@ export function ContentFieldRenderer({
           )}
         </div>
       );
+    }
 
-    case 'textarea':
+    case 'textarea': {
+      const effectiveMaxLength = field.maxLength || 255;
       return (
         <div className="form-group">
           <label htmlFor={`field-${field.key}`} className="form-label">
@@ -88,18 +99,17 @@ export function ContentFieldRenderer({
             rows={3}
             className="form-textarea"
             value={strValue}
-            maxLength={field.maxLength}
+            maxLength={effectiveMaxLength}
             disabled={disabled}
             placeholder={`Masukkan ${field.label.toLowerCase()}`}
             onChange={(e) => onChange(e.target.value)}
           />
-          {field.maxLength && (
-            <span className="form-hint" style={{ textAlign: 'right', display: 'block' }}>
-              {strValue.length} / {field.maxLength} karakter
-            </span>
-          )}
+          <span className="form-hint" style={{ textAlign: 'right', display: 'block' }}>
+            {strValue.length} / {effectiveMaxLength} karakter
+          </span>
         </div>
       );
+    }
 
     case 'datetime': {
       const dtValue = formatDatetimeForInput(value);

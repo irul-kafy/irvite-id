@@ -507,7 +507,7 @@ export function TemplateCustomizerStudio({
             </button>
           </div>
           <p className="irv-studio-drawer__subtitle">
-            Coba masukkan nama, jadwal, dan foto Anda untuk melihat hasil langsung di sebelah kiri. Tata letak & font dikunci paten oleh <strong>IRVITE</strong>.
+            Coba masukkan nama, jadwal, dan foto Anda untuk melihat hasil langsung di sebelah kiri. Tata letak & font dikunci sesuai ketentuan <strong>IRVITE</strong>.
           </p>
         </div>
 
@@ -556,7 +556,7 @@ export function TemplateCustomizerStudio({
             className={`irv-studio-tab ${activeTab === 'patent' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('patent')}
           >
-            🔒 Paten
+            📋 Ketentuan
           </button>
         </div>
 
@@ -583,7 +583,12 @@ export function TemplateCustomizerStudio({
                     className="irv-studio-input"
                     maxLength={40}
                     value={state.partnerOneName}
-                    onChange={(e) => updateField('partnerOneName', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => updateField('partnerOneName', e.target.value.replace(/[0-9]/g, ''))}
                     placeholder="Contoh: Nara"
                   />
                 </div>
@@ -629,7 +634,12 @@ export function TemplateCustomizerStudio({
                     className="irv-studio-input"
                     maxLength={40}
                     value={state.partnerTwoName}
-                    onChange={(e) => updateField('partnerTwoName', e.target.value)}
+                    onKeyDown={(e) => {
+                      if (/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => updateField('partnerTwoName', e.target.value.replace(/[0-9]/g, ''))}
                     placeholder="Contoh: Arka"
                   />
                 </div>
@@ -1123,10 +1133,13 @@ export function TemplateCustomizerStudio({
                   <textarea
                     className="irv-studio-textarea"
                     rows={2}
-                    maxLength={400}
+                    maxLength={255}
                     value={state.quoteText}
                     onChange={(e) => updateField('quoteText', e.target.value)}
                   />
+                  <div className="irv-studio-counter">
+                    {state.quoteText.length} / 255 karakter
+                  </div>
                 </div>
 
                 <div className="irv-studio-field">
@@ -1136,10 +1149,13 @@ export function TemplateCustomizerStudio({
                   <textarea
                     className="irv-studio-textarea"
                     rows={3}
-                    maxLength={1000}
+                    maxLength={255}
                     value={state.openingText}
                     onChange={(e) => updateField('openingText', e.target.value)}
                   />
+                  <div className="irv-studio-counter">
+                    {state.openingText.length} / 255 karakter
+                  </div>
                 </div>
 
                 <div className="irv-studio-field">
@@ -1149,10 +1165,13 @@ export function TemplateCustomizerStudio({
                   <textarea
                     className="irv-studio-textarea"
                     rows={3}
-                    maxLength={1000}
+                    maxLength={255}
                     value={state.prayerText}
                     onChange={(e) => updateField('prayerText', e.target.value)}
                   />
+                  <div className="irv-studio-counter">
+                    {state.prayerText.length} / 255 karakter
+                  </div>
                 </div>
 
                 <div className="irv-studio-field">
@@ -1162,10 +1181,13 @@ export function TemplateCustomizerStudio({
                   <textarea
                     className="irv-studio-textarea"
                     rows={3}
-                    maxLength={800}
+                    maxLength={255}
                     value={state.closingText}
                     onChange={(e) => updateField('closingText', e.target.value)}
                   />
+                  <div className="irv-studio-counter">
+                    {state.closingText.length} / 255 karakter
+                  </div>
                 </div>
               </div>
 
@@ -1239,7 +1261,7 @@ export function TemplateCustomizerStudio({
           {activeTab === 'patent' && (
             <>
               <div className="irv-studio-section-banner">
-                🔒 Untuk menjaga kualitas visual setara undangan editorial mewah, elemen struktur dan artistik di bawah ini <strong>dikunci paten</strong> oleh tim desainer <strong>IRVITE</strong> dan tidak dapat diubah.
+                📋 Untuk menjaga kualitas visual setara undangan editorial mewah, elemen struktur dan artistik di bawah ini <strong>merupakan ketentuan desain baku</strong> dari tim <strong>IRVITE</strong> dan tidak dapat diubah.
               </div>
 
               {PATENTED_DESIGN_RULES.map((rule) => (
@@ -1249,7 +1271,7 @@ export function TemplateCustomizerStudio({
                       {rule.title}
                     </span>
                     <span className="irv-studio-patent-badge">
-                      🔒 Desain Paten
+                      📋 Ketentuan Desain
                     </span>
                   </div>
                   <p className="irv-studio-patent-card__desc">

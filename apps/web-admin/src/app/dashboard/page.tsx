@@ -352,7 +352,7 @@ export default function DashboardPage() {
             {loading ? '…' : templatesCount}
           </div>
           <div className="dash-kpi__meta">
-            Desain paten siap pakai
+            Ketentuan desain siap pakai
           </div>
         </div>
       </section>
@@ -781,7 +781,7 @@ export default function DashboardPage() {
             <div className="dash-panel__body">
               <div className="dash-tpl-showcase">
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Setiap template di IRVITE memiliki tipografi dan layout yang dipatenkan untuk performa optimal di seluruh perangkat.
+                  Setiap template di IRVITE memiliki tipografi dan layout dengan ketentuan baku untuk performa optimal di seluruh perangkat.
                 </p>
 
                 <div className="dash-tpl-pill-list">

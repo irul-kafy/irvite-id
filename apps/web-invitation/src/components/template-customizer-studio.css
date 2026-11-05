@@ -601,6 +601,14 @@
   line-height: 1.45;
 }
 
+.irv-studio-counter {
+  font-size: 0.6875rem;
+  color: #6c7873;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
 .irv-studio-card-group {
   padding: 14px;
   border-radius: 12px;

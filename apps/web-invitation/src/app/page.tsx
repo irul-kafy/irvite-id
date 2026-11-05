@@ -292,8 +292,8 @@ function ProcessSection() {
     },
     {
       num: '02',
-      title: 'Sesuaikan konten dalam desain paten',
-      body: 'Tata letak, palet warna, tipografi, dan animasi telah dikurasi secara paten agar tetap berkelas—Anda cukup fokus menyesuaikan isi acara, cerita cinta, galeri foto, dan amplop digital.',
+      title: 'Sesuaikan konten dalam ketentuan desain',
+      body: 'Tata letak, palet warna, tipografi, dan animasi telah dikurasi sesuai ketentuan desain agar tetap berkelas—Anda cukup fokus menyesuaikan isi acara, cerita cinta, galeri foto, dan amplop digital.',
       note: 'Estetika terjaga',
     },
     {
