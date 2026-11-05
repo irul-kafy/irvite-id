@@ -20,7 +20,8 @@ export default function TemplateAdminPreviewPage() {
   const catalogItem = FIXED_CATALOG_TEMPLATES.find((t) => t.slug === slug);
 
   useEffect(() => {
-    setIframeLoaded(false);
+    const timer = setTimeout(() => setIframeLoaded(false), 0);
+    return () => clearTimeout(timer);
   }, [slug]);
 
   const invitationOrigin =

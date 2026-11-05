@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RendererProps } from '../registry';
@@ -32,8 +33,8 @@ function Countdown({ epoch }: { epoch: number | null }) {
   const [remaining, setRemaining] = useState<number | null>(null);
   useEffect(() => {
     if (epoch === null) {
-      setRemaining(null);
-      return;
+      const t = window.setTimeout(() => setRemaining(null), 0);
+      return () => clearTimeout(t);
     }
     const tick = () => setRemaining(Math.max(0, Math.floor((epoch - Date.now()) / 1000)));
     tick();
@@ -83,6 +84,7 @@ export default function SekarKedatonRenderer({
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
   const rsvpVisible = showRsvpAndQr && shouldRenderSereneRsvp(mode, data.guest, data.rsvp);
+  void rsvpVisible;
   const audioSrc = mediaSrc(media.bgMusic?.src, isPreview);
   const heroSrc = mediaSrc(media.hero?.src, isPreview);
   const brideSrc = mediaSrc(media.bride?.src, isPreview);
@@ -93,7 +95,7 @@ export default function SekarKedatonRenderer({
   const isGroomHeroCrop = Boolean(
     groomSrc && heroSrc && groomSrc === heroSrc && (heroSrc.startsWith('blob:') || heroSrc.includes('couple-jawa-demo')),
   );
-  const gallery = media.gallery.filter((photo: any) => mediaSrc(photo.src, isPreview));
+  const gallery = media.gallery.filter((photo) => mediaSrc(photo.src, isPreview));
   const ceremonies = content?.ceremonies ?? [];
   const timezone = content?.timeZone ?? 'Asia/Jakarta';
   const primaryDate = ceremonies[0]?.startDateTime ?? data.event.eventDate;
@@ -110,7 +112,7 @@ export default function SekarKedatonRenderer({
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [opened, Boolean(content)]);
+  }, [opened, content]);
 
   useEffect(() => {
     if (!leaving) return;
@@ -152,7 +154,8 @@ export default function SekarKedatonRenderer({
   }, [lightbox]);
 
   useEffect(() => {
-    setPlaying(false);
+    const t = window.setTimeout(() => setPlaying(false), 0);
+    return () => clearTimeout(t);
   }, [audioSrc]);
 
   async function playMusic() {
@@ -338,7 +341,7 @@ export default function SekarKedatonRenderer({
                 <p>{formatCeremonyDate(primaryDate, timezone)}</p>
               </header>
               <div className={s.eventGrid}>
-                {ceremonies.map((event: any, i: number) => (
+                {ceremonies.map((event, i: number) => (
                   <article key={i} className={s.eventCard} data-reveal={i ? 'right' : 'left'}>
                     <div className={s.eventTop}><Gunungan /><span>0{i + 1}</span></div>
                     <h3>{event.title}</h3>
@@ -367,7 +370,7 @@ export default function SekarKedatonRenderer({
                 <h2>Sekejap yang tinggal<br /><em>untuk selamanya.</em></h2>
               </header>
               <div className={s.gallery} data-count={gallery.length}>
-                {gallery.map((photo: any, i: number) => (
+                {gallery.map((photo, i: number) => (
                   <figure key={`${photo.src}-${i}`} data-reveal={i % 2 ? 'rise' : 'curtain'}>
                     <button onClick={() => setLightbox(i)} aria-label={`Perbesar foto ${i + 1}`}>
                       <img src={mediaSrc(photo.src, isPreview)} alt={`Kenangan ${nameOne} dan ${nameTwo}, foto ${i + 1}`} loading="lazy" />
@@ -389,7 +392,7 @@ export default function SekarKedatonRenderer({
                 <p>Kehadiran dan doa Anda adalah hadiah terindah. Bila berkenan berbagi tanda kasih, kami menerimanya dengan penuh syukur.</p>
               </div>
               <div className={s.accounts}>
-                {content.giftAccounts?.map((account: any, i: number) => (
+                {content.giftAccounts?.map((account, i: number) => (
                   <article key={i} className={s.account} data-reveal="rise">
                     <Kawung />
                     <p className={s.bankName}>{account.bankName}</p>

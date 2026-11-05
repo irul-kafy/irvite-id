@@ -105,7 +105,7 @@ describe('template-content.validator', () => {
       expect(result).not.toBeNull();
       expect(result?.partnerOneName).toBe('Laras');
       expect(result?.partnerTwoName).toBe('Bagas');
-      expect((result as any)?.integrations).toBeUndefined();
+      expect((result as Record<string, unknown>)?.integrations).toBeUndefined();
     });
 
     it('rejects integrations if it is not an object', () => {

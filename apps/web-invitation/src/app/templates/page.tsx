@@ -155,8 +155,8 @@ export default async function PublicTemplatesPage() {
               return (
                 <article key={tpl.slug} className="cat-card" role="listitem">
                   <div className="cat-card__preview">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     {tpl.thumbnailPath ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={tpl.thumbnailPath}
                         alt={'Pratinjau desain ' + tpl.displayName}

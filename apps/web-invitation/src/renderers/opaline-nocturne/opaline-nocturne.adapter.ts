@@ -56,7 +56,7 @@ export function adaptOpalineNocturneData(
   let events: WeddingEvent[] = [];
 
   if (rawCeremonies.length > 0) {
-    events = rawCeremonies.map((c: any, idx: number) => ({
+    events = rawCeremonies.map((c: Record<string, unknown>, idx: number) => ({
       id: `event-${idx + 1}`,
       title: (typeof c.title === 'string' && c.title.trim()) || (idx === 0 ? 'Akad Nikah' : 'Resepsi'),
       date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || '2026-12-20',
@@ -93,7 +93,7 @@ export function adaptOpalineNocturneData(
   const rawStory = Array.isArray(content.story) ? content.story : [];
   let story: { year: string; title: string; description: string }[] = [];
   if (rawStory.length > 0) {
-    story = rawStory.map((s: any, idx: number) => ({
+    story = rawStory.map((s: Record<string, unknown>, idx: number) => ({
       year: (typeof s.year === 'string' && s.year.trim()) || (typeof s.period === 'string' && s.period.trim()) || `202${idx + 1}`,
       title: (typeof s.title === 'string' && s.title.trim()) || `Kisah ${idx + 1}`,
       description: (typeof s.description === 'string' && s.description.trim()) || (typeof s.body === 'string' && s.body.trim()) || '',
@@ -152,7 +152,7 @@ export function adaptOpalineNocturneData(
 
   // Gift Accounts
   const rawAccounts = Array.isArray(content.giftAccounts) ? content.giftAccounts : [];
-  const accounts: GiftAccount[] = rawAccounts.map((a: any, idx: number) => ({
+  const accounts: GiftAccount[] = rawAccounts.map((a: Record<string, unknown>, idx: number) => ({
     id: `gift-${idx + 1}`,
     kind: 'bank',
     provider: (typeof a.bankName === 'string' && a.bankName.trim()) || 'BCA',

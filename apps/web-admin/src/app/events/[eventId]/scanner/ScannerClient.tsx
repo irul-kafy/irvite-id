@@ -218,7 +218,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [portalReady, setPortalReady] = useState<boolean>(false);
 
   useEffect(() => {
-    setPortalReady(true);
+    const timer = setTimeout(() => setPortalReady(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Refs for async safety and cleanup
@@ -226,6 +227,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const controlsRef = useRef<IScannerControls | null>(null);
   const lockRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
+  const handleRawInputRef = useRef<(input: string) => Promise<void>>(async () => {});
 
   // Stop camera controls safely
   const stopScanner = useCallback(() => {
@@ -364,7 +366,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
                 if (detected && detected.length > 0 && !lockRef.current && mountedRef.current) {
                   const codeText = detected[0].rawValue;
                   if (codeText) {
-                    handleRawInput(codeText);
+                    void handleRawInputRef.current(codeText);
                   }
                 }
               } catch {
@@ -417,7 +419,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
             setScanStatus('READY');
           }
           if (result && !lockRef.current && mountedRef.current) {
-            handleRawInput(result.getText());
+            void handleRawInputRef.current(result.getText());
           }
         };
 
@@ -471,6 +473,10 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       stopScanner();
     };
   }, [cameraFacing, stopScanner]);
+
+  useEffect(() => {
+    handleRawInputRef.current = handleRawInput;
+  });
 
   // Handle Input (Camera or Manual)
   async function handleRawInput(input: string) {
@@ -1197,7 +1203,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               <div style={{ padding: '0.75rem', borderRadius: '8px', background: '#fef2f2', border: '1px solid #fecaca' }}>
                 <strong style={{ fontSize: '0.875rem', color: '#991b1b' }}>4. Salah Input? Urungkan Seketika</strong>
                 <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8125rem', color: '#7f1d1d', lineHeight: 1.4 }}>
-                  Bila salah scan atau keliru hitung pax, segera tekan tombol merah <strong>"↩ Salah Input? Urungkan Check-in"</strong> di kartu scan. Data langsung dibatalkan di sistem & spreadsheet.
+                  Bila salah scan atau keliru hitung pax, segera tekan tombol merah <strong>&ldquo;↩ Salah Input? Urungkan Check-in&rdquo;</strong> di kartu scan. Data langsung dibatalkan di sistem &amp; spreadsheet.
                 </p>
               </div>
 

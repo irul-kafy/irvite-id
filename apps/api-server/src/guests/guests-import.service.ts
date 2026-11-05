@@ -438,14 +438,24 @@ export class GuestsImportService {
                 phoneNumber: cleanPhone,
                 email: cleanEmail,
                 maxPax: cleanMaxPax,
-                tableNumber: (row as any).tableNumber ? String((row as any).tableNumber).trim() : null,
+                tableNumber:
+                  typeof (row as { tableNumber?: string | null })
+                    .tableNumber === 'string' &&
+                  String(
+                    (row as { tableNumber?: string | null }).tableNumber,
+                  ).trim()
+                    ? String(
+                        (row as { tableNumber?: string | null }).tableNumber,
+                      ).trim()
+                    : null,
               },
               select: { id: true },
             });
           } catch (err: unknown) {
             const isMissingCol =
               err instanceof Prisma.PrismaClientKnownRequestError &&
-              (err.code === 'P2022' || String(err.message).includes('table_number'));
+              (err.code === 'P2022' ||
+                String(err.message).includes('table_number'));
             if (isMissingCol) {
               guest = await tx.guest.create({
                 data: {

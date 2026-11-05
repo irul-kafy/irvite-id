@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import type { InvitationTemplateProps, ImageAsset, GiftAccount } from './types';
+import type { InvitationTemplateProps, ImageAsset } from './types';
 import s from './InvitationTemplate.module.css';
 
 function safeUrl(src?: string) {
@@ -159,6 +160,8 @@ export default function InvitationTemplate({
   onRsvpClick,
   onSendWish,
 }: InvitationTemplateProps) {
+  void onRsvpClick;
+  void onSendWish;
   const [opened, setOpened] = useState(false);
   const [coverGone, setCoverGone] = useState(false);
   const [paused, setPaused] = useState(false);

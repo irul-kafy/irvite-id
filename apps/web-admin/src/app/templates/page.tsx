@@ -335,6 +335,7 @@ export default function TemplateCatalogPage() {
               {filteredTemplates.map((item) => {
                 const cat = item.catalogItem;
                 const demoUrl = getCanonicalTemplateDemoUrl(cat.demoPath);
+                void demoUrl;
                 const dbUsageCount = item.matchedDbTemplate?.eventUsageCount ?? 0;
 
                 return (

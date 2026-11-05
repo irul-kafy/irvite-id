@@ -749,7 +749,8 @@ describe('AttendanceService', () => {
         status: 'PUBLISHED',
         content: {
           integrations: {
-            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+            googleSheetWebhookUrl:
+              'https://script.google.com/macros/s/xyz/exec',
           },
         },
       });
@@ -810,9 +811,15 @@ describe('AttendanceService', () => {
           },
         },
       ];
-      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue(mockAudits);
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue(
+        mockAudits,
+      );
 
-      const live = await service.getLiveAttendance('e1', 'u1', Role.SUPER_ADMIN);
+      const live = await service.getLiveAttendance(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+      );
 
       expect(live.event.id).toBe('e1');
       expect(live.summary.totalGuests).toBe(2);
@@ -824,7 +831,9 @@ describe('AttendanceService', () => {
       expect(live.recentCheckIns).toHaveLength(1);
       expect(live.recentCheckIns[0].guestName).toBe('Budi Santoso');
       expect(live.googleSheet.connected).toBe(true);
-      expect(live.googleSheet.webhookUrl).toBe('https://script.google.com/macros/s/xyz/exec');
+      expect(live.googleSheet.webhookUrl).toBe(
+        'https://script.google.com/macros/s/xyz/exec',
+      );
     });
   });
 
@@ -840,14 +849,21 @@ describe('AttendanceService', () => {
         title: 'Wedding Test',
         content: {
           integrations: {
-            googleSheetWebhookUrl: 'https://script.google.com/macros/s/abc/exec',
+            googleSheetWebhookUrl:
+              'https://script.google.com/macros/s/abc/exec',
           },
         },
       });
 
-      const config = await service.getGoogleSheetConfig('e1', 'u1', Role.SUPER_ADMIN);
+      const config = await service.getGoogleSheetConfig(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+      );
       expect(config.connected).toBe(true);
-      expect(config.webhookUrl).toBe('https://script.google.com/macros/s/abc/exec');
+      expect(config.webhookUrl).toBe(
+        'https://script.google.com/macros/s/abc/exec',
+      );
       expect(config.sampleScriptTemplate).toContain('doPost(e)');
     });
 
@@ -888,7 +904,8 @@ describe('AttendanceService', () => {
         status: 'PUBLISHED',
         content: {
           integrations: {
-            googleSheetWebhookUrl: 'https://script.google.com/macros/s/xyz/exec',
+            googleSheetWebhookUrl:
+              'https://script.google.com/macros/s/xyz/exec',
           },
         },
       });
@@ -918,7 +935,11 @@ describe('AttendanceService', () => {
       } as any);
 
       try {
-        const res = await service.resyncGoogleSheet('e1', 'u1', Role.SUPER_ADMIN);
+        const res = await service.resyncGoogleSheet(
+          'e1',
+          'u1',
+          Role.SUPER_ADMIN,
+        );
         expect(res.success).toBe(true);
         expect(res.syncedCount).toBe(1);
         expect(global.fetch).toHaveBeenCalledWith(
@@ -1006,7 +1027,9 @@ describe('AttendanceService', () => {
       expect(result.scannedPax).toBe(0);
       expect(result.remainingPax).toBe(2);
       expect(result.status).toBe('NOT_CHECKED_IN');
-      expect(prisma.attendance.delete).toHaveBeenCalledWith({ where: { id: 'att-1' } });
+      expect(prisma.attendance.delete).toHaveBeenCalledWith({
+        where: { id: 'att-1' },
+      });
     });
 
     it('rolls back latest partial checkIn and keeps previous checkIn count', async () => {
@@ -1102,9 +1125,13 @@ describe('AttendanceService', () => {
       (prisma.attendance.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.undoCheckIn('e1', 'u1', Role.SUPER_ADMIN, 'pPK_1Bskw6sCjPd2UlxOMA'),
+        service.undoCheckIn(
+          'e1',
+          'u1',
+          Role.SUPER_ADMIN,
+          'pPK_1Bskw6sCjPd2UlxOMA',
+        ),
       ).rejects.toThrow('belum memiliki riwayat');
     });
   });
 });
-

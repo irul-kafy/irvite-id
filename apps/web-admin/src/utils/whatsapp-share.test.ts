@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { buildWhatsAppShareUrl, isLocalhostUrl, normalizeWhatsAppPhone } from './whatsapp-share';
+import { buildWhatsAppShareUrl, isLocalhostUrl } from './whatsapp-share';
 
 test('buildWhatsAppShareUrl', async (t) => {
   await t.test('produces valid wa.me URL', () => {

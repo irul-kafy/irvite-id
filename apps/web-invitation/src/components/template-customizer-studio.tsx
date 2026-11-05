@@ -106,7 +106,8 @@ export function TemplateCustomizerStudio({
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('customize') === '1') {
-        setDrawerOpen(true);
+        const timer = setTimeout(() => setDrawerOpen(true), 0);
+        return () => clearTimeout(timer);
       }
     }
   }, []);

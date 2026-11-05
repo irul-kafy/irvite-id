@@ -282,7 +282,34 @@ export class InvitationsService {
     const context =
       await this.publicAccessService.getEligibleContext(uniqueCode);
 
-    let invitation;
+    let invitation: {
+      customMessage: string | null;
+      status: InvitationStatus;
+      rsvpPax: number | null;
+      guest: {
+        name: string;
+        customGreeting: string | null;
+        maxPax: number;
+        tableNumber?: string | null;
+      };
+      event: {
+        title: string;
+        description: string | null;
+        eventDate: Date;
+        locationDetails: string | null;
+        content: unknown;
+        template: {
+          themeCode: string;
+          config: unknown;
+          assets?: Array<{
+            id: string;
+            slot: string;
+            mimeType: string;
+            order: number;
+          }>;
+        } | null;
+      };
+    } | null = null;
     try {
       invitation = await this.prisma.invitation.findUnique({
         where: { id: context.invitationId },
@@ -310,7 +337,12 @@ export class InvitationsService {
                   themeCode: true,
                   config: true,
                   assets: {
-                    select: { id: true, slot: true, mimeType: true, order: true },
+                    select: {
+                      id: true,
+                      slot: true,
+                      mimeType: true,
+                      order: true,
+                    },
                     orderBy: [{ slot: 'asc' }, { order: 'asc' }],
                   },
                 },
@@ -350,7 +382,12 @@ export class InvitationsService {
                     themeCode: true,
                     config: true,
                     assets: {
-                      select: { id: true, slot: true, mimeType: true, order: true },
+                      select: {
+                        id: true,
+                        slot: true,
+                        mimeType: true,
+                        order: true,
+                      },
                       orderBy: [{ slot: 'asc' }, { order: 'asc' }],
                     },
                   },
@@ -418,7 +455,7 @@ export class InvitationsService {
         name: invitation.guest.name,
         customGreeting: invitation.guest.customGreeting,
         maxPax: invitation.guest.maxPax,
-        tableNumber: (invitation.guest as any).tableNumber ?? null,
+        tableNumber: invitation.guest.tableNumber ?? null,
       },
       event: {
         title: invitation.event.title,

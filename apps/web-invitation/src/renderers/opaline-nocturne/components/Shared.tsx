@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import type { CSSProperties, ReactNode } from "react";
 import type { ImageAsset } from "../types";
 import s from "../InvitationTemplate.module.css";

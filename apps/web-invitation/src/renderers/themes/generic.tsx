@@ -48,7 +48,7 @@ function formatEventDate(eventDate: string): string {
 
 // ── Preview-safe RSVP ──────────────────────────────────────────────────────────
 
-function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp }: RsvpSectionProps) {
+export function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp }: RsvpSectionProps) {
   if (isPreview) {
     return (
       <div className="gt-rsvp gt-rsvp--preview" aria-label="RSVP preview placeholder">
@@ -67,7 +67,7 @@ function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp }: RsvpSection
 
 // ── QR Placeholder ─────────────────────────────────────────────────────────────
 
-function QrPlaceholder() {
+export function QrPlaceholder() {
   return (
     <div className="gt-qr-placeholder" aria-label="Guest QR placeholder">
       <div className="gt-qr-placeholder__box" aria-hidden="true">

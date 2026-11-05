@@ -91,9 +91,9 @@ export function adaptSekarKedatonContent(rawContent: unknown, eventTitle?: strin
 
   if (Array.isArray(raw.ceremonies)) {
     res.ceremonies = raw.ceremonies
-      .filter((c: any) => c && typeof c === 'object')
+      .filter((c: unknown): c is Record<string, unknown> => Boolean(c) && typeof c === 'object')
       .slice(0, 4)
-      .map((c: any) => ({
+      .map((c: Record<string, unknown>) => ({
         title: typeof c.title === 'string' ? c.title : typeof c.name === 'string' ? c.name : 'Acara',
         startDateTime: typeof c.startDateTime === 'string' ? c.startDateTime : (c.date && c.startTime ? `${c.date}T${c.startTime}` : ''),
         endDateTime: typeof c.endDateTime === 'string' ? c.endDateTime : (c.date && c.endTime ? `${c.date}T${c.endTime}` : undefined),
@@ -105,9 +105,9 @@ export function adaptSekarKedatonContent(rawContent: unknown, eventTitle?: strin
 
   if (Array.isArray(raw.giftAccounts)) {
     res.giftAccounts = raw.giftAccounts
-      .filter((g: any) => g && typeof g === 'object')
+      .filter((g: unknown): g is Record<string, unknown> => Boolean(g) && typeof g === 'object')
       .slice(0, 3)
-      .map((g: any) => ({
+      .map((g: Record<string, unknown>) => ({
         bankName: typeof g.bankName === 'string' ? g.bankName : '',
         accountNumber: typeof g.accountNumber === 'string' ? g.accountNumber : '',
         accountHolder: typeof g.accountHolder === 'string' ? g.accountHolder : '',

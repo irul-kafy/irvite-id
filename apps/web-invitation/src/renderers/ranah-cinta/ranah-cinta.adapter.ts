@@ -1,4 +1,3 @@
-import type { PublicMediaDescriptor } from '../../types/public-invitation';
 import type { RendererData } from '../registry';
 import type { InvitationData, WeddingEvent, GiftAccount } from './types';
 
@@ -56,7 +55,7 @@ export function adaptRanahCintaData(
   let events: WeddingEvent[] = [];
 
   if (rawCeremonies.length > 0) {
-    events = rawCeremonies.map((c: any, idx: number) => ({
+    events = rawCeremonies.map((c: Record<string, unknown>, idx: number) => ({
       id: `event-${idx + 1}`,
       title: (typeof c.title === 'string' && c.title.trim()) || (idx === 0 ? 'Akad Nikah' : 'Resepsi'),
       date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || '2026-11-22',
@@ -93,7 +92,7 @@ export function adaptRanahCintaData(
 
   // Story
   const rawStory = Array.isArray(content.story) ? content.story : [];
-  const story = rawStory.map((s: any, idx: number) => ({
+  const story = rawStory.map((s: Record<string, unknown>, idx: number) => ({
     year: (typeof s.year === 'string' && s.year.trim()) || String(2022 + idx),
     title: (typeof s.title === 'string' && s.title.trim()) || 'Kisah Kami',
     description: (typeof s.description === 'string' && s.description.trim()) || '',
@@ -104,7 +103,7 @@ export function adaptRanahCintaData(
   let accounts: GiftAccount[] = [];
 
   if (rawAccounts.length > 0) {
-    accounts = rawAccounts.map((a: any, idx: number) => ({
+    accounts = rawAccounts.map((a: Record<string, unknown>, idx: number) => ({
       id: `account-${idx + 1}`,
       kind: 'bank' as const,
       provider: (typeof a.bankName === 'string' && a.bankName.trim()) || 'Bank Transfer',

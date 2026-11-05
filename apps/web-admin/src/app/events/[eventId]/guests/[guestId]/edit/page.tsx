@@ -16,6 +16,7 @@ interface GuestData {
   customGreeting?: string | null;
   email?: string | null;
   phoneNumber?: string | null;
+  tableNumber?: string | null;
   category: string;
   maxPax: number;
 }
@@ -84,7 +85,7 @@ export default function GuestEditPage({
           name: guestData.name || '',
           category: guestData.category || 'REGULAR',
           maxPax: guestData.maxPax || 1,
-          tableNumber: (guestData as any).tableNumber || '',
+          tableNumber: guestData.tableNumber || '',
           phoneNumber: guestData.phoneNumber || '',
           email: guestData.email || '',
           customGreeting: guestData.customGreeting || '',

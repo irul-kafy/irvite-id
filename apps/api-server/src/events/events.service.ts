@@ -148,33 +148,33 @@ export class EventsService {
       nextEvents,
       templateHighlights,
     ] = await Promise.all([
-        this.prisma.event.count({ where: scope }),
-        this.prisma.event.count({ where: { ...scope, status: 'PUBLISHED' } }),
-        this.prisma.event.count({ where: upcoming }),
-        this.prisma.guest.count({ where: { event: scope } }),
-        this.prisma.template.count({ where: { status: 'AVAILABLE' } }),
-        this.prisma.invitation.count({ where: { event: scope } }),
-        this.prisma.invitation.count({
-          where: { event: scope, status: 'RSVP_YES' },
-        }),
-        this.prisma.invitation.count({
-          where: { event: scope, status: 'RSVP_NO' },
-        }),
-        this.prisma.event.findMany({
-          where: upcoming,
-          take: 5,
-          orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
-          select: {
-            ...this.selectSafeEvent(),
-            _count: { select: { guests: true } },
-          },
-        }),
-        this.prisma.template.findMany({
-          where: { status: 'AVAILABLE' },
-          take: 4,
-          orderBy: [{ name: 'asc' }, { id: 'asc' }],
-          select: { id: true, name: true, themeCode: true },
-        }),
+      this.prisma.event.count({ where: scope }),
+      this.prisma.event.count({ where: { ...scope, status: 'PUBLISHED' } }),
+      this.prisma.event.count({ where: upcoming }),
+      this.prisma.guest.count({ where: { event: scope } }),
+      this.prisma.template.count({ where: { status: 'AVAILABLE' } }),
+      this.prisma.invitation.count({ where: { event: scope } }),
+      this.prisma.invitation.count({
+        where: { event: scope, status: 'RSVP_YES' },
+      }),
+      this.prisma.invitation.count({
+        where: { event: scope, status: 'RSVP_NO' },
+      }),
+      this.prisma.event.findMany({
+        where: upcoming,
+        take: 5,
+        orderBy: [{ eventDate: 'asc' }, { id: 'asc' }],
+        select: {
+          ...this.selectSafeEvent(),
+          _count: { select: { guests: true } },
+        },
+      }),
+      this.prisma.template.findMany({
+        where: { status: 'AVAILABLE' },
+        take: 4,
+        orderBy: [{ name: 'asc' }, { id: 'asc' }],
+        select: { id: true, name: true, themeCode: true },
+      }),
     ]);
     const rsvp = {
       totalInvitations,
@@ -327,7 +327,8 @@ export class EventsService {
       if (contentToSave && integrationsToPreserve) {
         contentToSave.integrations = integrationsToPreserve;
       }
-      dataToUpdate.content = (contentToSave ?? Prisma.DbNull) as Prisma.InputJsonValue;
+      dataToUpdate.content = (contentToSave ??
+        Prisma.DbNull) as Prisma.InputJsonValue;
     }
 
     try {
@@ -692,9 +693,8 @@ export class EventsService {
         if (Array.isArray(val)) {
           const maxItems = fieldDef.maxItems ?? 4;
           const items = val
-            .filter(
-              (c): c is Record<string, unknown> =>
-                Boolean(c && typeof c === 'object' && !Array.isArray(c)),
+            .filter((c): c is Record<string, unknown> =>
+              Boolean(c && typeof c === 'object' && !Array.isArray(c)),
             )
             .slice(0, maxItems)
             .map((c, idx) => {
@@ -753,9 +753,8 @@ export class EventsService {
         if (Array.isArray(val)) {
           const maxItems = fieldDef.maxItems ?? 3;
           const accounts = val
-            .filter(
-              (g): g is Record<string, unknown> =>
-                Boolean(g && typeof g === 'object' && !Array.isArray(g)),
+            .filter((g): g is Record<string, unknown> =>
+              Boolean(g && typeof g === 'object' && !Array.isArray(g)),
             )
             .slice(0, maxItems)
             .map((g) => {
@@ -790,9 +789,8 @@ export class EventsService {
         if (Array.isArray(val)) {
           const maxItems = fieldDef.maxItems ?? 6;
           const stories = val
-            .filter(
-              (s): s is Record<string, unknown> =>
-                Boolean(s && typeof s === 'object' && !Array.isArray(s)),
+            .filter((s): s is Record<string, unknown> =>
+              Boolean(s && typeof s === 'object' && !Array.isArray(s)),
             )
             .slice(0, maxItems)
             .map((s) => ({
@@ -861,8 +859,16 @@ export class EventsService {
       template.themeCode,
     );
 
-    const p1 = String(sanitizedContent.partnerOneName || 'Mempelai').trim();
-    const p2 = String(sanitizedContent.partnerTwoName || 'Pasangan').trim();
+    const p1 =
+      typeof sanitizedContent.partnerOneName === 'string' &&
+      sanitizedContent.partnerOneName.trim()
+        ? sanitizedContent.partnerOneName.trim()
+        : 'Mempelai';
+    const p2 =
+      typeof sanitizedContent.partnerTwoName === 'string' &&
+      sanitizedContent.partnerTwoName.trim()
+        ? sanitizedContent.partnerTwoName.trim()
+        : 'Pasangan';
     const refHex = crypto.randomBytes(3).toString('hex').toUpperCase();
     const referenceCode = `IRV-${refHex}`;
 
@@ -928,11 +934,7 @@ export class EventsService {
     // Save optional compressed client preview photos into event media slots
     let savedPhotosCount = 0;
     const definition = getTemplateDefinition(template.themeCode);
-    if (
-      definition &&
-      Array.isArray(dto.photos) &&
-      dto.photos.length > 0
-    ) {
+    if (definition && Array.isArray(dto.photos) && dto.photos.length > 0) {
       const photosToProcess = dto.photos.slice(0, 5);
       for (let i = 0; i < photosToProcess.length; i++) {
         const photoInput = photosToProcess[i];
@@ -949,9 +951,10 @@ export class EventsService {
         );
         if (!slotDef) continue;
 
-        const dataUrlMatch = /^data:image\/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i.exec(
-          photoInput.dataUrl.trim(),
-        );
+        const dataUrlMatch =
+          /^data:image\/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i.exec(
+            photoInput.dataUrl.trim(),
+          );
         if (!dataUrlMatch) continue;
 
         try {
@@ -974,7 +977,8 @@ export class EventsService {
               slot: slotKey,
               url: key,
               type: MediaType.PHOTO,
-              order: typeof photoInput.order === 'number' ? photoInput.order : i,
+              order:
+                typeof photoInput.order === 'number' ? photoInput.order : i,
             },
           });
           savedPhotosCount++;

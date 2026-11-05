@@ -43,14 +43,10 @@ describe('syncTemplateIdentities', () => {
   });
 
   it('includes AETHERIA in approved seeds matching contract', () => {
-    const aet = APPROVED_TEMPLATE_SEEDS.find(
-      (s) => s.themeCode === 'AETHERIA',
-    );
+    const aet = APPROVED_TEMPLATE_SEEDS.find((s) => s.themeCode === 'AETHERIA');
     expect(aet).toBeDefined();
     expect(aet?.name).toBe('Aetheria');
-    expect(aet?.previewImageUrl).toBe(
-      '/templates/aetheria/thumbnail.webp',
-    );
+    expect(aet?.previewImageUrl).toBe('/templates/aetheria/thumbnail.webp');
   });
 
   it('includes OPALINE_NOCTURNE in approved seeds matching contract', () => {
@@ -70,9 +66,7 @@ describe('syncTemplateIdentities', () => {
     );
     expect(rnc).toBeDefined();
     expect(rnc?.name).toBe('Ranah Cinta');
-    expect(rnc?.previewImageUrl).toBe(
-      '/templates/ranah-cinta/thumbnail.webp',
-    );
+    expect(rnc?.previewImageUrl).toBe('/templates/ranah-cinta/thumbnail.webp');
   });
 
   it('creates Template records when 0 matching records exist', async () => {
@@ -223,7 +217,9 @@ describe('syncTemplateIdentities', () => {
       expect(BUILT_IN_THEME_CODES.has('RANAH_CINTA')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(false);
-      expect(BUILT_IN_THEME_CODES.has('CHINESE_TRADITIONAL_LUXURY')).toBe(false);
+      expect(BUILT_IN_THEME_CODES.has('CHINESE_TRADITIONAL_LUXURY')).toBe(
+        false,
+      );
       expect(BUILT_IN_THEME_CODES.has('JARDIN_DE_VELOURS')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('SYMPHONY_OF_US')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('IVORY_GARDEN')).toBe(false);

@@ -78,8 +78,10 @@ describe('RANAH_CINTA TemplateDefinition & Validation', () => {
         partnerTwoName: 'Fadli',
         partnerOneFullName: 'Salma Putri Maharani',
         partnerTwoFullName: 'Fadli Aditya Pratama',
-        partnerOneFamily: 'Putri dari Bapak Hendra Wijaya dan Ibu Ratna Puspita',
-        partnerTwoFamily: 'Putra dari Bapak Bambang Pratama dan Ibu Dewi Lestari',
+        partnerOneFamily:
+          'Putri dari Bapak Hendra Wijaya dan Ibu Ratna Puspita',
+        partnerTwoFamily:
+          'Putra dari Bapak Bambang Pratama dan Ibu Dewi Lestari',
         timeZone: 'Asia/Jakarta',
         openingText: 'Dengan memohon rahmat dan rida Allah SWT...',
         statement: 'Bertemu dalam cinta, berpulang pada kita.',

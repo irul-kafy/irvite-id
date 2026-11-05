@@ -144,19 +144,20 @@ export default function DashboardPage() {
   const [refresh, setRefresh] = useState(0);
   const [publishedEventsCount, setPublishedEventsCount] = useState(0);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
-  const [showGuide, setShowGuide] = useState<boolean>(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('irvite_hide_staff_guide') !== 'true';
+    }
+    return true;
+  });
+  const [userRole, setUserRole] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('irvite_auth_role');
+    }
+    return null;
+  });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('irvite_auth_role');
-      if (cached) setUserRole(cached);
-      const saved = localStorage.getItem('irvite_hide_staff_guide');
-      if (saved === 'true') {
-        setShowGuide(false);
-      }
-    }
-
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -463,7 +464,7 @@ export default function DashboardPage() {
                 </div>
                 <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 0.35rem 0' }}>Urungkan Bila Salah Input</h3>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0', lineHeight: 1.4 }}>
-                  Jika salah scan atau jumlah pax keliru, klik tombol <strong>"Urungkan Check-in"</strong> pada kartu hasil scan seketika.
+                  Jika salah scan atau jumlah pax keliru, klik tombol <strong>&ldquo;Urungkan Check-in&rdquo;</strong> pada kartu hasil scan seketika.
                 </p>
                 <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, padding: '0.35rem 0' }}>
                   ↩ Kuota & Sheets Otomatis Ditarik

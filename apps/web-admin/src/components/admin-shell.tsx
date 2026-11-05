@@ -264,7 +264,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   // Reset optimistic state whenever real pathname catches up
   useEffect(() => {
-    setPendingPath(null);
+    const timer = setTimeout(() => setPendingPath(null), 0);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   const breadcrumbs = useBreadcrumb(pathname);
@@ -272,10 +273,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   // Restore cached auth immediately on mount, then revalidate in background
   useEffect(() => {
     const cached = readCachedAuth();
-    if (cached.role) setUserRole(cached.role);
-    if (cached.email) setUserEmail(cached.email);
-
-    let isMounted = true;
+    const cacheTimer = setTimeout(() => {
+      if (cached.role) setUserRole(cached.role);
+      if (cached.email) setUserEmail(cached.email);
+    }, 0);
+    let isMounted = true;
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -291,6 +293,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         // ignore
       });
     return () => {
+      clearTimeout(cacheTimer);
       isMounted = false;
     };
   }, []);

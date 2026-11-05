@@ -247,6 +247,7 @@ export default function LiveAttendanceMonitorPage({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -285,6 +286,7 @@ export default function LiveAttendanceMonitorPage({
 
       const result: LiveAttendanceData = await res.json();
       setData(result);
+      setNowTs(Date.now());
       setError('');
 
       // Check if a new check-in arrived
@@ -312,7 +314,9 @@ export default function LiveAttendanceMonitorPage({
 
   // Initial load + Polling effect
   useEffect(() => {
-    void loadLiveData(true);
+    const initTimer = setTimeout(() => {
+      void loadLiveData(true);
+    }, 0);
 
     const interval = setInterval(() => {
       // Don't poll if browser tab is hidden
@@ -321,7 +325,10 @@ export default function LiveAttendanceMonitorPage({
       }
     }, 4000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(interval);
+    };
   }, [loadLiveData]);
 
   // Load Google Sheet Config when modal is opened
@@ -435,7 +442,7 @@ export default function LiveAttendanceMonitorPage({
 
   const formatTimeAgo = (dateStr: string) => {
     try {
-      const diffSec = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+      const diffSec = Math.floor((nowTs - new Date(dateStr).getTime()) / 1000);
       if (diffSec < 45) return 'Baru saja';
       if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m lalu`;
       return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });

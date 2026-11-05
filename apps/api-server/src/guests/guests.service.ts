@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -114,7 +114,7 @@ export class GuestsService {
     } catch (err: unknown) {
       if (this.isMissingTableNumberColumn(err)) {
         const fallbackData = { ...data };
-        delete (fallbackData as any).tableNumber;
+        delete (fallbackData as Record<string, unknown>).tableNumber;
         const guest = await this.prisma.guest.create({
           data: fallbackData,
           select: this.safeGuestSelect(false),
@@ -282,7 +282,7 @@ export class GuestsService {
       }
       if (this.isMissingTableNumberColumn(error)) {
         const fallbackData = { ...data };
-        delete (fallbackData as any).tableNumber;
+        delete (fallbackData as Record<string, unknown>).tableNumber;
         try {
           const guest = await this.prisma.guest.update({
             where: {
@@ -309,7 +309,7 @@ export class GuestsService {
 
   private isMissingTableNumberColumn(err: unknown): boolean {
     if (!err) return false;
-    const msg = String((err as any).message || '');
+    const msg = err instanceof Error ? err.message : '';
     return (
       (err instanceof Prisma.PrismaClientKnownRequestError &&
         (err.code === 'P2022' || msg.includes('table_number'))) ||

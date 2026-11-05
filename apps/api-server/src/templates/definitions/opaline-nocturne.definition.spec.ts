@@ -76,14 +76,16 @@ describe('OPALINE_NOCTURNE TemplateDefinition & Validation', () => {
         partnerTwoName: 'Rafi',
         partnerOneFullName: 'Anindya Kirana',
         partnerTwoFullName: 'Rafi Adhitama',
-        partnerOneFamily: 'Putri dari Bapak Aditya Pratama & Ibu Ratih Permatasari',
+        partnerOneFamily:
+          'Putri dari Bapak Aditya Pratama & Ibu Ratih Permatasari',
         partnerTwoFamily: 'Putra dari Bapak Hendra Wijaya & Ibu Laras Kusuma',
         timeZone: 'Asia/Jakarta',
         openingText: 'Dengan menyebut nama Allah...',
         statement: 'Dua perjalanan, satu tujuan.',
         prayer: 'Ya Allah, tumbuhkan kasih dalam setiap langkah kami.',
         prayerSource: 'Doa kami untuk awal yang baru',
-        closingMessage: 'Kehadiran, doa, dan kasih Anda adalah bagian terindah...',
+        closingMessage:
+          'Kehadiran, doa, dan kasih Anda adalah bagian terindah...',
         ceremonies: [
           {
             title: 'Akad Nikah',

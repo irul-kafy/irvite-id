@@ -71,9 +71,23 @@ describe('spreadsheet-parser', () => {
 
     it('parses optional Meja column correctly when present', async () => {
       const buffer = await createXlsxBuffer(
-        ['Nama Tamu', 'Kategori', 'No. WhatsApp', 'Email', 'Jumlah Tamu', 'Meja'],
         [
-          ['Budi Santoso', 'VIP', '081234567890', 'budi@example.com', 2, 'Meja 08'],
+          'Nama Tamu',
+          'Kategori',
+          'No. WhatsApp',
+          'Email',
+          'Jumlah Tamu',
+          'Meja',
+        ],
+        [
+          [
+            'Budi Santoso',
+            'VIP',
+            '081234567890',
+            'budi@example.com',
+            2,
+            'Meja 08',
+          ],
           ['Andi', 'REGULAR', '', '', 1, 'VIP 1'],
         ],
       );

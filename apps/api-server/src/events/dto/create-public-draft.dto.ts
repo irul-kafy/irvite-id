@@ -50,4 +50,3 @@ export class CreatePublicDraftDto {
   @IsArray()
   photos?: PublicDraftPhotoInput[];
 }
-

@@ -55,12 +55,12 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     const internalUrl = getInternalApiBaseUrl();
     return NextResponse.json({
       message: 'Internal Server Error',
       debug: {
-        error: error?.message || String(error),
+        error: error instanceof Error ? error.message : String(error),
         target: internalUrl,
       },
     }, { status: 500 });

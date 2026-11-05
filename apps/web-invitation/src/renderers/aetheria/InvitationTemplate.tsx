@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { InvitationTemplateProps, ImageAsset, GiftAccount } from './types';
@@ -59,7 +60,7 @@ export default function InvitationTemplate({data,guest={kind:'general'},theme,rs
     return()=>observer.disconnect();
   },[opened,coverGone,data]);
   useEffect(()=>{if(lightbox!==null)galleryDialog.current?.showModal();},[lightbox]);
-  useEffect(()=>{if(!enabled('music') && audio.current){audio.current.pause();setPlaying(false);}},[data.features?.music]);
+  useEffect(()=>{if(!enabled('music') && audio.current){audio.current.pause();setPlaying(false);}},[data.features?.music]); // eslint-disable-line react-hooks/exhaustive-deps
   async function toggleMusic(){if(!audio.current)return;try{if(playing){audio.current.pause();setPlaying(false);callbacks?.onMusicChange?.(false);}else{await audio.current.play();setPlaying(true);callbacks?.onMusicChange?.(true);}}catch{setNotice('Musik belum dapat diputar. Periksa berkas audio.');}}
   function open(){setOpened(true);window.scrollTo({top:0,behavior:'instant'});callbacks?.onOpen?.();}
   async function copy(account:GiftAccount){try{if(callbacks?.onCopyGift)await callbacks.onCopyGift(account);else await navigator.clipboard.writeText(account.number);setNotice('Nomor rekening berhasil disalin.');}catch{setNotice(`Silakan salin nomor rekening secara manual: ${account.number}`);}}

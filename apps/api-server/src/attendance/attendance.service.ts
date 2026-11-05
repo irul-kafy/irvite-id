@@ -159,7 +159,31 @@ export class AttendanceService {
   async resolve(eventId: string, userId: string, _role: Role, code: string) {
     const authorizedEvent = await this.authorizeEvent(eventId, userId);
 
-    let invitation: any;
+    let invitation: {
+      id: string;
+      status: string;
+      rsvpPax: number | null;
+      uniqueCode: string;
+      guest: {
+        id: string;
+        eventId: string;
+        name: string;
+        maxPax: number;
+        category: string;
+        customGreeting: string | null;
+        tableNumber?: string | null;
+      } | null;
+      attendances?: Array<{
+        scannedPax: number;
+        scannedAt: Date;
+        checkIns?: Array<{
+          id: string;
+          scannedPax: number;
+          scannedAt: Date;
+          scannedById: string;
+        }>;
+      }>;
+    } | null = null;
     try {
       invitation = await this.db.invitation.findUnique({
         where: { uniqueCode: code },
@@ -252,7 +276,7 @@ export class AttendanceService {
         maxPax,
         category: invitation.guest.category ?? null,
         customGreeting: invitation.guest.customGreeting ?? null,
-        tableNumber: (invitation.guest as any).tableNumber ?? null,
+        tableNumber: invitation.guest.tableNumber ?? null,
       },
       rsvp: {
         response: rsvpResponse,
@@ -288,7 +312,20 @@ export class AttendanceService {
       throw new BadRequestException('Pax must be at least 1');
     }
 
-    let invitation: any;
+    let invitation: {
+      id: string;
+      status: string;
+      rsvpPax: number | null;
+      uniqueCode: string;
+      guest: {
+        id: string;
+        eventId: string;
+        name: string;
+        maxPax: number;
+        category?: string;
+        tableNumber?: string | null;
+      } | null;
+    } | null = null;
     try {
       invitation = await this.db.invitation.findUnique({
         where: { uniqueCode: code },
@@ -346,7 +383,12 @@ export class AttendanceService {
     if (result.result === 'CHECKED_IN') {
       await this.dispatchGoogleSheetSync(
         eventId,
-        invitation.guest,
+        {
+          id: invitation.guest.id,
+          name: invitation.guest.name,
+          category: invitation.guest.category || 'REGULAR',
+          maxPax: invitation.guest.maxPax,
+        },
         pax,
         result.scannedPax,
         maxPax,
@@ -362,7 +404,7 @@ export class AttendanceService {
         name: invitation.guest.name,
         maxPax: invitation.guest.maxPax,
         category: invitation.guest.category ?? null,
-        tableNumber: (invitation.guest as any).tableNumber ?? null,
+        tableNumber: invitation.guest.tableNumber ?? null,
       },
     };
   }
@@ -379,7 +421,13 @@ export class AttendanceService {
 
     let invitation: {
       id: string;
-      guest: { id: string; name: string; category: string; maxPax: number; eventId: string };
+      guest: {
+        id: string;
+        name: string;
+        category: string;
+        maxPax: number;
+        eventId: string;
+      };
     } | null = null;
 
     if (code && typeof code === 'string' && code.trim()) {
@@ -398,7 +446,9 @@ export class AttendanceService {
         include: { guest: true },
       });
     } else {
-      throw new BadRequestException('Kode undangan, invitationId, atau guestId diperlukan untuk mengurungkan check-in.');
+      throw new BadRequestException(
+        'Kode undangan, invitationId, atau guestId diperlukan untuk mengurungkan check-in.',
+      );
     }
 
     if (
@@ -406,7 +456,9 @@ export class AttendanceService {
       !invitation.guest ||
       invitation.guest.eventId !== eventId
     ) {
-      throw new NotFoundException('Data undangan tidak ditemukan untuk acara ini');
+      throw new NotFoundException(
+        'Data undangan tidak ditemukan untuk acara ini',
+      );
     }
 
     const attendance = await this.db.attendance.findUnique({
@@ -419,7 +471,9 @@ export class AttendanceService {
     });
 
     if (!attendance || attendance.scannedPax <= 0) {
-      throw new BadRequestException('Tamu ini belum memiliki riwayat kehadiran untuk diurungkan');
+      throw new BadRequestException(
+        'Tamu ini belum memiliki riwayat kehadiran untuk diurungkan',
+      );
     }
 
     const maxPax = invitation.guest.maxPax;
@@ -439,7 +493,10 @@ export class AttendanceService {
         });
 
         const remainingCheckIns = checkIns.slice(1);
-        const newScannedPax = remainingCheckIns.reduce((sum, c) => sum + c.scannedPax, 0);
+        const newScannedPax = remainingCheckIns.reduce(
+          (sum, c) => sum + c.scannedPax,
+          0,
+        );
 
         if (newScannedPax <= 0) {
           await tx.attendance.delete({
@@ -500,7 +557,12 @@ export class AttendanceService {
     return {
       ...rollbackResult,
       guestName: invitation.guest.name,
-      message: 'Check-in untuk ' + invitation.guest.name + ' (' + rollbackResult.rolledBackPax + ' pax) berhasil diurungkan.',
+      message:
+        'Check-in untuk ' +
+        invitation.guest.name +
+        ' (' +
+        rollbackResult.rolledBackPax +
+        ' pax) berhasil diurungkan.',
     };
   }
 
@@ -705,8 +767,9 @@ export class AttendanceService {
   private async authorizeEventOperator(
     eventId: string,
     userId: string,
-    role: Role,
+    _role: Role,
   ) {
+    void _role;
     const user = await this.db.user.findUnique({
       where: { id: userId },
     });
@@ -743,7 +806,8 @@ export class AttendanceService {
     return event;
   }
 
-  async getLiveAttendance(eventId: string, userId: string, role: Role) {
+  async getLiveAttendance(eventId: string, userId: string, _role: Role) {
+    void _role;
     const event = await this.authorizeEvent(eventId, userId);
 
     const [guests, recentAudits] = await Promise.all([
@@ -809,7 +873,12 @@ export class AttendanceService {
 
     const categoryMap = new Map<
       string,
-      { totalGuests: number; checkedInGuests: number; totalPax: number; checkedInPax: number }
+      {
+        totalGuests: number;
+        checkedInGuests: number;
+        totalPax: number;
+        checkedInPax: number;
+      }
     >();
 
     const guestList = guests.map((g) => {
@@ -829,7 +898,9 @@ export class AttendanceService {
       catStats.totalPax += g.maxPax;
 
       const att = g.invitation?.attendances?.[0];
-      const isCheckedIn = Boolean(att && att.scannedPax > 0 && att.status === 'VALID');
+      const isCheckedIn = Boolean(
+        att && att.scannedPax > 0 && att.status === 'VALID',
+      );
 
       if (isCheckedIn && att) {
         checkedInGuestsCount += 1;
@@ -856,7 +927,9 @@ export class AttendanceService {
 
     const remainingPax = Math.max(0, totalInvitedPax - checkedInPax);
     const checkInRate =
-      totalInvitedPax > 0 ? Number(((checkedInPax / totalInvitedPax) * 100).toFixed(1)) : 0;
+      totalInvitedPax > 0
+        ? Number(((checkedInPax / totalInvitedPax) * 100).toFixed(1))
+        : 0;
 
     const recentCheckIns = recentAudits.map((a) => {
       const guest = a.attendance.invitation.guest;
@@ -873,18 +946,30 @@ export class AttendanceService {
       };
     });
 
-    const categories = Array.from(categoryMap.entries()).map(([name, stats]) => ({
-      category: name,
-      ...stats,
-      rate: stats.totalPax > 0 ? Number(((stats.checkedInPax / stats.totalPax) * 100).toFixed(1)) : 0,
-    }));
+    const categories = Array.from(categoryMap.entries()).map(
+      ([name, stats]) => ({
+        category: name,
+        ...stats,
+        rate:
+          stats.totalPax > 0
+            ? Number(((stats.checkedInPax / stats.totalPax) * 100).toFixed(1))
+            : 0,
+      }),
+    );
 
     const contentObj =
       event.content && typeof event.content === 'object'
-        ? (event.content as Record<string, any>)
+        ? (event.content as {
+            integrations?: {
+              googleSheetWebhookUrl?: string | null;
+              googleSheetUpdatedAt?: string | null;
+            };
+          })
         : {};
-    const googleSheetWebhookUrl = contentObj?.integrations?.googleSheetWebhookUrl || null;
-    const googleSheetUpdatedAt = contentObj?.integrations?.googleSheetUpdatedAt || null;
+    const googleSheetWebhookUrl =
+      contentObj.integrations?.googleSheetWebhookUrl || null;
+    const googleSheetUpdatedAt =
+      contentObj.integrations?.googleSheetUpdatedAt || null;
 
     return {
       event: {
@@ -920,14 +1005,19 @@ export class AttendanceService {
 
     const content =
       event.content && typeof event.content === 'object'
-        ? (event.content as Record<string, any>)
+        ? (event.content as {
+            integrations?: {
+              googleSheetWebhookUrl?: string | null;
+              googleSheetUpdatedAt?: string | null;
+            };
+          })
         : {};
-    const integrations = content?.integrations || {};
+    const integrations = content.integrations || {};
 
     return {
-      connected: Boolean(integrations?.googleSheetWebhookUrl),
-      webhookUrl: integrations?.googleSheetWebhookUrl || '',
-      lastUpdatedAt: integrations?.googleSheetUpdatedAt || null,
+      connected: Boolean(integrations.googleSheetWebhookUrl),
+      webhookUrl: integrations.googleSheetWebhookUrl || '',
+      lastUpdatedAt: integrations.googleSheetUpdatedAt || null,
       sampleScriptTemplate: this.generateAppsScriptTemplate(event.title),
     };
   }
@@ -940,23 +1030,32 @@ export class AttendanceService {
   ) {
     const event = await this.authorizeEventOperator(eventId, userId, role);
 
-    const currentContent =
-      event.content && typeof event.content === 'object'
-        ? { ...(event.content as Record<string, any>) }
+    const currentContent: Prisma.InputJsonObject =
+      event.content &&
+      typeof event.content === 'object' &&
+      !Array.isArray(event.content)
+        ? { ...(event.content as Prisma.InputJsonObject) }
         : {};
-    const integrations =
-      currentContent.integrations && typeof currentContent.integrations === 'object'
-        ? { ...currentContent.integrations }
+    const integrations: Prisma.InputJsonObject =
+      currentContent.integrations &&
+      typeof currentContent.integrations === 'object' &&
+      !Array.isArray(currentContent.integrations)
+        ? { ...(currentContent.integrations as Prisma.InputJsonObject) }
         : {};
 
     const cleanUrl = webhookUrl ? webhookUrl.trim() : null;
-    integrations.googleSheetWebhookUrl = cleanUrl || null;
-    integrations.googleSheetUpdatedAt = new Date().toISOString();
-    currentContent.integrations = integrations;
+    const updatedContent: Prisma.InputJsonObject = {
+      ...currentContent,
+      integrations: {
+        ...integrations,
+        googleSheetWebhookUrl: cleanUrl || null,
+        googleSheetUpdatedAt: new Date().toISOString(),
+      },
+    };
 
     await this.db.event.update({
       where: { id: eventId },
-      data: { content: currentContent },
+      data: { content: updatedContent },
     });
 
     return {
@@ -974,11 +1073,17 @@ export class AttendanceService {
 
     const content =
       event.content && typeof event.content === 'object'
-        ? (event.content as Record<string, any>)
+        ? (event.content as {
+            integrations?: { googleSheetWebhookUrl?: string | null };
+          })
         : {};
-    const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
+    const webhookUrl = content.integrations?.googleSheetWebhookUrl;
 
-    if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+    if (
+      !webhookUrl ||
+      typeof webhookUrl !== 'string' ||
+      !webhookUrl.startsWith('http')
+    ) {
       throw new BadRequestException(
         'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
       );
@@ -1015,16 +1120,21 @@ export class AttendanceService {
       });
 
       if (!res.ok && res.status >= 400) {
-        throw new Error(`Google endpoint mengembalikan kode HTTP ${res.status}`);
+        throw new Error(
+          `Google endpoint mengembalikan kode HTTP ${res.status}`,
+        );
       }
 
       return {
         success: true,
-        message: 'Koneksi ke Google Sheets berhasil diuji! Data uji coba telah terkirim.',
+        message:
+          'Koneksi ke Google Sheets berhasil diuji! Data uji coba telah terkirim.',
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error ? err.message : 'Timeout / Network Error';
       throw new BadRequestException(
-        `Gagal menghubungi endpoint Google Sheets: ${err?.message || 'Timeout / Network Error'}. Pastikan URL Webhook benar dan dapat diakses publik.`,
+        `Gagal menghubungi endpoint Google Sheets: ${errMsg}. Pastikan URL Webhook benar dan dapat diakses publik.`,
       );
     }
   }
@@ -1034,11 +1144,17 @@ export class AttendanceService {
 
     const content =
       event.content && typeof event.content === 'object'
-        ? (event.content as Record<string, any>)
+        ? (event.content as {
+            integrations?: { googleSheetWebhookUrl?: string | null };
+          })
         : {};
-    const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
+    const webhookUrl = content.integrations?.googleSheetWebhookUrl;
 
-    if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+    if (
+      !webhookUrl ||
+      typeof webhookUrl !== 'string' ||
+      !webhookUrl.startsWith('http')
+    ) {
       throw new BadRequestException(
         'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
       );
@@ -1057,7 +1173,8 @@ export class AttendanceService {
       return {
         success: true,
         syncedCount: 0,
-        message: 'Belum ada data kehadiran untuk disinkronkan ke Google Sheets.',
+        message:
+          'Belum ada data kehadiran untuk disinkronkan ke Google Sheets.',
       };
     }
 
@@ -1091,9 +1208,10 @@ export class AttendanceService {
           signal: AbortSignal.timeout(6000),
         });
         syncedCount++;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         this.logger.warn(
-          `Failed to resync check-in for guest ${guest.name} to Google Sheet: ${err?.message || err}`,
+          `Failed to resync check-in for guest ${guest.name} to Google Sheet: ${errMsg}`,
         );
       }
     }
@@ -1124,10 +1242,16 @@ export class AttendanceService {
 
       const content =
         event.content && typeof event.content === 'object'
-          ? (event.content as Record<string, any>)
+          ? (event.content as {
+              integrations?: { googleSheetWebhookUrl?: string | null };
+            })
           : {};
-      const webhookUrl = content?.integrations?.googleSheetWebhookUrl;
-      if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('http')) {
+      const webhookUrl = content.integrations?.googleSheetWebhookUrl;
+      if (
+        !webhookUrl ||
+        typeof webhookUrl !== 'string' ||
+        !webhookUrl.startsWith('http')
+      ) {
         return;
       }
 
@@ -1159,9 +1283,10 @@ export class AttendanceService {
         body: JSON.stringify(payload),
         signal: AbortSignal.timeout(6000),
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       this.logger.warn(
-        `Failed to sync check-in to Google Sheet for event ${eventId}: ${err?.message || err}`,
+        `Failed to sync check-in to Google Sheet for event ${eventId}: ${errMsg}`,
       );
     }
   }
@@ -1236,4 +1361,3 @@ function doPost(e) {
 }`;
   }
 }
-

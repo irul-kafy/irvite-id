@@ -26,7 +26,7 @@ export default function AetheriaRenderer({
         kind: 'personal',
         name: data.guest.name,
         maxPax: data.guest.maxPax,
-        invitationLabel: (data.guest as any).customGreeting || 'Tamu Undangan',
+        invitationLabel: data.guest.customGreeting || 'Tamu Undangan',
       }
     : {
         kind: 'general',
