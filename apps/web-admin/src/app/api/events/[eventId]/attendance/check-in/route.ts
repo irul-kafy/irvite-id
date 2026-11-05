@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { isValidAdminOrigin } from '@/utils/origin';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 export async function POST(
   request: Request,
@@ -18,15 +19,15 @@ export async function POST(
     }
 
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const token = cookieStore.get('auth_token')?.value || cookieStore.get('token')?.value;
     if (!token) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     
-    const res = await fetch(`${internalUrl}/events/${eventId}/attendance/check-in`, {
+    let res = await fetch(`${internalUrl}/events/${eventId}/attendance/check-in`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,6 +40,20 @@ export async function POST(
       }),
     });
 
+    if (res.status === 404) {
+      res = await fetch(`${internalUrl}/api/v1/events/${eventId}/attendance/check-in`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          code: body.code,
+          pax: body.pax,
+        }),
+      });
+    }
+
     if (res.status === 401) {
       const response = NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
       response.cookies.delete('auth_token');
@@ -46,7 +61,11 @@ export async function POST(
     }
 
     if (res.status === 403) {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json(
+        { message: data.message || 'Anda tidak memiliki akses ke acara ini' },
+        { status: 403 }
+      );
     }
 
     if (!res.ok) {

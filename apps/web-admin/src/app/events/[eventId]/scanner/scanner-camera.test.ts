@@ -71,5 +71,24 @@ test('Scanner Camera Facing Mode (Front/Back) UI & Architecture Contract', async
       'scanner.css must style .scanner-flip-camera-btn'
     );
   });
+
+  await t.test('ScannerClient has dedicated ERROR state and does not auto-dismiss error card', () => {
+    assert.ok(
+      clientContent.includes("'ERROR'"),
+      'ScannerClient must include ERROR in ScanState type'
+    );
+    assert.ok(
+      clientContent.includes('id="scanner-error-card"'),
+      'ScannerClient must render #scanner-error-card when scan fails'
+    );
+    assert.ok(
+      clientContent.includes('scan-result--error'),
+      'ScannerClient must use scan-result--error container'
+    );
+    assert.ok(
+      cssContent.includes('.scan-result--error .scan-result__icon'),
+      'scanner.css must style .scan-result--error .scan-result__icon'
+    );
+  });
 });
 
