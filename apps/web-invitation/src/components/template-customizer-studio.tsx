@@ -520,11 +520,11 @@ export function TemplateCustomizerStudio({
               onClick={handleResetAll}
               title="Kembalikan ke data contoh bawaan"
             >
-              ↺ Reset Contoh
+              ↺ Kembalikan Semula
             </button>
           </div>
           <p className="irv-studio-drawer__subtitle">
-            Coba masukkan nama, jadwal, dan foto Anda untuk melihat hasil langsung di sebelah kiri. Tata letak & font dikunci sesuai ketentuan <strong>IRVITE</strong>.
+            Sesuaikan nama, jadwal, dan foto untuk melihat simulasi undangan secara real-time. Format tampilan tetap tertata rapi sesuai standar desain <strong>IRVITE</strong>.
           </p>
         </div>
 
