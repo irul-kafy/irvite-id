@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyTheme, getCurrentTheme } from '../utils/apply-theme';
+import { NotificationBell } from './notification-bell';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 
@@ -515,6 +516,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
           {/* Right actions */}
           <div className="admin-header__actions">
+            <NotificationBell />
             <ThemeToggle />
             <div
               className="admin-header__avatar"
