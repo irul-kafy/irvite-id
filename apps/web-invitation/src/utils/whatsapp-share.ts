@@ -149,6 +149,7 @@ export function buildAutoSenderWhatsAppUrl(
   phoneNumber?: string | null,
   variantIndex: number = 0,
   customGreeting?: string | null,
+  isMobile: boolean = false,
 ): string {
   const cleanPhone = normalizeWhatsAppPhone(phoneNumber);
   const message = generateSpintaxMessage(
@@ -159,6 +160,9 @@ export function buildAutoSenderWhatsAppUrl(
     customGreeting,
   );
   const target = cleanPhone ? `${cleanPhone}` : '';
+  if (isMobile) {
+    return `https://api.whatsapp.com/send?phone=${target}&text=${encodeURIComponent(message)}`;
+  }
   return `https://web.whatsapp.com/send?phone=${target}&text=${encodeURIComponent(message)}`;
 }
 

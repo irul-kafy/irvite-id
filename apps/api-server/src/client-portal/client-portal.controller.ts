@@ -20,6 +20,8 @@ import {
   StartPortalWaQueueDto,
   ControlPortalWaQueueDto,
   SendPortalWaTestDto,
+  RequestPortalWaPairingCodeDto,
+  SendPortalWaGuestDto,
 } from './dto/client-portal.dto';
 
 @Controller(['api/v1/client-portal', 'client-portal'])
@@ -115,6 +117,41 @@ export class ClientPortalController {
     @Query('key') key?: string,
   ) {
     return this.clientPortalWaService.connectSession(eventId, key);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: seconds(60) } })
+  @Post(':eventId/wa/pairing-code')
+  @Header('Cache-Control', 'no-store')
+  async requestWaPairingCode(
+    @Param('eventId') eventId: string,
+    @Query('key') key: string | undefined,
+    @Body() dto: RequestPortalWaPairingCodeDto,
+  ) {
+    return this.clientPortalWaService.requestPairingCode(
+      eventId,
+      key,
+      dto.phoneNumber,
+    );
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 120, ttl: seconds(60) } })
+  @Post(':eventId/wa/send-guest/:guestId')
+  @Header('Cache-Control', 'no-store')
+  async sendPortalWaGuest(
+    @Param('eventId') eventId: string,
+    @Param('guestId') guestId: string,
+    @Query('key') key: string | undefined,
+    @Body() dto: SendPortalWaGuestDto,
+  ) {
+    return this.clientPortalWaService.sendGuestDirectMessage(
+      eventId,
+      guestId,
+      key,
+      dto.originUrl,
+      dto.variantIndex,
+    );
   }
 
   @Public()

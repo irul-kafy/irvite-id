@@ -110,6 +110,26 @@ describe('ClientPortalWaService', () => {
       const queue = service.controlQueue('evt-123', 'pause');
       expect(queue.status).toBe('idle');
     });
+
+    it('rejects pairing code request with invalid phone number', async () => {
+      await expect(
+        service.requestPairingCode('evt-123', 'key-123', 'abc'),
+      ).rejects.toThrow('Nomor WhatsApp tidak valid');
+    });
+
+    it('rejects direct guest send when WhatsApp is not connected', async () => {
+      prismaMock.guest.findUnique.mockResolvedValue({
+        id: 'gst-1',
+        name: 'Budi',
+        eventId: 'evt-123',
+        phoneNumber: '081234567890',
+        invitation: { id: 'inv-1', uniqueCode: 'budi123', status: 'PENDING' },
+      });
+
+      await expect(
+        service.sendGuestDirectMessage('evt-123', 'gst-1', 'key-123'),
+      ).rejects.toThrow('WhatsApp pengirim belum terhubung');
+    });
   });
 });
 

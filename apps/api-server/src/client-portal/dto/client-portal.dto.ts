@@ -115,3 +115,20 @@ export class SendPortalWaTestDto {
   @IsString()
   testMessage?: string;
 }
+
+export class RequestPortalWaPairingCodeDto {
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber: string;
+}
+
+export class SendPortalWaGuestDto {
+  @IsOptional()
+  @IsString()
+  originUrl?: string;
+
+  @IsOptional()
+  @IsInt()
+  variantIndex?: number;
+}
+

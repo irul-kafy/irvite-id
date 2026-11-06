@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import * as QRCode from 'qrcode';
 import type { WASocket, ConnectionState } from '@whiskeysockets/baileys';
 import { PrismaService } from '../database/prisma.service';
@@ -69,28 +70,18 @@ export class ClientPortalWaService implements OnModuleDestroy {
   private readonly logger = new Logger(ClientPortalWaService.name);
   private readonly sessions = new Map<string, ActiveWaSession>();
   private readonly queues = new Map<string, ActiveWaQueue>();
-  private readonly baseStorageDir: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly clientPortalService: ClientPortalService,
-  ) {
-    this.baseStorageDir = path.join(process.cwd(), 'storage', 'wa-sessions');
-    if (!fs.existsSync(this.baseStorageDir)) {
-      try {
-        fs.mkdirSync(this.baseStorageDir, { recursive: true });
-      } catch (err) {
-        this.logger.error(`Failed to create WA sessions base directory: ${err}`);
-      }
-    }
-  }
+  ) {}
 
   onModuleDestroy() {
     // Gracefully clean up all sockets and timers
-    for (const [eventId, queue] of this.queues.entries()) {
+    for (const [, queue] of this.queues.entries()) {
       if (queue.timer) clearTimeout(queue.timer);
     }
-    for (const [eventId, session] of this.sessions.entries()) {
+    for (const [, session] of this.sessions.entries()) {
       if (session.sock) {
         try {
           session.sock.end(undefined);
@@ -103,8 +94,53 @@ export class ClientPortalWaService implements OnModuleDestroy {
     this.sessions.clear();
   }
 
+  /**
+   * Resolves a writable directory for auth state.
+   * On Vercel / AWS Lambda, process.cwd() is read-only (/var/task),
+   * so we gracefully fallback to os.tmpdir().
+   */
+  private getStorageBaseDir(): string {
+    const candidates = [
+      path.join(process.cwd(), 'storage', 'wa-sessions'),
+      path.join(os.tmpdir(), 'irvite-wa-sessions'),
+    ];
+
+    for (const dir of candidates) {
+      try {
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        const probeFile = path.join(dir, `.probe_${Date.now()}`);
+        fs.writeFileSync(probeFile, 'ok');
+        fs.unlinkSync(probeFile);
+        return dir;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    const fallback = path.join(os.tmpdir(), 'irvite-wa-sessions');
+    try {
+      if (!fs.existsSync(fallback)) {
+        fs.mkdirSync(fallback, { recursive: true });
+      }
+    } catch {
+      // ignore
+    }
+    return fallback;
+  }
+
   private getSessionDir(eventId: string): string {
-    return path.join(this.baseStorageDir, `event_${eventId}`);
+    const baseDir = this.getStorageBaseDir();
+    const sessionDir = path.join(baseDir, `event_${eventId}`);
+    try {
+      if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+      }
+    } catch {
+      // ignore
+    }
+    return sessionDir;
   }
 
   /**
@@ -214,7 +250,7 @@ export class ClientPortalWaService implements OnModuleDestroy {
       const sessionDir = this.getSessionDir(eventId);
       if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
         // Automatically wake up existing saved session
-        void this.initBaileysSocket(eventId);
+        void this.initBaileysSocket(eventId, false);
         return {
           status: 'connecting',
           phoneNumber: null,
@@ -246,8 +282,73 @@ export class ClientPortalWaService implements OnModuleDestroy {
    * Connect or refresh QR code for an event
    */
   async connectSession(eventId: string, key?: string): Promise<WaSessionInfo> {
+    try {
+      await this.clientPortalService.getPortalData(eventId, key);
+      return await this.initBaileysSocket(eventId, true);
+    } catch (err) {
+      this.logger.error(`Error in connectSession for event ${eventId}: ${err}`);
+      if (err instanceof UnauthorizedException || err instanceof NotFoundException) {
+        throw err;
+      }
+      throw new BadRequestException(
+        (err as Error)?.message || 'Gagal menyiapkan QR Code WhatsApp. Silakan klik coba lagi.',
+      );
+    }
+  }
+
+  /**
+   * Request an 8-character Pairing Code for smartphone users
+   * Allows linking WhatsApp without scanning a QR code from a camera!
+   */
+  async requestPairingCode(
+    eventId: string,
+    key: string | undefined,
+    phoneNumber: string,
+  ): Promise<{ pairingCode: string }> {
     await this.clientPortalService.getPortalData(eventId, key);
-    return this.initBaileysSocket(eventId);
+
+    const cleanPhone = this.normalizePhone(phoneNumber);
+    if (!cleanPhone) {
+      throw new BadRequestException(
+        'Nomor WhatsApp tidak valid. Masukkan nomor dengan awalan 08... atau 628...',
+      );
+    }
+
+    // Initialize socket without waiting for QR code
+    await this.initBaileysSocket(eventId, false);
+
+    const session = this.sessions.get(eventId);
+    if (!session?.sock) {
+      throw new BadRequestException('Gagal menyiapkan koneksi WhatsApp untuk kode pairing.');
+    }
+
+    // Wait up to 3.5 seconds for connection handshake
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (!done) {
+          done = true;
+          resolve();
+        }
+      };
+      const listener = (u: Partial<ConnectionState>) => {
+        if (u.qr || u.connection === 'open') finish();
+      };
+      session.sock?.ev.on('connection.update', listener);
+      setTimeout(finish, 3200);
+    });
+
+    try {
+      const rawCode = await session.sock.requestPairingCode(cleanPhone);
+      const formattedCode = rawCode?.match(/.{1,4}/g)?.join('-') || rawCode;
+      this.logger.log(`Pairing code generated for event ${eventId}: ${formattedCode}`);
+      return { pairingCode: formattedCode };
+    } catch (err) {
+      this.logger.error(`Error requesting pairing code for ${cleanPhone}: ${err}`);
+      throw new BadRequestException(
+        'Gagal meminta kode pairing. Pastikan nomor sudah terdaftar di WhatsApp dan coba lagi.',
+      );
+    }
   }
 
   /**
@@ -259,17 +360,11 @@ export class ClientPortalWaService implements OnModuleDestroy {
   }
 
   /**
-   * Initializes or restarts the Baileys multi-device socket for this event
+   * Initializes or restarts the Baileys multi-device socket for this event.
+   * If waitForQr is true, awaits the first QR event (up to 4.5s) so the response
+   * immediately contains the QR image data URL without polling delay.
    */
-  private async initBaileysSocket(eventId: string): Promise<WaSessionInfo> {
-    const baileys = await this.loadBaileys();
-    const sessionDir = this.getSessionDir(eventId);
-    if (!fs.existsSync(sessionDir)) {
-      fs.mkdirSync(sessionDir, { recursive: true });
-    }
-
-    const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionDir);
-
+  private async initBaileysSocket(eventId: string, waitForQr = true): Promise<WaSessionInfo> {
     let sessionState = this.sessions.get(eventId);
     if (!sessionState) {
       sessionState = {
@@ -284,31 +379,47 @@ export class ClientPortalWaService implements OnModuleDestroy {
       this.sessions.set(eventId, sessionState);
     }
 
-    if (sessionState.sock) {
-      try {
-        sessionState.sock.end(undefined);
-      } catch {
-        // ignore
-      }
-      sessionState.sock = null;
+    if (sessionState.sock && sessionState.status === 'connected') {
+      return {
+        status: sessionState.status,
+        phoneNumber: sessionState.phoneNumber,
+        pushName: sessionState.pushName,
+        qrCodeDataUrl: null,
+        connectedAt: sessionState.connectedAt,
+      };
     }
 
-    sessionState.status = 'connecting';
-    sessionState.lastActive = new Date();
-
-    const silentLogger = {
-      level: 'silent',
-      trace: () => {},
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      fatal: () => {},
-      child: () => silentLogger,
-    };
-
     try {
-      const sock = baileys.default({
+      const baileys = await this.loadBaileys();
+      const sessionDir = this.getSessionDir(eventId);
+
+      const { state, saveCreds } = await baileys.useMultiFileAuthState(sessionDir);
+
+      if (sessionState.sock) {
+        try {
+          sessionState.sock.end(undefined);
+        } catch {
+          // ignore
+        }
+        sessionState.sock = null;
+      }
+
+      sessionState.status = 'connecting';
+      sessionState.lastActive = new Date();
+
+      const silentLogger = {
+        level: 'silent',
+        trace: () => {},
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        fatal: () => {},
+        child: () => silentLogger,
+      };
+
+      const makeWASocket = baileys.default || (baileys as any).makeWASocket;
+      const sock = makeWASocket({
         auth: state,
         logger: silentLogger as any,
         printQRInTerminal: false,
@@ -356,16 +467,19 @@ export class ClientPortalWaService implements OnModuleDestroy {
             sessionState.pushName = sock.user.name;
           }
 
-          this.logger.log(`WhatsApp connected for event ${eventId} (${sessionState.phoneNumber})`);
+          this.logger.log(
+            `WhatsApp connected for event ${eventId} (${sessionState.phoneNumber})`,
+          );
         } else if (connection === 'close') {
           const statusCode = (lastDisconnect?.error as any)?.output?.statusCode;
-          const shouldReconnect = statusCode !== baileys.DisconnectReason.loggedOut;
+          const shouldReconnect =
+            statusCode !== baileys.DisconnectReason?.loggedOut;
 
           this.logger.warn(
             `Connection closed for event ${eventId}, code: ${statusCode}, shouldReconnect: ${shouldReconnect}`,
           );
 
-          if (statusCode === baileys.DisconnectReason.loggedOut) {
+          if (statusCode === baileys.DisconnectReason?.loggedOut) {
             sessionState.status = 'disconnected';
             sessionState.phoneNumber = null;
             sessionState.pushName = null;
@@ -378,14 +492,33 @@ export class ClientPortalWaService implements OnModuleDestroy {
             }
           } else if (shouldReconnect) {
             sessionState.status = 'connecting';
-            setTimeout(() => {
-              void this.initBaileysSocket(eventId);
-            }, 3000);
           } else {
             sessionState.status = 'disconnected';
           }
         }
       });
+
+      if (waitForQr) {
+        // Await the QR generation (or open connection) for up to 4.5 seconds
+        await new Promise<void>((resolve) => {
+          let done = false;
+          const finish = () => {
+            if (!done) {
+              done = true;
+              resolve();
+            }
+          };
+
+          const listener = (u: Partial<ConnectionState>) => {
+            if (u.qr || u.connection === 'open') {
+              finish();
+            }
+          };
+
+          sock.ev.on('connection.update', listener);
+          setTimeout(finish, 4500);
+        });
+      }
 
       return {
         status: sessionState.status,
@@ -397,7 +530,11 @@ export class ClientPortalWaService implements OnModuleDestroy {
     } catch (err) {
       this.logger.error(`Failed to initialize Baileys for ${eventId}: ${err}`);
       sessionState.status = 'disconnected';
-      throw new BadRequestException('Gagal menginisialisasi koneksi WhatsApp');
+      sessionState.sock = null;
+      throw new BadRequestException(
+        'Gagal menginisialisasi koneksi WhatsApp: ' +
+          ((err as Error)?.message || 'Terjadi kesalahan sistem'),
+      );
     }
   }
 
@@ -447,7 +584,9 @@ export class ClientPortalWaService implements OnModuleDestroy {
   ): Promise<{ success: boolean; messageId?: string }> {
     const session = this.sessions.get(eventId);
     if (!session?.sock || session.status !== 'connected') {
-      throw new BadRequestException('WhatsApp pengantin belum terhubung. Silakan scan QR terlebih dahulu.');
+      throw new BadRequestException(
+        'WhatsApp pengirim belum terhubung. Silakan scan QR atau hubungkan WhatsApp terlebih dahulu.',
+      );
     }
 
     const cleanPhone = this.normalizePhone(phoneNumber);
@@ -462,8 +601,72 @@ export class ClientPortalWaService implements OnModuleDestroy {
       return { success: true, messageId: result?.key?.id ?? undefined };
     } catch (err) {
       this.logger.error(`Error sending message to ${cleanPhone}: ${err}`);
-      throw new BadRequestException(`Gagal mengirim WhatsApp ke ${cleanPhone}: ${(err as Error).message}`);
+      throw new BadRequestException(
+        `Gagal mengirim WhatsApp ke ${cleanPhone}: ${(err as Error).message}`,
+      );
     }
+  }
+
+  /**
+   * Send an invitation directly to a single guest, mark as sent, and update database.
+   * Can be driven step-by-step from the client portal UI.
+   */
+  async sendGuestDirectMessage(
+    eventId: string,
+    guestId: string,
+    key?: string,
+    originUrl?: string,
+    variantIndex = 0,
+  ): Promise<{ success: boolean; guestId: string; guestName: string; isWaSent: boolean }> {
+    const portalData = await this.clientPortalService.getPortalData(eventId, key);
+
+    const guest = await this.prisma.guest.findUnique({
+      where: { id: guestId },
+      include: { invitation: true },
+    });
+
+    if (!guest || guest.eventId !== eventId) {
+      throw new NotFoundException('Tamu tidak ditemukan.');
+    }
+
+    if (!guest.phoneNumber) {
+      throw new BadRequestException(`Tamu ${guest.name} tidak memiliki nomor WhatsApp.`);
+    }
+
+    const session = this.sessions.get(eventId);
+    if (!session?.sock || session.status !== 'connected') {
+      throw new BadRequestException(
+        'WhatsApp pengirim belum terhubung. Silakan hubungkan WhatsApp terlebih dahulu.',
+      );
+    }
+
+    const uniqueCode = guest.invitation?.uniqueCode || '';
+    const canonicalUrl = `${originUrl || 'https://irvite.id'}/to/${uniqueCode}`;
+    const message = this.generateSpintaxText(
+      guest.name,
+      portalData.event.title,
+      canonicalUrl,
+      variantIndex || 0,
+      guest.customGreeting,
+    );
+
+    await this.sendDirectMessage(eventId, guest.phoneNumber, message);
+
+    if (guest.invitation) {
+      await this.prisma.invitation.update({
+        where: { id: guest.invitation.id },
+        data: {
+          status: guest.invitation.status === 'PENDING' ? 'SENT' : guest.invitation.status,
+        },
+      });
+    }
+
+    return {
+      success: true,
+      guestId: guest.id,
+      guestName: guest.name,
+      isWaSent: true,
+    };
   }
 
   /**
@@ -484,7 +687,9 @@ export class ClientPortalWaService implements OnModuleDestroy {
 
     const session = this.sessions.get(eventId);
     if (!session?.sock || session.status !== 'connected') {
-      throw new BadRequestException('WhatsApp belum terhubung. Silakan scan QR terlebih dahulu.');
+      throw new BadRequestException(
+        'WhatsApp belum terhubung. Silakan hubungkan WhatsApp terlebih dahulu.',
+      );
     }
 
     if (!options.targetGuestIds || options.targetGuestIds.length === 0) {
@@ -605,7 +810,12 @@ export class ClientPortalWaService implements OnModuleDestroy {
     }
 
     // Check batch break (45s rest every 30 messages)
-    if (queue.enableBatchBreak && queue.sentCount > 0 && queue.sentCount % 30 === 0 && queue.status !== 'break') {
+    if (
+      queue.enableBatchBreak &&
+      queue.sentCount > 0 &&
+      queue.sentCount % 30 === 0 &&
+      queue.status !== 'break'
+    ) {
       queue.status = 'break';
       queue.breakCountdownSeconds = 45;
 
@@ -644,11 +854,16 @@ export class ClientPortalWaService implements OnModuleDestroy {
         await this.prisma.invitation.update({
           where: { guestId: guest.id },
           data: {
-            status: guest.invitation.status === 'PENDING' ? 'SENT' : guest.invitation.status,
+            status:
+              guest.invitation.status === 'PENDING'
+                ? 'SENT'
+                : guest.invitation.status,
           },
         });
       } catch (err) {
-        this.logger.warn(`Failed to send WA to guest ${guest.name} (${guest.phoneNumber}): ${err}`);
+        this.logger.warn(
+          `Failed to send WA to guest ${guest.name} (${guest.phoneNumber}): ${err}`,
+        );
         queue.failedCount += 1;
       }
     } else {
@@ -677,7 +892,11 @@ export class ClientPortalWaService implements OnModuleDestroy {
     // Countdown tick
     const tickInterval = setInterval(() => {
       queue.countdownSeconds -= 1;
-      if (queue.countdownSeconds <= 0 || queue.shouldStop || queue.status === 'paused') {
+      if (
+        queue.countdownSeconds <= 0 ||
+        queue.shouldStop ||
+        queue.status === 'paused'
+      ) {
         clearInterval(tickInterval);
         if (!queue.shouldStop && queue.status === 'running') {
           void this.processQueueNext(eventId, eventTitle, originUrl);
