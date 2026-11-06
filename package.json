@@ -31,9 +31,5 @@
     "exceljs": {
       "uuid": "11.1.1"
     }
-  },
-  "dependencies": {
-    "@whiskeysockets/baileys": "^7.0.0-rc14",
-    "qrcode": "^1.5.4"
   }
 }

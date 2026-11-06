@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   buildWhatsAppShareUrl,
   generateGuestsCsv,
+  generateSpintaxMessage,
   normalizeWhatsAppPhone,
 } from '@/utils/whatsapp-share';
 import { WhatsAppAutoSenderModal } from './whatsapp-auto-sender-modal';
@@ -268,6 +269,25 @@ export function ClientPortalView({
     } catch {
       // Fallback
       prompt('Salin tautan berikut:', url);
+    }
+  };
+
+  // Copy Full Invitation Message Action
+  const handleCopyMessage = async (guest: PortalGuest) => {
+    if (!guest.invitation?.uniqueCode) return;
+    const url = getInvitationUrl(guest.invitation.uniqueCode);
+    const msg = generateSpintaxMessage(
+      guest.name,
+      event.title,
+      url,
+      0,
+      guest.customGreeting,
+    );
+    try {
+      await navigator.clipboard.writeText(msg);
+      showToast(`Pesan undangan untuk ${guest.name} berhasil disalin!`);
+    } catch {
+      prompt('Salin pesan berikut:', msg);
     }
   };
 
@@ -647,10 +667,10 @@ export function ClientPortalView({
               id="btn-open-auto-sender"
               className="btn-portal-wa-auto"
               onClick={() => setIsAutoSenderOpen(true)}
-              title="Kirim undangan WhatsApp secara otomatis dengan antrean aman"
+              title="Asisten kirim undangan WhatsApp cepat berurutan"
             >
-              <span>🚀</span>
-              <span>Kirim Otomatis WA</span>
+              <span>⚡</span>
+              <span>Asisten Kirim Cepat WA</span>
             </button>
 
             <button
@@ -812,6 +832,15 @@ export function ClientPortalView({
                           <button
                             type="button"
                             className="btn-icon-action"
+                            onClick={() => handleCopyMessage(guest)}
+                            title="Salin Pesan Undangan Lengkap"
+                          >
+                            📋
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn-icon-action"
                             onClick={() => handleCopyLink(guest)}
                             title="Salin Tautan Undangan"
                           >
@@ -935,7 +964,16 @@ export function ClientPortalView({
                     <button
                       type="button"
                       className="portal-sub-btn"
+                      onClick={() => handleCopyMessage(guest)}
+                      title="Salin isi pesan undangan WhatsApp"
+                    >
+                      <span>📋 Salin Pesan</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="portal-sub-btn"
                       onClick={() => handleCopyLink(guest)}
+                      title="Salin tautan web undangan saja"
                     >
                       <span>🔗 Salin Link</span>
                     </button>
