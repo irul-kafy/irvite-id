@@ -322,9 +322,9 @@ export function WhatsAppAutoSenderModal({
   const remainingMinutes = Math.ceil((remainingGuests * avgDelaySec) / 60);
 
   return (
-    <div className="portal-modal-overlay" onClick={handleClose}>
+    <div className="portal-modal-backdrop" onClick={handleClose}>
       <div
-        className="portal-modal-container portal-auto-sender-modal"
+        className="portal-modal-content portal-auto-sender-modal"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '640px' }}
       >
@@ -693,13 +693,26 @@ export function WhatsAppAutoSenderModal({
                       color: 'var(--portal-text-muted)',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       gap: '0.5rem',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    <span>💡</span>
-                    <span>
-                      Tab WhatsApp Web telah dibuka. Cukup tekan <strong>Kirim (Enter)</strong> di WhatsApp, tab akan berpindah otomatis saat hitung mundur selesai!
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>💡</span>
+                      <span>
+                        Tab WhatsApp Web dibuka otomatis. Cukup tekan <strong>Kirim (Enter)</strong> di WhatsApp!
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-portal-secondary"
+                      onClick={() => dispatchCurrentGuest(currentGuest, currentIndex)}
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                      title="Klik untuk membuka tab WhatsApp jika tidak terbuka otomatis"
+                    >
+                      🔗 Buka Ulang Tab WA
+                    </button>
                   </div>
                 </div>
               ) : null}

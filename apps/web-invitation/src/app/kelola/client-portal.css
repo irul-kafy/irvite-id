@@ -772,12 +772,13 @@
 /* ==========================================================================
    Modals
    ========================================================================== */
-.portal-modal-backdrop {
+.portal-modal-backdrop,
+.portal-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -977,7 +978,31 @@
 }
 
 .portal-auto-sender-modal {
-  animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  max-width: 640px !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: var(--portal-radius-xl);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #ffffff;
+}
+
+.portal-auto-sender-modal .portal-modal-header {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--portal-card-border);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.portal-auto-sender-modal .portal-modal-body {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 @keyframes modalScaleIn {
