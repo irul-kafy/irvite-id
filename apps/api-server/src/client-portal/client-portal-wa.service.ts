@@ -355,8 +355,9 @@ export class ClientPortalWaService implements OnModuleDestroy {
    * Dynamically loads Baileys ESM module
    */
   private async loadBaileys() {
-    const importFn = new Function('specifier', 'return import(specifier)');
-    return (await importFn('@whiskeysockets/baileys')) as typeof import('@whiskeysockets/baileys');
+    // Literal dynamic import: preserved by TS (module: nodenext) and statically
+    // traceable by Vercel's file tracer so the package is bundled in production.
+    return await import('@whiskeysockets/baileys');
   }
 
   /**
