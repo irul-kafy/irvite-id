@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { getDemoFixture } from '../demo';
 import {
   PATENTED_DESIGN_RULES,
@@ -263,5 +265,26 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
       ranahPayload.photos.map((p) => p.slot),
       ['hero', 'bride', 'groom'],
     );
+  });
+
+  await t.test('Studio drawer header layout prevents reset button multi-line wrap and title truncation', () => {
+    const cssPath = path.resolve(__dirname, '../components/template-customizer-studio.css');
+    const css = fs.readFileSync(cssPath, 'utf8');
+
+    // 1. Reset button must never wrap into 2 lines
+    const resetMatch = css.match(/\.irv-studio-drawer__reset-btn\s*\{([^}]+)\}/);
+    assert.ok(resetMatch, 'Reset button CSS class must exist');
+    assert.match(resetMatch[1], /white-space:\s*nowrap/i, 'Reset button must enforce white-space: nowrap to prevent 2-line break');
+    assert.match(resetMatch[1], /flex-shrink:\s*0/i, 'Reset button must enforce flex-shrink: 0');
+
+    // 2. Title must never be cut off with ellipsis
+    const titleMatch = css.match(/\.irv-studio-drawer__title\s*\{([^}]+)\}/);
+    assert.ok(titleMatch, 'Title CSS class must exist');
+    assert.equal(
+      /text-overflow:\s*ellipsis/i.test(titleMatch[1]),
+      false,
+      'Drawer title must NOT have text-overflow: ellipsis to prevent "Sekar Ked..." truncation'
+    );
+    assert.match(titleMatch[1], /overflow:\s*visible/i, 'Drawer title must have overflow: visible');
   });
 });

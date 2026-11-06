@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
   buildWhatsAppShareUrl,
   generateGuestsCsv,
   normalizeWhatsAppPhone,
 } from '@/utils/whatsapp-share';
+import { WhatsAppAutoSenderModal } from './whatsapp-auto-sender-modal';
 
 export interface PortalInvitation {
   id: string;
@@ -77,7 +78,30 @@ export function ClientPortalView({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<PortalGuest | null>(null);
   const [deletingGuest, setDeletingGuest] = useState<PortalGuest | null>(null);
+  const [isAutoSenderOpen, setIsAutoSenderOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleGuestStatusUpdated = useCallback((guestId: string, isSent: boolean) => {
+    setGuests((prev) =>
+      prev.map((g) =>
+        g.id === guestId
+          ? {
+              ...g,
+              isWaSent: isSent,
+              invitation: g.invitation
+                ? {
+                    ...g.invitation,
+                    status:
+                      g.invitation.status === 'PENDING'
+                        ? 'SENT'
+                        : g.invitation.status,
+                  }
+                : null,
+            }
+          : g,
+      ),
+    );
+  }, []);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -620,6 +644,17 @@ export function ClientPortalView({
 
             <button
               type="button"
+              id="btn-open-auto-sender"
+              className="btn-portal-wa-auto"
+              onClick={() => setIsAutoSenderOpen(true)}
+              title="Kirim undangan WhatsApp secara otomatis dengan antrean aman"
+            >
+              <span>🚀</span>
+              <span>Kirim Otomatis WA</span>
+            </button>
+
+            <button
+              type="button"
               className="btn-portal-primary"
               onClick={handleOpenAddModal}
             >
@@ -1148,6 +1183,16 @@ export function ClientPortalView({
           </div>
         </div>
       )}
+      {/* WhatsApp Auto-Sender Queue Modal */}
+      <WhatsAppAutoSenderModal
+        isOpen={isAutoSenderOpen}
+        onClose={() => setIsAutoSenderOpen(false)}
+        event={event}
+        guests={guests}
+        accessKey={accessKey}
+        onGuestStatusUpdated={handleGuestStatusUpdated}
+        getInvitationUrl={getInvitationUrl}
+      />
     </div>
   );
 }

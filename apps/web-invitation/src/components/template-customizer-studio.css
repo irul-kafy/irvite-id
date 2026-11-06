@@ -450,16 +450,20 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 6px;
 }
 
 .irv-studio-drawer__title {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: #163026;
   line-height: 1.35;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: normal;
 }
 
 .irv-studio-drawer__reset-btn {
@@ -472,8 +476,12 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 .irv-studio-drawer__reset-btn:hover {
@@ -667,7 +675,7 @@
 .irv-studio-photo-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .irv-studio-upload-btn {
@@ -752,7 +760,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .irv-studio-patent-card__title {
@@ -787,7 +795,7 @@
   border-top: 1px solid #e2ddd3;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .irv-studio-drawer__footer-cta {
