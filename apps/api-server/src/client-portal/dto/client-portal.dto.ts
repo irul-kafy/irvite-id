@@ -78,3 +78,40 @@ export class SetPortalWaStatusDto {
   @IsBoolean()
   isSent: boolean;
 }
+
+export class StartPortalWaQueueDto {
+  @IsNotEmpty()
+  targetGuestIds: string[];
+
+  @IsOptional()
+  @IsString()
+  pacing?: 'relaxed' | 'standard' | 'fast';
+
+  @IsOptional()
+  @IsBoolean()
+  useSpintax?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enableBatchBreak?: boolean;
+
+  @IsOptional()
+  @IsString()
+  originUrl?: string;
+}
+
+export class ControlPortalWaQueueDto {
+  @IsString()
+  @IsNotEmpty()
+  action: 'pause' | 'resume' | 'stop';
+}
+
+export class SendPortalWaTestDto {
+  @IsString()
+  @IsNotEmpty()
+  targetPhone: string;
+
+  @IsOptional()
+  @IsString()
+  testMessage?: string;
+}

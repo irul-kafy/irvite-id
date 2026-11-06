@@ -12,15 +12,22 @@ import {
 import { Throttle, seconds } from '@nestjs/throttler';
 import { Public } from '../auth/decorators/public.decorator';
 import { ClientPortalService } from './client-portal.service';
+import { ClientPortalWaService } from './client-portal-wa.service';
 import {
   CreatePortalGuestDto,
   UpdatePortalGuestDto,
   SetPortalWaStatusDto,
+  StartPortalWaQueueDto,
+  ControlPortalWaQueueDto,
+  SendPortalWaTestDto,
 } from './dto/client-portal.dto';
 
 @Controller(['api/v1/client-portal', 'client-portal'])
 export class ClientPortalController {
-  constructor(private readonly clientPortalService: ClientPortalService) {}
+  constructor(
+    private readonly clientPortalService: ClientPortalService,
+    private readonly clientPortalWaService: ClientPortalWaService,
+  ) {}
 
   @Public()
   @Throttle({ default: { limit: 120, ttl: seconds(60) } })
@@ -85,6 +92,93 @@ export class ClientPortalController {
       guestId,
       key,
       dto.isSent,
+    );
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: seconds(60) } })
+  @Get(':eventId/wa/session')
+  @Header('Cache-Control', 'no-store')
+  async getWaSession(
+    @Param('eventId') eventId: string,
+    @Query('key') key?: string,
+  ) {
+    return this.clientPortalWaService.getSessionStatus(eventId, key);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(':eventId/wa/connect')
+  @Header('Cache-Control', 'no-store')
+  async connectWa(
+    @Param('eventId') eventId: string,
+    @Query('key') key?: string,
+  ) {
+    return this.clientPortalWaService.connectSession(eventId, key);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(':eventId/wa/disconnect')
+  @Header('Cache-Control', 'no-store')
+  async disconnectWa(
+    @Param('eventId') eventId: string,
+    @Query('key') key?: string,
+  ) {
+    return this.clientPortalWaService.disconnectSession(eventId, key);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(':eventId/wa/queue/start')
+  @Header('Cache-Control', 'no-store')
+  async startWaQueue(
+    @Param('eventId') eventId: string,
+    @Query('key') key: string | undefined,
+    @Body() dto: StartPortalWaQueueDto,
+  ) {
+    return this.clientPortalWaService.startQueue(eventId, key, {
+      targetGuestIds: dto.targetGuestIds,
+      pacing: dto.pacing || 'relaxed',
+      useSpintax: dto.useSpintax ?? true,
+      enableBatchBreak: dto.enableBatchBreak ?? true,
+      originUrl: dto.originUrl || '',
+    });
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 120, ttl: seconds(60) } })
+  @Get(':eventId/wa/queue/status')
+  @Header('Cache-Control', 'no-store')
+  async getWaQueueStatus(
+    @Param('eventId') eventId: string,
+  ) {
+    return this.clientPortalWaService.getQueueStatus(eventId);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: seconds(60) } })
+  @Post(':eventId/wa/queue/control')
+  @Header('Cache-Control', 'no-store')
+  async controlWaQueue(
+    @Param('eventId') eventId: string,
+    @Body() dto: ControlPortalWaQueueDto,
+  ) {
+    return this.clientPortalWaService.controlQueue(eventId, dto.action);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(':eventId/wa/send-test')
+  @Header('Cache-Control', 'no-store')
+  async sendWaTest(
+    @Param('eventId') eventId: string,
+    @Body() dto: SendPortalWaTestDto,
+  ) {
+    return this.clientPortalWaService.sendDirectMessage(
+      eventId,
+      dto.targetPhone,
+      dto.testMessage || 'Halo! Ini adalah pesan uji coba dari sistem WhatsApp Irvite.id.',
     );
   }
 }
