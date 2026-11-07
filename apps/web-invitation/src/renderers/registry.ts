@@ -5,6 +5,7 @@ import OpalineNocturneRenderer from './opaline-nocturne/opaline-nocturne';
 import AetheriaRenderer from './aetheria/aetheria';
 import RanahCintaRenderer from './ranah-cinta/ranah-cinta';
 import SwargaDewataRenderer from './swarga-dewata';
+import RoyalVelvetRenderer from './royal-velvet';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -42,6 +43,7 @@ const productionRenderers: Record<string, RendererComponent> = {
   AETHERIA: AetheriaRenderer as unknown as RendererComponent,
   RANAH_CINTA: RanahCintaRenderer as unknown as RendererComponent,
   SWARGA_DEWATA: SwargaDewataRenderer as unknown as RendererComponent,
+  ROYAL_VELVET: RoyalVelvetRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing)
@@ -52,6 +54,7 @@ export const foundationRenderers: Record<string, RendererComponent> = {
   AETHERIA: AetheriaRenderer as unknown as RendererComponent,
   RANAH_CINTA: RanahCintaRenderer as unknown as RendererComponent,
   SWARGA_DEWATA: SwargaDewataRenderer as unknown as RendererComponent,
+  ROYAL_VELVET: RoyalVelvetRenderer as unknown as RendererComponent,
 };
 
 /**

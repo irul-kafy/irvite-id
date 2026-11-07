@@ -4,3 +4,4 @@ export * from './template-content.validator';
 export * from './classic-letter.definition';
 export * from './velvet-letter.definition';
 export * from './swarga-dewata.definition';
+export * from './royal-velvet.definition';

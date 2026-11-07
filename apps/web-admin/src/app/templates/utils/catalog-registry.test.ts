@@ -14,8 +14,8 @@ import {
 } from './catalog-registry';
 
 test('Admin Fixed Catalog Registry Contract', async (t) => {
-  await t.test('contains exactly the 5 approved codex templates', () => {
-    assert.equal(FIXED_CATALOG_TEMPLATES.length, 5);
+  await t.test('contains exactly the 6 approved codex templates', () => {
+    assert.equal(FIXED_CATALOG_TEMPLATES.length, 6);
     const themeCodes = FIXED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
     assert.deepEqual(themeCodes, [
       'SEKAR_KEDATON',
@@ -23,6 +23,7 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
       'SWARGA_DEWATA',
+      'ROYAL_VELVET',
     ]);
   });
 
@@ -36,8 +37,8 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 5);
-    for (let i = 0; i < 5; i++) {
+    assert.equal(templates.length, 6);
+    for (let i = 0; i < 6; i++) {
       assert.equal(templates[i].sortOrder, i + 1);
     }
     assert.equal(templates[0].themeCode, 'SEKAR_KEDATON');
@@ -45,6 +46,7 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     assert.equal(templates[2].themeCode, 'OPALINE_NOCTURNE');
     assert.equal(templates[3].themeCode, 'RANAH_CINTA');
     assert.equal(templates[4].themeCode, 'SWARGA_DEWATA');
+    assert.equal(templates[5].themeCode, 'ROYAL_VELVET');
   });
 
   await t.test('all APPROVED entries have valid thumbnailPath and demoPath', () => {
@@ -66,21 +68,24 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     assert.equal(getCatalogTemplateBySlug('opaline-nocturne')?.themeCode, 'OPALINE_NOCTURNE');
     assert.equal(getCatalogTemplateBySlug('ranah-cinta')?.themeCode, 'RANAH_CINTA');
     assert.equal(getCatalogTemplateBySlug('swarga-dewata')?.themeCode, 'SWARGA_DEWATA');
+    assert.equal(getCatalogTemplateBySlug('royal-velvet')?.themeCode, 'ROYAL_VELVET');
 
     assert.equal(getCatalogTemplateByThemeCode('sekar_kedaton')?.slug, 'sekar-kedaton');
     assert.equal(getCatalogTemplateByThemeCode('AETHERIA')?.slug, 'aetheria');
     assert.equal(getCatalogTemplateByThemeCode('OPALINE_NOCTURNE')?.slug, 'opaline-nocturne');
     assert.equal(getCatalogTemplateByThemeCode('swarga_dewata')?.slug, 'swarga-dewata');
+    assert.equal(getCatalogTemplateByThemeCode('royal_velvet')?.slug, 'royal-velvet');
 
     assert.equal(getCatalogTemplateById('SEKAR_KEDATON')?.slug, 'sekar-kedaton');
     assert.equal(getCatalogTemplateById('ranah-cinta')?.themeCode, 'RANAH_CINTA');
     assert.equal(getCatalogTemplateById('SWARGA_DEWATA')?.slug, 'swarga-dewata');
+    assert.equal(getCatalogTemplateById('ROYAL_VELVET')?.slug, 'royal-velvet');
     assert.equal(getCatalogTemplateById('unknown'), undefined);
   });
 
   await t.test('filters catalog templates by category and search query', () => {
     const all = filterCatalogTemplates('All', '');
-    assert.equal(all.length, 5);
+    assert.equal(all.length, 6);
 
     const javanese = filterCatalogTemplates('Traditional Javanese', '');
     assert.equal(javanese.length, 1);
@@ -89,6 +94,10 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     const balinese = filterCatalogTemplates('Balinese Royal', '');
     assert.equal(balinese.length, 1);
     assert.equal(balinese[0].themeCode, 'SWARGA_DEWATA');
+
+    const baroque = filterCatalogTemplates('European Baroque', '');
+    assert.equal(baroque.length, 1);
+    assert.equal(baroque[0].themeCode, 'ROYAL_VELVET');
 
     const searchSekar = filterCatalogTemplates('All', 'sekar');
     assert.equal(searchSekar.length, 1);
@@ -101,16 +110,22 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     const searchSwarga = filterCatalogTemplates('All', 'swarga');
     assert.equal(searchSwarga.length, 1);
     assert.equal(searchSwarga[0].themeCode, 'SWARGA_DEWATA');
+
+    const searchRoyal = filterCatalogTemplates('All', 'royal');
+    assert.equal(searchRoyal.length, 1);
+    assert.equal(searchRoyal[0].themeCode, 'ROYAL_VELVET');
   });
 
   await t.test('isBuiltInCatalogTemplate correctly identifies built-in templates', () => {
-    assert.equal(BUILT_IN_THEME_CODES.size, 5);
+    assert.equal(BUILT_IN_THEME_CODES.size, 6);
     assert.equal(isBuiltInCatalogTemplate('SEKAR_KEDATON'), true);
     assert.equal(isBuiltInCatalogTemplate('sekar_kedaton'), true);
     assert.equal(isBuiltInCatalogTemplate('AETHERIA'), true);
     assert.equal(isBuiltInCatalogTemplate('OPALINE_NOCTURNE'), true);
     assert.equal(isBuiltInCatalogTemplate('RANAH_CINTA'), true);
     assert.equal(isBuiltInCatalogTemplate('SWARGA_DEWATA'), true);
+    assert.equal(isBuiltInCatalogTemplate('ROYAL_VELVET'), true);
+    assert.equal(isBuiltInCatalogTemplate('royal_velvet'), true);
     assert.equal(isBuiltInCatalogTemplate('KUSUMA_PARAHYANGAN'), false);
 
     assert.equal(isBuiltInCatalogTemplate('SERENE_GARDEN'), false);

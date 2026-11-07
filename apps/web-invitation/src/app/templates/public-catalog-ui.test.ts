@@ -8,8 +8,8 @@ import { getCatalogTemplates, filterAvailableTemplates } from '../../catalog';
 test('Public Catalog UI & Landing Integration Contract', async (t) => {
   const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
 
-  await t.test('public catalog contains exactly the 5 AVAILABLE approved templates', () => {
-    assert.equal(templates.length, 5);
+  await t.test('public catalog contains exactly the 6 AVAILABLE approved templates', () => {
+    assert.equal(templates.length, 6);
     const names = templates.map((t) => t.displayName);
     assert.deepEqual(names, [
       'Sekar Kedaton',
@@ -17,6 +17,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       'Opaline Nocturne',
       'Ranah Cinta',
       'Swarga Dewata',
+      'Royal Velvet Nocturne',
     ]);
 
     const themeCodes = templates.map((t) => t.themeCode);
@@ -26,6 +27,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
       'SWARGA_DEWATA',
+      'ROYAL_VELVET',
     ]);
   });
 
@@ -161,33 +163,34 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
 
   await t.test('Phase 14H: Failure mode verification for filterAvailableTemplates', () => {
     const all = getCatalogTemplates();
-    assert.equal(all.length, 5, 'Base approved catalog must have 5 templates');
+    assert.equal(all.length, 6, 'Base approved catalog must have 6 templates');
 
-    // A. all 5 AVAILABLE => 5 templates
+    // A. all 6 AVAILABLE => 6 templates
     const allAvailable = [
       { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
       { themeCode: 'AETHERIA', status: 'AVAILABLE' },
       { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
       { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
       { themeCode: 'SWARGA_DEWATA', status: 'AVAILABLE' },
+      { themeCode: 'ROYAL_VELVET', status: 'AVAILABLE' },
     ];
     const resA = filterAvailableTemplates(all, allAvailable);
-    assert.equal(resA.length, 5, 'All 5 AVAILABLE must return 5 cards');
+    assert.equal(resA.length, 6, 'All 6 AVAILABLE must return 6 cards');
 
-    // B. SEKAR_KEDATON HIDDEN => 4 templates (Sekar Kedaton excluded)
+    // B. SEKAR_KEDATON HIDDEN => 5 templates (Sekar Kedaton excluded)
     const sekarHidden = allAvailable.map((a) =>
       a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'HIDDEN' } : a
     );
     const resB = filterAvailableTemplates(all, sekarHidden);
-    assert.equal(resB.length, 4, 'SEKAR_KEDATON HIDDEN must return 4 cards');
+    assert.equal(resB.length, 5, 'SEKAR_KEDATON HIDDEN must return 5 cards');
     assert.ok(!resB.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when HIDDEN');
 
-    // C. SEKAR_KEDATON ARCHIVED => 4 templates (Sekar Kedaton excluded)
+    // C. SEKAR_KEDATON ARCHIVED => 5 templates (Sekar Kedaton excluded)
     const sekarArchived = allAvailable.map((a) =>
       a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'ARCHIVED' } : a
     );
     const resC = filterAvailableTemplates(all, sekarArchived);
-    assert.equal(resC.length, 4, 'SEKAR_KEDATON ARCHIVED must return 4 cards');
+    assert.equal(resC.length, 5, 'SEKAR_KEDATON ARCHIVED must return 5 cards');
     assert.ok(!resC.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when ARCHIVED');
 
     // Partial availability -> only matching AVAILABLE templates
@@ -217,7 +220,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       { themeCode: 'COMPLETELY_UNKNOWN_THEME', status: 'AVAILABLE' },
     ];
     const resG = filterAvailableTemplates(all, withUnknown);
-    assert.equal(resG.length, 5, 'Unknown themeCode from API must be safely ignored');
+    assert.equal(resG.length, 6, 'Unknown themeCode from API must be safely ignored');
     assert.ok(!resG.some((t) => t.themeCode === 'COMPLETELY_UNKNOWN_THEME'), 'Unknown themeCode must not be added to catalog');
 
     // H. DB AVAILABLE themeCode absent from approved catalog registry => not automatically rendered

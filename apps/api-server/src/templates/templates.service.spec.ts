@@ -448,6 +448,7 @@ describe('TemplatesService', () => {
         { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
         { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
         { themeCode: 'SWARGA_DEWATA', status: 'AVAILABLE' },
+        { themeCode: 'ROYAL_VELVET', status: 'AVAILABLE' },
       ];
       mockPrismaService.template.findMany.mockResolvedValue(mockList);
 
@@ -468,6 +469,7 @@ describe('TemplatesService', () => {
       const result = await service.getPublicAvailability();
       expect(result.some((t) => t.themeCode === 'SWARGA_DEWATA')).toBe(true);
       expect(result.some((t) => t.themeCode === 'SEKAR_KEDATON')).toBe(true);
+      expect(result.some((t) => t.themeCode === 'ROYAL_VELVET')).toBe(true);
     });
 
     it('should still return definition for HIDDEN or ARCHIVED templates', async () => {

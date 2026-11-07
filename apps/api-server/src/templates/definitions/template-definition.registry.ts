@@ -6,6 +6,7 @@ import { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
 import { AETHERIA_DEFINITION } from './aetheria.definition';
 import { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';
 import { SWARGA_DEWATA_DEFINITION } from './swarga-dewata.definition';
+import { ROYAL_VELVET_DEFINITION } from './royal-velvet.definition';
 
 export const IVORY_GARDEN_DEFINITION: TemplateDefinition = {
   themeCode: 'IVORY_GARDEN',
@@ -560,6 +561,7 @@ const builtInDefinitions: Record<string, TemplateDefinition> = {
   AETHERIA: AETHERIA_DEFINITION,
   RANAH_CINTA: RANAH_CINTA_DEFINITION,
   SWARGA_DEWATA: SWARGA_DEWATA_DEFINITION,
+  ROYAL_VELVET: ROYAL_VELVET_DEFINITION,
 };
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
@@ -637,3 +639,4 @@ export { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
 export { AETHERIA_DEFINITION } from './aetheria.definition';
 export { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';
 export { SWARGA_DEWATA_DEFINITION } from './swarga-dewata.definition';
+export { ROYAL_VELVET_DEFINITION } from './royal-velvet.definition';

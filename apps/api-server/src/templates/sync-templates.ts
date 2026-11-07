@@ -38,6 +38,12 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     previewImageUrl: '/templates/swarga-dewata/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
+  {
+    name: 'Royal Velvet Nocturne',
+    themeCode: 'ROYAL_VELVET',
+    previewImageUrl: '/templates/royal-velvet/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
+  },
 ];
 
 export interface SyncResultItem {

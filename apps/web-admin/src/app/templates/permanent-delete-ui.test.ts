@@ -44,6 +44,13 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       status: 'AVAILABLE',
       eventUsageCount: 0,
     },
+    {
+      id: 'db-royal-uuid',
+      name: 'Royal Velvet Nocturne',
+      themeCode: 'ROYAL_VELVET',
+      status: 'AVAILABLE',
+      eventUsageCount: 0,
+    },
   ];
 
   const sampleDynamicTemplates: DbTemplateRecord[] = [
@@ -87,12 +94,12 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       );
     }
 
-    // When joined with catalog, all 4 built-in templates are present
+    // When joined with catalog, all 6 built-in templates are present
     const joined = joinCatalogWithDbTemplates(
       FIXED_CATALOG_TEMPLATES,
       sampleBuiltInDbTemplates
     );
-    assert.equal(joined.length, 5);
+    assert.equal(joined.length, 6);
 
     // Verify UI contract: built-in templates must NOT have a permanent delete control even if status is ARCHIVED
     for (const item of joined) {

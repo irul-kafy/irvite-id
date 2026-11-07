@@ -18,6 +18,7 @@ export type CatalogCategory =
   | 'Enchanted Woodland'
   | 'Minang Traditional'
   | 'Balinese Royal'
+  | 'European Baroque'
   | string;
 
 export interface CatalogTemplate {
@@ -46,6 +47,7 @@ export const CATALOG_CATEGORIES: string[] = [
   'Enchanted Woodland',
   'Minang Traditional',
   'Balinese Royal',
+  'European Baroque',
 ];
 
 export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
@@ -261,6 +263,50 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
         { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
         { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
         { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
+  {
+    id: 'royal-velvet',
+    slug: 'royal-velvet',
+    themeCode: 'ROYAL_VELVET',
+    name: 'Royal Velvet Nocturne',
+    displayName: 'Royal Velvet Nocturne',
+    category: 'European Baroque',
+    tags: ['Baroque', 'Royal', 'Burgundy', 'Velvet', 'Classic', 'Curtain', 'Orchestra'],
+    description:
+      'Pernikahan klasik Eropa nan agung bergaya Royal Baroque dengan nuansa burgundy velvet, ornamen keemasan berukir, tirai sampul mewah, dan simfoni orkestra romantis.',
+    shortDescription:
+      'Pernikahan klasik Eropa nan agung bergaya Royal Baroque dengan nuansa burgundy velvet, ornamen keemasan berukir, tirai sampul mewah, dan simfoni orkestra romantis.',
+    thumbnailPath: '/templates/royal-velvet/thumbnail.webp',
+    demoPath: '/templates/royal-velvet/demo',
+    sortOrder: 6,
+    availability: 'AVAILABLE',
+    badge: 'Artisanal',
+    isPhotoOptional: false,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#4a0e17',
+        secondaryColor: '#d4af37',
+        backgroundColor: '#1a0508',
+        textColor: '#f5e6d3',
+      },
+      typography: {
+        headingFont: 'CINZEL',
+        bodyFont: 'PLAYFAIR_DISPLAY',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'story', enabled: true, order: 5, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 6, variant: 'default' },
+        { id: 'location', enabled: true, order: 7, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 8, variant: 'default' },
+        { id: 'gift', enabled: true, order: 9, variant: 'default' },
+        { id: 'closing', enabled: true, order: 10, variant: 'default' },
       ],
     },
   },

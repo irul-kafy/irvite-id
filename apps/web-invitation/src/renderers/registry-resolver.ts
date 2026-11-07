@@ -4,6 +4,7 @@ export type ThemeRendererKey =
   | 'AETHERIA'
   | 'RANAH_CINTA'
   | 'SWARGA_DEWATA'
+  | 'ROYAL_VELVET'
   | 'GENERIC';
 
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
@@ -12,6 +13,10 @@ export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
   OPALINE_NOCTURNE: true,
   RANAH_CINTA: true,
   SWARGA_DEWATA: true,
+  ROYAL_VELVET: true,
+  ROYAL_BAROQUE: true,
+  CLASSIC_ELEGANCE: true,
+  CLASSIC: true,
   GENERIC: true,
 };
 
@@ -29,6 +34,15 @@ export function resolveProductionThemeKey(themeCode: string | null | undefined):
   if (upper === 'OPALINE_NOCTURNE' && isTemplateProductionActivated('OPALINE_NOCTURNE')) return 'OPALINE_NOCTURNE';
   if (upper === 'RANAH_CINTA' && isTemplateProductionActivated('RANAH_CINTA')) return 'RANAH_CINTA';
   if (upper === 'SWARGA_DEWATA' && isTemplateProductionActivated('SWARGA_DEWATA')) return 'SWARGA_DEWATA';
+  if (
+    (upper === 'ROYAL_VELVET' ||
+      upper === 'ROYAL_BAROQUE' ||
+      upper === 'CLASSIC_ELEGANCE' ||
+      upper === 'CLASSIC') &&
+    isTemplateProductionActivated('ROYAL_VELVET')
+  ) {
+    return 'ROYAL_VELVET';
+  }
   return 'GENERIC';
 }
 
@@ -40,5 +54,13 @@ export function resolveFoundationThemeKey(themeCode: string | null | undefined):
   if (upper === 'OPALINE_NOCTURNE') return 'OPALINE_NOCTURNE';
   if (upper === 'RANAH_CINTA') return 'RANAH_CINTA';
   if (upper === 'SWARGA_DEWATA') return 'SWARGA_DEWATA';
+  if (
+    upper === 'ROYAL_VELVET' ||
+    upper === 'ROYAL_BAROQUE' ||
+    upper === 'CLASSIC_ELEGANCE' ||
+    upper === 'CLASSIC'
+  ) {
+    return 'ROYAL_VELVET';
+  }
   return 'GENERIC';
 }

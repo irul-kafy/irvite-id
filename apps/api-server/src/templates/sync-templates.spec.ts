@@ -31,7 +31,7 @@ describe('syncTemplateIdentities', () => {
   });
 
   it('includes SEKAR_KEDATON in approved seeds matching contract', () => {
-    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(5);
+    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(6);
     const sekar = APPROVED_TEMPLATE_SEEDS.find(
       (s) => s.themeCode === 'SEKAR_KEDATON',
     );
@@ -77,6 +77,17 @@ describe('syncTemplateIdentities', () => {
     expect(swg?.name).toBe('Swarga Dewata');
     expect(swg?.previewImageUrl).toBe(
       '/templates/swarga-dewata/thumbnail.webp',
+    );
+  });
+
+  it('includes ROYAL_VELVET in approved seeds matching contract', () => {
+    const rv = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'ROYAL_VELVET',
+    );
+    expect(rv).toBeDefined();
+    expect(rv?.name).toBe('Royal Velvet Nocturne');
+    expect(rv?.previewImageUrl).toBe(
+      '/templates/royal-velvet/thumbnail.webp',
     );
   });
 
@@ -220,13 +231,14 @@ describe('syncTemplateIdentities', () => {
     expect(mockPrisma.template.create).not.toHaveBeenCalled();
   });
   describe('isBuiltInTemplate & BUILT_IN_THEME_CODES', () => {
-    it('contains all 5 approved codex theme codes', () => {
-      expect(BUILT_IN_THEME_CODES.size).toBe(5);
+    it('contains all 6 approved codex theme codes', () => {
+      expect(BUILT_IN_THEME_CODES.size).toBe(6);
       expect(BUILT_IN_THEME_CODES.has('SEKAR_KEDATON')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('AETHERIA')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('OPALINE_NOCTURNE')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('RANAH_CINTA')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('SWARGA_DEWATA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('ROYAL_VELVET')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('KUSUMA_PARAHYANGAN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(false);
@@ -247,6 +259,7 @@ describe('syncTemplateIdentities', () => {
       expect(isBuiltInTemplate('opaline_nocturne')).toBe(true);
       expect(isBuiltInTemplate('ranah_cinta')).toBe(true);
       expect(isBuiltInTemplate('swarga_dewata')).toBe(true);
+      expect(isBuiltInTemplate('royal_velvet')).toBe(true);
       expect(isBuiltInTemplate('kusuma_parahyangan')).toBe(false);
       expect(isBuiltInTemplate('serene_garden')).toBe(false);
       expect(isBuiltInTemplate('velvet_letter')).toBe(false);

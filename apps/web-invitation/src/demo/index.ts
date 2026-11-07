@@ -4,6 +4,7 @@ import { OPALINE_NOCTURNE_DEMO_FIXTURE } from './fixtures/opaline-nocturne.fixtu
 import { AETHERIA_DEMO_FIXTURE } from './fixtures/aetheria.fixture';
 import { RANAH_CINTA_DEMO_FIXTURE } from './fixtures/ranah-cinta.fixture';
 import { SWARGA_DEWATA_DEMO_FIXTURE } from './fixtures/swarga-dewata.fixture';
+import { ROYAL_VELVET_DEMO_FIXTURE } from './fixtures/royal-velvet.fixture';
 
 export {
   SEKAR_KEDATON_DEMO_FIXTURE,
@@ -11,6 +12,7 @@ export {
   AETHERIA_DEMO_FIXTURE,
   RANAH_CINTA_DEMO_FIXTURE,
   SWARGA_DEWATA_DEMO_FIXTURE,
+  ROYAL_VELVET_DEMO_FIXTURE,
 };
 
 const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
@@ -19,6 +21,10 @@ const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
   AETHERIA: AETHERIA_DEMO_FIXTURE,
   RANAH_CINTA: RANAH_CINTA_DEMO_FIXTURE,
   SWARGA_DEWATA: SWARGA_DEWATA_DEMO_FIXTURE,
+  ROYAL_VELVET: ROYAL_VELVET_DEMO_FIXTURE,
+  ROYAL_BAROQUE: ROYAL_VELVET_DEMO_FIXTURE,
+  CLASSIC_ELEGANCE: ROYAL_VELVET_DEMO_FIXTURE,
+  CLASSIC: ROYAL_VELVET_DEMO_FIXTURE,
 };
 
 /**

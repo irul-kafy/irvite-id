@@ -12,8 +12,8 @@ import {
 } from './template-catalog.registry';
 
 test('Template Catalog Registry', async (t) => {
-  await t.test('contains exactly the 5 approved codex templates', () => {
-    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 5);
+  await t.test('contains exactly the 6 approved codex templates', () => {
+    assert.equal(APPROVED_CATALOG_TEMPLATES.length, 6);
     const themeCodes = APPROVED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
     assert.deepEqual(themeCodes, [
       'SEKAR_KEDATON',
@@ -21,6 +21,7 @@ test('Template Catalog Registry', async (t) => {
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
       'SWARGA_DEWATA',
+      'ROYAL_VELVET',
     ]);
   });
 
@@ -34,8 +35,8 @@ test('Template Catalog Registry', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 5);
-    for (let i = 0; i < 5; i++) {
+    assert.equal(templates.length, 6);
+    for (let i = 0; i < 6; i++) {
       assert.equal(templates[i].sortOrder, i + 1);
     }
     assert.equal(templates[0].themeCode, 'SEKAR_KEDATON');
@@ -43,6 +44,7 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(templates[2].themeCode, 'OPALINE_NOCTURNE');
     assert.equal(templates[3].themeCode, 'RANAH_CINTA');
     assert.equal(templates[4].themeCode, 'SWARGA_DEWATA');
+    assert.equal(templates[5].themeCode, 'ROYAL_VELVET');
   });
 
   await t.test('all AVAILABLE entries have valid thumbnailPath and demoPath', () => {
@@ -74,6 +76,7 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(getCatalogTemplateBySlug('opaline-nocturne')?.themeCode, 'OPALINE_NOCTURNE');
     assert.equal(getCatalogTemplateBySlug('ranah-cinta')?.themeCode, 'RANAH_CINTA');
     assert.equal(getCatalogTemplateBySlug('swarga-dewata')?.themeCode, 'SWARGA_DEWATA');
+    assert.equal(getCatalogTemplateBySlug('royal-velvet')?.themeCode, 'ROYAL_VELVET');
   });
 
   await t.test('supports case-insensitive slug and themeCode lookup', () => {
@@ -82,9 +85,11 @@ test('Template Catalog Registry', async (t) => {
     assert.equal(getCatalogTemplateBySlug('OPALINE-NOCTURNE')?.themeCode, 'OPALINE_NOCTURNE');
     assert.equal(getCatalogTemplateBySlug('RANAH-CINTA')?.themeCode, 'RANAH_CINTA');
     assert.equal(getCatalogTemplateBySlug('SWARGA-DEWATA')?.themeCode, 'SWARGA_DEWATA');
+    assert.equal(getCatalogTemplateBySlug('ROYAL-VELVET')?.themeCode, 'ROYAL_VELVET');
     assert.equal(getCatalogTemplateByThemeCode('sekar_kedaton')?.slug, 'sekar-kedaton');
     assert.equal(getCatalogTemplateByThemeCode('AETHERIA')?.slug, 'aetheria');
     assert.equal(getCatalogTemplateByThemeCode('swarga_dewata')?.slug, 'swarga-dewata');
+    assert.equal(getCatalogTemplateByThemeCode('royal_velvet')?.slug, 'royal-velvet');
   });
 
   await t.test('returns undefined and false for unknown slugs (fail closed)', () => {
@@ -100,17 +105,17 @@ test('Template Catalog Registry', async (t) => {
   await t.test('filterAvailableTemplates filters by DB lifecycle status', () => {
     const templates = getCatalogTemplates();
 
-    // 1. All 5 AVAILABLE in DB
+    // 1. All 6 AVAILABLE in DB
     const allAvailable = templates.map((t) => ({ themeCode: t.themeCode, status: 'AVAILABLE' }));
     const res1 = filterAvailableTemplates(templates, allAvailable);
-    assert.equal(res1.length, 5);
+    assert.equal(res1.length, 6);
 
     // 2. AETHERIA is HIDDEN
     const withHidden = allAvailable.map((t) =>
       t.themeCode === 'AETHERIA' ? { ...t, status: 'HIDDEN' } : t
     );
     const res2 = filterAvailableTemplates(templates, withHidden);
-    assert.equal(res2.length, 4);
+    assert.equal(res2.length, 5);
     assert.ok(!res2.some((t) => t.themeCode === 'AETHERIA'), 'HIDDEN template must not be in public catalog');
 
     // 3. Missing / null / empty availability fails closed (returns [])

@@ -158,6 +158,29 @@ const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
       maxItems: 8,
     },
   ],
+  ROYAL_VELVET: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Utama Pasangan (Hero Cameo)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.bride,
+      title: 'Foto Mempelai Wanita (The Bride)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.groom,
+      title: 'Foto Mempelai Pria (The Groom)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.story,
+      title: 'Foto Kisah Kasih (Story Cameo)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      title: 'Galeri Kemegahan Royal Velvet',
+      maxItems: 6,
+    },
+  ],
   SEKAR_KEDATON: [
     {
       ...DEFAULT_SLOT_CATALOG.hero,
@@ -238,6 +261,14 @@ export function normalizeThemeKey(code?: string): string {
   if (upper === 'OPALINE_NOCTURNE') return 'OPALINE_NOCTURNE';
   if (upper === 'SEKAR_KEDATON') return 'SEKAR_KEDATON';
   if (upper === 'SWARGA_DEWATA') return 'SWARGA_DEWATA';
+  if (
+    upper === 'ROYAL_VELVET' ||
+    upper === 'ROYAL_BAROQUE' ||
+    upper === 'CLASSIC_ELEGANCE' ||
+    upper === 'CLASSIC'
+  ) {
+    return 'ROYAL_VELVET';
+  }
   return upper;
 }
 

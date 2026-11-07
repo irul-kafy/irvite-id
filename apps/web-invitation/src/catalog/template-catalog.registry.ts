@@ -61,6 +61,18 @@ export const APPROVED_CATALOG_TEMPLATES: readonly CatalogTemplateItem[] = [
     sortOrder: 5,
     availability: 'AVAILABLE',
   },
+  {
+    themeCode: 'ROYAL_VELVET',
+    slug: 'royal-velvet',
+    displayName: 'Royal Velvet Nocturne',
+    category: 'European Baroque',
+    shortDescription:
+      'Pernikahan klasik Eropa nan agung bergaya Royal Baroque dengan nuansa burgundy velvet, ornamen keemasan berukir, tirai sampul mewah, dan simfoni orkestra romantis.',
+    thumbnailPath: '/templates/royal-velvet/thumbnail.webp',
+    demoPath: '/templates/royal-velvet/demo',
+    sortOrder: 6,
+    availability: 'AVAILABLE',
+  },
 ];
 
 /**
