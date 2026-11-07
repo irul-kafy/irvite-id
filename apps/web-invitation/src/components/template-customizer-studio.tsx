@@ -6,6 +6,7 @@ import { RenderTheme, type RendererData } from '../renderers/registry';
 import {
   type ClientCustomizationState,
   type CeremonyFormState,
+  type StoryFormState,
   type GiftAccountFormState,
   type CustomPhotoSlotKey,
   PATENTED_DESIGN_RULES,
@@ -28,7 +29,13 @@ interface TemplateCustomizerStudioProps {
   adminMode?: boolean;
 }
 
-type StudioTab = 'couple' | 'schedule' | 'photos' | 'words' | 'patent';
+type StudioTab =
+  | 'couple'
+  | 'schedule'
+  | 'story'
+  | 'photos'
+  | 'words'
+  | 'patent';
 type ViewportDevice = 'desktop' | 'tablet' | 'mobile';
 
 const MAX_IMAGE_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB per photo
@@ -216,6 +223,44 @@ export function TemplateCustomizerStudio({
     },
     [],
   );
+
+  const updateStory = useCallback(
+    (index: number, patch: Partial<StoryFormState>) => {
+      setState((prev) => {
+        const nextStories = [...prev.stories];
+        nextStories[index] = { ...nextStories[index], ...patch };
+        return { ...prev, stories: nextStories };
+      });
+    },
+    [],
+  );
+
+  const addStory = useCallback(() => {
+    setState((prev) => {
+      if (prev.stories.length >= 6) return prev;
+      return {
+        ...prev,
+        stories: [
+          ...prev.stories,
+          {
+            year: `${new Date().getFullYear()}`,
+            title: `Babak Kisah ${prev.stories.length + 1}`,
+            description: '',
+          },
+        ],
+      };
+    });
+  }, []);
+
+  const removeStory = useCallback((index: number) => {
+    setState((prev) => {
+      if (prev.stories.length <= 1) return prev;
+      return {
+        ...prev,
+        stories: prev.stories.filter((_, idx) => idx !== index),
+      };
+    });
+  }, []);
 
   const handleSinglePhotoUpload = async (
     slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story',
@@ -551,6 +596,15 @@ export function TemplateCustomizerStudio({
           <button
             type="button"
             role="tab"
+            aria-selected={activeTab === 'story'}
+            className={`irv-studio-tab ${activeTab === 'story' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('story')}
+          >
+            📜 Kisah Cinta
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={activeTab === 'photos'}
             className={`irv-studio-tab ${activeTab === 'photos' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('photos')}
@@ -840,6 +894,117 @@ export function TemplateCustomizerStudio({
                   }
                 >
                   + Tambah Sesi Acara Kedua (Resepsi)
+                </button>
+              )}
+            </>
+          )}
+
+          {/* TAB: STORY / KISAH CINTA */}
+          {activeTab === 'story' && (
+            <>
+              <div className="irv-studio-section-banner">
+                📜 Susun rangkuman perjalanan cinta Anda dalam babak-babak kisah penuh kenangan. Setiap perubahan teks dan tahun akan langsung tampil di linimasa pratinjau.
+              </div>
+
+              {state.stories.map((item, idx) => (
+                <div key={idx} className="irv-studio-card-group">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <h3
+                      className="irv-studio-card-group__title"
+                      style={{ margin: 0 }}
+                    >
+                      <span>Babak {idx + 1}</span>
+                    </h3>
+                    {state.stories.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeStory(idx)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#f87171',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                          padding: '2px 6px',
+                        }}
+                      >
+                        ✕ Hapus
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="irv-studio-field">
+                    <label className="irv-studio-label">
+                      <span>Tahun / Momen Waktu</span>
+                      <span className="irv-studio-label__hint">
+                        Contoh: 2022 atau 14 Feb 2022
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      className="irv-studio-input"
+                      maxLength={30}
+                      value={item.year}
+                      onChange={(e) =>
+                        updateStory(idx, { year: e.target.value })
+                      }
+                      placeholder="Contoh: 2022"
+                    />
+                  </div>
+
+                  <div className="irv-studio-field">
+                    <label className="irv-studio-label">
+                      <span>Judul Babak</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="irv-studio-input"
+                      maxLength={70}
+                      value={item.title}
+                      onChange={(e) =>
+                        updateStory(idx, { title: e.target.value })
+                      }
+                      placeholder="Contoh: Pertemuan Pertama"
+                    />
+                  </div>
+
+                  <div className="irv-studio-field">
+                    <label className="irv-studio-label">
+                      <span>Kisah & Cerita Singkat</span>
+                      <span className="irv-studio-label__hint">
+                        {item.description.length}/350
+                      </span>
+                    </label>
+                    <textarea
+                      className="irv-studio-textarea"
+                      rows={3}
+                      maxLength={350}
+                      value={item.description}
+                      onChange={(e) =>
+                        updateStory(idx, { description: e.target.value })
+                      }
+                      placeholder="Tuliskan kisah singkat perjalanan cinta pada babak ini..."
+                    />
+                  </div>
+                </div>
+              ))}
+
+              {state.stories.length < 6 && (
+                <button
+                  type="button"
+                  className="irv-studio-drawer__reset-btn"
+                  style={{ padding: '9px', width: '100%', marginTop: '6px' }}
+                  onClick={addStory}
+                >
+                  + Tambah Babak Kisah Cinta
                 </button>
               )}
             </>

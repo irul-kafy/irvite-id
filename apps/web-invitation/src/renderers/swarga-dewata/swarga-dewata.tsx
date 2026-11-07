@@ -741,6 +741,12 @@ export function SwargaDewataRenderer({
                       src={media.storyPhotoUrl}
                       alt="Kisah Kasih Mempelai"
                       className={styles.storyPhotoImg}
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        if (!target.src.includes('bali-photo-0.webp')) {
+                          target.src = '/templates/swarga-dewata/bali-photo-0.webp';
+                        }
+                      }}
                     />
                     <div className={styles.storyPhotoGradient} />
                     <div className={styles.storyPhotoCaption}>

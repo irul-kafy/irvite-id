@@ -11,6 +11,13 @@ export interface CeremonyFormState {
   mapsUrl: string;
 }
 
+export interface StoryFormState {
+  year: string;
+  title: string;
+  description: string;
+  date?: string;
+}
+
 export interface GiftAccountFormState {
   bankName: string;
   accountNumber: string;
@@ -334,6 +341,7 @@ export interface ClientCustomizationState {
   prayerText: string;
   prayerSource: string;
   closingText: string;
+  stories: StoryFormState[];
   ceremonies: CeremonyFormState[];
   giftAccounts: GiftAccountFormState[];
   heroPhoto: CustomPhotoItem | null;
@@ -473,6 +481,57 @@ export function extractInitialCustomizationState(
     });
   }
 
+  const rawStories = Array.isArray(raw.story)
+    ? raw.story
+    : Array.isArray(raw.stories)
+      ? raw.stories
+      : [];
+  const stories: StoryFormState[] = rawStories
+    .filter(
+      (s): s is Record<string, unknown> => Boolean(s && typeof s === 'object'),
+    )
+    .slice(0, 6)
+    .map((s, idx) => ({
+      year:
+        typeof s.year === 'string'
+          ? s.year
+          : typeof s.date === 'string'
+            ? s.date
+            : `${2022 + idx * 2}`,
+      title:
+        typeof s.title === 'string' ? s.title : `Babak Kisah ${idx + 1}`,
+      description:
+        typeof s.description === 'string'
+          ? s.description
+          : typeof s.content === 'string'
+            ? s.content
+            : '',
+      date: typeof s.date === 'string' ? s.date : '',
+    }));
+
+  if (stories.length === 0) {
+    stories.push(
+      {
+        year: '2022',
+        title: 'Pertemuan Pertama',
+        description:
+          'Langkah awal yang mempertemukan kami dalam percakapan hangat penuh makna.',
+      },
+      {
+        year: '2024',
+        title: 'Menjalin Janji Suci',
+        description:
+          'Mengikrarkan niat tulus menyatukan dua hati menuju gerbang kehidupan bersama.',
+      },
+      {
+        year: '2026',
+        title: 'Hari Bahagia Pawiwahan',
+        description:
+          'Mengikat janji suci lahir batin di hadapan keluarga besar dan para leluhur.',
+      },
+    );
+  }
+
   const rawGifts = Array.isArray(raw.giftAccounts) ? raw.giftAccounts : [];
   const giftAccounts: GiftAccountFormState[] = rawGifts
     .filter((g): g is Record<string, unknown> => Boolean(g && typeof g === 'object'))
@@ -501,6 +560,7 @@ export function extractInitialCustomizationState(
     prayerText,
     prayerSource,
     closingText,
+    stories,
     ceremonies,
     giftAccounts,
     heroPhoto: null,
@@ -565,6 +625,18 @@ export function applyClientCustomizationToFixture(
     prayerSource: state.prayerSource.trim(),
     closing: state.closingText.trim(),
     closingMessage: state.closingText.trim(),
+    story: state.stories.map((s) => ({
+      year: s.year.trim(),
+      title: s.title.trim(),
+      description: s.description.trim(),
+      date: s.date?.trim() || undefined,
+    })),
+    stories: state.stories.map((s) => ({
+      year: s.year.trim(),
+      title: s.title.trim(),
+      description: s.description.trim(),
+      date: s.date?.trim() || undefined,
+    })),
     ceremonies: state.ceremonies.map((c, idx) => ({
       title: c.title.trim() || (idx === 0 ? 'Akad Nikah' : 'Resepsi'),
       startDateTime: c.startDateTime || '2026-10-18T08:00',
@@ -760,6 +832,15 @@ export function buildDraftSubmissionPayload(params: {
       accountHolder: g.accountHolder.trim(),
     }));
 
+  const stories = state.stories
+    .filter((s) => s.title.trim() !== '' || s.description.trim() !== '')
+    .map((s) => ({
+      year: s.year.trim(),
+      title: s.title.trim(),
+      description: s.description.trim(),
+      date: s.date?.trim() || undefined,
+    }));
+
   const content: Record<string, unknown> = {
     partnerOneName: p1,
     partnerTwoName: p2,
@@ -770,6 +851,11 @@ export function buildDraftSubmissionPayload(params: {
     timeZone: state.timeZone,
     ceremonies,
   };
+
+  if (stories.length > 0) {
+    content.story = stories;
+    content.stories = stories;
+  }
 
   if (giftAccounts.length > 0) {
     content.giftAccounts = giftAccounts;
