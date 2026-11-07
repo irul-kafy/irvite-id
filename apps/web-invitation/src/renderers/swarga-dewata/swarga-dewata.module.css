@@ -1105,7 +1105,8 @@
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 1.55rem;
   font-weight: 700;
-  color: var(--bali-prada-light);
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
   margin: 0 0 0.4rem;
 }
 
@@ -1113,7 +1114,7 @@
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
   font-size: 1.02rem;
-  color: rgba(249, 243, 232, 0.72);
+  color: rgba(249, 243, 232, 0.85);
   margin: 0 0 1.35rem;
 }
 
@@ -1141,22 +1142,23 @@
 }
 
 .ceremonyMetaPrimary {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--bali-sandstone);
+  color: #ffffff;
   margin: 0;
 }
 
 .ceremonyMetaSecondary {
-  font-size: 0.78rem;
-  color: rgba(249, 243, 232, 0.68);
+  font-size: 0.82rem;
+  color: rgba(249, 243, 232, 0.85);
   margin: 0.15rem 0 0;
   line-height: 1.5;
 }
 
 .ceremonyFooterNote {
-  font-size: 0.75rem;
-  color: rgba(255, 240, 184, 0.75);
+  font-size: 0.78rem;
+  color: #ffe699;
+  font-weight: 500;
   letter-spacing: 0.06em;
   margin: 0;
 }
@@ -1324,19 +1326,22 @@
 }
 
 .pradaDanaLabel {
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255, 240, 184, 0.72);
-  margin: 0 0 0.25rem;
+  color: #ffe699;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 .pradaDanaBank {
   font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 700;
-  color: var(--bali-prada-light);
+  color: #ffffff;
   margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
 }
 
 .pradaDanaChip {
@@ -1345,6 +1350,7 @@
   border-radius: 0.45rem;
   background: linear-gradient(135deg, #fff0b8, #b88628);
   border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
 }
 
@@ -1353,29 +1359,77 @@
 }
 
 .pradaDanaAccountLabel {
-  font-size: 0.72rem;
-  color: rgba(249, 243, 232, 0.6);
-  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(249, 243, 232, 0.78);
+  margin: 0 0 0.35rem;
 }
 
 .pradaDanaNumber {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.35rem;
-  letter-spacing: 0.14em;
-  color: var(--bali-prada-light);
-  font-weight: 600;
-  margin: 0 0 0.35rem;
+  font-size: 1.55rem;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+  font-weight: 700;
+  margin: 0 0 0.45rem;
   word-break: break-all;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
 }
 
 .pradaDanaHolder {
-  font-size: 0.875rem;
-  color: rgba(249, 243, 232, 0.82);
+  font-size: 0.95rem;
+  color: #f7efe2;
+  font-weight: 600;
   margin: 0;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .pradaDanaCopyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.4rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    rgba(229, 184, 75, 0.28) 0%,
+    rgba(123, 30, 34, 0.65) 100%
+  );
+  color: #fff0b8;
+  border: 1px solid rgba(229, 184, 75, 0.75);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 240, 184, 0.3);
+  transition: all 0.25s ease;
   width: 100%;
+}
+
+.pradaDanaCopyBtn:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 184, 75, 0.45) 0%,
+    rgba(123, 30, 34, 0.8) 100%
+  );
+  border-color: #ffffff;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(229, 184, 75, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.pradaDanaCopyBtnCopied {
+  background: linear-gradient(135deg, #1b4d3e 0%, #0d2820 100%) !important;
+  border-color: #55d6a0 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 18px rgba(85, 214, 160, 0.45) !important;
 }
 
 /* ============================================================================
@@ -1561,8 +1615,8 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 50;
-  width: 94%;
-  max-width: 30rem;
+  width: 95%;
+  max-width: 38rem;
 }
 
 .bottomNavInner {
@@ -1570,24 +1624,32 @@
   padding: 0.45rem 0.65rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.25rem;
-  background: rgba(20, 11, 10, 0.94);
+  background: rgba(20, 11, 10, 0.95);
   border: 1px solid rgba(229, 184, 75, 0.45);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(12px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.bottomNavInner::-webkit-scrollbar {
+  display: none;
 }
 
 .bottomNavLink {
   padding: 0.45rem 0.7rem;
   border-radius: 9999px;
   font-size: 0.72rem;
-  color: rgba(255, 240, 184, 0.82);
+  color: rgba(255, 240, 184, 0.85);
   text-decoration: none;
   background: transparent;
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition:
     color 0.2s ease,
     background-color 0.2s ease;
@@ -1599,7 +1661,7 @@
 }
 
 .bottomNavCta {
-  padding: 0.45rem 0.9rem;
+  padding: 0.45rem 0.95rem;
   border-radius: 9999px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -1608,6 +1670,7 @@
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ============================================================================
@@ -1733,23 +1796,32 @@
   }
 
   .bottomNav {
-    width: 95%;
+    width: 96%;
     bottom: 0.75rem;
   }
 
   .bottomNavInner {
-    padding: 0.35rem 0.45rem;
-    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    gap: 0.2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .bottomNavInner::-webkit-scrollbar {
+    display: none;
   }
 
   .bottomNavLink {
-    padding: 0.35rem 0.45rem;
-    font-size: 0.65rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.68rem;
+    flex-shrink: 0;
   }
 
   .bottomNavCta {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.65rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.68rem;
+    flex-shrink: 0;
   }
 }
 
@@ -1789,23 +1861,32 @@
   }
 
   .bottomNav {
-    width: 95%;
+    width: 96%;
     bottom: 0.75rem;
   }
 
   .bottomNavInner {
-    padding: 0.35rem 0.45rem;
-    gap: 0.15rem;
+    padding: 0.35rem 0.5rem;
+    gap: 0.2rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .bottomNavInner::-webkit-scrollbar {
+    display: none;
   }
 
   .bottomNavLink {
-    padding: 0.35rem 0.45rem;
-    font-size: 0.65rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.68rem;
+    flex-shrink: 0;
   }
 
   .bottomNavCta {
-    padding: 0.35rem 0.6rem;
-    font-size: 0.65rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.68rem;
+    flex-shrink: 0;
   }
 }
 

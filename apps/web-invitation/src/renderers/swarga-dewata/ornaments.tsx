@@ -258,8 +258,11 @@ export function SangaMandalaMapSvg({
       role="img"
       aria-label={`Peta Denah ${venueLabel}`}
     >
-      <rect width="400" height="280" fill="#170E0D" />
-      <g stroke="rgba(229,184,75,0.12)" strokeWidth="1">
+      {/* Background Stone Texture */}
+      <rect width="400" height="280" fill="#140C0B" />
+
+      {/* Sanga Mandala Grid Lines */}
+      <g stroke="rgba(229,184,75,0.18)" strokeWidth="1">
         <line x1="0" y1="70" x2="400" y2="70" />
         <line x1="0" y1="140" x2="400" y2="140" />
         <line x1="0" y1="210" x2="400" y2="210" />
@@ -267,78 +270,139 @@ export function SangaMandalaMapSvg({
         <line x1="200" y1="0" x2="200" y2="280" />
         <line x1="300" y1="0" x2="300" y2="280" />
       </g>
+
+      {/* Main Street Jalan Raya Ubud */}
       <path
         d="M0 185 Q 150 180, 220 140 T 400 95"
-        stroke="rgba(229,184,75,0.35)"
-        strokeWidth="10"
+        stroke="#2E1815"
+        strokeWidth="18"
+        strokeLinecap="round"
         fill="none"
       />
       <path
         d="M0 185 Q 150 180, 220 140 T 400 95"
-        stroke="#E5B84B"
+        stroke="rgba(229,184,75,0.45)"
+        strokeWidth="14"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M0 185 Q 150 180, 220 140 T 400 95"
+        stroke="#FFF0B8"
         strokeWidth="1.5"
         strokeDasharray="6 6"
         fill="none"
       />
+
+      {/* Connecting Alley */}
       <path
-        d="M180 0 L215 280"
-        stroke="rgba(229,184,75,0.22)"
-        strokeWidth="6"
+        d="M185 0 L215 280"
+        stroke="rgba(229,184,75,0.3)"
+        strokeWidth="8"
       />
+
+      {/* Venue Compound Box (Mandala Puri) */}
       <rect
-        x="155"
-        y="85"
-        width="90"
-        height="75"
-        rx="6"
+        x="135"
+        y="80"
+        width="130"
+        height="85"
+        rx="8"
         stroke="#E5B84B"
-        strokeWidth="2"
-        fill="rgba(123,30,34,0.65)"
+        strokeWidth="2.5"
+        fill="rgba(123,30,34,0.75)"
+      />
+
+      {/* Beacon Radar Rings */}
+      <circle
+        cx="200"
+        cy="122"
+        r="32"
+        fill="rgba(229,184,75,0.15)"
+        stroke="rgba(229,184,75,0.35)"
+        strokeWidth="1"
       />
       <circle
         cx="200"
         cy="122"
-        r="24"
-        fill="rgba(229,184,75,0.2)"
+        r="20"
+        fill="rgba(229,184,75,0.25)"
       />
       <circle
         cx="200"
         cy="122"
-        r="7"
-        fill="#FFF0B8"
-        stroke="#7B1E22"
-        strokeWidth="2"
+        r="11"
+        fill="#7B1E22"
+        stroke="#FFF0B8"
+        strokeWidth="2.5"
+      />
+      <circle cx="200" cy="122" r="4" fill="#FFF0B8" />
+
+      {/* Top Venue Header Badge */}
+      <rect
+        x="100"
+        y="42"
+        width="200"
+        height="26"
+        rx="13"
+        fill="#211210"
+        stroke="#E5B84B"
+        strokeWidth="1.5"
       />
       <text
         x="200"
-        y="74"
+        y="59"
         textAnchor="middle"
         fill="#FFF0B8"
-        fontFamily="Cinzel Decorative, serif"
+        fontFamily="Playfair Display, serif"
         fontSize="11"
-        letterSpacing="1.5"
-      >
-        {venueLabel.slice(0, 28).toUpperCase()}
-      </text>
-      <text
-        x="85"
-        y="172"
-        fill="rgba(229,184,75,0.7)"
-        fontFamily="Inter, sans-serif"
-        fontSize="9"
+        fontWeight="700"
         letterSpacing="1"
+      >
+        📍 {venueLabel.slice(0, 24).toUpperCase()}
+      </text>
+
+      {/* Street Name Tag */}
+      <rect
+        x="50"
+        y="158"
+        width="112"
+        height="22"
+        rx="4"
+        fill="#211210"
+        stroke="#E5B84B"
+        strokeWidth="1.2"
+      />
+      <text
+        x="106"
+        y="173"
+        textAnchor="middle"
+        fill="#FFF0B8"
+        fontFamily="Inter, sans-serif"
+        fontSize="9.5"
+        fontWeight="700"
+        letterSpacing="1.2"
       >
         JL. RAYA UBUD
       </text>
-      <text
-        x="320"
-        y="255"
-        fill="rgba(229,184,75,0.5)"
-        fontFamily="Cinzel Decorative, serif"
-        fontSize="9"
-      >
-        KAJA (UTARA) ↑
-      </text>
+
+      {/* North Compass Rose */}
+      <g transform="translate(350, 42)">
+        <circle cx="0" cy="0" r="16" fill="#211210" stroke="#E5B84B" strokeWidth="1.2" />
+        <path d="M0 -12 L4 0 L0 3 L-4 0 Z" fill="#FFF0B8" />
+        <path d="M0 12 L4 0 L0 -3 L-4 0 Z" fill="rgba(229,184,75,0.4)" />
+        <text
+          x="0"
+          y="28"
+          textAnchor="middle"
+          fill="#FFF0B8"
+          fontFamily="Cinzel Decorative, serif"
+          fontSize="9"
+          fontWeight="700"
+        >
+          KAJA (U)
+        </text>
+      </g>
     </svg>
   );
 }

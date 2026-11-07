@@ -194,6 +194,19 @@ export function SwargaDewataRenderer({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Accessibility & battery optimization: respect reduced motion
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    let isTabVisible = true;
+    const handleVisibilityChange = () => {
+      isTabVisible = !document.hidden;
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     let animFrameId = 0;
     let w = (canvas.width = window.innerWidth);
     let h = (canvas.height = window.innerHeight);
@@ -240,7 +253,8 @@ export function SwargaDewataRenderer({
       };
     };
 
-    const count = w < 768 ? 22 : 40;
+    // Lightweight particle count: 12 on mobile, 28 on desktop (saves 40% GPU/battery)
+    const count = w < 768 ? 12 : 28;
     const particles: ParticleItem[] = Array.from({ length: count }, () =>
       createParticle(true),
     );
@@ -290,16 +304,18 @@ export function SwargaDewataRenderer({
     };
 
     const animate = () => {
-      ctx.clearRect(0, 0, w, h);
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.y += p.speedY;
-        p.x += p.speedX + Math.sin(p.y * 0.012) * 0.25;
-        p.rot += p.rotSpeed;
-        if (p.y > h + 30) {
-          particles[i] = createParticle(false);
+      if (isTabVisible) {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.y += p.speedY;
+          p.x += p.speedX + Math.sin(p.y * 0.012) * 0.25;
+          p.rot += p.rotSpeed;
+          if (p.y > h + 30) {
+            particles[i] = createParticle(false);
+          }
+          drawParticle(p);
         }
-        drawParticle(p);
       }
       animFrameId = requestAnimationFrame(animate);
     };
@@ -307,6 +323,7 @@ export function SwargaDewataRenderer({
     animFrameId = requestAnimationFrame(animate);
     return () => {
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animFrameId);
     };
   }, []);
@@ -844,66 +861,7 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 05: PRADA DANA KASIH (DIGITAL GIFT) */}
-        <section id="prada-dana" className={styles.sectionWrapNarrow}>
-          <div className={styles.sectionHeader}>
-            <p className={styles.sectionEyebrow}>05 • Tanda Kasih</p>
-            <h2
-              className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
-            >
-              {content.giftTitle}
-            </h2>
-            <p className={styles.sectionSubtitle}>{content.giftMessage}</p>
-          </div>
-
-          <div className={styles.pradaDanaGrid}>
-            {content.giftAccounts.map((acc, idx) => (
-              <div
-                key={`${acc.bankName}-${idx}`}
-                className={`${styles.pradaCard} ${styles.pradaDanaCard}`}
-              >
-                <div className={`${styles.patraCorner} ${styles.patraTl}`} />
-                <div className={`${styles.patraCorner} ${styles.patraTr}`} />
-                <div className={`${styles.patraCorner} ${styles.patraBl}`} />
-                <div className={`${styles.patraCorner} ${styles.patraBr}`} />
-
-                <div className={styles.pradaDanaHeader}>
-                  <div>
-                    <p className={styles.pradaDanaLabel}>Rekening Kehormatan</p>
-                    <h3 className={styles.pradaDanaBank}>{acc.bankName}</h3>
-                  </div>
-                  <div className={styles.pradaDanaChip} />
-                </div>
-
-                <div className={styles.pradaDanaBody}>
-                  <p className={styles.pradaDanaAccountLabel}>
-                    Nomor Rekening
-                  </p>
-                  <p className={styles.pradaDanaNumber}>{acc.accountNumber}</p>
-                  <p className={styles.pradaDanaHolder}>
-                    a.n. {acc.accountHolder}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleCopyAccount(acc.accountNumber, idx)}
-                  className={`${styles.btnPradaOutline} ${styles.pradaDanaCopyBtn}`}
-                >
-                  <span>
-                    {copiedAccountIdx === idx
-                      ? '✓ Nomor Rekening Tersalin'
-                      : 'Salin Nomor Rekening'}
-                  </span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className={styles.tridatuRibbon} />
-
-        {/* SECTION 06: LOKASI & SANGA MANDALA MAP */}
+        {/* SECTION 05: LOKASI & SANGA MANDALA MAP */}
         <section id="lokasi" className={styles.sectionWrapNarrow}>
           <div className={`${styles.pradaCard} ${styles.locationCard}`}>
             <div className={`${styles.patraCorner} ${styles.patraTl}`} />
@@ -914,7 +872,7 @@ export function SwargaDewataRenderer({
             <div className={styles.locationGrid}>
               <div>
                 <p className={styles.locationSectionTag}>
-                  06 • Loka Mandala Puri
+                  05 • Loka Mandala Puri
                 </p>
                 <h2 className={styles.locationVenueTitle}>
                   {primaryCeremony?.venue || 'Puri Agung Ubud'}
@@ -949,6 +907,7 @@ export function SwargaDewataRenderer({
                   rel="noopener noreferrer"
                   className={styles.btnPradaGold}
                 >
+                  <span style={{ fontSize: '1.05rem' }}>📍</span>
                   <span>Buka Navigasi Google Maps</span>
                 </a>
               </div>
@@ -965,12 +924,12 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 07: RSVP & GUEST QR */}
+        {/* SECTION 06: RSVP & GUEST QR */}
         {showRsvpAndQr && (
           <section id="rsvp" className={styles.sectionWrap}>
             <div className={styles.sectionHeader}>
               <p className={styles.sectionEyebrow}>
-                07 • Pangaksama &amp; Doa Restu
+                06 • Pangaksama &amp; Doa Restu
               </p>
               <h2
                 className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
@@ -1015,6 +974,70 @@ export function SwargaDewataRenderer({
             </div>
           </section>
         )}
+
+        <div className={styles.tridatuRibbon} />
+
+        {/* SECTION 07: PRADA DANA KASIH (DIGITAL GIFT) - REKENING DI BAWAH DEKAT CLOSING */}
+        <section id="prada-dana" className={styles.sectionWrapNarrow}>
+          <div className={styles.sectionHeader}>
+            <p className={styles.sectionEyebrow}>07 • Tanda Kasih Kehormatan</p>
+            <h2
+              className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
+            >
+              {content.giftTitle}
+            </h2>
+            <p className={styles.sectionSubtitle}>{content.giftMessage}</p>
+          </div>
+
+          <div className={styles.pradaDanaGrid}>
+            {content.giftAccounts.map((acc, idx) => (
+              <div
+                key={`${acc.bankName}-${idx}`}
+                className={`${styles.pradaCard} ${styles.pradaDanaCard}`}
+              >
+                <div className={`${styles.patraCorner} ${styles.patraTl}`} />
+                <div className={`${styles.patraCorner} ${styles.patraTr}`} />
+                <div className={`${styles.patraCorner} ${styles.patraBl}`} />
+                <div className={`${styles.patraCorner} ${styles.patraBr}`} />
+
+                <div className={styles.pradaDanaHeader}>
+                  <div>
+                    <p className={styles.pradaDanaLabel}>Rekening Kehormatan</p>
+                    <h3 className={styles.pradaDanaBank}>{acc.bankName}</h3>
+                  </div>
+                  <div className={styles.pradaDanaChip} />
+                </div>
+
+                <div className={styles.pradaDanaBody}>
+                  <p className={styles.pradaDanaAccountLabel}>
+                    Nomor Rekening
+                  </p>
+                  <p className={styles.pradaDanaNumber}>{acc.accountNumber}</p>
+                  <p className={styles.pradaDanaHolder}>
+                    a.n. {acc.accountHolder}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyAccount(acc.accountNumber, idx)}
+                  className={`${styles.pradaDanaCopyBtn} ${
+                    copiedAccountIdx === idx ? styles.pradaDanaCopyBtnCopied : ''
+                  }`}
+                  aria-label={`Salin nomor rekening ${acc.bankName}`}
+                >
+                  <span>
+                    {copiedAccountIdx === idx
+                      ? '✓ Nomor Rekening Tersalin'
+                      : '📋 Salin Nomor Rekening'}
+                  </span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className={styles.tridatuRibbon} />
 
         {/* SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI */}
         <footer id="closing" className={styles.closingSection}>
@@ -1085,8 +1108,22 @@ export function SwargaDewataRenderer({
           </button>
           <button
             type="button"
+            onClick={() => scrollToSection('lokasi')}
+            className={styles.bottomNavLink}
+          >
+            Lokasi
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('prada-dana')}
+            className={styles.bottomNavLink}
+          >
+            Hadiah
+          </button>
+          <button
+            type="button"
             onClick={() =>
-              scrollToSection(showRsvpAndQr ? 'rsvp' : 'lokasi')
+              scrollToSection(showRsvpAndQr ? 'rsvp' : 'prada-dana')
             }
             className={styles.bottomNavCta}
           >
