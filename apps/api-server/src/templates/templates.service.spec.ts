@@ -443,11 +443,11 @@ describe('TemplatesService', () => {
 
     it('should return minimal public availability list with only themeCode and status', async () => {
       const mockList = [
-        { themeCode: 'CLASSIC_LETTER', status: 'AVAILABLE' },
-        { themeCode: 'IVORY_GARDEN', status: 'AVAILABLE' },
-        { themeCode: 'SERENE_GARDEN', status: 'AVAILABLE' },
-        { themeCode: 'SUNDA_PUSPA', status: 'AVAILABLE' },
-        { themeCode: 'VELVET_LETTER', status: 'HIDDEN' },
+        { themeCode: 'AETHERIA', status: 'AVAILABLE' },
+        { themeCode: 'KUSUMA_PARAHYANGAN', status: 'AVAILABLE' },
+        { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
+        { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
+        { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
       ];
       mockPrismaService.template.findMany.mockResolvedValue(mockList);
 
@@ -461,6 +461,13 @@ describe('TemplatesService', () => {
         orderBy: { themeCode: 'asc' },
       });
       expect(result).toEqual(mockList);
+    });
+
+    it('should include missing approved template seeds if not yet present in DB', async () => {
+      mockPrismaService.template.findMany.mockResolvedValue([]);
+      const result = await service.getPublicAvailability();
+      expect(result.some((t) => t.themeCode === 'KUSUMA_PARAHYANGAN')).toBe(true);
+      expect(result.some((t) => t.themeCode === 'SEKAR_KEDATON')).toBe(true);
     });
 
     it('should still return definition for HIDDEN or ARCHIVED templates', async () => {

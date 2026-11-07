@@ -5,6 +5,7 @@ import {
   ConflictException,
   Logger,
   PayloadTooLargeException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
@@ -16,7 +17,11 @@ import {
   getTemplateDefinition,
 } from './definitions';
 import { TEMPLATE_STATUS } from './template-status';
-import { isBuiltInTemplate } from './sync-templates';
+import {
+  APPROVED_TEMPLATE_SEEDS,
+  isBuiltInTemplate,
+  syncTemplateIdentities,
+} from './sync-templates';
 import { Prisma } from 'database';
 import { MediaStorageService } from '../media/media-storage.service';
 import { detectSignature } from '../media/media-signature';
@@ -29,13 +34,24 @@ import {
 import { randomUUID } from 'crypto';
 
 @Injectable()
-export class TemplatesService {
+export class TemplatesService implements OnModuleInit {
   private readonly logger = new Logger(TemplatesService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: MediaStorageService,
   ) {}
+
+  async onModuleInit() {
+    try {
+      await syncTemplateIdentities(this.prisma);
+      this.logger.log('Template identities synchronized successfully');
+    } catch (err) {
+      this.logger.warn(
+        `Template identity synchronization skipped or deferred: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 
   async findAll(query: PaginationQueryDto) {
     const { page = 1, limit = 10 } = query;
@@ -461,13 +477,25 @@ export class TemplatesService {
   }
 
   async getPublicAvailability() {
-    return this.prisma.template.findMany({
+    const dbTemplates = await this.prisma.template.findMany({
       select: {
         themeCode: true,
         status: true,
       },
       orderBy: { themeCode: 'asc' },
     });
+
+    const existingCodes = new Set(
+      dbTemplates.map((t) => t.themeCode?.trim().toUpperCase()),
+    );
+    const missingApproved = APPROVED_TEMPLATE_SEEDS.filter(
+      (seed) => !existingCodes.has(seed.themeCode.trim().toUpperCase()),
+    ).map((seed) => ({
+      themeCode: seed.themeCode,
+      status: seed.initialStatus || 'AVAILABLE',
+    }));
+
+    return [...dbTemplates, ...missingApproved];
   }
 
   async getPublicPackages() {
