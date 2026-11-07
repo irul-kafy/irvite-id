@@ -228,6 +228,10 @@ export function RoyalVelvetRenderer({
 
   const scrollToSection = (id: string) => {
     setActiveNav(id);
+    if (id === 'sec-cover') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -339,10 +343,17 @@ export function RoyalVelvetRenderer({
       </div>
 
       {/* =========================================================================
-           SECTION 1: HERO / COVER (Cameo Oval Portrait, Curtain Split Opening)
+           OPENING CURTAIN GATE OVERLAY (KONTROL PENUH FULLSCREEN)
            ========================================================================= */}
-      <header id="sec-cover" className={styles.heroStage}>
-        {/* Background Foto Hero */}
+      <div
+        className={`${styles.coverGateOverlay} ${
+          isOpen ? styles.coverGateUnlocked : ''
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Pintu Masuk Undangan Royal Velvet"
+      >
+        {/* Background Foto Cover */}
         <div className={styles.heroBgMedia}>
           <img
             src={media.heroPhotoUrl}
@@ -355,22 +366,22 @@ export function RoyalVelvetRenderer({
           <div className={styles.heroBgVignette} />
         </div>
 
-        {/* Tirai Teater Kiri & Kanan (Terbelah Mulus Saat Dibuka) */}
+        {/* Tirai Teater Beludru Kiri & Kanan */}
         <div className={`${styles.curtainWing} ${styles.curtainLeft}`} />
         <div className={`${styles.curtainWing} ${styles.curtainRight}`} />
 
         {/* Ornamen Bingkai Emas */}
         <div className={styles.heroOrnateBorder} />
 
-        {/* Top Chandeliers & Monogram */}
-        <div className={styles.heroTopChandeliers}>
-          <BaroqueCornerSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#E5C88E]/40" />
-          <BaroqueCrestSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#F4DFB0]" />
-          <BaroqueCornerSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#E5C88E]/40" flipX />
-        </div>
+        {/* Center Seal Card: Monogram, Cameo Portrait, Nama Pasangan, & Tombol Buka Undangan */}
+        <div className={styles.coverCenterSeal}>
+          {/* Top Chandeliers & Monogram */}
+          <div className={styles.heroTopChandeliers}>
+            <BaroqueCornerSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#E5C88E]/40" />
+            <BaroqueCrestSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#F4DFB0]" />
+            <BaroqueCornerSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#E5C88E]/40" flipX />
+          </div>
 
-        {/* Center: Cameo Oval Portrait & Nama Panggilan */}
-        <div className={styles.heroCenterPiece}>
           <div className={styles.cameoPortraitWrap}>
             <div className={styles.cameoMandalaRing}>
               <div className={`${styles.loopSpinSlow} w-44 h-44 sm:w-56 sm:h-56`}>
@@ -401,16 +412,14 @@ export function RoyalVelvetRenderer({
           <div className={styles.heroDateRibbon}>
             <span>{formatTanggalIndo(primaryCeremonyDate)}</span>
           </div>
-        </div>
 
-        {/* Bottom: Sapaan Tamu Kehormatan & Tombol Buka Undangan */}
-        <div className={styles.heroGuestBox}>
-          <p className={styles.guestGreetingLabel}>
-            Kepada Yth. Bapak / Ibu / Saudara/i
-          </p>
-          <p className={styles.guestHonoreeName}>{guestName}</p>
+          {/* Sapaan Tamu Kehormatan & Tombol Buka Undangan */}
+          <div className={styles.heroGuestBox}>
+            <p className={styles.guestGreetingLabel}>
+              Kepada Yth. Bapak / Ibu / Saudara/i
+            </p>
+            <p className={styles.guestHonoreeName}>{guestName}</p>
 
-          {!isOpen ? (
             <button
               type="button"
               className={styles.btnRoyalGold}
@@ -421,16 +430,59 @@ export function RoyalVelvetRenderer({
               </svg>
               <span>Buka Undangan</span>
             </button>
-          ) : (
-            <div className={styles.scrollCueBadge}>
-              <span>Gulir ke Bawah</span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-bounce">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </div>
-          )}
+          </div>
         </div>
-      </header>
+      </div>
+
+      {/* =========================================================================
+           MAIN INVITATION CONTENT (TERKUNCI PENUH SEBELUM DIBUKA)
+           ========================================================================= */}
+      <main className={styles.mainContainer}>
+        {/* SECTION 1: HERO / SAMAPUL UNDANGAN UTAMA (TERBUKA) */}
+        <header id="sec-cover" className={styles.mainHeroBanner}>
+          <div className={styles.heroBgMedia}>
+            <img
+              src={media.heroPhotoUrl}
+              alt={`${content.partnerOneName} & ${content.partnerTwoName}`}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src =
+                  '/templates/royal-velvet/photo-hero.webp';
+              }}
+            />
+            <div className={styles.heroBgVignette} />
+          </div>
+
+          <div className={styles.heroOrnateBorder} />
+
+          <div className={styles.heroTopChandeliers}>
+            <BaroqueCornerSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#E5C88E]/40" />
+            <BaroqueCrestSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#F4DFB0]" />
+            <BaroqueCornerSvg className="w-8 h-8 sm:w-10 sm:h-10 text-[#E5C88E]/40" flipX />
+          </div>
+
+          <div className={styles.heroCenterPiece}>
+            <p className={styles.sectionEyebrow}>The Royal Wedding Celebration</p>
+
+            <h1 className={styles.heroCoupleTitle}>
+              <span>{content.partnerOneName}</span>
+              <span className={styles.heroAmp}>&amp;</span>
+              <span>{content.partnerTwoName}</span>
+            </h1>
+
+            <div className={styles.heroDateRibbon}>
+              <span>{formatTanggalIndo(primaryCeremonyDate)}</span>
+            </div>
+
+            <div className="mt-8 flex flex-col items-center">
+              <div className={styles.scrollCueBadge}>
+                <span>Gulir ke Bawah</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-bounce">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </header>
 
       {/* =========================================================================
            SECTION 2: AYAT & FALSAFAH SUCI (SURAH AR-RUM / DOAL)
@@ -896,6 +948,7 @@ export function RoyalVelvetRenderer({
           </p>
         </div>
       </footer>
+    </main>
 
       {/* =========================================================================
            FLOATING BOTTOM NAVIGATION BAR

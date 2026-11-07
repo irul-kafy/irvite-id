@@ -31,11 +31,14 @@
 }
 
 .isLocked {
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden !important;
   height: 100vh;
   height: 100dvh;
-  -webkit-overflow-scrolling: touch;
+}
+
+.isUnlocked {
+  overflow: visible;
+  min-height: 100vh;
 }
 
 .fontDisplay {
@@ -231,6 +234,71 @@
 .delay2 { transition-delay: 0.2s; }
 .delay3 { transition-delay: 0.3s; }
 
+.coverGateOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-velvet);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: visibility 1.1s ease, opacity 0.9s ease;
+}
+
+.coverGateOverlay::-webkit-scrollbar {
+  display: none;
+}
+
+.coverGateUnlocked {
+  pointer-events: none;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.coverCenterSeal {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 440px;
+  margin: auto;
+  padding: clamp(14px, 2.5vh, 28px) 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+}
+
+.coverGateUnlocked .coverCenterSeal {
+  transform: scale(1.12);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mainContainer {
+  position: relative;
+  width: 100%;
+}
+
+.mainHeroBanner {
+  position: relative;
+  min-height: 75vh;
+  min-height: 75dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 80px 20px 60px 20px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-gold-strong);
+}
+
 .heroStage {
   position: relative;
   min-height: 100vh;
@@ -306,12 +374,14 @@
   box-shadow: -18px 0 40px rgba(0, 0, 0, 0.7);
 }
 
+.coverGateUnlocked .curtainLeft,
 .isUnlocked .curtainLeft {
   transform: translateX(-105%);
   opacity: 0;
   pointer-events: none;
 }
 
+.coverGateUnlocked .curtainRight,
 .isUnlocked .curtainRight {
   transform: translateX(105%);
   opacity: 0;
