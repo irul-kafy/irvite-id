@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { RendererProps } from '../registry';
+import { RsvpForm } from '../../components/rsvp-form';
+import QRDisplay from '../../components/QRDisplay';
+import { getCanonicalInvitationUrl } from '../../utils/url';
+import {
+  shouldRenderRsvpAndQr,
+  shouldRenderSereneGuest,
+} from '../mode-gating';
 import {
   adaptRoyalVelvetContent,
   adaptRoyalVelvetMedia,
@@ -16,8 +23,6 @@ import styles from './royal-velvet.module.css';
 
 interface WishItem {
   name: string;
-  attendance: string;
-  pax: string;
   message: string;
   createdAt: string;
 }
@@ -25,35 +30,27 @@ interface WishItem {
 const DEFAULT_WISHES: WishItem[] = [
   {
     name: 'Keluarga Besar Prof. Dr. Arman Wijaya',
-    attendance: 'Hadir',
-    pax: '2 Orang',
     createdAt: 'Baru saja',
     message:
-      'Selamat menempuh hidup baru untuk Neng Citra dan Kang Galih. Semoga menjadi keluarga sakinah, mawaddah, warahmah.',
+      'Selamat menempuh hidup baru untuk Neng Citra dan Kang Galih. Semoga menjadi keluarga sakinah, mawaddah, warahmah penuh keberkahan.',
   },
   {
     name: 'dr. Clarissa Putri, Sp.A & Suami',
-    attendance: 'Hadir',
-    pax: '2 Orang',
     createdAt: '20 menit lalu',
     message:
       'Happy Wedding Citra & Galih! Semoga senantiasa dilimpahi kebahagiaan dan keberkahan sepanjang usia.',
   },
   {
     name: 'Raden Bagus Pradipta, S.T.',
-    attendance: 'Hadir',
-    pax: '1 Orang',
     createdAt: '1 jam lalu',
     message:
-      'Selamat berbahagia sahabatku! InsyaAllah hadir menyaksikan momen sakral kalian berdua.',
+      'Selamat berbahagia sahabatku! InsyaAllah mahligai rumah tangga kalian berdua senantiasa dirahmati Allah SWT.',
   },
   {
-    name: 'Nadya Maharani & Partner',
-    attendance: 'Masih Ragu',
-    pax: '2 Orang',
+    name: 'Nadya Maharani, M.Ds.',
     createdAt: '3 jam lalu',
     message:
-      'Turut bersuka cita atas pernikahan Citra & Galih. Doa terbaik selalu untuk kalian berdua!',
+      'Turut bersuka cita atas pernikahan Citra & Galih. Doa terbaik selalu menyertai perjalanan cinta kalian berdua!',
   },
 ];
 
@@ -61,6 +58,8 @@ export function RoyalVelvetRenderer({
   data,
   uniqueCode,
   isPreview = false,
+  mode = 'PUBLIC',
+  canonicalUrl,
 }: RendererProps) {
   const content = useMemo(
     () => adaptRoyalVelvetContent(data.event?.content, data.event?.title),
@@ -72,8 +71,12 @@ export function RoyalVelvetRenderer({
     [data.mediaBySlot, data.media, isPreview],
   );
 
+  const guestVisible = shouldRenderSereneGuest(mode, data?.guest);
+  const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+
   // Guest Name Resolution
   const [guestName, setGuestName] = useState<string>(() => {
+    if (guestVisible && data.guest?.name) return data.guest.name;
     if (data.guest?.name) return data.guest.name;
     return 'Keluarga Besar & Sahabat Kehormatan';
   });
@@ -84,11 +87,13 @@ export function RoyalVelvetRenderer({
       const urlGuest = sp.get('to') || sp.get('guest');
       if (urlGuest) {
         setGuestName(urlGuest);
+      } else if (guestVisible && data.guest?.name) {
+        setGuestName(data.guest.name);
       } else if (data.guest?.name) {
         setGuestName(data.guest.name);
       }
     }
-  }, [data.guest?.name]);
+  }, [data.guest?.name, guestVisible]);
 
   // Audio & Curtain Opening State
   const [isOpen, setIsOpen] = useState(false);
@@ -183,11 +188,9 @@ export function RoyalVelvetRenderer({
     caption: string;
   } | null>(null);
 
-  // RSVP Form & Wishes Feed
+  // Royal Wishes Form & Feed
   const [wishes, setWishes] = useState<WishItem[]>(DEFAULT_WISHES);
   const [formName, setFormName] = useState('');
-  const [formAtt, setFormAtt] = useState('Hadir');
-  const [formPax, setFormPax] = useState('1 Orang');
   const [formMsg, setFormMsg] = useState('');
   const [copyStatus, setCopyStatus] = useState<Record<number, boolean>>({});
 
@@ -205,22 +208,19 @@ export function RoyalVelvetRenderer({
     [showToast],
   );
 
-  const handleRsvpSubmit = (e: React.FormEvent) => {
+  const handleWishSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formMsg.trim()) return;
 
     const newWish: WishItem = {
       name: formName.trim(),
-      attendance: formAtt,
-      pax: formPax,
       message: formMsg.trim(),
       createdAt: 'Baru saja',
     };
 
     setWishes((prev) => [newWish, ...prev]);
-    setFormName('');
     setFormMsg('');
-    showToast('Terima kasih! Konfirmasi kehadiran & doa restu telah tersimpan.');
+    showToast('Terima kasih! Untaian doa restu Anda telah terkirim.');
   };
 
   // Active Bottom Nav Tracker
@@ -262,19 +262,6 @@ export function RoyalVelvetRenderer({
     const mm = d.getMinutes() < 10 ? `0${d.getMinutes()}` : d.getMinutes();
     return `Pukul ${hh}.${mm} WIB – Selesai`;
   };
-
-  // Stats calculation
-  const stats = useMemo(() => {
-    let hadir = 0;
-    let ragu = 0;
-    let tidak = 0;
-    wishes.forEach((w) => {
-      if (w.attendance === 'Hadir') hadir++;
-      else if (w.attendance === 'Masih Ragu') ragu++;
-      else tidak++;
-    });
-    return { hadir, ragu, tidak };
-  }, [wishes]);
 
   return (
     <div
@@ -377,16 +364,16 @@ export function RoyalVelvetRenderer({
 
         {/* Top Chandeliers & Monogram */}
         <div className={styles.heroTopChandeliers}>
-          <BaroqueCornerSvg className="w-16 h-16 text-[#E5C88E]/40" />
-          <BaroqueCrestSvg className="w-16 h-16 text-[#F4DFB0]" />
-          <BaroqueCornerSvg className="w-16 h-16 text-[#E5C88E]/40" flipX />
+          <BaroqueCornerSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#E5C88E]/40" />
+          <BaroqueCrestSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#F4DFB0]" />
+          <BaroqueCornerSvg className="w-8 h-8 sm:w-12 sm:h-12 text-[#E5C88E]/40" flipX />
         </div>
 
         {/* Center: Cameo Oval Portrait & Nama Panggilan */}
         <div className={styles.heroCenterPiece}>
           <div className={styles.cameoPortraitWrap}>
             <div className={styles.cameoMandalaRing}>
-              <div className={`${styles.loopSpinSlow} w-64 h-64`}>
+              <div className={`${styles.loopSpinSlow} w-44 h-44 sm:w-56 sm:h-56`}>
                 <svg viewBox="0 0 200 200" fill="none" className="w-full h-full text-[#E5C88E]/30">
                   <circle cx="100" cy="100" r="94" stroke="currentColor" strokeWidth="1" strokeDasharray="6 4" />
                   <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="0.8" />
@@ -429,16 +416,16 @@ export function RoyalVelvetRenderer({
               className={styles.btnRoyalGold}
               onClick={handleOpenInvitation}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <span>Buka Undangan</span>
             </button>
           ) : (
             <div className={styles.scrollCueBadge}>
               <span>Gulir ke Bawah</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-bounce">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-bounce">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
             </div>
           )}
@@ -761,26 +748,26 @@ export function RoyalVelvetRenderer({
       )}
 
       {/* =========================================================================
-           SECTION 8: RSVP & BUKU TAMU DOA RESTU
+           SECTION 8: UNTAIAN DOA & PESAN RESTU (ROYAL GUESTBOOK)
            ========================================================================= */}
-      <section id="sec-rsvp" className={styles.irviteSection}>
+      <section id="sec-wishes" className={styles.irviteSection}>
         <div className={styles.containerShell} style={{ maxWidth: '680px' }}>
           <div className={`${styles.revealItem} ${styles.isShown} text-center`}>
-            <span className={styles.sectionEyebrow}>RSVP &amp; Wishes</span>
-            <h2 className={styles.sectionHeading}>Konfirmasi Kehadiran &amp; Doa</h2>
+            <span className={styles.sectionEyebrow}>Royal Wishes &amp; Blessings</span>
+            <h2 className={styles.sectionHeading}>Untaian Doa &amp; Pesan Restu</h2>
             <p className={styles.sectionSubtitle}>
-              Merupakan suatu kehormatan bagi kami atas konfirmasi kehadiran serta
-              untaian doa tulus Bapak/Ibu/Saudara/i.
+              Tuliskan doa tulus dan ucapan selamat penuh berkah untuk mengiringi
+              langkah mulia kedua mempelai.
             </p>
           </div>
 
-          {/* Form RSVP */}
+          {/* Form Kirim Doa Restu */}
           <form
-            onSubmit={handleRsvpSubmit}
-            className={`${styles.baroqueCard} mb-10`}
+            onSubmit={handleWishSubmit}
+            className={`${styles.baroqueCard} mb-8`}
           >
             <div className={styles.formFieldGroup}>
-              <label className={styles.formLabel}>Nama Lengkap</label>
+              <label className={styles.formLabel}>Nama Anda / Tamu Kehormatan</label>
               <input
                 type="text"
                 className={styles.formControl}
@@ -791,35 +778,6 @@ export function RoyalVelvetRenderer({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div className={styles.formFieldGroup} style={{ marginBottom: 0 }}>
-                <label className={styles.formLabel}>Kehadiran</label>
-                <select
-                  className={styles.formControl}
-                  value={formAtt}
-                  onChange={(e) => setFormAtt(e.target.value)}
-                >
-                  <option value="Hadir">Hadir</option>
-                  <option value="Masih Ragu">Masih Ragu</option>
-                  <option value="Tidak Hadir">Tidak Hadir</option>
-                </select>
-              </div>
-
-              <div className={styles.formFieldGroup} style={{ marginBottom: 0 }}>
-                <label className={styles.formLabel}>Jumlah Tamu</label>
-                <select
-                  className={styles.formControl}
-                  value={formPax}
-                  onChange={(e) => setFormPax(e.target.value)}
-                >
-                  <option value="1 Orang">1 Orang</option>
-                  <option value="2 Orang">2 Orang</option>
-                  <option value="3 Orang">3 Orang</option>
-                  <option value="4 Orang">4 Orang</option>
-                </select>
-              </div>
-            </div>
-
             <div className={styles.formFieldGroup}>
               <label className={styles.formLabel}>Untaian Doa &amp; Pesan Restu</label>
               <textarea
@@ -827,60 +785,37 @@ export function RoyalVelvetRenderer({
                 rows={3}
                 value={formMsg}
                 onChange={(e) => setFormMsg(e.target.value)}
-                placeholder="Tuliskan ucapan selamat dan doa restu..."
+                placeholder="Tuliskan ucapan selamat dan doa tulus untuk kedua mempelai..."
                 required
               />
             </div>
 
             <button type="submit" className={styles.btnRoyalGold}>
-              Kirim Konfirmasi &amp; Doa Restu
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span>Kirim Untaian Doa</span>
             </button>
           </form>
-
-          {/* Statistik RSVP */}
-          <div className={styles.rsvpStatsRow}>
-            <div className={styles.rsvpStatPill}>
-              <span className="block font-serif text-2xl font-bold text-emerald-400">
-                {stats.hadir}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-[#D2C2B0]">
-                Hadir
-              </span>
-            </div>
-            <div className={styles.rsvpStatPill}>
-              <span className="block font-serif text-2xl font-bold text-amber-400">
-                {stats.ragu}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-[#D2C2B0]">
-                Masih Ragu
-              </span>
-            </div>
-            <div className={styles.rsvpStatPill}>
-              <span className="block font-serif text-2xl font-bold text-stone-400">
-                {stats.tidak}
-              </span>
-              <span className="text-[11px] uppercase tracking-wider text-[#D2C2B0]">
-                Tidak Hadir
-              </span>
-            </div>
-          </div>
 
           {/* Feed Doa Restu */}
           <div className={styles.wishesFeed}>
             {wishes.map((w, idx) => (
               <div key={idx} className={styles.wishEntry}>
-                <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-                  <strong className="font-serif text-base text-[#F4DFB0]">
-                    {w.name}
-                  </strong>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full border border-[#E5C88E]/40 text-[#E5C88E]">
-                    {w.attendance} • {w.pax}
-                  </span>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={styles.wishAvatar}>
+                    <span>{w.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <strong className="font-serif text-base text-[#F4DFB0] block truncate">
+                      {w.name}
+                    </strong>
+                    <span className="text-[10px] text-[#D2C2B0]">{w.createdAt}</span>
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm text-[#F9F4EC] leading-relaxed mb-1">
+                <p className="text-xs sm:text-sm text-[#F9F4EC] leading-relaxed pl-11">
                   {w.message}
                 </p>
-                <span className="text-[10px] text-[#D2C2B0]">{w.createdAt}</span>
               </div>
             ))}
           </div>
@@ -888,7 +823,54 @@ export function RoyalVelvetRenderer({
       </section>
 
       {/* =========================================================================
-           SECTION 9: PENUTUP & SALAM HORMAT
+           SECTION 9: KONFIRMASI KEHADIRAN & AKSES MASUK (RSVP & DIGITAL PASS)
+           ========================================================================= */}
+      {showRsvpAndQr && (
+        <section id="sec-rsvp" className={styles.irviteSection}>
+          <div className={styles.containerShell} style={{ maxWidth: '820px' }}>
+            <div className={`${styles.revealItem} ${styles.isShown} text-center`}>
+              <span className={styles.sectionEyebrow}>Guest Attendance &amp; Check-in</span>
+              <h2 className={styles.sectionHeading}>Konfirmasi Kehadiran &amp; QR Akses</h2>
+              <p className={styles.sectionSubtitle}>
+                Kehadiran Bapak/Ibu/Saudara/i merupakan kehormatan istimewa bagi kami.
+                Mohon konfirmasikan kehadiran Anda dan simpan kode QR registrasi untuk pemindaian di lokasi acara.
+              </p>
+            </div>
+
+            <div className={styles.rsvpGridContainer}>
+              <div className={styles.rsvpSectionSlot}>
+                <RsvpForm
+                  key={uniqueCode || 'preview-rsvp'}
+                  uniqueCode={uniqueCode || 'simulasi-tamu'}
+                  maxPax={data?.guest?.maxPax || 2}
+                  initialRsvp={
+                    data?.rsvp || {
+                      canRespond: true,
+                      response: 'PENDING',
+                      pax: 1,
+                    }
+                  }
+                />
+              </div>
+              <div className={styles.rsvpSectionSlot}>
+                <QRDisplay
+                  canonicalUrl={
+                    canonicalUrl ||
+                    (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+                    'https://irvite.id/i/SIMULASI-TAMU'
+                  }
+                  guestName={guestName}
+                  maxPax={data?.guest?.maxPax || 2}
+                  tableNumber={data?.guest?.tableNumber}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* =========================================================================
+           SECTION 10: PENUTUP & SALAM HORMAT
            ========================================================================= */}
       <footer id="sec-closing" className={styles.irviteSection} style={{ paddingBottom: '128px', textAlign: 'center' }}>
         <div className={styles.containerShell} style={{ maxWidth: '580px' }}>
@@ -916,7 +898,7 @@ export function RoyalVelvetRenderer({
       </footer>
 
       {/* =========================================================================
-           SECTION 10: FLOATING BOTTOM NAVIGATION BAR (5 TOMBOL LEGA)
+           FLOATING BOTTOM NAVIGATION BAR
            ========================================================================= */}
       <nav
         id="floating-bottom-nav"
@@ -929,8 +911,8 @@ export function RoyalVelvetRenderer({
             className={`${styles.bottomNavBtn} ${activeNav === 'sec-cover' ? styles.isActive : ''}`}
             onClick={() => scrollToSection('sec-cover')}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h12a1 1 0 001-1V10" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h12a1 1 0 001-1V10" />
             </svg>
             <span>Cover</span>
           </button>
@@ -940,10 +922,10 @@ export function RoyalVelvetRenderer({
             className={`${styles.bottomNavBtn} ${activeNav === 'sec-couple' ? styles.isActive : ''}`}
             onClick={() => scrollToSection('sec-couple')}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            <span>Pasangan</span>
+            <span>Mempelai</span>
           </button>
 
           <button
@@ -951,8 +933,8 @@ export function RoyalVelvetRenderer({
             className={`${styles.bottomNavBtn} ${activeNav === 'sec-event' ? styles.isActive : ''}`}
             onClick={() => scrollToSection('sec-event')}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Acara</span>
           </button>
@@ -960,24 +942,37 @@ export function RoyalVelvetRenderer({
           <button
             type="button"
             className={`${styles.bottomNavBtn} ${activeNav === 'sec-gallery' ? styles.isActive : ''}`}
-            onClick={() => scrollToSection('sec-gallery')}
+            onClick={() => scrollToSection(media.galleryPhotos.length > 0 ? 'sec-gallery' : 'sec-story')}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Galeri</span>
           </button>
 
           <button
             type="button"
-            className={`${styles.bottomNavBtn} ${activeNav === 'sec-rsvp' ? styles.isActive : ''}`}
-            onClick={() => scrollToSection('sec-rsvp')}
+            className={`${styles.bottomNavBtn} ${activeNav === 'sec-wishes' ? styles.isActive : ''}`}
+            onClick={() => scrollToSection('sec-wishes')}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
-            <span>RSVP</span>
+            <span>Doa Restu</span>
           </button>
+
+          {showRsvpAndQr && (
+            <button
+              type="button"
+              className={`${styles.bottomNavBtn} ${activeNav === 'sec-rsvp' ? styles.isActive : ''}`}
+              onClick={() => scrollToSection('sec-rsvp')}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-0.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>RSVP</span>
+            </button>
+          )}
         </div>
       </nav>
 

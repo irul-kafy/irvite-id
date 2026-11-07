@@ -31,8 +31,11 @@
 }
 
 .isLocked {
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   height: 100vh;
+  height: 100dvh;
+  -webkit-overflow-scrolling: touch;
 }
 
 .fontDisplay {
@@ -231,12 +234,14 @@
 .heroStage {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 36px 20px 56px 20px;
+  padding: clamp(14px, 2.5vh, 28px) 16px;
+  gap: clamp(8px, 1.8vh, 16px);
   overflow: hidden;
   border-bottom: 1px solid var(--border-gold-strong);
 }
@@ -302,13 +307,15 @@
 }
 
 .isUnlocked .curtainLeft {
-  transform: translateX(-92%);
-  opacity: 0.35;
+  transform: translateX(-105%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .isUnlocked .curtainRight {
-  transform: translateX(92%);
-  opacity: 0.35;
+  transform: translateX(105%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .heroOrnateBorder {
@@ -332,38 +339,45 @@
   position: relative;
   z-index: 6;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  gap: 48px;
-  padding-top: 4px;
+  gap: clamp(16px, 4vw, 36px);
+  padding-top: 0;
+  flex-shrink: 0;
 }
 
 .heroCenterPiece {
   position: relative;
   z-index: 6;
-  max-width: 520px;
+  max-width: 480px;
   width: 100%;
-  margin: auto;
-  padding: 16px 8px;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .cameoPortraitWrap {
   position: relative;
-  width: 200px;
-  height: 260px;
-  margin: 0 auto 22px auto;
+  width: 125px;
+  height: 165px;
+  margin: 0 auto 10px auto;
+  flex-shrink: 0;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 640px) and (min-height: 720px) {
   .cameoPortraitWrap {
-    width: 228px;
-    height: 296px;
+    width: 175px;
+    height: 230px;
+    margin: 0 auto 14px auto;
   }
 }
 
 .cameoMandalaRing {
   position: absolute;
-  inset: -26px;
+  inset: -14px;
   z-index: 1;
   display: flex;
   align-items: center;
@@ -397,11 +411,11 @@
 
 .heroCoupleTitle {
   font-family: 'Cinzel Decorative', Georgia, serif;
-  font-size: clamp(2.1rem, 7vw, 3.6rem);
+  font-size: clamp(1.5rem, 5.2vw, 2.5rem);
   line-height: 1.15;
   color: var(--gold-bright);
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.8);
-  margin-bottom: 8px;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+  margin-bottom: 4px;
 }
 
 .heroAmp {
@@ -409,75 +423,87 @@
   font-style: italic;
   font-weight: 400;
   color: var(--gold-champagne);
-  margin: 0 8px;
+  font-size: 0.9em;
+  margin: 0 6px;
 }
 
 .heroDateRibbon {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 18px;
+  gap: 8px;
+  padding: 3px 14px;
   border-top: 1px solid var(--border-gold);
   border-bottom: 1px solid var(--border-gold);
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 15px;
-  letter-spacing: 0.24em;
+  font-size: clamp(11px, 2.8vw, 13px);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--gold-champagne);
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .heroGuestBox {
   position: relative;
   z-index: 6;
   width: 100%;
-  max-width: 390px;
-  margin: 0 auto;
-  background: rgba(20, 8, 11, 0.82);
-  backdrop-filter: blur(10px);
+  max-width: 360px;
+  margin: 4px auto 0 auto;
+  background: rgba(20, 8, 11, 0.86);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-gold-strong);
-  border-radius: 18px;
-  padding: 18px 20px;
+  border-radius: 16px;
+  padding: 12px 18px;
   box-shadow: var(--shadow-royal);
+  flex-shrink: 0;
 }
 
 .guestGreetingLabel {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   color: var(--gold-champagne);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .guestHonoreeName {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 22px;
+  font-size: clamp(16px, 4vw, 20px);
   font-weight: 700;
   color: #FFFFFF;
-  line-height: 1.3;
-  margin-bottom: 14px;
+  line-height: 1.25;
+  margin-bottom: 10px;
 }
 
 .btnRoyalGold {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 13px 24px;
+  padding: 11px 20px;
   border-radius: 999px;
   background: linear-gradient(135deg, #F4DFB0 0%, #C69C53 52%, #9D793B 100%);
   color: var(--text-dark);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  box-shadow: 0 10px 28px rgba(198, 156, 83, 0.35);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease;
+  box-shadow: 0 8px 24px rgba(198, 156, 83, 0.4);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, opacity 0.28s ease;
   will-change: transform, opacity;
   text-decoration: none;
   cursor: pointer;
   border: none;
+  animation: btnPulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes btnPulseGlow {
+  0%, 100% {
+    box-shadow: 0 4px 18px rgba(198, 156, 83, 0.35);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(244, 223, 176, 0.65);
+  }
 }
 
 .btnRoyalGold:hover {
@@ -786,32 +812,56 @@
   border-color: var(--gold-bright);
 }
 
-.rsvpStatsRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 24px;
+.wishAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-gold-strong);
+  background: linear-gradient(135deg, rgba(244, 223, 176, 0.25) 0%, rgba(157, 121, 59, 0.35) 100%);
+  color: var(--gold-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cinzel Decorative', Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.rsvpStatPill {
-  background: rgba(35, 13, 19, 0.9);
+.rsvpGridContainer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (min-width: 768px) {
+  .rsvpGridContainer {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.rsvpSectionSlot {
+  background: rgba(35, 13, 19, 0.88);
   border: 1px solid var(--border-gold);
-  border-radius: 14px;
-  padding: 12px 8px;
-  text-align: center;
+  border-radius: 20px;
+  padding: 24px 20px;
+  box-shadow: var(--shadow-royal);
 }
 
 .wishesFeed {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 340px;
+  max-height: 380px;
   overflow-y: auto;
   padding-right: 4px;
 }
 
 .wishEntry {
-  background: rgba(20, 8, 11, 0.72);
+  background: rgba(20, 8, 11, 0.76);
   border: 1px solid var(--border-gold);
   border-radius: 14px;
   padding: 14px 16px;
@@ -823,13 +873,13 @@
   bottom: 12px;
   left: 50%;
   width: calc(100% - 20px);
-  max-width: 410px;
+  max-width: 440px;
   z-index: 45;
   background: rgba(20, 8, 11, 0.94);
   backdrop-filter: blur(12px);
   border: 1px solid var(--border-gold-strong);
   border-radius: 999px;
-  padding: 6px 8px;
+  padding: 6px 6px;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
   transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
@@ -848,20 +898,24 @@
 }
 
 .bottomNavGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 2px;
+  width: 100%;
 }
 
 .bottomNavBtn {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 7px 4px;
+  padding: 6px 2px;
   border-radius: 999px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 500;
   letter-spacing: 0.02em;
   transition: transform 0.2s ease, opacity 0.2s ease;
