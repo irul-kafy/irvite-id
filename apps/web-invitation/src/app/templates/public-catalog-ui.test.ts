@@ -8,14 +8,15 @@ import { getCatalogTemplates, filterAvailableTemplates } from '../../catalog';
 test('Public Catalog UI & Landing Integration Contract', async (t) => {
   const templates = getCatalogTemplates().filter((t) => t.availability === 'AVAILABLE');
 
-  await t.test('public catalog contains exactly the 4 AVAILABLE approved templates', () => {
-    assert.equal(templates.length, 4);
+  await t.test('public catalog contains exactly the 5 AVAILABLE approved templates', () => {
+    assert.equal(templates.length, 5);
     const names = templates.map((t) => t.displayName);
     assert.deepEqual(names, [
       'Sekar Kedaton',
       'Aetheria',
       'Opaline Nocturne',
       'Ranah Cinta',
+      'Kusuma Parahyangan',
     ]);
 
     const themeCodes = templates.map((t) => t.themeCode);
@@ -24,6 +25,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       'AETHERIA',
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
+      'KUSUMA_PARAHYANGAN',
     ]);
   });
 
@@ -159,32 +161,33 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
 
   await t.test('Phase 14H: Failure mode verification for filterAvailableTemplates', () => {
     const all = getCatalogTemplates();
-    assert.equal(all.length, 4, 'Base approved catalog must have 4 templates');
+    assert.equal(all.length, 5, 'Base approved catalog must have 5 templates');
 
-    // A. all 4 AVAILABLE => 4 templates
+    // A. all 5 AVAILABLE => 5 templates
     const allAvailable = [
       { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
       { themeCode: 'AETHERIA', status: 'AVAILABLE' },
       { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
       { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
+      { themeCode: 'KUSUMA_PARAHYANGAN', status: 'AVAILABLE' },
     ];
     const resA = filterAvailableTemplates(all, allAvailable);
-    assert.equal(resA.length, 4, 'All 4 AVAILABLE must return 4 cards');
+    assert.equal(resA.length, 5, 'All 5 AVAILABLE must return 5 cards');
 
-    // B. SEKAR_KEDATON HIDDEN => 3 templates (Sekar Kedaton excluded)
+    // B. SEKAR_KEDATON HIDDEN => 4 templates (Sekar Kedaton excluded)
     const sekarHidden = allAvailable.map((a) =>
       a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'HIDDEN' } : a
     );
     const resB = filterAvailableTemplates(all, sekarHidden);
-    assert.equal(resB.length, 3, 'SEKAR_KEDATON HIDDEN must return 3 cards');
+    assert.equal(resB.length, 4, 'SEKAR_KEDATON HIDDEN must return 4 cards');
     assert.ok(!resB.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when HIDDEN');
 
-    // C. SEKAR_KEDATON ARCHIVED => 3 templates (Sekar Kedaton excluded)
+    // C. SEKAR_KEDATON ARCHIVED => 4 templates (Sekar Kedaton excluded)
     const sekarArchived = allAvailable.map((a) =>
       a.themeCode === 'SEKAR_KEDATON' ? { ...a, status: 'ARCHIVED' } : a
     );
     const resC = filterAvailableTemplates(all, sekarArchived);
-    assert.equal(resC.length, 3, 'SEKAR_KEDATON ARCHIVED must return 3 cards');
+    assert.equal(resC.length, 4, 'SEKAR_KEDATON ARCHIVED must return 4 cards');
     assert.ok(!resC.some((t) => t.themeCode === 'SEKAR_KEDATON'), 'SEKAR_KEDATON must not be returned when ARCHIVED');
 
     // Partial availability -> only matching AVAILABLE templates
@@ -214,7 +217,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       { themeCode: 'COMPLETELY_UNKNOWN_THEME', status: 'AVAILABLE' },
     ];
     const resG = filterAvailableTemplates(all, withUnknown);
-    assert.equal(resG.length, 4, 'Unknown themeCode from API must be safely ignored');
+    assert.equal(resG.length, 5, 'Unknown themeCode from API must be safely ignored');
     assert.ok(!resG.some((t) => t.themeCode === 'COMPLETELY_UNKNOWN_THEME'), 'Unknown themeCode must not be added to catalog');
 
     // H. DB AVAILABLE themeCode absent from approved catalog registry => not automatically rendered

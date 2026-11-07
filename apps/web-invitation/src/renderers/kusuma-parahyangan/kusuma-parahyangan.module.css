@@ -1,0 +1,178 @@
+/* Kusuma Parahyangan Theme Styles */
+.wrapper {
+  --primary: #4a2c18;
+  --primary-dark: #2c180b;
+  --secondary: #d49b35;
+  --secondary-light: #f3d28a;
+  --bg-ivory: #fcf8f2;
+  --bg-bambu: #f4ebdc;
+  --text-main: #2b1b10;
+
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-ivory);
+  color: var(--text-main);
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+}
+
+.fontSerif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.fontEditorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+/* Authentic Sundanese Woven Bamboo Texture */
+.bgBilikSunda {
+  background-color: var(--bg-ivory);
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(212, 155, 53, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(74, 44, 24, 0.08) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23D49B35' stroke-width='0.55' stroke-opacity='0.22'%3E%3Cpath d='M0 12 L12 0 M0 24 L24 0 M0 36 L36 0 M0 48 L48 0 M12 48 L48 12 M24 48 L48 24 M36 48 L48 36'/%3E%3Cpath d='M48 12 L36 0 M48 24 L24 0 M48 36 L12 0 M48 48 L0 0 M36 48 L0 12 M24 48 L0 24 M12 48 L0 36' stroke='%234A2C18' stroke-opacity='0.08'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Warm Teak & Bamboo Dark Section Pattern */
+.bgJatiUkir {
+  background-color: #2e1a0c;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(212, 155, 53, 0.22) 0%, transparent 65%),
+    url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M32 4 C44 16, 44 48, 32 60 C20 48, 20 16, 32 4 Z' fill='none' stroke='%23D49B35' stroke-width='0.6' stroke-opacity='0.14'/%3E%3Ccircle cx='32' cy='32' r='4' fill='none' stroke='%23D49B35' stroke-width='0.5' stroke-opacity='0.18'/%3E%3C/svg%3E");
+}
+
+/* Gold Kencana Gradient Utilities */
+.goldText {
+  background: linear-gradient(135deg, #fff0c2 0%, #e7b95a 42%, #b87b18 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sundaCard {
+  box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
+}
+
+.sundaCardDark {
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 155, 53, 0.45);
+}
+
+/* Siger Crown Arch Frame */
+.sigerArchFrame {
+  border-radius: 140px 140px 28px 28px;
+  overflow: hidden;
+}
+
+/* Gate Overlay & Animations */
+.gateOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.5s ease 1.2s, visibility 0.5s ease 1.7s;
+}
+
+.gateDoorLeft {
+  transition: transform 1.65s cubic-bezier(0.77, 0, 0.175, 1), opacity 1.5s ease;
+  transform-origin: left center;
+}
+
+.gateDoorRight {
+  transition: transform 1.65s cubic-bezier(0.77, 0, 0.175, 1), opacity 1.5s ease;
+  transform-origin: right center;
+}
+
+.gateTopValance {
+  transition: transform 1.5s cubic-bezier(0.77, 0, 0.175, 1), opacity 1.3s ease;
+}
+
+.gateCenterContent {
+  transition: transform 1.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.95s ease;
+}
+
+.gateOpen.gateOverlay {
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.gateOpen .gateDoorLeft {
+  transform: translateX(-104%) skewY(-2deg);
+  opacity: 0;
+}
+
+.gateOpen .gateDoorRight {
+  transform: translateX(104%) skewY(2deg);
+  opacity: 0;
+}
+
+.gateOpen .gateTopValance {
+  transform: translateY(-110%);
+  opacity: 0;
+}
+
+.gateOpen .gateCenterContent {
+  transform: scale(1.08) translateY(-24px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Cultural Keyframes */
+@keyframes swayMelati {
+  0%, 100% { transform: rotate(-2.8deg) translateY(0px); }
+  50% { transform: rotate(2.8deg) translateY(4px); }
+}
+
+@keyframes swayMelatiAlt {
+  0%, 100% { transform: rotate(2.4deg) translateY(2px); }
+  50% { transform: rotate(-3deg) translateY(-2px); }
+}
+
+@keyframes kembangGoyangTremble {
+  0%, 100% { transform: rotate(-5deg) scale(1); }
+  25% { transform: rotate(5deg) scale(1.04); }
+  50% { transform: rotate(-4deg) scale(1); }
+  75% { transform: rotate(6deg) scale(1.03); }
+}
+
+@keyframes sigerFloatGlow {
+  0%, 100% {
+    transform: translateY(0px);
+    filter: drop-shadow(0 6px 14px rgba(212, 155, 53, 0.45));
+  }
+  50% {
+    transform: translateY(-7px);
+    filter: drop-shadow(0 12px 24px rgba(243, 210, 138, 0.85));
+  }
+}
+
+@keyframes payungSpinSlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.swayMelati {
+  transform-origin: top center;
+  animation: swayMelati 5.2s ease-in-out infinite;
+}
+
+.swayMelatiAlt {
+  transform-origin: top center;
+  animation: swayMelatiAlt 6.1s ease-in-out infinite;
+}
+
+.sigerCrownAnim {
+  animation: sigerFloatGlow 4.5s ease-in-out infinite;
+}
+
+.countdownBox {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(212, 155, 53, 0.45);
+  border-radius: 1rem;
+  padding: 1rem 0.5rem;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+

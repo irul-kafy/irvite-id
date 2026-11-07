@@ -17,6 +17,7 @@ export type CatalogCategory =
   | 'Celestial Fantasy'
   | 'Enchanted Woodland'
   | 'Minang Traditional'
+  | 'Traditional Sundanese'
   | string;
 
 export interface CatalogTemplate {
@@ -44,6 +45,7 @@ export const CATALOG_CATEGORIES: string[] = [
   'Celestial Fantasy',
   'Enchanted Woodland',
   'Minang Traditional',
+  'Traditional Sundanese',
 ];
 
 export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
@@ -205,6 +207,49 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',
         bodyFont: 'LORA',
+      },
+      sections: [
+        { id: 'hero', enabled: true, order: 1, variant: 'default' },
+        { id: 'greeting', enabled: true, order: 2, variant: 'default' },
+        { id: 'eventDetails', enabled: true, order: 3, variant: 'default' },
+        { id: 'countdown', enabled: true, order: 4, variant: 'default' },
+        { id: 'gallery', enabled: true, order: 5, variant: 'default' },
+        { id: 'location', enabled: true, order: 6, variant: 'default' },
+        { id: 'rsvp', enabled: true, order: 7, variant: 'default' },
+        { id: 'guestQr', enabled: false, order: 8, variant: 'default' },
+        { id: 'closing', enabled: true, order: 9, variant: 'default' },
+      ],
+    },
+  },
+  {
+    id: 'kusuma-parahyangan',
+    slug: 'kusuma-parahyangan',
+    themeCode: 'KUSUMA_PARAHYANGAN',
+    name: 'Kusuma Parahyangan',
+    displayName: 'Kusuma Parahyangan',
+    category: 'Traditional Sundanese',
+    tags: ['Sunda', 'Parahyangan', 'Traditional', 'Siger', 'Gold Teak'],
+    description:
+      'Pernikahan adat Sunda klasik nan agung bernuansa Bale Julang Ngapak, mahkota Siger, ronce melati, dan alunan laras degung.',
+    shortDescription:
+      'Pernikahan adat Sunda klasik nan agung bernuansa Bale Julang Ngapak, mahkota Siger, ronce melati, dan alunan laras degung.',
+    thumbnailPath: '/templates/kusuma-parahyangan/thumbnail.webp',
+    demoPath: '/templates/kusuma-parahyangan/demo',
+    sortOrder: 5,
+    availability: 'AVAILABLE',
+    badge: 'Artisanal',
+    isPhotoOptional: false,
+    config: {
+      version: 1,
+      theme: {
+        primaryColor: '#4a2c18',
+        secondaryColor: '#d49b35',
+        backgroundColor: '#fcf8f2',
+        textColor: '#2b1b10',
+      },
+      typography: {
+        headingFont: 'PLAYFAIR_DISPLAY',
+        bodyFont: 'INTER',
       },
       sections: [
         { id: 'hero', enabled: true, order: 1, variant: 'default' },

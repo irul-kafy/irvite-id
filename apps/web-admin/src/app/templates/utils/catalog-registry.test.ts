@@ -14,14 +14,15 @@ import {
 } from './catalog-registry';
 
 test('Admin Fixed Catalog Registry Contract', async (t) => {
-  await t.test('contains exactly the 4 approved codex templates', () => {
-    assert.equal(FIXED_CATALOG_TEMPLATES.length, 4);
+  await t.test('contains exactly the 5 approved codex templates', () => {
+    assert.equal(FIXED_CATALOG_TEMPLATES.length, 5);
     const themeCodes = FIXED_CATALOG_TEMPLATES.map((tpl) => tpl.themeCode);
     assert.deepEqual(themeCodes, [
       'SEKAR_KEDATON',
       'AETHERIA',
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
+      'KUSUMA_PARAHYANGAN',
     ]);
   });
 
@@ -35,14 +36,15 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
 
   await t.test('has deterministic sortOrder', () => {
     const templates = getCatalogTemplates();
-    assert.equal(templates.length, 4);
-    for (let i = 0; i < 4; i++) {
+    assert.equal(templates.length, 5);
+    for (let i = 0; i < 5; i++) {
       assert.equal(templates[i].sortOrder, i + 1);
     }
     assert.equal(templates[0].themeCode, 'SEKAR_KEDATON');
     assert.equal(templates[1].themeCode, 'AETHERIA');
     assert.equal(templates[2].themeCode, 'OPALINE_NOCTURNE');
     assert.equal(templates[3].themeCode, 'RANAH_CINTA');
+    assert.equal(templates[4].themeCode, 'KUSUMA_PARAHYANGAN');
   });
 
   await t.test('all APPROVED entries have valid thumbnailPath and demoPath', () => {
@@ -63,23 +65,30 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     assert.equal(getCatalogTemplateBySlug('aetheria')?.themeCode, 'AETHERIA');
     assert.equal(getCatalogTemplateBySlug('opaline-nocturne')?.themeCode, 'OPALINE_NOCTURNE');
     assert.equal(getCatalogTemplateBySlug('ranah-cinta')?.themeCode, 'RANAH_CINTA');
+    assert.equal(getCatalogTemplateBySlug('kusuma-parahyangan')?.themeCode, 'KUSUMA_PARAHYANGAN');
 
     assert.equal(getCatalogTemplateByThemeCode('sekar_kedaton')?.slug, 'sekar-kedaton');
     assert.equal(getCatalogTemplateByThemeCode('AETHERIA')?.slug, 'aetheria');
     assert.equal(getCatalogTemplateByThemeCode('OPALINE_NOCTURNE')?.slug, 'opaline-nocturne');
+    assert.equal(getCatalogTemplateByThemeCode('kusuma_parahyangan')?.slug, 'kusuma-parahyangan');
 
     assert.equal(getCatalogTemplateById('SEKAR_KEDATON')?.slug, 'sekar-kedaton');
     assert.equal(getCatalogTemplateById('ranah-cinta')?.themeCode, 'RANAH_CINTA');
+    assert.equal(getCatalogTemplateById('KUSUMA_PARAHYANGAN')?.slug, 'kusuma-parahyangan');
     assert.equal(getCatalogTemplateById('unknown'), undefined);
   });
 
   await t.test('filters catalog templates by category and search query', () => {
     const all = filterCatalogTemplates('All', '');
-    assert.equal(all.length, 4);
+    assert.equal(all.length, 5);
 
     const javanese = filterCatalogTemplates('Traditional Javanese', '');
     assert.equal(javanese.length, 1);
     assert.equal(javanese[0].themeCode, 'SEKAR_KEDATON');
+
+    const sundanese = filterCatalogTemplates('Traditional Sundanese', '');
+    assert.equal(sundanese.length, 1);
+    assert.equal(sundanese[0].themeCode, 'KUSUMA_PARAHYANGAN');
 
     const searchSekar = filterCatalogTemplates('All', 'sekar');
     assert.equal(searchSekar.length, 1);
@@ -88,15 +97,20 @@ test('Admin Fixed Catalog Registry Contract', async (t) => {
     const searchAetheria = filterCatalogTemplates('All', 'aetheria');
     assert.equal(searchAetheria.length, 1);
     assert.equal(searchAetheria[0].themeCode, 'AETHERIA');
+
+    const searchKusuma = filterCatalogTemplates('All', 'kusuma');
+    assert.equal(searchKusuma.length, 1);
+    assert.equal(searchKusuma[0].themeCode, 'KUSUMA_PARAHYANGAN');
   });
 
   await t.test('isBuiltInCatalogTemplate correctly identifies built-in templates', () => {
-    assert.equal(BUILT_IN_THEME_CODES.size, 4);
+    assert.equal(BUILT_IN_THEME_CODES.size, 5);
     assert.equal(isBuiltInCatalogTemplate('SEKAR_KEDATON'), true);
     assert.equal(isBuiltInCatalogTemplate('sekar_kedaton'), true);
     assert.equal(isBuiltInCatalogTemplate('AETHERIA'), true);
     assert.equal(isBuiltInCatalogTemplate('OPALINE_NOCTURNE'), true);
     assert.equal(isBuiltInCatalogTemplate('RANAH_CINTA'), true);
+    assert.equal(isBuiltInCatalogTemplate('KUSUMA_PARAHYANGAN'), true);
 
     assert.equal(isBuiltInCatalogTemplate('SERENE_GARDEN'), false);
     assert.equal(isBuiltInCatalogTemplate('VELVET_LETTER'), false);

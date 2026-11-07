@@ -31,7 +31,7 @@ describe('syncTemplateIdentities', () => {
   });
 
   it('includes SEKAR_KEDATON in approved seeds matching contract', () => {
-    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(4);
+    expect(APPROVED_TEMPLATE_SEEDS).toHaveLength(5);
     const sekar = APPROVED_TEMPLATE_SEEDS.find(
       (s) => s.themeCode === 'SEKAR_KEDATON',
     );
@@ -67,6 +67,17 @@ describe('syncTemplateIdentities', () => {
     expect(rnc).toBeDefined();
     expect(rnc?.name).toBe('Ranah Cinta');
     expect(rnc?.previewImageUrl).toBe('/templates/ranah-cinta/thumbnail.webp');
+  });
+
+  it('includes KUSUMA_PARAHYANGAN in approved seeds matching contract', () => {
+    const ksm = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'KUSUMA_PARAHYANGAN',
+    );
+    expect(ksm).toBeDefined();
+    expect(ksm?.name).toBe('Kusuma Parahyangan');
+    expect(ksm?.previewImageUrl).toBe(
+      '/templates/kusuma-parahyangan/thumbnail.webp',
+    );
   });
 
   it('creates Template records when 0 matching records exist', async () => {
@@ -209,12 +220,13 @@ describe('syncTemplateIdentities', () => {
     expect(mockPrisma.template.create).not.toHaveBeenCalled();
   });
   describe('isBuiltInTemplate & BUILT_IN_THEME_CODES', () => {
-    it('contains all 4 approved codex theme codes', () => {
-      expect(BUILT_IN_THEME_CODES.size).toBe(4);
+    it('contains all 5 approved codex theme codes', () => {
+      expect(BUILT_IN_THEME_CODES.size).toBe(5);
       expect(BUILT_IN_THEME_CODES.has('SEKAR_KEDATON')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('AETHERIA')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('OPALINE_NOCTURNE')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('RANAH_CINTA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('KUSUMA_PARAHYANGAN')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('CHINESE_TRADITIONAL_LUXURY')).toBe(
@@ -233,6 +245,7 @@ describe('syncTemplateIdentities', () => {
       expect(isBuiltInTemplate('aetheria')).toBe(true);
       expect(isBuiltInTemplate('opaline_nocturne')).toBe(true);
       expect(isBuiltInTemplate('ranah_cinta')).toBe(true);
+      expect(isBuiltInTemplate('kusuma_parahyangan')).toBe(true);
       expect(isBuiltInTemplate('serene_garden')).toBe(false);
       expect(isBuiltInTemplate('velvet_letter')).toBe(false);
       expect(isBuiltInTemplate('chinese_traditional_luxury')).toBe(false);

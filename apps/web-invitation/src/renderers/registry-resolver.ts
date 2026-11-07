@@ -3,6 +3,7 @@ export type ThemeRendererKey =
   | 'OPALINE_NOCTURNE'
   | 'AETHERIA'
   | 'RANAH_CINTA'
+  | 'KUSUMA_PARAHYANGAN'
   | 'GENERIC';
 
 export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
@@ -10,6 +11,7 @@ export const TEMPLATE_PRODUCTION_ACTIVATION: Record<string, boolean> = {
   AETHERIA: true,
   OPALINE_NOCTURNE: true,
   RANAH_CINTA: true,
+  KUSUMA_PARAHYANGAN: true,
   GENERIC: true,
 };
 
@@ -26,6 +28,7 @@ export function resolveProductionThemeKey(themeCode: string | null | undefined):
   if (upper === 'AETHERIA' && isTemplateProductionActivated('AETHERIA')) return 'AETHERIA';
   if (upper === 'OPALINE_NOCTURNE' && isTemplateProductionActivated('OPALINE_NOCTURNE')) return 'OPALINE_NOCTURNE';
   if (upper === 'RANAH_CINTA' && isTemplateProductionActivated('RANAH_CINTA')) return 'RANAH_CINTA';
+  if (upper === 'KUSUMA_PARAHYANGAN' && isTemplateProductionActivated('KUSUMA_PARAHYANGAN')) return 'KUSUMA_PARAHYANGAN';
   return 'GENERIC';
 }
 
@@ -36,5 +39,6 @@ export function resolveFoundationThemeKey(themeCode: string | null | undefined):
   if (upper === 'AETHERIA') return 'AETHERIA';
   if (upper === 'OPALINE_NOCTURNE') return 'OPALINE_NOCTURNE';
   if (upper === 'RANAH_CINTA') return 'RANAH_CINTA';
+  if (upper === 'KUSUMA_PARAHYANGAN') return 'KUSUMA_PARAHYANGAN';
   return 'GENERIC';
 }

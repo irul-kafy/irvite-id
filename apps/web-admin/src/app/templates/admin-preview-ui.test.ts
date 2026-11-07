@@ -39,6 +39,12 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
       themeCode: 'RANAH_CINTA',
       previewImageUrl: '/templates/ranah-cinta/thumbnail.webp',
     },
+    {
+      id: 'db-uuid-kusuma',
+      name: 'Kusuma Parahyangan',
+      themeCode: 'KUSUMA_PARAHYANGAN',
+      previewImageUrl: '/templates/kusuma-parahyangan/thumbnail.webp',
+    },
   ];
 
   t.afterEach(() => {
@@ -52,7 +58,7 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
     process.env.NEXT_PUBLIC_INVITATION_ORIGIN = 'https://invitation.example.test';
 
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, mockDbTemplates);
-    assert.equal(joined.length, 4);
+    assert.equal(joined.length, 5);
 
     for (const item of joined) {
       const demoUrl = getCanonicalTemplateDemoUrl(item.catalogItem.demoPath);
@@ -77,7 +83,7 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
     delete process.env.PUBLIC_INVITATION_URL;
 
     const joined = joinCatalogWithDbTemplates(FIXED_CATALOG_TEMPLATES, mockDbTemplates);
-    assert.equal(joined.length, 4);
+    assert.equal(joined.length, 5);
 
     for (const item of joined) {
       const demoUrl = getCanonicalTemplateDemoUrl(item.catalogItem.demoPath);

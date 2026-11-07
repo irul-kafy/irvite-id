@@ -37,6 +37,13 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       status: 'AVAILABLE',
       eventUsageCount: 0,
     },
+    {
+      id: 'db-kusuma-uuid',
+      name: 'Kusuma Parahyangan',
+      themeCode: 'KUSUMA_PARAHYANGAN',
+      status: 'AVAILABLE',
+      eventUsageCount: 0,
+    },
   ];
 
   const sampleDynamicTemplates: DbTemplateRecord[] = [
@@ -85,7 +92,7 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       FIXED_CATALOG_TEMPLATES,
       sampleBuiltInDbTemplates
     );
-    assert.equal(joined.length, 4);
+    assert.equal(joined.length, 5);
 
     // Verify UI contract: built-in templates must NOT have a permanent delete control even if status is ARCHIVED
     for (const item of joined) {

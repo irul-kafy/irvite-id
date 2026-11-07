@@ -32,6 +32,12 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     previewImageUrl: '/templates/ranah-cinta/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
+  {
+    name: 'Kusuma Parahyangan',
+    themeCode: 'KUSUMA_PARAHYANGAN',
+    previewImageUrl: '/templates/kusuma-parahyangan/thumbnail.webp',
+    initialStatus: 'AVAILABLE',
+  },
 ];
 
 export interface SyncResultItem {

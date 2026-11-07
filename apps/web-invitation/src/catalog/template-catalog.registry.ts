@@ -49,7 +49,19 @@ export const APPROVED_CATALOG_TEMPLATES: readonly CatalogTemplateItem[] = [
     sortOrder: 4,
     availability: 'AVAILABLE',
   },
-] as const;
+  {
+    themeCode: 'KUSUMA_PARAHYANGAN',
+    slug: 'kusuma-parahyangan',
+    displayName: 'Kusuma Parahyangan',
+    category: 'Traditional Sundanese',
+    shortDescription:
+      'Pernikahan adat Sunda klasik nan agung bernuansa Bale Julang Ngapak, mahkota Siger, ronce melati, dan alunan laras degung.',
+    thumbnailPath: '/templates/kusuma-parahyangan/thumbnail.webp',
+    demoPath: '/templates/kusuma-parahyangan/demo',
+    sortOrder: 5,
+    availability: 'AVAILABLE',
+  },
+];
 
 /**
  * Returns all approved catalog templates sorted by sortOrder ascending.

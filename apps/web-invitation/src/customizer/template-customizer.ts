@@ -128,6 +128,25 @@ const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
       title: 'Foto Mempelai Pria (Marapulai)',
     },
   ],
+  KUSUMA_PARAHYANGAN: [
+    {
+      ...DEFAULT_SLOT_CATALOG.hero,
+      title: 'Foto Utama Pasangan (Hero Siger)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.bride,
+      title: 'Foto Mempelai Wanita (Panganten Istri)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.groom,
+      title: 'Foto Mempelai Pria (Panganten Pameget)',
+    },
+    {
+      ...DEFAULT_SLOT_CATALOG.gallery,
+      title: 'Galeri Momen Dokumentasi',
+      maxItems: 8,
+    },
+  ],
   SEKAR_KEDATON: [
     {
       ...DEFAULT_SLOT_CATALOG.hero,
@@ -207,6 +226,7 @@ export function normalizeThemeKey(code?: string): string {
   if (upper === 'ENCHANTED_WOODLAND' || upper === 'AETHERIA') return 'AETHERIA';
   if (upper === 'OPALINE_NOCTURNE') return 'OPALINE_NOCTURNE';
   if (upper === 'SEKAR_KEDATON') return 'SEKAR_KEDATON';
+  if (upper === 'KUSUMA_PARAHYANGAN') return 'KUSUMA_PARAHYANGAN';
   return upper;
 }
 

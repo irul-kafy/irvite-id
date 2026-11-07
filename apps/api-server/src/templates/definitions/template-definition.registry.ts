@@ -5,6 +5,7 @@ import { SEKAR_KEDATON_DEFINITION } from './sekar-kedaton.definition';
 import { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
 import { AETHERIA_DEFINITION } from './aetheria.definition';
 import { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';
+import { KUSUMA_PARAHYANGAN_DEFINITION } from './kusuma-parahyangan.definition';
 
 export const IVORY_GARDEN_DEFINITION: TemplateDefinition = {
   themeCode: 'IVORY_GARDEN',
@@ -558,6 +559,7 @@ const builtInDefinitions: Record<string, TemplateDefinition> = {
   OPALINE_NOCTURNE: OPALINE_NOCTURNE_DEFINITION,
   AETHERIA: AETHERIA_DEFINITION,
   RANAH_CINTA: RANAH_CINTA_DEFINITION,
+  KUSUMA_PARAHYANGAN: KUSUMA_PARAHYANGAN_DEFINITION,
 };
 
 const customDefinitions: Record<string, TemplateDefinition> = {};
@@ -634,3 +636,4 @@ export { SEKAR_KEDATON_DEFINITION } from './sekar-kedaton.definition';
 export { OPALINE_NOCTURNE_DEFINITION } from './opaline-nocturne.definition';
 export { AETHERIA_DEFINITION } from './aetheria.definition';
 export { RANAH_CINTA_DEFINITION } from './ranah-cinta.definition';
+export { KUSUMA_PARAHYANGAN_DEFINITION } from './kusuma-parahyangan.definition';
