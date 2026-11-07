@@ -21,7 +21,6 @@ import {
   LotusPadmaSvg,
   MandalaChakraSvg,
   PenjorAgungSvg,
-  SangaMandalaMapSvg,
 } from './ornaments';
 import styles from './swarga-dewata.module.css';
 
@@ -795,6 +794,23 @@ export function SwargaDewataRenderer({
                         </div>
                       </div>
                     </div>
+
+                    <div className={styles.ceremonyActions}>
+                      <a
+                        href={
+                          ceremony.mapsUrl ||
+                          `https://maps.google.com/?q=${encodeURIComponent(
+                            `${ceremony.venue} ${ceremony.address || ''}`,
+                          )}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.btnCeremonyMaps}
+                      >
+                        <span className={styles.ceremonyMapsIcon}>📍</span>
+                        <span>Petunjuk Lokasi (Google Maps)</span>
+                      </a>
+                    </div>
                   </div>
 
                   <p className={styles.ceremonyFooterNote}>
@@ -861,75 +877,12 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 05: LOKASI & SANGA MANDALA MAP */}
-        <section id="lokasi" className={styles.sectionWrapNarrow}>
-          <div className={`${styles.pradaCard} ${styles.locationCard}`}>
-            <div className={`${styles.patraCorner} ${styles.patraTl}`} />
-            <div className={`${styles.patraCorner} ${styles.patraTr}`} />
-            <div className={`${styles.patraCorner} ${styles.patraBl}`} />
-            <div className={`${styles.patraCorner} ${styles.patraBr}`} />
-
-            <div className={styles.locationGrid}>
-              <div>
-                <p className={styles.locationSectionTag}>
-                  05 • Loka Mandala Puri
-                </p>
-                <h2 className={styles.locationVenueTitle}>
-                  {primaryCeremony?.venue || 'Puri Agung Ubud'}
-                </h2>
-                <p className={styles.locationAddress}>
-                  {primaryCeremony?.address ||
-                    'Jl. Raya Ubud No. 88, Kecamatan Ubud, Kabupaten Gianyar, Bali'}
-                </p>
-
-                <div className={styles.locationTipsList}>
-                  <div className={styles.locationTipBox}>
-                    <span>👘</span>
-                    <span>
-                      Busana: Adat Bali Madya / Batik / Tenun Nusantara
-                    </span>
-                  </div>
-                  <div className={styles.locationTipBox}>
-                    <span>🅿️</span>
-                    <span>
-                      Layanan Valet &amp; Parkir Khusus Tamu VIP di Candi Bentar
-                      Utama
-                    </span>
-                  </div>
-                </div>
-
-                <a
-                  href={
-                    primaryCeremony?.mapsUrl ||
-                    'https://maps.google.com/?q=Puri+Saren+Agung+Ubud+Bali'
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.btnPradaGold}
-                >
-                  <span style={{ fontSize: '1.05rem' }}>📍</span>
-                  <span>Buka Navigasi Google Maps</span>
-                </a>
-              </div>
-
-              <div className={styles.mapCanvasWrap}>
-                <SangaMandalaMapSvg
-                  className={styles.mapSvg}
-                  venueLabel={primaryCeremony?.venue || 'Puri Agung Ubud'}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className={styles.tridatuRibbon} />
-
-        {/* SECTION 06: RSVP & GUEST QR */}
+        {/* SECTION 05: RSVP & GUEST QR */}
         {showRsvpAndQr && (
           <section id="rsvp" className={styles.sectionWrap}>
             <div className={styles.sectionHeader}>
               <p className={styles.sectionEyebrow}>
-                06 • Pangaksama &amp; Doa Restu
+                05 • Pangaksama &amp; Doa Restu
               </p>
               <h2
                 className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
@@ -977,10 +930,10 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 07: PRADA DANA KASIH (DIGITAL GIFT) - REKENING DI BAWAH DEKAT CLOSING */}
+        {/* SECTION 06: PRADA DANA KASIH (DIGITAL GIFT) - REKENING DI BAWAH DEKAT CLOSING */}
         <section id="prada-dana" className={styles.sectionWrapNarrow}>
           <div className={styles.sectionHeader}>
-            <p className={styles.sectionEyebrow}>07 • Tanda Kasih Kehormatan</p>
+            <p className={styles.sectionEyebrow}>06 • Tanda Kasih Kehormatan</p>
             <h2
               className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
             >
@@ -1039,7 +992,7 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI */}
+        {/* SECTION 07: CLOSING MATUR SUKSMA & OM SHANTI */}
         <footer id="closing" className={styles.closingSection}>
           <div className={styles.closingRadialBg} />
           <div className={styles.closingInner}>
@@ -1108,13 +1061,6 @@ export function SwargaDewataRenderer({
           </button>
           <button
             type="button"
-            onClick={() => scrollToSection('lokasi')}
-            className={styles.bottomNavLink}
-          >
-            Lokasi
-          </button>
-          <button
-            type="button"
             onClick={() => scrollToSection('prada-dana')}
             className={styles.bottomNavLink}
           >
@@ -1132,8 +1078,9 @@ export function SwargaDewataRenderer({
           <button
             type="button"
             onClick={() => setIsGateOpen(false)}
-            className={styles.bottomNavLink}
+            className={styles.bottomNavRefresh}
             title="Buka Ulang Candi Bentar"
+            aria-label="Buka Ulang Candi Bentar"
           >
             ↺
           </button>
