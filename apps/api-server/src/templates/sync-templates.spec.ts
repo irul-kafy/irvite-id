@@ -69,14 +69,14 @@ describe('syncTemplateIdentities', () => {
     expect(rnc?.previewImageUrl).toBe('/templates/ranah-cinta/thumbnail.webp');
   });
 
-  it('includes KUSUMA_PARAHYANGAN in approved seeds matching contract', () => {
-    const ksm = APPROVED_TEMPLATE_SEEDS.find(
-      (s) => s.themeCode === 'KUSUMA_PARAHYANGAN',
+  it('includes SWARGA_DEWATA in approved seeds matching contract', () => {
+    const swg = APPROVED_TEMPLATE_SEEDS.find(
+      (s) => s.themeCode === 'SWARGA_DEWATA',
     );
-    expect(ksm).toBeDefined();
-    expect(ksm?.name).toBe('Kusuma Parahyangan');
-    expect(ksm?.previewImageUrl).toBe(
-      '/templates/kusuma-parahyangan/thumbnail.webp',
+    expect(swg).toBeDefined();
+    expect(swg?.name).toBe('Swarga Dewata');
+    expect(swg?.previewImageUrl).toBe(
+      '/templates/swarga-dewata/thumbnail.webp',
     );
   });
 
@@ -226,7 +226,8 @@ describe('syncTemplateIdentities', () => {
       expect(BUILT_IN_THEME_CODES.has('AETHERIA')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('OPALINE_NOCTURNE')).toBe(true);
       expect(BUILT_IN_THEME_CODES.has('RANAH_CINTA')).toBe(true);
-      expect(BUILT_IN_THEME_CODES.has('KUSUMA_PARAHYANGAN')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('SWARGA_DEWATA')).toBe(true);
+      expect(BUILT_IN_THEME_CODES.has('KUSUMA_PARAHYANGAN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('SERENE_GARDEN')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('VELVET_LETTER')).toBe(false);
       expect(BUILT_IN_THEME_CODES.has('CHINESE_TRADITIONAL_LUXURY')).toBe(
@@ -245,7 +246,8 @@ describe('syncTemplateIdentities', () => {
       expect(isBuiltInTemplate('aetheria')).toBe(true);
       expect(isBuiltInTemplate('opaline_nocturne')).toBe(true);
       expect(isBuiltInTemplate('ranah_cinta')).toBe(true);
-      expect(isBuiltInTemplate('kusuma_parahyangan')).toBe(true);
+      expect(isBuiltInTemplate('swarga_dewata')).toBe(true);
+      expect(isBuiltInTemplate('kusuma_parahyangan')).toBe(false);
       expect(isBuiltInTemplate('serene_garden')).toBe(false);
       expect(isBuiltInTemplate('velvet_letter')).toBe(false);
       expect(isBuiltInTemplate('chinese_traditional_luxury')).toBe(false);

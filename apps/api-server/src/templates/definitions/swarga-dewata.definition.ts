@@ -1,44 +1,44 @@
 import { TemplateDefinition } from './template-definition.types';
 
-export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
-  themeCode: 'KUSUMA_PARAHYANGAN',
+export const SWARGA_DEWATA_DEFINITION: TemplateDefinition = {
+  themeCode: 'SWARGA_DEWATA',
   schemaVersion: 1,
   contentFields: [
     {
       key: 'partnerOneName',
-      label: 'Nama Panggilan Mempelai Wanita (Panganten Istri)',
+      label: 'Nama Panggilan Pasangan 1 (Sang Vadhu)',
       type: 'text',
       required: true,
       maxLength: 60,
     },
     {
       key: 'partnerTwoName',
-      label: 'Nama Panggilan Mempelai Pria (Panganten Pameget)',
+      label: 'Nama Panggilan Pasangan 2 (Sang Varaka)',
       type: 'text',
       required: true,
       maxLength: 60,
     },
     {
       key: 'partnerOneFullName',
-      label: 'Nama Lengkap Mempelai Wanita',
+      label: 'Nama Lengkap & Gelar Pasangan 1',
       type: 'text',
       maxLength: 120,
     },
     {
       key: 'partnerTwoFullName',
-      label: 'Nama Lengkap Mempelai Pria',
+      label: 'Nama Lengkap & Gelar Pasangan 2',
       type: 'text',
       maxLength: 120,
     },
     {
       key: 'partnerOneFamily',
-      label: 'Keluarga / Orang Tua Mempelai Wanita',
+      label: 'Keluarga Pasangan 1',
       type: 'textarea',
       maxLength: 300,
     },
     {
       key: 'partnerTwoFamily',
-      label: 'Keluarga / Orang Tua Mempelai Pria',
+      label: 'Keluarga Pasangan 2',
       type: 'textarea',
       maxLength: 300,
     },
@@ -55,37 +55,61 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'openingGreeting',
-      label: 'Salam Pembuka / Pepatah Sunda',
+      label: 'Sapaan Pembuka (Om Swastyastu)',
       type: 'text',
       maxLength: 200,
     },
     {
       key: 'openingText',
-      label: 'Teks Pembuka / Mukadimah',
+      label: 'Teks Pembuka (Pangaksama)',
       type: 'textarea',
       maxLength: 1500,
     },
     {
+      key: 'quote',
+      label: 'Sesanti / Kutipan Dharma',
+      type: 'textarea',
+      maxLength: 500,
+    },
+    {
+      key: 'statement',
+      label: 'Pernyataan Kasih / Kutipan',
+      type: 'textarea',
+      maxLength: 500,
+    },
+    {
       key: 'prayer',
-      label: 'Ayat Suci / Doa Restu',
+      label: 'Sloka / Doa Restu',
       type: 'textarea',
       maxLength: 1000,
     },
     {
+      key: 'prayerSource',
+      label: 'Sumber Sloka / Doa',
+      type: 'text',
+      maxLength: 120,
+    },
+    {
       key: 'closing',
-      label: 'Teks Penutup / Hatur Nuhun',
+      label: 'Pesan Penutup (Matur Suksma)',
+      type: 'textarea',
+      maxLength: 1000,
+    },
+    {
+      key: 'closingMessage',
+      label: 'Pesan Penutup Alternatif',
       type: 'textarea',
       maxLength: 1000,
     },
     {
       key: 'ceremonies',
-      label: 'Rangkaian Acara Pokok',
+      label: 'Tahapan Karya Pawiwahan',
       type: 'repeater',
       maxItems: 4,
       fields: [
         {
           key: 'title',
-          label: 'Nama Acara (Akad Nikah / Resepsi)',
+          label: 'Nama Prosesi / Acara',
           type: 'text',
           required: true,
           maxLength: 80,
@@ -103,7 +127,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
         },
         {
           key: 'venue',
-          label: 'Nama Tempat / Gedung',
+          label: 'Nama Puri / Bale / Tempat',
           type: 'text',
           required: true,
           maxLength: 120,
@@ -116,15 +140,15 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
         },
         {
           key: 'mapsUrl',
-          label: 'Tautan Google Maps',
-          type: 'url',
+          label: 'URL Google Maps',
+          type: 'text',
           maxLength: 500,
         },
       ],
     },
     {
       key: 'giftTitle',
-      label: 'Judul Tanda Kasih / Kado Digital',
+      label: 'Judul Tanda Kasih',
       type: 'text',
       maxLength: 80,
     },
@@ -136,13 +160,13 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'giftAccounts',
-      label: 'Daftar Rekening / Kado Pernikahan',
+      label: 'Daftar Rekening (Prada Dana Kasih)',
       type: 'repeater',
       maxItems: 4,
       fields: [
         {
           key: 'bankName',
-          label: 'Nama Bank / E-Wallet',
+          label: 'Nama Bank / Dompet Digital',
           type: 'text',
           required: true,
           maxLength: 60,
@@ -167,7 +191,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
   mediaSlots: [
     {
       key: 'hero',
-      label: 'Foto Utama Pasangan (Hero Siger)',
+      label: 'Foto Utama Pasangan (Payas Agung Hero)',
       mediaType: 'PHOTO',
       required: false,
       multiple: false,
@@ -176,7 +200,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'bride',
-      label: 'Foto Mempelai Wanita (Panganten Istri)',
+      label: 'Foto Mempelai Wanita (Sang Vadhu)',
       mediaType: 'PHOTO',
       required: false,
       multiple: false,
@@ -185,7 +209,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'groom',
-      label: 'Foto Mempelai Pria (Panganten Pameget)',
+      label: 'Foto Mempelai Pria (Sang Varaka)',
       mediaType: 'PHOTO',
       required: false,
       multiple: false,
@@ -194,7 +218,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'gallery',
-      label: 'Galeri Foto Dokumentasi',
+      label: 'Mozaik Galeri Swarga Dewata',
       mediaType: 'PHOTO',
       required: false,
       multiple: true,
@@ -203,7 +227,7 @@ export const KUSUMA_PARAHYANGAN_DEFINITION: TemplateDefinition = {
     },
     {
       key: 'bg-music',
-      label: 'Musik Latar Belakang (Opsional jika ingin mengganti Kacapi Suling)',
+      label: 'Musik Latar Belakang (Gamelan / Rindik Bali)',
       mediaType: 'AUDIO',
       required: false,
       multiple: false,

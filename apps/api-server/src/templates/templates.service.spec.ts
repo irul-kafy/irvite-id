@@ -444,10 +444,10 @@ describe('TemplatesService', () => {
     it('should return minimal public availability list with only themeCode and status', async () => {
       const mockList = [
         { themeCode: 'AETHERIA', status: 'AVAILABLE' },
-        { themeCode: 'KUSUMA_PARAHYANGAN', status: 'AVAILABLE' },
         { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
         { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
         { themeCode: 'SEKAR_KEDATON', status: 'AVAILABLE' },
+        { themeCode: 'SWARGA_DEWATA', status: 'AVAILABLE' },
       ];
       mockPrismaService.template.findMany.mockResolvedValue(mockList);
 
@@ -466,7 +466,7 @@ describe('TemplatesService', () => {
     it('should include missing approved template seeds if not yet present in DB', async () => {
       mockPrismaService.template.findMany.mockResolvedValue([]);
       const result = await service.getPublicAvailability();
-      expect(result.some((t) => t.themeCode === 'KUSUMA_PARAHYANGAN')).toBe(true);
+      expect(result.some((t) => t.themeCode === 'SWARGA_DEWATA')).toBe(true);
       expect(result.some((t) => t.themeCode === 'SEKAR_KEDATON')).toBe(true);
     });
 

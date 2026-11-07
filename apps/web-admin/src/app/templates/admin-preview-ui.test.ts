@@ -40,10 +40,10 @@ test('Admin Catalog Preview UI & Fail-Closed Contract', async (t) => {
       previewImageUrl: '/templates/ranah-cinta/thumbnail.webp',
     },
     {
-      id: 'db-uuid-kusuma',
-      name: 'Kusuma Parahyangan',
-      themeCode: 'KUSUMA_PARAHYANGAN',
-      previewImageUrl: '/templates/kusuma-parahyangan/thumbnail.webp',
+      id: 'db-uuid-swarga',
+      name: 'Swarga Dewata',
+      themeCode: 'SWARGA_DEWATA',
+      previewImageUrl: '/templates/swarga-dewata/thumbnail.webp',
     },
   ];
 

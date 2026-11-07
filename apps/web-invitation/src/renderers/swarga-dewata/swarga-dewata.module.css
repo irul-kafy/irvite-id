@@ -1,0 +1,1811 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap');
+
+.root {
+  --bali-crimson: #7b1e22;
+  --bali-crimson-deep: #4e1114;
+  --bali-terracotta: #b84228;
+  --bali-prada: #e5b84b;
+  --bali-prada-light: #fff0b8;
+  --bali-prada-dark: #a6781e;
+  --bali-stone: #130e0d;
+  --bali-stone-card: #1f1513;
+  --bali-sandstone: #f9f3e8;
+  --bali-sandstone-muted: #d6c7b2;
+  --bali-emerald: #1b4d3e;
+
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bali-stone);
+  color: var(--bali-sandstone);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
+  selection-background-color: var(--bali-prada);
+  container-type: inline-size;
+}
+
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+
+.rootLocked {
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* Damask Prada Texture Overlay */
+.pradaDamaskBg {
+  background-color: var(--bali-stone);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(184, 66, 40, 0.24) 0%, transparent 65%),
+    radial-gradient(circle at 85% 50%, rgba(229, 184, 75, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 15% 80%, rgba(123, 30, 34, 0.28) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23E5B84B' stroke-width='0.6' stroke-opacity='0.11'%3E%3Cpath d='M40 0 L48 24 L40 40 L32 24 Z'/%3E%3Cpath d='M40 80 L48 56 L40 40 L32 56 Z'/%3E%3Cpath d='M0 40 L24 48 L40 40 L24 32 Z'/%3E%3Cpath d='M80 40 L56 48 L40 40 L56 32 Z'/%3E%3Ccircle cx='40' cy='40' r='6'/%3E%3Ccircle cx='40' cy='40' r='18' stroke-dasharray='2 3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Falling Jepun & Prada Gold Canvas */
+.petalCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 35;
+}
+
+/* Typography Utilities */
+.fontDisplay {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+}
+
+.fontEditorial {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.fontSerif {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.pradaShimmerText {
+  background: linear-gradient(
+    135deg,
+    #fff4c8 0%,
+    #e5b84b 35%,
+    #b88628 55%,
+    #fff0b8 80%,
+    #d4a138 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pradaShine 6s linear infinite;
+}
+
+@keyframes pradaShine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+.aksaraSacred {
+  letter-spacing: 0.12em;
+  color: var(--bali-prada);
+  text-shadow: 0 2px 14px rgba(229, 184, 75, 0.35);
+}
+
+/* ============================================================================
+   FLOATING AUDIO PILL (RINDIK BALI)
+   ============================================================================ */
+.audioPill {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    165deg,
+    rgba(38, 22, 20, 0.92) 0%,
+    rgba(21, 13, 12, 0.96) 100%
+  );
+  border: 1px solid rgba(229, 184, 75, 0.4);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 240, 184, 0.22);
+  color: var(--bali-prada-light);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.audioPill:hover {
+  border-color: var(--bali-prada);
+  transform: translateY(-1px);
+}
+
+.eqBars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.eqBar {
+  width: 2.5px;
+  height: 4px;
+  background: var(--bali-prada);
+  border-radius: 2px;
+  transition: height 0.2s ease;
+}
+
+.eqPlaying .eqBar:nth-child(1) {
+  animation: eqBounce 0.7s ease-in-out infinite;
+}
+.eqPlaying .eqBar:nth-child(2) {
+  animation: eqBounce 0.55s ease-in-out 0.15s infinite;
+}
+.eqPlaying .eqBar:nth-child(3) {
+  animation: eqBounce 0.8s ease-in-out 0.3s infinite;
+}
+.eqPlaying .eqBar:nth-child(4) {
+  animation: eqBounce 0.6s ease-in-out 0.1s infinite;
+}
+
+@keyframes eqBounce {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 14px;
+  }
+}
+
+/* ============================================================================
+   CANDI BENTAR SPLIT GATE OVERLAY
+   ============================================================================ */
+.candiGateOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  overflow: hidden;
+  transition: visibility 1.4s ease;
+}
+
+.candiGateUnlocked {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.candiHalfLeft,
+.candiHalfRight {
+  position: relative;
+  width: 50%;
+  height: 100%;
+  background: radial-gradient(
+    circle at center,
+    #2a1211 0%,
+    #140a09 75%,
+    #0b0505 100%
+  );
+  transition:
+    transform 1.5s cubic-bezier(0.77, 0, 0.175, 1),
+    opacity 1.3s ease;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.candiHalfLeft {
+  justify-content: flex-end;
+  border-right: 2px solid rgba(229, 184, 75, 0.65);
+  box-shadow: 15px 0 50px rgba(0, 0, 0, 0.85);
+}
+
+.candiHalfRight {
+  justify-content: flex-start;
+  border-left: 2px solid rgba(229, 184, 75, 0.65);
+  box-shadow: -15px 0 50px rgba(0, 0, 0, 0.85);
+}
+
+.candiGateUnlocked .candiHalfLeft {
+  transform: translateX(-104%) scale(0.98);
+  opacity: 0;
+}
+
+.candiGateUnlocked .candiHalfRight {
+  transform: translateX(104%) scale(0.98);
+  opacity: 0;
+}
+
+.penjorLeft {
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  height: 92%;
+  width: 6rem;
+  opacity: 0.6;
+  pointer-events: none;
+  animation: penjorSway 6.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.penjorRight {
+  position: absolute;
+  right: 0.75rem;
+  top: 0;
+  height: 92%;
+  width: 6rem;
+  opacity: 0.6;
+  pointer-events: none;
+  transform: scaleX(-1);
+}
+
+@keyframes penjorSway {
+  0%,
+  100% {
+    transform: rotate(-1.2deg);
+  }
+  50% {
+    transform: rotate(1.4deg);
+  }
+}
+
+.candiTowerLeft {
+  height: 88%;
+  width: auto;
+  max-width: none;
+  opacity: 0.9;
+  margin-right: -2px;
+  pointer-events: none;
+}
+
+.candiTowerRight {
+  height: 88%;
+  width: auto;
+  max-width: none;
+  opacity: 0.9;
+  margin-left: -2px;
+  transform: scaleX(-1);
+  pointer-events: none;
+}
+
+.candiCenterSeal {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  text-align: center;
+  pointer-events: none;
+  transition:
+    transform 0.9s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.75s ease;
+}
+
+.candiGateUnlocked .candiCenterSeal {
+  transform: scale(1.18);
+  opacity: 0;
+}
+
+.candiSealCard {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 29rem;
+  padding: 2rem 1.75rem;
+  border-radius: 1.5rem;
+  background: rgba(20, 10, 9, 0.9);
+  border: 1px solid rgba(229, 184, 75, 0.55);
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.95),
+    0 0 60px rgba(229, 184, 75, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.mandalaBadgeWrap {
+  position: relative;
+  width: 5rem;
+  height: 5rem;
+  margin: 0 auto 1rem;
+}
+
+.mandalaSpin {
+  width: 100%;
+  height: 100%;
+  animation: rotateMandala 28s linear infinite;
+}
+
+@keyframes rotateMandala {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gateAksara {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.gateEyebrow {
+  font-size: 0.68rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 184, 0.85);
+  margin: 0 0 0.75rem;
+}
+
+.gateTitle {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.85rem, 4.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+.gateSubtitle {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: rgba(249, 243, 232, 0.85);
+  margin: 0 0 1.25rem;
+}
+
+.gateDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.85rem 0;
+}
+
+.gateDividerLine {
+  height: 1px;
+  width: 3.5rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--bali-prada),
+    transparent
+  );
+}
+
+.gateDividerDiamond {
+  color: var(--bali-prada);
+  font-size: 0.75rem;
+}
+
+.gateGuestBox {
+  margin: 0 0 1.35rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(123, 30, 34, 0.28);
+  border: 1px solid rgba(229, 184, 75, 0.3);
+}
+
+.gateGuestLabel {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(255, 240, 184, 0.75);
+  margin: 0 0 0.35rem;
+}
+
+.gateGuestName {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--bali-prada-light);
+  margin: 0;
+}
+
+.gateGuestHonor {
+  font-size: 0.75rem;
+  color: rgba(249, 243, 232, 0.7);
+  margin: 0.2rem 0 0;
+}
+
+.gateOpenBtn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  padding: 0.95rem 1.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    #f3cf68 0%,
+    #d49b2a 50%,
+    #a87414 100%
+  );
+  color: #160c0a;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid #fff3c4;
+  box-shadow:
+    0 10px 30px rgba(229, 184, 75, 0.38),
+    inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+
+.gateOpenBtn:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 15px 38px rgba(229, 184, 75, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  filter: brightness(1.06);
+}
+
+.gateMusicHint {
+  font-size: 0.65rem;
+  color: rgba(255, 240, 184, 0.55);
+  margin: 0.75rem 0 0;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================================
+   MAIN INVITATION CONTENT & SHARED CARDS
+   ============================================================================ */
+.mainContainer {
+  position: relative;
+  z-index: 10;
+  padding-bottom: 6.5rem;
+}
+
+.sectionWrap {
+  position: relative;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 5.5rem 1.25rem;
+}
+
+.sectionWrapNarrow {
+  position: relative;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 5.5rem 1.25rem;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.sectionEyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 184, 0.75);
+  margin: 0 0 0.5rem;
+}
+
+.sectionTitle {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.85rem, 4.2vw, 3rem);
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.sectionSubtitle {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: rgba(249, 243, 232, 0.75);
+  max-width: 36rem;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.pradaCard {
+  position: relative;
+  background: linear-gradient(
+    165deg,
+    rgba(38, 22, 20, 0.92) 0%,
+    rgba(21, 13, 12, 0.96) 100%
+  );
+  border: 1px solid rgba(229, 184, 75, 0.38);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 240, 184, 0.22),
+    0 0 0 4px rgba(19, 14, 13, 0.85),
+    0 0 0 5px rgba(229, 184, 75, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.patraCorner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+  border-color: var(--bali-prada);
+  opacity: 0.75;
+}
+.patraTl {
+  top: 8px;
+  left: 8px;
+  border-top: 2px solid var(--bali-prada);
+  border-left: 2px solid var(--bali-prada);
+}
+.patraTr {
+  top: 8px;
+  right: 8px;
+  border-top: 2px solid var(--bali-prada);
+  border-right: 2px solid var(--bali-prada);
+}
+.patraBl {
+  bottom: 8px;
+  left: 8px;
+  border-bottom: 2px solid var(--bali-prada);
+  border-left: 2px solid var(--bali-prada);
+}
+.patraBr {
+  bottom: 8px;
+  right: 8px;
+  border-bottom: 2px solid var(--bali-prada);
+  border-right: 2px solid var(--bali-prada);
+}
+
+.tridatuRibbon {
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #9e1f24 18%,
+    #f9f3e8 50%,
+    #1c1615 82%,
+    transparent 100%
+  );
+}
+
+.btnPradaGold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    #f3cf68 0%,
+    #d49b2a 50%,
+    #a87414 100%
+  );
+  color: #160c0a;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 1px solid #fff3c4;
+  box-shadow:
+    0 10px 30px rgba(229, 184, 75, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+
+.btnPradaGold:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 15px 38px rgba(229, 184, 75, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  filter: brightness(1.06);
+}
+
+.btnPradaOutline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.4rem;
+  border-radius: 9999px;
+  background: rgba(123, 30, 34, 0.35);
+  color: var(--bali-prada-light);
+  border: 1px solid rgba(229, 184, 75, 0.55);
+  font-weight: 600;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btnPradaOutline:hover {
+  background: rgba(229, 184, 75, 0.18);
+  border-color: var(--bali-prada-light);
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   SECTION 01: HERO (PURI AGUNG & PAYAS AGUNG)
+   ============================================================================ */
+.heroSection {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5.5rem 1.25rem 4rem;
+  overflow: hidden;
+}
+
+.heroAmbientBg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.heroAmbientImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.22;
+  transform: scale(1.05);
+  filter: contrast(1.1);
+}
+
+.heroAmbientGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    #130e0d 0%,
+    rgba(19, 14, 13, 0.72) 45%,
+    #130e0d 100%
+  );
+}
+
+.heroAmbientRadial {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 35%,
+    rgba(229, 184, 75, 0.16) 0%,
+    transparent 65%
+  );
+}
+
+.heroPenjorLeft {
+  position: absolute;
+  left: 1rem;
+  top: 2rem;
+  height: 85%;
+  width: 6.5rem;
+  opacity: 0.45;
+  pointer-events: none;
+  animation: penjorSway 6.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.heroPenjorRight {
+  position: absolute;
+  right: 1rem;
+  top: 2rem;
+  height: 85%;
+  width: 6.5rem;
+  opacity: 0.45;
+  pointer-events: none;
+  transform: scaleX(-1);
+}
+
+.heroInner {
+  position: relative;
+  z-index: 10;
+  max-width: 56rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.heroCrown {
+  width: 5.5rem;
+  height: 3rem;
+  margin: 0 auto 0.75rem;
+}
+
+.heroAksara {
+  font-size: 1rem;
+  margin: 0 0 0.4rem;
+}
+
+.heroEyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 184, 0.85);
+  margin: 0 0 1.5rem;
+}
+
+.koriFrameOuter {
+  position: relative;
+  width: 19rem;
+  height: 24.5rem;
+  margin: 0 auto 2rem;
+  padding: 8px;
+  background: linear-gradient(
+    180deg,
+    #fff0b8 0%,
+    #e5b84b 35%,
+    #8c6214 70%,
+    #e5b84b 100%
+  );
+  border-radius: 160px 160px 20px 20px;
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(229, 184, 75, 0.25);
+}
+
+.koriFrameInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 152px 152px 14px 14px;
+  overflow: hidden;
+  background: #1a0f0e;
+  border: 2px solid #130e0d;
+}
+
+.koriFrameImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.koriFrameOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    #130e0d 0%,
+    transparent 45%,
+    transparent 100%
+  );
+}
+
+.koriFrameBadge {
+  position: absolute;
+  bottom: 0.85rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+}
+
+.heroCoupleTitle {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(2.35rem, 6vw, 4.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+.heroAmpersand {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--bali-prada-light);
+  margin: 0 0.35rem;
+}
+
+.heroDateBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1.35rem;
+  border-radius: 9999px;
+  background: rgba(123, 30, 34, 0.45);
+  border: 1px solid rgba(229, 184, 75, 0.4);
+  margin-bottom: 2.25rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+}
+
+/* Countdown Grid */
+.countdownGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  max-width: 34rem;
+  margin: 0 auto 2.25rem;
+}
+
+.countdownBox {
+  border-radius: 1rem;
+  padding: 0.9rem 0.5rem;
+  text-align: center;
+}
+
+.countdownValue {
+  display: block;
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.5rem, 3.5vw, 2.15rem);
+  font-weight: 700;
+  color: var(--bali-prada-light);
+  line-height: 1.15;
+}
+
+.countdownLabel {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(249, 243, 232, 0.65);
+  margin-top: 0.25rem;
+}
+
+/* Rgveda Sloka Box */
+.slokaBox {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.75rem;
+  border-radius: 1.25rem;
+  background: rgba(22, 13, 12, 0.78);
+  border: 1px solid rgba(229, 184, 75, 0.28);
+}
+
+.slokaSanskrit {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--bali-prada-light);
+  line-height: 1.65;
+  margin: 0 0 0.5rem;
+}
+
+.slokaTranslation {
+  font-size: 0.85rem;
+  color: rgba(249, 243, 232, 0.78);
+  line-height: 1.65;
+  margin: 0 0 0.6rem;
+}
+
+.slokaSource {
+  font-size: 0.68rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--bali-prada);
+  margin: 0;
+}
+
+/* ============================================================================
+   SECTION 02: SANG MEMPELai (THE ROYAL COUPLE)
+   ============================================================================ */
+.coupleGrid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.coupleCard {
+  border-radius: 1.5rem;
+  padding: 2.25rem 1.75rem;
+  text-align: center;
+}
+
+.coupleOctagonWrap {
+  position: relative;
+  width: 12.5rem;
+  height: 15.5rem;
+  margin: 0 auto 1.5rem;
+}
+
+.coupleOctagonGlow {
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: 9999px;
+  border: 1px dashed rgba(229, 184, 75, 0.4);
+}
+
+.astadalaFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 6px;
+  background: linear-gradient(
+    135deg,
+    #fff0b8 0%,
+    #d4a138 50%,
+    #7b1e22 100%
+  );
+  clip-path: polygon(
+    20% 0%,
+    80% 0%,
+    100% 20%,
+    100% 80%,
+    80% 100%,
+    20% 100%,
+    0% 80%,
+    0% 20%
+  );
+}
+
+.astadalaInner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #130e0d;
+  clip-path: polygon(
+    20% 0%,
+    80% 0%,
+    100% 20%,
+    100% 80%,
+    80% 100%,
+    20% 100%,
+    0% 80%,
+    0% 20%
+  );
+}
+
+.coupleImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.coupleCard:hover .coupleImg {
+  transform: scale(1.05);
+}
+
+.coupleRoleTag {
+  font-size: 0.68rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--bali-prada);
+  margin: 0 0 0.45rem;
+}
+
+.coupleFullName {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.35rem, 2.5vw, 1.65rem);
+  font-weight: 700;
+  color: var(--bali-prada-light);
+  line-height: 1.3;
+  margin: 0 0 0.85rem;
+}
+
+.coupleCardDivider {
+  width: 4rem;
+  height: 1px;
+  background: rgba(229, 184, 75, 0.4);
+  margin: 0 auto 0.85rem;
+}
+
+.coupleParentsText {
+  font-size: 0.875rem;
+  color: rgba(249, 243, 232, 0.82);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.coupleCenterEmblem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+}
+
+.coupleCenterLine {
+  width: 1px;
+  height: 4rem;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--bali-prada),
+    transparent
+  );
+}
+
+.coupleCenterCircle {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background: rgba(123, 30, 34, 0.6);
+  border: 2px solid var(--bali-prada);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.75rem 0;
+  box-shadow: 0 0 30px rgba(229, 184, 75, 0.3);
+  font-family: 'Cinzel Decorative', Georgia, serif;
+  font-size: 1.5rem;
+  color: var(--bali-prada-light);
+}
+
+/* ============================================================================
+   SECTION 03: RANGKAIAN KARYA PAWIWAHAN (CEREMONIES)
+   ============================================================================ */
+.ceremonyGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.ceremonyCard {
+  border-radius: 1.5rem;
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ceremonyCardFeatured {
+  border-color: rgba(229, 184, 75, 0.7);
+}
+
+.ceremonyTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.ceremonyBadge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(123, 30, 34, 0.55);
+  border: 1px solid rgba(229, 184, 75, 0.45);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+}
+
+.ceremonyBadgeGold {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  background: rgba(229, 184, 75, 0.2);
+  border: 1px solid var(--bali-prada);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+}
+
+.ceremonyTitle {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--bali-prada-light);
+  margin: 0 0 0.4rem;
+}
+
+.ceremonySub {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.02rem;
+  color: rgba(249, 243, 232, 0.72);
+  margin: 0 0 1.35rem;
+}
+
+.ceremonyMetaList {
+  border-top: 1px solid rgba(229, 184, 75, 0.2);
+  border-bottom: 1px solid rgba(229, 184, 75, 0.2);
+  padding: 1.15rem 0;
+  margin-bottom: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ceremonyMetaItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.ceremonyMetaIcon {
+  color: var(--bali-prada);
+  font-size: 1rem;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.ceremonyMetaPrimary {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--bali-sandstone);
+  margin: 0;
+}
+
+.ceremonyMetaSecondary {
+  font-size: 0.78rem;
+  color: rgba(249, 243, 232, 0.68);
+  margin: 0.15rem 0 0;
+  line-height: 1.5;
+}
+
+.ceremonyFooterNote {
+  font-size: 0.75rem;
+  color: rgba(255, 240, 184, 0.75);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ============================================================================
+   SECTION 04: GALERI SWARGA DEWATA & LIGHTBOX
+   ============================================================================ */
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.galleryCard {
+  position: relative;
+  border-radius: 1rem;
+  padding: 0.4rem;
+  overflow: hidden;
+  cursor: pointer;
+  background: linear-gradient(
+    165deg,
+    rgba(38, 22, 20, 0.92) 0%,
+    rgba(21, 13, 12, 0.96) 100%
+  );
+  border: 1px solid rgba(229, 184, 75, 0.38);
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.galleryCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--bali-prada);
+}
+
+.galleryAspect {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.galleryImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.galleryCard:hover .galleryImg {
+  transform: scale(1.1);
+}
+
+.galleryHoverCaption {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(19, 14, 13, 0.9) 0%,
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: flex-end;
+  padding: 0.9rem;
+}
+
+.galleryCard:hover .galleryHoverCaption {
+  opacity: 1;
+}
+
+.galleryCaptionText {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+  margin: 0;
+}
+
+/* Lightbox Modal */
+.lightboxOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(10, 5, 5, 0.94);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.lightboxCloseBtn {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 2.85rem;
+  height: 2.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(229, 184, 75, 0.5);
+  background: rgba(123, 30, 34, 0.55);
+  color: var(--bali-prada-light);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightboxInner {
+  max-width: 48rem;
+  width: 100%;
+  text-align: center;
+}
+
+.lightboxFrame {
+  padding: 0.5rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #fff0b8, #b88628);
+  display: inline-block;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+}
+
+.lightboxImg {
+  max-height: 76vh;
+  width: auto;
+  max-width: 100%;
+  border-radius: 0.65rem;
+  object-fit: contain;
+  display: block;
+}
+
+.lightboxTitle {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: var(--bali-prada-light);
+  margin: 1rem 0 0;
+}
+
+/* ============================================================================
+   SECTION 05: PRADA DANA KASIH (DIGITAL GIFT)
+   NOTE: Avoid "gift" substring in flex item class names due to studio mobile rule
+   ============================================================================ */
+.pradaDanaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.pradaDanaCard {
+  border-radius: 1.5rem;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.pradaDanaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.pradaDanaLabel {
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 184, 0.72);
+  margin: 0 0 0.25rem;
+}
+
+.pradaDanaBank {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--bali-prada-light);
+  margin: 0;
+}
+
+.pradaDanaChip {
+  width: 2.85rem;
+  height: 2.1rem;
+  border-radius: 0.45rem;
+  background: linear-gradient(135deg, #fff0b8, #b88628);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
+}
+
+.pradaDanaBody {
+  margin-bottom: 1.35rem;
+}
+
+.pradaDanaAccountLabel {
+  font-size: 0.72rem;
+  color: rgba(249, 243, 232, 0.6);
+  margin: 0 0 0.3rem;
+}
+
+.pradaDanaNumber {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.35rem;
+  letter-spacing: 0.14em;
+  color: var(--bali-prada-light);
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  word-break: break-all;
+}
+
+.pradaDanaHolder {
+  font-size: 0.875rem;
+  color: rgba(249, 243, 232, 0.82);
+  margin: 0;
+}
+
+.pradaDanaCopyBtn {
+  width: 100%;
+}
+
+/* ============================================================================
+   SECTION 06: LOKASI & SANGA MANDALA MAP
+   ============================================================================ */
+.locationCard {
+  border-radius: 1.5rem;
+  padding: 2.25rem 2rem;
+}
+
+.locationGrid {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.locationSectionTag {
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--bali-prada);
+  margin: 0 0 0.4rem;
+}
+
+.locationVenueTitle {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  color: var(--bali-prada-light);
+  margin: 0 0 0.75rem;
+}
+
+.locationAddress {
+  font-size: 0.9rem;
+  color: rgba(249, 243, 232, 0.82);
+  line-height: 1.65;
+  margin: 0 0 1.25rem;
+}
+
+.locationTipsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.locationTipBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 0.85rem;
+  background: rgba(123, 30, 34, 0.3);
+  border: 1px solid rgba(229, 184, 75, 0.25);
+  font-size: 0.78rem;
+  color: rgba(249, 243, 232, 0.88);
+}
+
+.mapCanvasWrap {
+  position: relative;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  border: 1px solid rgba(229, 184, 75, 0.45);
+  background: #140c0b;
+  height: 19rem;
+}
+
+.mapSvg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ============================================================================
+   SECTION 07: RSVP & BUKU DHARMA SUAKA
+   ============================================================================ */
+.rsvpGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.rsvpSectionSlot {
+  width: 100%;
+}
+
+/* ============================================================================
+   SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI
+   ============================================================================ */
+.closingSection {
+  position: relative;
+  padding: 6rem 1.25rem 4rem;
+  text-align: center;
+  overflow: hidden;
+}
+
+.closingRadialBg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 100%,
+    rgba(123, 30, 34, 0.45) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.closingInner {
+  position: relative;
+  z-index: 10;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.closingLotus {
+  width: 5rem;
+  height: 2.6rem;
+  margin: 0 auto 1.25rem;
+}
+
+.closingAksara {
+  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+}
+
+.closingTitle {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  font-weight: 700;
+  margin: 0 0 1rem;
+}
+
+.closingMessage {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  color: rgba(249, 243, 232, 0.85);
+  line-height: 1.7;
+  margin: 0 0 2rem;
+}
+
+.closingOmShantiPill {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  background: rgba(123, 30, 34, 0.45);
+  border: 1px solid rgba(229, 184, 75, 0.5);
+  margin-bottom: 2.5rem;
+}
+
+.closingOmShantiText {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bali-prada-light);
+  margin: 0;
+}
+
+.closingCoupleTitle {
+  font-family: 'Cinzel Decorative', 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 700;
+  margin: 0 0 0.4rem;
+}
+
+.closingSubcaption {
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 184, 0.6);
+  margin: 0;
+}
+
+/* ============================================================================
+   FLOATING BOTTOM NAVIGATION BAR
+   ============================================================================ */
+.bottomNav {
+  position: fixed;
+  bottom: 1.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  width: 94%;
+  max-width: 30rem;
+}
+
+.bottomNavInner {
+  border-radius: 9999px;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  background: rgba(20, 11, 10, 0.94);
+  border: 1px solid rgba(229, 184, 75, 0.45);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+}
+
+.bottomNavLink {
+  padding: 0.45rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  color: rgba(255, 240, 184, 0.82);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.bottomNavLink:hover {
+  color: #fff;
+  background: rgba(123, 30, 34, 0.45);
+}
+
+.bottomNavCta {
+  padding: 0.45rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #160c0a;
+  background: linear-gradient(135deg, #f3cf68, #d49b2a);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   RESPONSIVE MEDIA & CONTAINER QUERIES (TABLET <= 960px, MOBILE <= 600px)
+   Both @media and @container are declared with !important on grid columns
+   so Customizer Studio mobile/tablet frames match real devices 100%.
+   ============================================================================ */
+@media (max-width: 960px) {
+  .coupleGrid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+
+  .coupleCenterEmblem {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 0.25rem 0;
+  }
+
+  .coupleCenterLine {
+    width: 4rem;
+    height: 1px;
+  }
+
+  .ceremonyGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .locationGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rsvpGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroPenjorLeft,
+  .heroPenjorRight,
+  .penjorLeft,
+  .penjorRight {
+    display: none !important;
+  }
+}
+
+@container (max-width: 960px) {
+  .coupleGrid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+
+  .coupleCenterEmblem {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 0.25rem 0;
+  }
+
+  .coupleCenterLine {
+    width: 4rem;
+    height: 1px;
+  }
+
+  .ceremonyGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .locationGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .rsvpGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .heroPenjorLeft,
+  .heroPenjorRight,
+  .penjorLeft,
+  .penjorRight {
+    display: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .sectionWrap,
+  .sectionWrapNarrow {
+    padding: 3.75rem 1rem;
+  }
+
+  .candiSealCard {
+    padding: 1.5rem 1.15rem;
+  }
+
+  .koriFrameOuter {
+    width: 15.5rem;
+    height: 20.5rem;
+  }
+
+  .countdownGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.65rem;
+  }
+
+  .pradaDanaGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ceremonyCard,
+  .coupleCard,
+  .locationCard,
+  .pradaDanaCard {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .audioPillLabel {
+    display: none;
+  }
+
+  .bottomNav {
+    width: 95%;
+    bottom: 0.75rem;
+  }
+
+  .bottomNavInner {
+    padding: 0.35rem 0.45rem;
+    gap: 0.15rem;
+  }
+
+  .bottomNavLink {
+    padding: 0.35rem 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  .bottomNavCta {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.65rem;
+  }
+}
+
+@container (max-width: 600px) {
+  .sectionWrap,
+  .sectionWrapNarrow {
+    padding: 3.75rem 1rem;
+  }
+
+  .candiSealCard {
+    padding: 1.5rem 1.15rem;
+  }
+
+  .koriFrameOuter {
+    width: 15.5rem;
+    height: 20.5rem;
+  }
+
+  .countdownGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.65rem;
+  }
+
+  .pradaDanaGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ceremonyCard,
+  .coupleCard,
+  .locationCard,
+  .pradaDanaCard {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .audioPillLabel {
+    display: none;
+  }
+
+  .bottomNav {
+    width: 95%;
+    bottom: 0.75rem;
+  }
+
+  .bottomNavInner {
+    padding: 0.35rem 0.45rem;
+    gap: 0.15rem;
+  }
+
+  .bottomNavLink {
+    padding: 0.35rem 0.45rem;
+    font-size: 0.65rem;
+  }
+
+  .bottomNavCta {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.65rem;
+  }
+}
+

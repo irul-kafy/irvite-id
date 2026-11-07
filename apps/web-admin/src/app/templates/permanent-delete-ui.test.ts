@@ -38,9 +38,9 @@ test('Web Admin Permanent Template Deletion UI Contracts', async (t) => {
       eventUsageCount: 0,
     },
     {
-      id: 'db-kusuma-uuid',
-      name: 'Kusuma Parahyangan',
-      themeCode: 'KUSUMA_PARAHYANGAN',
+      id: 'db-swarga-uuid',
+      name: 'Swarga Dewata',
+      themeCode: 'SWARGA_DEWATA',
       status: 'AVAILABLE',
       eventUsageCount: 0,
     },

@@ -4,7 +4,7 @@ import SekarKedatonRenderer from './sekar-kedaton/sekar-kedaton';
 import OpalineNocturneRenderer from './opaline-nocturne/opaline-nocturne';
 import AetheriaRenderer from './aetheria/aetheria';
 import RanahCintaRenderer from './ranah-cinta/ranah-cinta';
-import KusumaParahyanganRenderer from './kusuma-parahyangan';
+import SwargaDewataRenderer from './swarga-dewata';
 import { resolveProductionThemeKey } from './registry-resolver';
 import { PublicInvitationResponse } from '../types/public-invitation';
 
@@ -41,7 +41,7 @@ const productionRenderers: Record<string, RendererComponent> = {
   OPALINE_NOCTURNE: OpalineNocturneRenderer as unknown as RendererComponent,
   AETHERIA: AetheriaRenderer as unknown as RendererComponent,
   RANAH_CINTA: RanahCintaRenderer as unknown as RendererComponent,
-  KUSUMA_PARAHYANGAN: KusumaParahyanganRenderer as unknown as RendererComponent,
+  SWARGA_DEWATA: SwargaDewataRenderer as unknown as RendererComponent,
 };
 
 // Internal foundation renderers (available for testing)
@@ -51,7 +51,7 @@ export const foundationRenderers: Record<string, RendererComponent> = {
   OPALINE_NOCTURNE: OpalineNocturneRenderer as unknown as RendererComponent,
   AETHERIA: AetheriaRenderer as unknown as RendererComponent,
   RANAH_CINTA: RanahCintaRenderer as unknown as RendererComponent,
-  KUSUMA_PARAHYANGAN: KusumaParahyanganRenderer as unknown as RendererComponent,
+  SWARGA_DEWATA: SwargaDewataRenderer as unknown as RendererComponent,
 };
 
 /**

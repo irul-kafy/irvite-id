@@ -44,6 +44,12 @@ export class TemplatesService implements OnModuleInit {
 
   async onModuleInit() {
     try {
+      await this.prisma.template.deleteMany({
+        where: {
+          themeCode: 'KUSUMA_PARAHYANGAN',
+          events: { none: {} },
+        },
+      });
       await syncTemplateIdentities(this.prisma);
       this.logger.log('Template identities synchronized successfully');
     } catch (err) {

@@ -33,9 +33,9 @@ export const APPROVED_TEMPLATE_SEEDS: readonly ApprovedTemplateSeed[] = [
     initialStatus: 'AVAILABLE',
   },
   {
-    name: 'Kusuma Parahyangan',
-    themeCode: 'KUSUMA_PARAHYANGAN',
-    previewImageUrl: '/templates/kusuma-parahyangan/thumbnail.webp',
+    name: 'Swarga Dewata',
+    themeCode: 'SWARGA_DEWATA',
+    previewImageUrl: '/templates/swarga-dewata/thumbnail.webp',
     initialStatus: 'AVAILABLE',
   },
 ];

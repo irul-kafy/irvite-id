@@ -3,14 +3,14 @@ import { SEKAR_KEDATON_DEMO_FIXTURE } from './fixtures/sekar-kedaton.fixture';
 import { OPALINE_NOCTURNE_DEMO_FIXTURE } from './fixtures/opaline-nocturne.fixture';
 import { AETHERIA_DEMO_FIXTURE } from './fixtures/aetheria.fixture';
 import { RANAH_CINTA_DEMO_FIXTURE } from './fixtures/ranah-cinta.fixture';
-import { KUSUMA_PARAHYANGAN_DEMO_FIXTURE } from './fixtures/kusuma-parahyangan.fixture';
+import { SWARGA_DEWATA_DEMO_FIXTURE } from './fixtures/swarga-dewata.fixture';
 
 export {
   SEKAR_KEDATON_DEMO_FIXTURE,
   OPALINE_NOCTURNE_DEMO_FIXTURE,
   AETHERIA_DEMO_FIXTURE,
   RANAH_CINTA_DEMO_FIXTURE,
-  KUSUMA_PARAHYANGAN_DEMO_FIXTURE,
+  SWARGA_DEWATA_DEMO_FIXTURE,
 };
 
 const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
@@ -18,7 +18,7 @@ const FIXTURES_BY_THEME_CODE: Record<string, RendererData> = {
   OPALINE_NOCTURNE: OPALINE_NOCTURNE_DEMO_FIXTURE,
   AETHERIA: AETHERIA_DEMO_FIXTURE,
   RANAH_CINTA: RANAH_CINTA_DEMO_FIXTURE,
-  KUSUMA_PARAHYANGAN: KUSUMA_PARAHYANGAN_DEMO_FIXTURE,
+  SWARGA_DEWATA: SWARGA_DEWATA_DEMO_FIXTURE,
 };
 
 /**

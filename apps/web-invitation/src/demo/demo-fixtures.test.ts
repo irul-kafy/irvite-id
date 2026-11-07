@@ -5,14 +5,14 @@ import {
   OPALINE_NOCTURNE_DEMO_FIXTURE,
   AETHERIA_DEMO_FIXTURE,
   RANAH_CINTA_DEMO_FIXTURE,
-  KUSUMA_PARAHYANGAN_DEMO_FIXTURE,
+  SWARGA_DEWATA_DEMO_FIXTURE,
   getDemoFixture,
 } from './index';
 import { adaptSekarKedatonContent } from '../renderers/sekar-kedaton/sekar-kedaton.adapter';
 import { adaptOpalineNocturneData } from '../renderers/opaline-nocturne/opaline-nocturne.adapter';
 import { adaptAetheriaData } from '../renderers/aetheria/aetheria.adapter';
 import { adaptRanahCintaData } from '../renderers/ranah-cinta/ranah-cinta.adapter';
-import { adaptKusumaParahyanganContent } from '../renderers/kusuma-parahyangan/kusuma-parahyangan.adapter';
+import { adaptSwargaDewataContent } from '../renderers/swarga-dewata/swarga-dewata.adapter';
 
 test('Live Demo Fixtures & Gating Safety', async (t) => {
   await t.test('getDemoFixture resolves approved codex themeCodes', () => {
@@ -20,16 +20,17 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
     assert.ok(getDemoFixture('OPALINE_NOCTURNE'));
     assert.ok(getDemoFixture('AETHERIA'));
     assert.ok(getDemoFixture('RANAH_CINTA'));
-    assert.ok(getDemoFixture('KUSUMA_PARAHYANGAN'));
+    assert.ok(getDemoFixture('SWARGA_DEWATA'));
 
     // Case-insensitive
     assert.ok(getDemoFixture('sekar_kedaton'));
     assert.ok(getDemoFixture('opaline_nocturne'));
     assert.ok(getDemoFixture('aetheria'));
     assert.ok(getDemoFixture('ranah_cinta'));
-    assert.ok(getDemoFixture('kusuma_parahyangan'));
+    assert.ok(getDemoFixture('swarga_dewata'));
 
     // Removed or unapproved themes return undefined
+    assert.equal(getDemoFixture('KUSUMA_PARAHYANGAN'), undefined);
     assert.equal(getDemoFixture('SERENE_GARDEN'), undefined);
     assert.equal(getDemoFixture('VELVET_LETTER'), undefined);
     assert.equal(getDemoFixture('CHINESE_TRADITIONAL_LUXURY'), undefined);
@@ -50,7 +51,7 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
       AETHERIA_DEMO_FIXTURE,
       OPALINE_NOCTURNE_DEMO_FIXTURE,
       RANAH_CINTA_DEMO_FIXTURE,
-      KUSUMA_PARAHYANGAN_DEMO_FIXTURE,
+      SWARGA_DEWATA_DEMO_FIXTURE,
     ];
 
     for (const fixture of fixtures) {
@@ -104,14 +105,16 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
     assert.equal(adapted.gifts.accounts.length, 2);
   });
 
-  await t.test('Kusuma Parahyangan fixture adapts cleanly to Kusuma schema', () => {
-    const rawContent = KUSUMA_PARAHYANGAN_DEMO_FIXTURE.event.content as Record<string, unknown>;
-    const adapted = adaptKusumaParahyanganContent(rawContent);
-    assert.ok(adapted, 'Kusuma Parahyangan content must adapt successfully');
-    assert.equal(adapted.partnerOneName, 'Citra');
-    assert.equal(adapted.partnerTwoName, 'Galih');
+  await t.test('Swarga Dewata fixture adapts cleanly to Swarga Dewata schema', () => {
+    const rawContent = SWARGA_DEWATA_DEMO_FIXTURE.event.content as Record<string, unknown>;
+    const adapted = adaptSwargaDewataContent(rawContent);
+    assert.ok(adapted, 'Swarga Dewata content must adapt successfully');
+    assert.equal(adapted.partnerOneName, 'Ayu');
+    assert.equal(adapted.partnerTwoName, 'Bagus');
+    assert.equal(adapted.partnerOneFullName, 'dr. Anak Agung Ayu Saraswati, S.Ked.');
+    assert.equal(adapted.partnerTwoFullName, 'Tjokorda Gde Bagus Mahendra, M.Ars.');
     assert.equal(adapted.ceremonies?.length, 2);
     assert.equal(adapted.giftAccounts?.length, 2);
-    assert.equal(adapted.timeZone, 'Asia/Jakarta');
+    assert.equal(adapted.timeZone, 'Asia/Makassar');
   });
 });

@@ -17,7 +17,7 @@ export type CatalogCategory =
   | 'Celestial Fantasy'
   | 'Enchanted Woodland'
   | 'Minang Traditional'
-  | 'Traditional Sundanese'
+  | 'Balinese Royal'
   | string;
 
 export interface CatalogTemplate {
@@ -45,7 +45,7 @@ export const CATALOG_CATEGORIES: string[] = [
   'Celestial Fantasy',
   'Enchanted Woodland',
   'Minang Traditional',
-  'Traditional Sundanese',
+  'Balinese Royal',
 ];
 
 export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
@@ -222,19 +222,19 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
     },
   },
   {
-    id: 'kusuma-parahyangan',
-    slug: 'kusuma-parahyangan',
-    themeCode: 'KUSUMA_PARAHYANGAN',
-    name: 'Kusuma Parahyangan',
-    displayName: 'Kusuma Parahyangan',
-    category: 'Traditional Sundanese',
-    tags: ['Sunda', 'Parahyangan', 'Traditional', 'Siger', 'Gold Teak'],
+    id: 'swarga-dewata',
+    slug: 'swarga-dewata',
+    themeCode: 'SWARGA_DEWATA',
+    name: 'Swarga Dewata',
+    displayName: 'Swarga Dewata',
+    category: 'Balinese Royal',
+    tags: ['Bali', 'Payas Agung', 'Candi Bentar', 'Prada Emas', 'Puri Ubud'],
     description:
-      'Pernikahan adat Sunda klasik nan agung bernuansa Bale Julang Ngapak, mahkota Siger, ronce melati, dan alunan laras degung.',
+      'Karya Pawiwahan Agung adat Bali berlatar Candi Bentar terbelah, ukiran prada emas Puri Ubud, taburan bunga jepun, dan alunan rindik.',
     shortDescription:
-      'Pernikahan adat Sunda klasik nan agung bernuansa Bale Julang Ngapak, mahkota Siger, ronce melati, dan alunan laras degung.',
-    thumbnailPath: '/templates/kusuma-parahyangan/thumbnail.webp',
-    demoPath: '/templates/kusuma-parahyangan/demo',
+      'Karya Pawiwahan Agung adat Bali berlatar Candi Bentar terbelah, ukiran prada emas Puri Ubud, taburan bunga jepun, dan alunan rindik.',
+    thumbnailPath: '/templates/swarga-dewata/thumbnail.webp',
+    demoPath: '/templates/swarga-dewata/demo',
     sortOrder: 5,
     availability: 'AVAILABLE',
     badge: 'Artisanal',
@@ -242,10 +242,10 @@ export const FIXED_CATALOG_TEMPLATES: readonly CatalogTemplate[] = [
     config: {
       version: 1,
       theme: {
-        primaryColor: '#4a2c18',
-        secondaryColor: '#d49b35',
-        backgroundColor: '#fcf8f2',
-        textColor: '#2b1b10',
+        primaryColor: '#7B1E22',
+        secondaryColor: '#E5B84B',
+        backgroundColor: '#130E0D',
+        textColor: '#F9F3E8',
       },
       typography: {
         headingFont: 'PLAYFAIR_DISPLAY',

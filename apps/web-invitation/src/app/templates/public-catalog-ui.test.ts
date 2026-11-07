@@ -16,7 +16,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       'Aetheria',
       'Opaline Nocturne',
       'Ranah Cinta',
-      'Kusuma Parahyangan',
+      'Swarga Dewata',
     ]);
 
     const themeCodes = templates.map((t) => t.themeCode);
@@ -25,7 +25,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       'AETHERIA',
       'OPALINE_NOCTURNE',
       'RANAH_CINTA',
-      'KUSUMA_PARAHYANGAN',
+      'SWARGA_DEWATA',
     ]);
   });
 
@@ -169,7 +169,7 @@ test('Public Catalog UI & Landing Integration Contract', async (t) => {
       { themeCode: 'AETHERIA', status: 'AVAILABLE' },
       { themeCode: 'OPALINE_NOCTURNE', status: 'AVAILABLE' },
       { themeCode: 'RANAH_CINTA', status: 'AVAILABLE' },
-      { themeCode: 'KUSUMA_PARAHYANGAN', status: 'AVAILABLE' },
+      { themeCode: 'SWARGA_DEWATA', status: 'AVAILABLE' },
     ];
     const resA = filterAvailableTemplates(all, allAvailable);
     assert.equal(resA.length, 5, 'All 5 AVAILABLE must return 5 cards');
