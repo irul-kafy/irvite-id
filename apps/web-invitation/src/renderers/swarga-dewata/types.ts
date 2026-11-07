@@ -7,6 +7,13 @@ export interface SwargaDewataCeremonyItem {
   mapsUrl?: string;
 }
 
+export interface SwargaDewataStoryItem {
+  year: string;
+  title: string;
+  description: string;
+  date?: string;
+}
+
 export interface SwargaDewataGiftAccountItem {
   bankName: string;
   accountNumber: string;
@@ -27,6 +34,7 @@ export interface SwargaDewataContent {
   prayer: string;
   prayerSource: string;
   closingMessage: string;
+  stories: SwargaDewataStoryItem[];
   ceremonies: SwargaDewataCeremonyItem[];
   giftTitle: string;
   giftMessage: string;
@@ -37,6 +45,7 @@ export interface SwargaDewataMedia {
   heroPhotoUrl: string;
   bridePhotoUrl: string;
   groomPhotoUrl: string;
+  storyPhotoUrl: string;
   galleryPhotos: string[];
   bgMusicUrl: string | null;
 }

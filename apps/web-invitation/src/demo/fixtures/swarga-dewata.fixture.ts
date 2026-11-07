@@ -49,6 +49,26 @@ export const SWARGA_DEWATA_DEMO_FIXTURE: RendererData = {
           mapsUrl: 'https://maps.google.com/?q=Puri+Saren+Agung+Ubud+Bali',
         },
       ],
+      story: [
+        {
+          year: '2022',
+          title: 'Pertemuan Pertama di Pelataran Puri',
+          description:
+            'Di bawah teduhnya beringin pelataran Puri Ubud, pandangan kami pertama kali bertemu dalam kehangatan upacara piodalan.',
+        },
+        {
+          year: '2024',
+          title: 'Menjalin Janji Suci Menuju Grihasta',
+          description:
+            'Menapaki bukit Campuhan bersama, mengikrarkan niat tulus menyatukan dua rasa dalam bimbingan dharma Hyang Widhi Wasa.',
+        },
+        {
+          year: '2026',
+          title: 'Pawiwahan Agung Swarga Dewata',
+          description:
+            'Mengikat janji suci lahir batin di hadapan keluarga besar dan para leluhur, melangkah menuju gerbang kehidupan baru.',
+        },
+      ],
       giftTitle: 'Prada Dana Kasih',
       giftMessage:
         'Kehadiran serta doa restu Bapak/Ibu/Saudara/i merupakan anugerah terindah bagi kami. Namun apabila bermaksud mengirimkan tanda kasih, dapat melalui rekening berikut:',
@@ -95,11 +115,18 @@ export const SWARGA_DEWATA_DEMO_FIXTURE: RendererData = {
       order: 2,
     },
     {
+      id: 'demo-story',
+      slot: 'story',
+      src: '/templates/swarga-dewata/bali-photo-4.webp',
+      type: 'PHOTO',
+      order: 3,
+    },
+    {
       id: 'demo-gallery-0',
       slot: 'gallery',
       src: '/templates/swarga-dewata/bali-photo-1.webp',
       type: 'PHOTO',
-      order: 3,
+      order: 4,
     },
     {
       id: 'demo-gallery-1',

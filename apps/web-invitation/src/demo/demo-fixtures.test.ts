@@ -114,6 +114,7 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
     assert.equal(adapted.partnerOneFullName, 'dr. Anak Agung Ayu Saraswati, S.Ked.');
     assert.equal(adapted.partnerTwoFullName, 'Tjokorda Gde Bagus Mahendra, M.Ars.');
     assert.equal(adapted.ceremonies?.length, 2);
+    assert.equal(adapted.stories?.length, 3);
     assert.equal(adapted.giftAccounts?.length, 2);
     assert.equal(adapted.timeZone, 'Asia/Makassar');
   });

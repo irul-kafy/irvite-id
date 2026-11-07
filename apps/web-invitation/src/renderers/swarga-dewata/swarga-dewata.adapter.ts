@@ -1,9 +1,14 @@
 import type { PublicMediaDescriptor } from '../../types/public-invitation';
-import type { SwargaDewataContent, SwargaDewataMedia } from './types';
+import type {
+  SwargaDewataContent,
+  SwargaDewataMedia,
+  SwargaDewataStoryItem,
+} from './types';
 
 const DEFAULT_HERO_PHOTO = '/templates/swarga-dewata/bali-photo-1.webp';
 const DEFAULT_BRIDE_PHOTO = '/templates/swarga-dewata/bali-photo-2.webp';
 const DEFAULT_GROOM_PHOTO = '/templates/swarga-dewata/bali-photo-3.webp';
+const DEFAULT_STORY_PHOTO = '/templates/swarga-dewata/bali-photo-4.webp';
 const DEFAULT_GALLERY_PHOTOS = [
   '/templates/swarga-dewata/bali-photo-1.webp',
   '/templates/swarga-dewata/bali-photo-2.webp',
@@ -235,6 +240,48 @@ export function adaptSwargaDewataContent(
           },
         ];
 
+  const rawStories = Array.isArray(c.story)
+    ? c.story
+    : Array.isArray(c.stories)
+      ? c.stories
+      : [];
+  const stories: SwargaDewataStoryItem[] =
+    rawStories.length > 0
+      ? rawStories
+          .filter(
+            (item): item is Record<string, unknown> =>
+              Boolean(item) && typeof item === 'object',
+          )
+          .map((item) => ({
+            year: asString(item.year, asString(item.date, '')),
+            title: asString(item.title, 'Langkah Pertama Kasih'),
+            description: asString(
+              item.description,
+              asString(item.content, ''),
+            ),
+            date: asString(item.date, ''),
+          }))
+      : [
+          {
+            year: '2022',
+            title: 'Pertemuan Pertama di Pelataran Puri',
+            description:
+              'Di bawah teduhnya beringin pelataran Puri Ubud, pandangan kami pertama kali bertemu dalam kehangatan upacara piodalan.',
+          },
+          {
+            year: '2024',
+            title: 'Menjalin Janji Suci Menuju Grihasta',
+            description:
+              'Menapaki bukit Campuhan bersama, mengikrarkan niat tulus menyatukan dua rasa dalam bimbingan dharma Hyang Widhi Wasa.',
+          },
+          {
+            year: '2026',
+            title: 'Pawiwahan Agung Swarga Dewata',
+            description:
+              'Mengikat janji suci lahir batin di hadapan keluarga besar dan para leluhur, melangkah menuju gerbang kehidupan baru.',
+          },
+        ];
+
   return {
     partnerOneName,
     partnerTwoName,
@@ -249,6 +296,7 @@ export function adaptSwargaDewataContent(
     prayer,
     prayerSource,
     closingMessage,
+    stories,
     ceremonies,
     giftTitle,
     giftMessage,
@@ -297,6 +345,7 @@ export function adaptSwargaDewataMedia(
   const groomDesc =
     resolveSlot('groom').find((m) => m.type === 'PHOTO') ||
     resolveSlot('couple_2').find((m) => m.type === 'PHOTO');
+  const storyDesc = resolveSlot('story').find((m) => m.type === 'PHOTO');
   const galleryDescs = resolveSlot('gallery')
     .filter((m) => m.type === 'PHOTO')
     .slice(0, 8);
@@ -308,6 +357,8 @@ export function adaptSwargaDewataMedia(
     normalizeMediaUrl(brideDesc?.src, isPreview) || DEFAULT_BRIDE_PHOTO;
   const groomPhotoUrl =
     normalizeMediaUrl(groomDesc?.src, isPreview) || DEFAULT_GROOM_PHOTO;
+  const storyPhotoUrl =
+    normalizeMediaUrl(storyDesc?.src, isPreview) || DEFAULT_STORY_PHOTO;
 
   const galleryPhotos =
     galleryDescs.length > 0
@@ -322,6 +373,7 @@ export function adaptSwargaDewataMedia(
     heroPhotoUrl,
     bridePhotoUrl,
     groomPhotoUrl,
+    storyPhotoUrl,
     galleryPhotos:
       galleryPhotos.length > 0 ? galleryPhotos : DEFAULT_GALLERY_PHOTOS,
     bgMusicUrl,

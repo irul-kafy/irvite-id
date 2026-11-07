@@ -207,13 +207,27 @@ export function SwargaDewataRenderer({
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     let animFrameId = 0;
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
+    const dpr =
+      typeof window !== 'undefined'
+        ? Math.min(window.devicePixelRatio || 1, 2)
+        : 1;
+    let w = window.innerWidth;
+    let h = window.innerHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+    ctx.scale(dpr, dpr);
 
     const handleResize = () => {
       if (!canvas) return;
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.scale(dpr, dpr);
     };
     window.addEventListener('resize', handleResize);
 
@@ -252,8 +266,8 @@ export function SwargaDewataRenderer({
       };
     };
 
-    // Lightweight particle count: 12 on mobile, 28 on desktop (saves 40% GPU/battery)
-    const count = w < 768 ? 12 : 28;
+    // Consistent particle density across mobile & desktop with Retina crispness
+    const count = 26;
     const particles: ParticleItem[] = Array.from({ length: count }, () =>
       createParticle(true),
     );
@@ -272,15 +286,16 @@ export function SwargaDewataRenderer({
         ctx.arc(0, 0, p.size, 0, Math.PI * 2);
         ctx.fill();
       } else if (p.type === 'jepun') {
+        // Bunga Jepun (Frangipani Bali) with soft overlapping petals & golden core
         for (let i = 0; i < 5; i++) {
           ctx.save();
           ctx.rotate((i * Math.PI * 2) / 5);
           ctx.beginPath();
           ctx.ellipse(
             0,
-            -p.size * 0.55,
-            p.size * 0.32,
-            p.size * 0.6,
+            -p.size * 0.52,
+            p.size * 0.33,
+            p.size * 0.58,
             0,
             0,
             Math.PI * 2,
@@ -292,6 +307,10 @@ export function SwargaDewataRenderer({
         ctx.beginPath();
         ctx.arc(0, 0, p.size * 0.28, 0, Math.PI * 2);
         ctx.fillStyle = '#F5B935';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size * 0.15, 0, Math.PI * 2);
+        ctx.fillStyle = '#E59819';
         ctx.fill();
       } else {
         ctx.beginPath();
@@ -690,11 +709,110 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 03: RANGKAIAN KARYA PAWIWAHAN (CEREMONIES) */}
+        {/* SECTION 03: KISAH KASIH GRIHASTA (LOVE STORY TIMELINE) */}
+        {content.stories && content.stories.length > 0 && (
+          <section id="kisah" className={styles.sectionWrap}>
+            <div className={styles.sectionHeader}>
+              <p className={styles.sectionEyebrow}>
+                03 • Titi Asmara Grihasta
+              </p>
+              <h2
+                className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
+              >
+                Kisah Kasih Abadi
+              </h2>
+              <p className={styles.sectionSubtitle}>
+                Perjalanan suci dua jiwa yang dipersatukan dalam tuntunan
+                Dharma dan restu leluhur tanah Dewata.
+              </p>
+            </div>
+
+            <div className={styles.storyLayout}>
+              {/* Left Column: Balinese Royal Photo Arch */}
+              <div className={styles.storyPhotoCol}>
+                <div className={styles.storyPhotoCard}>
+                  <div className={`${styles.patraCorner} ${styles.patraTl}`} />
+                  <div className={`${styles.patraCorner} ${styles.patraTr}`} />
+                  <div className={`${styles.patraCorner} ${styles.patraBl}`} />
+                  <div className={`${styles.patraCorner} ${styles.patraBr}`} />
+
+                  <div className={styles.storyPhotoAspect}>
+                    <img
+                      src={media.storyPhotoUrl}
+                      alt="Kisah Kasih Mempelai"
+                      className={styles.storyPhotoImg}
+                    />
+                    <div className={styles.storyPhotoGradient} />
+                    <div className={styles.storyPhotoCaption}>
+                      <LotusPadmaSvg className={styles.storyPhotoLotus} />
+                      <p className={styles.storyPhotoQuote}>
+                        “Satyam Siwam Sundaram • Kebenaran, Kesucian, dan
+                        Keindahan dalam Cinta Abadi”
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Balinese Timeline Milestones */}
+              <div className={styles.storyTimelineCol}>
+                <div className={styles.storyTimelineSpine} />
+
+                {content.stories.map((item, idx) => (
+                  <div
+                    key={`${item.year}-${item.title}-${idx}`}
+                    className={styles.storyTimelineItem}
+                  >
+                    <div className={styles.storyTimelineNode}>
+                      <span className={styles.storyTimelineLotus}>❖</span>
+                    </div>
+
+                    <div
+                      className={`${styles.pradaCard} ${styles.storyCard}`}
+                    >
+                      <div
+                        className={`${styles.patraCorner} ${styles.patraTl}`}
+                      />
+                      <div
+                        className={`${styles.patraCorner} ${styles.patraTr}`}
+                      />
+                      <div
+                        className={`${styles.patraCorner} ${styles.patraBl}`}
+                      />
+                      <div
+                        className={`${styles.patraCorner} ${styles.patraBr}`}
+                      />
+
+                      <div className={styles.storyCardHeader}>
+                        <span className={styles.storyYearBadge}>
+                          {item.year}
+                        </span>
+                        {item.date && (
+                          <span className={styles.storyDateBadge}>
+                            {item.date}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className={styles.storyCardTitle}>{item.title}</h3>
+                      <p className={styles.storyCardDesc}>
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <div className={styles.tridatuRibbon} />
+
+        {/* SECTION 04: RANGKAIAN KARYA PAWIWAHAN (CEREMONIES) */}
         <section id="acara" className={styles.sectionWrap}>
           <div className={styles.sectionHeader}>
             <p className={styles.sectionEyebrow}>
-              03 • Dewasa Ayu &amp; Loka Karya
+              04 • Dewasa Ayu &amp; Loka Karya
             </p>
             <h2
               className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
@@ -826,10 +944,10 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 04: GALERI SWARGA DEWATA & LIGHTBOX */}
+        {/* SECTION 05: GALERI SWARGA DEWATA & LIGHTBOX */}
         <section id="galeri" className={styles.sectionWrap}>
           <div className={styles.sectionHeader}>
-            <p className={styles.sectionEyebrow}>04 • Lukisan Cahaya</p>
+            <p className={styles.sectionEyebrow}>05 • Lukisan Cahaya</p>
             <h2
               className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
             >
@@ -877,12 +995,12 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 05: RSVP & GUEST QR */}
+        {/* SECTION 06: RSVP & GUEST QR */}
         {showRsvpAndQr && (
           <section id="rsvp" className={styles.sectionWrap}>
             <div className={styles.sectionHeader}>
               <p className={styles.sectionEyebrow}>
-                05 • Pangaksama &amp; Doa Restu
+                06 • Pangaksama &amp; Doa Restu
               </p>
               <h2
                 className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
@@ -930,10 +1048,10 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 06: PRADA DANA KASIH (DIGITAL GIFT) - REKENING DI BAWAH DEKAT CLOSING */}
+        {/* SECTION 07: PRADA DANA KASIH (DIGITAL GIFT) - REKENING DI BAWAH DEKAT CLOSING */}
         <section id="prada-dana" className={styles.sectionWrapNarrow}>
           <div className={styles.sectionHeader}>
-            <p className={styles.sectionEyebrow}>06 • Tanda Kasih Kehormatan</p>
+            <p className={styles.sectionEyebrow}>07 • Tanda Kasih Kehormatan</p>
             <h2
               className={`${styles.sectionTitle} ${styles.pradaShimmerText}`}
             >
@@ -992,7 +1110,7 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
-        {/* SECTION 07: CLOSING MATUR SUKSMA & OM SHANTI */}
+        {/* SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI */}
         <footer id="closing" className={styles.closingSection}>
           <div className={styles.closingRadialBg} />
           <div className={styles.closingInner}>
@@ -1047,6 +1165,13 @@ export function SwargaDewataRenderer({
           </button>
           <button
             type="button"
+            onClick={() => scrollToSection('kisah')}
+            className={styles.bottomNavLink}
+          >
+            Kisah
+          </button>
+          <button
+            type="button"
             onClick={() => scrollToSection('acara')}
             className={styles.bottomNavLink}
           >
@@ -1073,7 +1198,8 @@ export function SwargaDewataRenderer({
             }
             className={styles.bottomNavCta}
           >
-            RSVP &amp; QR
+            <span className={styles.navCtaLong}>RSVP &amp; QR</span>
+            <span className={styles.navCtaShort}>RSVP</span>
           </button>
           <button
             type="button"

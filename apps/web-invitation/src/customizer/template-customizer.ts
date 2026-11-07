@@ -142,6 +142,10 @@ const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
       title: 'Foto Mempelai Pria (Sang Varaka)',
     },
     {
+      ...DEFAULT_SLOT_CATALOG.story,
+      title: 'Foto Kisah Kasih (Story Window)',
+    },
+    {
       ...DEFAULT_SLOT_CATALOG.gallery,
       title: 'Mozaik Galeri Swarga Dewata',
       maxItems: 8,
