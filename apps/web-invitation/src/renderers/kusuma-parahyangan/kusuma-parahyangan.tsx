@@ -511,9 +511,9 @@ export default function KusumaParahyanganRenderer({
           </div>
 
           <h2 className={s.heroCoupleTitle}>
-            {content.partnerOneFullName || content.partnerOneName}{' '}
+            {content.partnerOneName}{' '}
             <span className={`${s.heroAmpersand} ${s.goldText}`}>&amp;</span>{' '}
-            {content.partnerTwoFullName || content.partnerTwoName}
+            {content.partnerTwoName}
           </h2>
 
           <p className={s.heroQuoteSunda}>
@@ -801,9 +801,6 @@ export default function KusumaParahyanganRenderer({
                   </p>
                 </div>
               </div>
-              <a href="#rsvp" className={s.eventBtnGold}>
-                Konfirmasi Kehadiran
-              </a>
             </div>
 
             {/* Card 3: Resepsi Walimatul Ursy */}
@@ -1202,25 +1199,25 @@ export default function KusumaParahyanganRenderer({
 
         {/* Tanda Kasih (Amplop Digital) */}
         {content.giftAccounts && content.giftAccounts.length > 0 && (
-          <div className={s.giftBoxCard}>
+          <div className={s.tandaKasihCard}>
             <span className={s.eyebrowBrown}>
               TANDA KASIH &amp; AMPLOP DIGITAL
             </span>
-            <h3 className={s.giftTitle}>
+            <h3 className={s.tandaKasihTitle}>
               {content.giftTitle || 'Kirimkan Tanda Kasih'}
             </h3>
-            <p className={s.giftDesc}>
+            <p className={s.tandaKasihDesc}>
               {content.giftMessage ||
                 'Doa restu Anda merupakan karunia terindah bagi kami. Namun apabila Anda ingin memberikan tanda kasih secara digital, dapat melalui rekening berikut:'}
             </p>
 
             <div className={s.giftAccountsGrid}>
               {content.giftAccounts.map((acc, idx) => (
-                <div key={idx} className={s.giftAccountItem}>
+                <div key={idx} className={s.tandaKasihItem}>
                   <div>
-                    <span className={s.giftBankLabel}>{acc.bankName}</span>
-                    <p className={s.giftAccountNum}>{acc.accountNumber}</p>
-                    <p className={s.giftAccountHolder}>
+                    <span className={s.tandaKasihBankLabel}>{acc.bankName}</span>
+                    <p className={s.tandaKasihAccountNum}>{acc.accountNumber}</p>
+                    <p className={s.tandaKasihAccountHolder}>
                       a.n. {acc.accountHolder}
                     </p>
                   </div>
@@ -1232,7 +1229,7 @@ export default function KusumaParahyanganRenderer({
                         `Nomor rekening ${acc.bankName} ${acc.accountNumber} berhasil disalin!`,
                       )
                     }
-                    className={s.giftCopyBtn}
+                    className={s.tandaKasihCopyBtn}
                   >
                     Salin
                   </button>

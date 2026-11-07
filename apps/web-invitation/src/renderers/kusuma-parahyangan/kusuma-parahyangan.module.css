@@ -1,6 +1,6 @@
 /* ==========================================================================
    KUSUMA PARAHYANGAN — PAWIWAHAN ADAT SUNDA PRIANGAN
-   Self-Contained Pure CSS Module (Zero Tailwind Dependency)
+   Self-Contained Pure CSS Module (Desktop-First + @media & @container Mobile)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap');
@@ -239,14 +239,8 @@
 
 .valanceSvg {
   width: 100%;
-  height: 144px;
+  height: 192px;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .valanceSvg {
-    height: 192px;
-  }
 }
 
 .gateDoorLeft,
@@ -324,13 +318,7 @@
 .melatiShortSvg {
   width: 56px;
   height: 208px;
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .melatiShortSvg {
-    display: block;
-  }
+  display: block;
 }
 
 .gatePayungLeft {
@@ -349,17 +337,10 @@
 }
 
 .payungSvg {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   color: #d49b35;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .payungSvg {
-    width: 160px;
-    height: 160px;
-  }
 }
 
 .payungMirror {
@@ -440,18 +421,12 @@
 
 .gateTitle {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 30px;
+  font-size: 36px;
   color: #fcf8f2;
   font-weight: 600;
   letter-spacing: 0.025em;
   margin-bottom: 4px !important;
   line-height: 1.2;
-}
-
-@media (min-width: 640px) {
-  .gateTitle {
-    font-size: 36px;
-  }
 }
 
 .gateDateVenue {
@@ -572,14 +547,8 @@
 
 .heroTopSvg {
   width: 100%;
-  height: 64px;
+  height: 96px;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .heroTopSvg {
-    height: 96px;
-  }
 }
 
 .heroCenter {
@@ -587,7 +556,7 @@
   z-index: 10;
   max-width: 896px;
   margin: auto;
-  padding: 32px 20px;
+  padding: 32px 24px;
   text-align: center;
 }
 
@@ -620,16 +589,10 @@
 }
 
 .heroCrestSvg {
-  width: 224px;
+  width: 288px;
   height: 48px;
   color: #f3d28a;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .heroCrestSvg {
-    width: 288px;
-  }
 }
 
 .heroCoupleTitle {
@@ -638,7 +601,7 @@
   font-weight: 600;
   color: #fcf8f2;
   letter-spacing: -0.02em;
-  line-height: 1.05;
+  line-height: 1.08;
   margin-bottom: 16px !important;
 }
 
@@ -653,7 +616,7 @@
 .heroQuoteSunda {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
-  font-size: clamp(18px, 2.5vw, 24px);
+  font-size: 22px;
   color: #f3d28a;
   max-width: 672px;
   margin: 0 auto 8px !important;
@@ -668,14 +631,8 @@
 
 .heroPortraitContainer {
   position: relative;
-  width: 240px;
+  width: 288px;
   margin: 0 auto 32px;
-}
-
-@media (min-width: 640px) {
-  .heroPortraitContainer {
-    width: 288px;
-  }
 }
 
 .heroMelatiLeft {
@@ -707,16 +664,10 @@
 
 .heroPortraitImg {
   width: 100%;
-  height: 288px;
+  height: 320px;
   object-fit: cover;
   border-radius: 134px 134px 22px 22px;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .heroPortraitImg {
-    height: 320px;
-  }
 }
 
 .heroDateBadge {
@@ -788,15 +739,9 @@
 
 .heroWaveSvg {
   width: 100%;
-  height: 48px;
+  height: 64px;
   color: #fcf8f2;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .heroWaveSvg {
-    height: 64px;
-  }
 }
 
 /* ==========================================================================
@@ -804,15 +749,9 @@
    ========================================================================== */
 
 .sectionLight {
-  padding: 64px 20px;
+  padding: 96px 40px;
   max-width: 1024px;
   margin: 0 auto;
-}
-
-@media (min-width: 640px) {
-  .sectionLight {
-    padding: 96px 40px;
-  }
 }
 
 .greetingHeader {
@@ -852,7 +791,7 @@
 
 .salamTitle {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(22px, 3.5vw, 30px);
+  font-size: 28px;
   color: #4a2c18;
   font-weight: 600;
   margin-bottom: 12px !important;
@@ -880,7 +819,7 @@
   border: 2px solid rgba(212, 155, 53, 0.5);
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
-  font-size: clamp(17px, 2.2vw, 20px);
+  font-size: 19px;
   color: #4a2c18;
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
 }
@@ -897,25 +836,18 @@
   margin-top: 12px;
 }
 
-/* Couple Grid */
+/* Couple Grid (Desktop Default: 2 Columns) */
 .coupleGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 32px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 48px;
   align-items: stretch;
-}
-
-@media (min-width: 768px) {
-  .coupleGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 48px;
-  }
 }
 
 .coupleCard {
   background-color: #fffdf9;
   border-radius: 36px;
-  padding: 28px 24px;
+  padding: 36px;
   border: 2px solid rgba(212, 155, 53, 0.55);
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
   text-align: center;
@@ -924,12 +856,6 @@
   align-items: center;
   position: relative;
   overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .coupleCard {
-    padding: 36px;
-  }
 }
 
 .miniCrownSvg {
@@ -941,20 +867,13 @@
 }
 
 .personArchFrame {
-  width: 192px;
-  height: 256px;
+  width: 224px;
+  height: 288px;
   border-radius: 140px 140px 28px 28px;
   padding: 6px;
   background: linear-gradient(to bottom, #f3d28a, #d49b35, #4a2c18);
   margin-bottom: 20px;
   box-shadow: 0 20px 30px -10px rgba(74, 44, 24, 0.3);
-}
-
-@media (min-width: 640px) {
-  .personArchFrame {
-    width: 224px;
-    height: 288px;
-  }
 }
 
 .personImg {
@@ -980,7 +899,7 @@
 
 .personFullName {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(22px, 3vw, 28px);
+  font-size: 26px;
   color: #4a2c18;
   font-weight: 700;
   margin-bottom: 10px !important;
@@ -1015,22 +934,16 @@
   border: 1px solid rgba(212, 155, 53, 0.5);
 }
 
-/* Lalakon Asih Box */
+/* Lalakon Asih Box (Desktop Default: 3 Columns) */
 .lalakonBox {
   margin-top: 64px;
   color: #fcf8f2;
   border-radius: 36px;
-  padding: 28px 24px;
+  padding: 40px;
   border: 2px solid rgba(212, 155, 53, 0.6);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
   position: relative;
   overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .lalakonBox {
-    padding: 40px;
-  }
 }
 
 .lalakonHeader {
@@ -1048,21 +961,15 @@
 
 .lalakonTitle {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(22px, 3vw, 30px);
+  font-size: 28px;
   color: #fcf8f2;
   margin-top: 4px !important;
 }
 
 .lalakonGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-}
-
-@media (min-width: 768px) {
-  .lalakonGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 .lalakonStepCard {
@@ -1099,16 +1006,10 @@
    ========================================================================== */
 
 .sectionDarkFull {
-  padding: 64px 20px;
+  padding: 96px 40px;
   color: #fcf8f2;
   position: relative;
   overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .sectionDarkFull {
-    padding: 96px 40px;
-  }
 }
 
 .containerMax5xl {
@@ -1142,7 +1043,7 @@
 
 .sectionTitleLight {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: 34px;
   font-weight: 600;
   color: #ffffff;
 }
@@ -1154,16 +1055,11 @@
   line-height: 1.6;
 }
 
+/* Events Grid (Desktop Default: 3 Columns) */
 .eventsGrid3 {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-}
-
-@media (min-width: 768px) {
-  .eventsGrid3 {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 .eventCardRegular {
@@ -1185,7 +1081,7 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   text-align: left;
 }
 
@@ -1281,57 +1177,25 @@
   color: #2c180b !important;
 }
 
-.eventBtnGold {
-  margin-top: 24px;
-  width: 100%;
-  padding: 10px 16px;
-  border-radius: 12px;
-  background: linear-gradient(to right, #f3d28a, #d49b35);
-  color: #2c180b !important;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  text-align: center;
-  display: block;
-  transition: filter 0.2s ease;
-}
-
-.eventBtnGold:hover {
-  filter: brightness(1.1);
-}
-
 /* ==========================================================================
    SECTION 4: COUNTDOWN
    ========================================================================== */
 
 .countdownSection {
-  padding: 64px 20px;
+  padding: 64px 40px;
   max-width: 896px;
   margin: 0 auto;
   text-align: center;
 }
 
-@media (min-width: 640px) {
-  .countdownSection {
-    padding: 64px 40px;
-  }
-}
-
 .countdownCard {
   background-color: #fffdf9;
   border-radius: 36px;
-  padding: 28px 20px;
+  padding: 40px;
   border: 2px solid rgba(212, 155, 53, 0.6);
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
   position: relative;
   overflow: hidden;
-}
-
-@media (min-width: 640px) {
-  .countdownCard {
-    padding: 40px;
-  }
 }
 
 .eyebrowBrown {
@@ -1344,7 +1208,7 @@
 
 .countdownHeading {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(24px, 3.5vw, 30px);
+  font-size: 28px;
   color: #4a2c18;
   font-weight: 600;
   margin: 6px 0 24px !important;
@@ -1353,15 +1217,9 @@
 .countdownGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 20px;
   max-width: 576px;
   margin: 0 auto 28px;
-}
-
-@media (min-width: 640px) {
-  .countdownGrid {
-    gap: 20px;
-  }
 }
 
 .countdownTile {
@@ -1374,7 +1232,7 @@
 
 .countdownNumber {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(24px, 4vw, 36px);
+  font-size: 34px;
   font-weight: 700;
   color: #f3d28a;
   display: block;
@@ -1382,18 +1240,12 @@
 }
 
 .countdownUnit {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: rgba(252, 248, 242, 0.8);
   margin-top: 4px;
   display: block;
-}
-
-@media (min-width: 640px) {
-  .countdownUnit {
-    font-size: 11px;
-  }
 }
 
 .saveCalendarBtn {
@@ -1419,15 +1271,9 @@
    ========================================================================== */
 
 .gallerySection {
-  padding: 56px 20px;
+  padding: 80px 40px;
   max-width: 1024px;
   margin: 0 auto;
-}
-
-@media (min-width: 640px) {
-  .gallerySection {
-    padding: 80px 40px;
-  }
 }
 
 .galleryHeader {
@@ -1438,7 +1284,7 @@
 
 .sectionTitleBrown {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: 34px;
   color: #4a2c18;
   font-weight: 600;
   margin-top: 4px !important;
@@ -1450,23 +1296,11 @@
   margin-top: 8px !important;
 }
 
+/* Gallery Grid (Desktop Default: 4 Columns) */
 .galleryGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-@media (min-width: 640px) {
-  .galleryGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .galleryGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
 .galleryCard {
@@ -1520,39 +1354,22 @@
    ========================================================================== */
 
 .locationSection {
-  padding: 56px 20px;
+  padding: 56px 40px;
   max-width: 1024px;
   margin: 0 auto;
 }
 
-@media (min-width: 640px) {
-  .locationSection {
-    padding: 56px 40px;
-  }
-}
-
+/* Location Split Card (Desktop Default: 2 Columns 5fr 7fr) */
 .locationSplitCard {
   background-color: #fffdf9;
   border-radius: 36px;
-  padding: 24px;
+  padding: 40px;
   border: 2px solid rgba(212, 155, 53, 0.55);
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 5fr 7fr;
   gap: 32px;
   align-items: center;
-}
-
-@media (min-width: 640px) {
-  .locationSplitCard {
-    padding: 40px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .locationSplitCard {
-    grid-template-columns: 5fr 7fr;
-  }
 }
 
 .locationInfoCol {
@@ -1564,7 +1381,7 @@
 
 .locationVenueTitle {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(24px, 3vw, 30px);
+  font-size: 28px;
   color: #4a2c18;
   font-weight: 600;
 }
@@ -1680,43 +1497,26 @@
    ========================================================================== */
 
 .rsvpSection {
-  padding: 64px 20px;
+  padding: 80px 40px;
   max-width: 1024px;
   margin: 0 auto;
 }
 
-@media (min-width: 640px) {
-  .rsvpSection {
-    padding: 80px 40px;
-  }
-}
-
+/* RSVP Split Grid (Desktop Default: 2 Columns 7fr 5fr) */
 .rsvpSplitGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 7fr 5fr;
   gap: 32px;
   align-items: start;
-}
-
-@media (min-width: 1024px) {
-  .rsvpSplitGrid {
-    grid-template-columns: 7fr 5fr;
-  }
 }
 
 .rsvpCard {
   background-color: #fffdf9;
   border-radius: 36px;
-  padding: 24px;
+  padding: 32px;
   border: 2px solid rgba(212, 155, 53, 0.55);
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
   text-align: left;
-}
-
-@media (min-width: 640px) {
-  .rsvpCard {
-    padding: 32px;
-  }
 }
 
 .rsvpCardTitle {
@@ -1735,14 +1535,8 @@
 
 .formFieldRow2 {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-}
-
-@media (min-width: 640px) {
-  .formFieldRow2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 .formLabel {
@@ -1880,18 +1674,12 @@
 .qrPassCard {
   color: #fcf8f2;
   border-radius: 36px;
-  padding: 24px;
+  padding: 28px;
   border: 2px solid #d49b35;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
   position: relative;
   overflow: hidden;
   text-align: left;
-}
-
-@media (min-width: 640px) {
-  .qrPassCard {
-    padding: 28px;
-  }
 }
 
 .qrPassHeader {
@@ -1984,23 +1772,17 @@
 }
 
 /* Digital Envelope (Tanda Kasih) */
-.giftBoxCard {
+.tandaKasihCard {
   margin-top: 48px;
   background-color: #fffdf9;
   border-radius: 36px;
-  padding: 28px 24px;
+  padding: 36px;
   border: 2px solid rgba(212, 155, 53, 0.55);
   box-shadow: 0 18px 45px -15px rgba(74, 44, 24, 0.16), 0 0 0 1px rgba(212, 155, 53, 0.35);
   text-align: center;
 }
 
-@media (min-width: 640px) {
-  .giftBoxCard {
-    padding: 36px;
-  }
-}
-
-.giftTitle {
+.tandaKasihTitle {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 24px;
   color: #4a2c18;
@@ -2008,7 +1790,7 @@
   margin: 4px 0 8px !important;
 }
 
-.giftDesc {
+.tandaKasihDesc {
   font-size: 13px;
   color: rgba(43, 27, 16, 0.75);
   max-width: 576px;
@@ -2017,19 +1799,13 @@
 
 .giftAccountsGrid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   max-width: 672px;
   margin: 0 auto;
 }
 
-@media (min-width: 640px) {
-  .giftAccountsGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.giftAccountItem {
+.tandaKasihItem {
   padding: 16px;
   border-radius: 16px;
   background-color: #f4ebdc;
@@ -2041,7 +1817,7 @@
   gap: 12px;
 }
 
-.giftBankLabel {
+.tandaKasihBankLabel {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -2050,7 +1826,7 @@
   display: block;
 }
 
-.giftAccountNum {
+.tandaKasihAccountNum {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 16px;
   font-weight: 700;
@@ -2058,12 +1834,12 @@
   margin-top: 2px !important;
 }
 
-.giftAccountHolder {
+.tandaKasihAccountHolder {
   font-size: 12px;
   color: rgba(43, 27, 16, 0.75);
 }
 
-.giftCopyBtn {
+.tandaKasihCopyBtn {
   padding: 8px 16px;
   border-radius: 12px;
   background-color: #4a2c18;
@@ -2074,7 +1850,7 @@
   transition: background-color 0.2s ease;
 }
 
-.giftCopyBtn:hover {
+.tandaKasihCopyBtn:hover {
   background-color: #2c180b;
 }
 
@@ -2111,7 +1887,7 @@
 
 .closingCoupleTitle {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(30px, 5vw, 48px);
+  font-size: 44px;
   color: #ffffff;
   font-weight: 600;
   margin-bottom: 16px !important;
@@ -2120,7 +1896,7 @@
 .closingProverb {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
-  font-size: clamp(18px, 2.5vw, 24px);
+  font-size: 22px;
   color: #f3d28a;
   margin-bottom: 12px !important;
 }
@@ -2153,36 +1929,22 @@
   backdrop-filter: blur(12px);
   border: 2px solid rgba(212, 155, 53, 0.7);
   border-radius: 9999px;
-  padding: 8px 14px;
+  padding: 8px 20px;
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   max-width: 95vw;
-  overflow-x: auto;
-}
-
-@media (min-width: 640px) {
-  .bottomNav {
-    padding: 8px 20px;
-    gap: 10px;
-  }
 }
 
 .navLink {
   padding: 6px 10px;
   border-radius: 9999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: rgba(252, 248, 242, 0.9) !important;
   white-space: nowrap;
   transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-@media (min-width: 640px) {
-  .navLink {
-    font-size: 12px;
-  }
 }
 
 .navLink:hover {
@@ -2193,17 +1955,11 @@
 .navLinkCta {
   padding: 6px 12px;
   border-radius: 9999px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   background: linear-gradient(to right, #f3d28a, #d49b35);
   color: #261408 !important;
   white-space: nowrap;
-}
-
-@media (min-width: 640px) {
-  .navLinkCta {
-    font-size: 12px;
-  }
 }
 
 .navCircleBtn {
@@ -2298,4 +2054,748 @@
   object-fit: contain;
   border-radius: 12px;
   display: block;
+}
+
+/* ==========================================================================
+   RESPONSIVE BREAKPOINTS (TABLET <= 960px & MOBILE <= 600px)
+   Mirrored in BOTH @media and @container so Customizer Studio Device Frames
+   (390px Mobile & 768px Tablet) AND real mobile devices render identically.
+   ========================================================================== */
+
+@media (max-width: 960px) {
+  .sectionLight,
+  .sectionDarkFull,
+  .gallerySection,
+  .locationSection,
+  .rsvpSection {
+    padding: 64px 24px;
+  }
+
+  .coupleGrid {
+    grid-template-columns: 1fr !important;
+    gap: 28px;
+  }
+
+  .lalakonGrid {
+    grid-template-columns: 1fr !important;
+    gap: 18px;
+  }
+
+  .eventsGrid3 {
+    grid-template-columns: 1fr !important;
+    gap: 22px;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+
+  .locationSplitCard {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    padding: 28px;
+  }
+
+  .rsvpSplitGrid {
+    grid-template-columns: 1fr !important;
+    gap: 28px;
+  }
+}
+
+@container (max-width: 960px) {
+  .sectionLight,
+  .sectionDarkFull,
+  .gallerySection,
+  .locationSection,
+  .rsvpSection {
+    padding: 64px 24px;
+  }
+
+  .coupleGrid {
+    grid-template-columns: 1fr !important;
+    gap: 28px;
+  }
+
+  .lalakonGrid {
+    grid-template-columns: 1fr !important;
+    gap: 18px;
+  }
+
+  .eventsGrid3 {
+    grid-template-columns: 1fr !important;
+    gap: 22px;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+
+  .locationSplitCard {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    padding: 28px;
+  }
+
+  .rsvpSplitGrid {
+    grid-template-columns: 1fr !important;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 600px) {
+  .valanceSvg {
+    height: 112px;
+  }
+
+  .gateDoorLeft,
+  .gateDoorRight {
+    padding: 12px;
+  }
+
+  .melatiShortSvg {
+    display: none;
+  }
+
+  .melatiLongSvg {
+    width: 48px;
+    height: 180px;
+  }
+
+  .payungSvg {
+    width: 108px;
+    height: 108px;
+  }
+
+  .gateCenterContent {
+    width: calc(100% - 28px);
+    max-width: 348px;
+    padding: 24px 18px;
+    border-radius: 28px;
+  }
+
+  .gateSigerSvg {
+    width: 112px;
+    height: 86px;
+  }
+
+  .gateTitle {
+    font-size: 26px !important;
+  }
+
+  .gateGuestCard {
+    padding: 12px;
+    margin-bottom: 18px;
+  }
+
+  .gateOpenBtn {
+    padding: 12px 18px;
+    font-size: 13px;
+  }
+
+  .heroTopSvg {
+    height: 52px;
+  }
+
+  .heroCenter {
+    padding: 28px 16px 32px;
+  }
+
+  .heroBadgePill {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    padding: 4px 12px;
+    margin-bottom: 14px;
+  }
+
+  .heroCrestSvg {
+    width: 200px;
+    height: 40px;
+  }
+
+  .heroCoupleTitle {
+    font-size: 36px !important;
+    line-height: 1.12 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .heroQuoteSunda {
+    font-size: 17px;
+  }
+
+  .heroQuoteIndo {
+    font-size: 12px;
+    margin-bottom: 24px !important;
+  }
+
+  .heroPortraitContainer {
+    width: 220px;
+    margin: 0 auto 24px;
+  }
+
+  .heroPortraitImg {
+    height: 260px;
+  }
+
+  .heroMelatiLeft {
+    left: -16px;
+    width: 32px;
+    height: 156px;
+  }
+
+  .heroMelatiRight {
+    right: -16px;
+    width: 32px;
+    height: 156px;
+  }
+
+  .heroDateBadge {
+    font-size: 10px;
+    padding: 5px 16px;
+    letter-spacing: 0.14em;
+  }
+
+  .heroActionRow {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 260px;
+    margin: 14px auto 0;
+    gap: 10px;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnSecondary {
+    width: 100%;
+    font-size: 12px;
+    padding: 11px 18px;
+  }
+
+  .heroWaveSvg {
+    height: 40px;
+  }
+
+  .sectionLight,
+  .sectionDarkFull,
+  .gallerySection,
+  .locationSection,
+  .rsvpSection {
+    padding: 48px 16px;
+  }
+
+  .greetingHeader {
+    margin-bottom: 36px;
+  }
+
+  .salamTitle {
+    font-size: 21px !important;
+  }
+
+  .sampurasunQuote {
+    font-size: 17px;
+  }
+
+  .greetingBodyText {
+    font-size: 13.5px;
+  }
+
+  .verseBox {
+    padding: 18px 16px;
+    font-size: 16px;
+    border-radius: 20px;
+  }
+
+  .coupleCard {
+    padding: 24px 18px;
+    border-radius: 28px;
+  }
+
+  .personArchFrame {
+    width: 184px;
+    height: 238px;
+  }
+
+  .personFullName {
+    font-size: 21px;
+  }
+
+  .lalakonBox {
+    margin-top: 40px;
+    padding: 24px 16px;
+    border-radius: 28px;
+  }
+
+  .lalakonTitle {
+    font-size: 22px;
+  }
+
+  .sectionTitleLight,
+  .sectionTitleBrown {
+    font-size: 26px !important;
+  }
+
+  .countdownSection {
+    padding: 44px 16px;
+  }
+
+  .countdownCard {
+    padding: 24px 14px;
+    border-radius: 28px;
+  }
+
+  .countdownHeading {
+    font-size: 22px;
+  }
+
+  .countdownGrid {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .countdownTile {
+    padding: 12px 4px;
+    border-radius: 14px;
+  }
+
+  .countdownNumber {
+    font-size: 24px;
+  }
+
+  .countdownUnit {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+
+  .galleryCard {
+    height: 208px;
+    border-radius: 18px;
+  }
+
+  .galleryOverlay {
+    opacity: 1;
+    padding: 10px 12px;
+    background: linear-gradient(
+      to top,
+      rgba(44, 24, 11, 0.88) 0%,
+      rgba(44, 24, 11, 0.15) 55%,
+      transparent 100%
+    );
+  }
+
+  .galleryCaption {
+    font-size: 10.5px;
+    line-height: 1.3;
+  }
+
+  .locationSplitCard {
+    padding: 22px 16px;
+    border-radius: 28px;
+    gap: 20px;
+  }
+
+  .locationVenueTitle {
+    font-size: 22px;
+  }
+
+  .locationBtnGroup {
+    flex-direction: column;
+  }
+
+  .btnSolidBrown,
+  .btnOutlineBrown {
+    width: 100%;
+    text-align: center;
+  }
+
+  .locationMapCol {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .vectorMapSvg {
+    height: 176px;
+  }
+
+  .rsvpCard,
+  .qrPassCard,
+  .tandaKasihCard {
+    padding: 22px 16px;
+    border-radius: 28px;
+  }
+
+  .formFieldRow2,
+  .giftAccountsGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .closingSection {
+    padding: 64px 16px 104px;
+  }
+
+  .closingCoupleTitle {
+    font-size: 32px !important;
+  }
+
+  .closingProverb {
+    font-size: 18px;
+  }
+
+  .bottomNav {
+    bottom: 18px;
+    width: calc(100% - 16px);
+    max-width: 366px;
+    padding: 5px 8px;
+    gap: 2px;
+    justify-content: space-between;
+  }
+
+  .navLink {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .navLinkCta {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .navCircleBtn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+}
+
+@container (max-width: 600px) {
+  .valanceSvg {
+    height: 112px;
+  }
+
+  .gateDoorLeft,
+  .gateDoorRight {
+    padding: 12px;
+  }
+
+  .melatiShortSvg {
+    display: none;
+  }
+
+  .melatiLongSvg {
+    width: 48px;
+    height: 180px;
+  }
+
+  .payungSvg {
+    width: 108px;
+    height: 108px;
+  }
+
+  .gateCenterContent {
+    width: calc(100% - 28px);
+    max-width: 348px;
+    padding: 24px 18px;
+    border-radius: 28px;
+  }
+
+  .gateSigerSvg {
+    width: 112px;
+    height: 86px;
+  }
+
+  .gateTitle {
+    font-size: 26px !important;
+  }
+
+  .gateGuestCard {
+    padding: 12px;
+    margin-bottom: 18px;
+  }
+
+  .gateOpenBtn {
+    padding: 12px 18px;
+    font-size: 13px;
+  }
+
+  .heroTopSvg {
+    height: 52px;
+  }
+
+  .heroCenter {
+    padding: 28px 16px 32px;
+  }
+
+  .heroBadgePill {
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    padding: 4px 12px;
+    margin-bottom: 14px;
+  }
+
+  .heroCrestSvg {
+    width: 200px;
+    height: 40px;
+  }
+
+  .heroCoupleTitle {
+    font-size: 36px !important;
+    line-height: 1.12 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .heroQuoteSunda {
+    font-size: 17px;
+  }
+
+  .heroQuoteIndo {
+    font-size: 12px;
+    margin-bottom: 24px !important;
+  }
+
+  .heroPortraitContainer {
+    width: 220px;
+    margin: 0 auto 24px;
+  }
+
+  .heroPortraitImg {
+    height: 260px;
+  }
+
+  .heroMelatiLeft {
+    left: -16px;
+    width: 32px;
+    height: 156px;
+  }
+
+  .heroMelatiRight {
+    right: -16px;
+    width: 32px;
+    height: 156px;
+  }
+
+  .heroDateBadge {
+    font-size: 10px;
+    padding: 5px 16px;
+    letter-spacing: 0.14em;
+  }
+
+  .heroActionRow {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 260px;
+    margin: 14px auto 0;
+    gap: 10px;
+  }
+
+  .heroBtnPrimary,
+  .heroBtnSecondary {
+    width: 100%;
+    font-size: 12px;
+    padding: 11px 18px;
+  }
+
+  .heroWaveSvg {
+    height: 40px;
+  }
+
+  .sectionLight,
+  .sectionDarkFull,
+  .gallerySection,
+  .locationSection,
+  .rsvpSection {
+    padding: 48px 16px;
+  }
+
+  .greetingHeader {
+    margin-bottom: 36px;
+  }
+
+  .salamTitle {
+    font-size: 21px !important;
+  }
+
+  .sampurasunQuote {
+    font-size: 17px;
+  }
+
+  .greetingBodyText {
+    font-size: 13.5px;
+  }
+
+  .verseBox {
+    padding: 18px 16px;
+    font-size: 16px;
+    border-radius: 20px;
+  }
+
+  .coupleCard {
+    padding: 24px 18px;
+    border-radius: 28px;
+  }
+
+  .personArchFrame {
+    width: 184px;
+    height: 238px;
+  }
+
+  .personFullName {
+    font-size: 21px;
+  }
+
+  .lalakonBox {
+    margin-top: 40px;
+    padding: 24px 16px;
+    border-radius: 28px;
+  }
+
+  .lalakonTitle {
+    font-size: 22px;
+  }
+
+  .sectionTitleLight,
+  .sectionTitleBrown {
+    font-size: 26px !important;
+  }
+
+  .countdownSection {
+    padding: 44px 16px;
+  }
+
+  .countdownCard {
+    padding: 24px 14px;
+    border-radius: 28px;
+  }
+
+  .countdownHeading {
+    font-size: 22px;
+  }
+
+  .countdownGrid {
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .countdownTile {
+    padding: 12px 4px;
+    border-radius: 14px;
+  }
+
+  .countdownNumber {
+    font-size: 24px;
+  }
+
+  .countdownUnit {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+
+  .galleryGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+
+  .galleryCard {
+    height: 208px;
+    border-radius: 18px;
+  }
+
+  .galleryOverlay {
+    opacity: 1;
+    padding: 10px 12px;
+    background: linear-gradient(
+      to top,
+      rgba(44, 24, 11, 0.88) 0%,
+      rgba(44, 24, 11, 0.15) 55%,
+      transparent 100%
+    );
+  }
+
+  .galleryCaption {
+    font-size: 10.5px;
+    line-height: 1.3;
+  }
+
+  .locationSplitCard {
+    padding: 22px 16px;
+    border-radius: 28px;
+    gap: 20px;
+  }
+
+  .locationVenueTitle {
+    font-size: 22px;
+  }
+
+  .locationBtnGroup {
+    flex-direction: column;
+  }
+
+  .btnSolidBrown,
+  .btnOutlineBrown {
+    width: 100%;
+    text-align: center;
+  }
+
+  .locationMapCol {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .vectorMapSvg {
+    height: 176px;
+  }
+
+  .rsvpCard,
+  .qrPassCard,
+  .tandaKasihCard {
+    padding: 22px 16px;
+    border-radius: 28px;
+  }
+
+  .formFieldRow2,
+  .giftAccountsGrid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .closingSection {
+    padding: 64px 16px 104px;
+  }
+
+  .closingCoupleTitle {
+    font-size: 32px !important;
+  }
+
+  .closingProverb {
+    font-size: 18px;
+  }
+
+  .bottomNav {
+    bottom: 18px;
+    width: calc(100% - 16px);
+    max-width: 366px;
+    padding: 5px 8px;
+    gap: 2px;
+    justify-content: space-between;
+  }
+
+  .navLink {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  .navLinkCta {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .navCircleBtn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
 }

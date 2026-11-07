@@ -8,8 +8,8 @@ export const KUSUMA_PARAHYANGAN_DEMO_FIXTURE: RendererData = {
     locationDetails: 'Bale Julang Ngapak Parahyangan, Dago Pakar, Bandung',
     content: {
       _schemaVersion: 1,
-      partnerOneName: 'Neng Citra',
-      partnerTwoName: 'Kang Galih',
+      partnerOneName: 'Citra',
+      partnerTwoName: 'Galih',
       partnerOneFullName: 'Neng Citra Kirana, S.Ars.',
       partnerTwoFullName: 'Kang Galih Prakoso, M.B.A.',
       partnerOneFamily:

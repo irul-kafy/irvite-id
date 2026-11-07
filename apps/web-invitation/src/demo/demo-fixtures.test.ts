@@ -108,8 +108,8 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
     const rawContent = KUSUMA_PARAHYANGAN_DEMO_FIXTURE.event.content as Record<string, unknown>;
     const adapted = adaptKusumaParahyanganContent(rawContent);
     assert.ok(adapted, 'Kusuma Parahyangan content must adapt successfully');
-    assert.equal(adapted.partnerOneName, 'Neng Citra');
-    assert.equal(adapted.partnerTwoName, 'Kang Galih');
+    assert.equal(adapted.partnerOneName, 'Citra');
+    assert.equal(adapted.partnerTwoName, 'Galih');
     assert.equal(adapted.ceremonies?.length, 2);
     assert.equal(adapted.giftAccounts?.length, 2);
     assert.equal(adapted.timeZone, 'Asia/Jakarta');
