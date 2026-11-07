@@ -21,8 +21,17 @@ import {
   BaleJulangNgapak,
   SigerCrown,
   RonceMelatiStrand,
+  RonceMelatiShort,
+  PortraitMelatiStrand,
   PayungAgung,
   LawangValance,
+  HeroMelatiFrame,
+  HeroWaveDivider,
+  KujangSigerDivider,
+  MiniSigerCrown,
+  MiniBendo,
+  MerakNgibingFan,
+  DagoPakarVectorMap,
 } from './ornaments';
 import s from './kusuma-parahyangan.module.css';
 
@@ -32,6 +41,44 @@ function mediaSrc(src: string | undefined, isPreview: boolean) {
   if (!src.startsWith('/') || src.startsWith('//') || /[\\\u0000-\u0020]/.test(src)) return undefined;
   return isPreview || src.startsWith('/api-proxy') ? src : `/api-proxy${src}`;
 }
+
+interface WishEntry {
+  name: string;
+  status: string;
+  message: string;
+  time: string;
+}
+
+const INITIAL_WISHES: WishEntry[] = [
+  {
+    name: 'Kang Ridwan & Teh Atalia',
+    status: 'Hadir — Akad & Upacara Adat',
+    message:
+      'Wilujeng ngambah sagara rumah tangga Neng Citra & Kang Galih. Mugia janten kulawarga anu sakinah, mawaddah, warahmah, ka cai jadi saleuwi ka darat jadi salogak.',
+    time: 'Baru saja',
+  },
+  {
+    name: 'Teh Dinda Permatasari',
+    status: 'Hadir — Resepsi Walimahan',
+    message:
+      'MasyaAllah nuansa adat Sunda Julang Ngapak dan Siger Kencana-nya terasa hidup banget! Lancar sampai hari H ya Citra dan Galih.',
+    time: '10 menit lalu',
+  },
+  {
+    name: 'Kulawarga Besar H. Ahmad Sobari',
+    status: 'Hadir — Akad & Upacara Adat',
+    message:
+      'Mugia salawasna aya dina panangtayungan Gusti Nu Maha Suci. Sampai jumpa di Bale Julang Ngapak Parahyangan.',
+    time: '1 jam lalu',
+  },
+];
+
+const GALLERY_CAPTIONS = [
+  'Janji Suci di Bale Parahyangan',
+  'Keanggunan Mahkota Siger & Ronce Melati',
+  'Wibawa Beskap Putih & Bendo Sunda',
+  'Arsitektur Bale Julang Ngapak & Payung Agung',
+];
 
 export default function KusumaParahyanganRenderer({
   data,
@@ -45,19 +92,36 @@ export default function KusumaParahyanganRenderer({
 
   const [opened, setOpened] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Interactive wishes & demo RSVP state
+  const [wishes, setWishes] = useState<WishEntry[]>(INITIAL_WISHES);
+  const [demoGuestName, setDemoGuestName] = useState('Raden Bagus Pratama');
+  const [demoAttendance, setDemoAttendance] = useState('Hadir — Akad & Upacara Adat');
+  const [demoGuestCount, setDemoGuestCount] = useState('2 Orang (Berpasangan)');
+  const [demoWishText, setDemoWishText] = useState(
+    'Wilujeng ngambah sagara rumah tangga. Mugia runtut raut sauyunan, ka cai jadi saleuwi ka darat jadi salogak.',
+  );
 
   const synthRef = useRef<SundaneseKecapiSynth | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const guestVisible = shouldRenderSereneGuest(mode, data.guest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
 
-  const heroSrc = mediaSrc(media.hero?.src, isPreview) || '/templates/kusuma-parahyangan/couple-sunda-demo.webp';
-  const brideSrc = mediaSrc(media.bride?.src, isPreview) || '/templates/kusuma-parahyangan/bride-sunda-demo.webp';
-  const groomSrc = mediaSrc(media.groom?.src, isPreview) || '/templates/kusuma-parahyangan/groom-sunda-demo.webp';
+  const decorBgSrc = '/templates/kusuma-parahyangan/decor-sunda-demo.webp';
+  const heroSrc =
+    mediaSrc(media.hero?.src, isPreview) ||
+    '/templates/kusuma-parahyangan/couple-sunda-demo.webp';
+  const brideSrc =
+    mediaSrc(media.bride?.src, isPreview) ||
+    '/templates/kusuma-parahyangan/bride-sunda-demo.webp';
+  const groomSrc =
+    mediaSrc(media.groom?.src, isPreview) ||
+    '/templates/kusuma-parahyangan/groom-sunda-demo.webp';
   const customAudioSrc = mediaSrc(media.bgMusic?.src, isPreview);
 
   const rawGallery = media.gallery
@@ -75,8 +139,11 @@ export default function KusumaParahyanganRenderer({
         ];
   }, [rawGallery]);
 
-  const guestName = guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i';
-  const guestGreeting = data.guest?.customGreeting || 'Tamu Kahormatan';
+  const guestName =
+    guestVisible && data.guest?.name
+      ? data.guest.name
+      : 'Keluarga Besar & Sahabat Terkasih';
+  const guestGreeting = data.guest?.customGreeting || 'Di Tempat';
 
   // Target event date for countdown
   const targetEpoch = useMemo(() => {
@@ -84,15 +151,14 @@ export default function KusumaParahyanganRenderer({
       data.event?.eventDate,
       content.ceremonies?.[0]?.startDateTime,
     );
-    return rawEpoch ?? (Date.now() + 1000 * 60 * 60 * 24 * 45); // default fallback
+    return rawEpoch ?? Date.now() + 1000 * 60 * 60 * 24 * 98;
   }, [data.event?.eventDate, content.ceremonies]);
 
-  // Countdown timer state
   const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
+    days: 98,
+    hours: 18,
+    minutes: 42,
+    seconds: 15,
   });
 
   useEffect(() => {
@@ -112,7 +178,6 @@ export default function KusumaParahyanganRenderer({
     return () => clearInterval(timer);
   }, [targetEpoch]);
 
-  // Audio Synth / Player initialization
   useEffect(() => {
     synthRef.current = new SundaneseKecapiSynth();
     return () => {
@@ -120,8 +185,21 @@ export default function KusumaParahyanganRenderer({
       if (audioElRef.current) {
         audioElRef.current.pause();
       }
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
     };
   }, []);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3400);
+  };
 
   const handleOpenInvitation = () => {
     setOpened(true);
@@ -137,20 +215,36 @@ export default function KusumaParahyanganRenderer({
     }
   };
 
+  const handleReplayGate = () => {
+    setOpened(false);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const toggleAudio = () => {
     if (customAudioSrc && audioElRef.current) {
       if (isPlaying) {
         audioElRef.current.pause();
         setIsPlaying(false);
+        showToast('Musik Kacapi Suling dihentikan sementara');
       } else {
         audioElRef.current
           .play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            showToast('Memutar Kacapi Suling Sunda (Laras Degung)');
+          })
           .catch(() => setIsPlaying(false));
       }
     } else if (synthRef.current) {
       const active = synthRef.current.toggle();
       setIsPlaying(active);
+      showToast(
+        active
+          ? 'Memutar Kacapi Suling Sunda (Laras Degung)'
+          : 'Musik Kacapi Suling dihentikan sementara',
+      );
     }
   };
 
@@ -222,7 +316,7 @@ export default function KusumaParahyanganRenderer({
     };
   }, []);
 
-  const copyToClipboard = (text: string, identifier: string) => {
+  const copyToClipboard = (text: string, customToast?: string) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         void navigator.clipboard.writeText(text);
@@ -234,11 +328,30 @@ export default function KusumaParahyanganRenderer({
         document.execCommand('copy');
         document.body.removeChild(area);
       }
-      setCopiedAccount(identifier);
-      setTimeout(() => setCopiedAccount(null), 3000);
     } catch {
-      // Fallback
+      // Fallback ignored
     }
+    showToast(customToast || 'Berhasil disalin ke clipboard!');
+  };
+
+  const handleDemoRsvpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = demoGuestName.trim() || 'Tamu Undangan';
+    const trimmedWish = demoWishText.trim();
+    if (trimmedWish) {
+      setWishes((prev) => [
+        {
+          name: trimmedName,
+          status: demoAttendance,
+          message: trimmedWish,
+          time: 'Baru saja',
+        },
+        ...prev,
+      ]);
+    }
+    showToast(
+      `Konfirmasi RSVP & Tiket QR atas nama ${trimmedName} berhasil diperbarui!`,
+    );
   };
 
   const effectiveCanonicalUrl =
@@ -246,506 +359,993 @@ export default function KusumaParahyanganRenderer({
     (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
     'https://irvite.id/i/SIMULASI-TAMU';
 
+  const primaryCeremony = content.ceremonies?.[0];
+  const secondaryCeremony = content.ceremonies?.[1];
+  const formattedPrimaryDate = primaryCeremony?.startDateTime
+    ? formatCeremonyDate(primaryCeremony.startDateTime, content.timeZone)
+    : 'Sabtu, 14 Februari 2027';
+  const mainVenueName =
+    primaryCeremony?.venue || 'Bale Julang Ngapak Parahyangan';
+  const mainVenueAddress =
+    primaryCeremony?.address ||
+    'Jl. Raya Resort Dago Pakar No. 88, Ciburial, Kec. Cimenyan, Kabupaten Bandung, Jawa Barat 40198';
+  const mainMapsUrl =
+    primaryCeremony?.mapsUrl ||
+    'https://www.google.com/maps/search/?api=1&query=Dago+Pakar+Bandung';
+
   return (
     <div className={s.wrapper}>
-      {/* Background Music fallback element if custom audio configured */}
       {customAudioSrc && (
         <audio ref={audioElRef} src={customAudioSrc} loop preload="auto" />
       )}
 
-      {/* Floating Canvas for Jasmine Petals and Sawer Beras Kuning */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-30"
-        aria-hidden="true"
-      />
+      {/* FLOATING JASMINE BUDS & SAWER GOLDEN SPARKLE CANVAS */}
+      <canvas ref={canvasRef} className={s.particleCanvas} aria-hidden="true" />
 
-      {/* Floating Audio Toggle Button */}
-      <button
-        type="button"
-        onClick={toggleAudio}
-        aria-label={isPlaying ? 'Jeda alunan musik' : 'Putar alunan musik'}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-[#2c180b]/90 hover:bg-[#4a2c18] border border-[#d49b35]/70 text-[#fcf8f2] px-3.5 py-2.5 rounded-full shadow-2xl backdrop-blur-md transition-all active:scale-95"
-      >
-        <span className="text-lg leading-none">{isPlaying ? '🎵' : '🔇'}</span>
-        <span className="text-xs font-medium text-[#f3d28a] hidden sm:inline">
-          {isPlaying ? 'Laras Degung' : 'Mute'}
-        </span>
-      </button>
+      {/* TOAST NOTIFICATION BANNER */}
+      {toastMessage && (
+        <div className={s.toastBanner} role="status" aria-live="polite">
+          <span className={s.toastSparkle}>✦</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
       {/* ============================================================== */}
-      {/* OPENING GATE OVERLAY (LAWANG SAKETENG SUNDA & GEBYOK PASUNDAN)  */}
+      {/* OPENING GATE OVERLAY (LAWANG SAKETENG SUNDA & TIRAI MELATI)    */}
       {/* ============================================================== */}
       <div
         className={`${s.gateOverlay} ${opened ? s.gateOpen : ''}`}
         role="dialog"
         aria-label="Pintu Pembuka Undangan"
       >
-        {/* Top Scalloped Garland */}
-        <div className={`${s.gateTopValance} absolute top-0 inset-x-0 z-30 pointer-events-none flex justify-between items-start overflow-hidden px-2`}>
-          <LawangValance className="w-full h-32 sm:h-44 text-[#f3d28a]" />
+        {/* Top Hanging Ronce Melati Garland Valance Across Gate */}
+        <div className={s.gateTopValance}>
+          <LawangValance className={s.valanceSvg} />
         </div>
 
-        {/* Left Gate Door */}
-        <div
-          className={`${s.gateDoorLeft} absolute inset-y-0 left-0 w-1/2 bg-[#2c180b] border-r-2 border-[#d49b35]/60 overflow-hidden flex flex-col justify-between p-6`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1f1006] via-[#2c180b]/90 to-[#4a2c18]/85" />
-          <div className="relative z-10 flex justify-around items-start pt-6 pointer-events-none">
-            <RonceMelatiStrand className={`w-14 sm:w-16 h-56 sm:h-64 ${s.swayMelati}`} />
-          </div>
-          <div className="relative z-10 mt-auto opacity-50 hidden sm:block">
-            <PayungAgung className="w-32 h-32 text-[#d49b35]" />
-          </div>
-        </div>
+        {/* Left Gate Door (Gebyok Jati & Bilik Bambu Kiri) */}
+        <div className={s.gateDoorLeft}>
+          <div
+            className={s.gateDoorBgImage}
+            style={{ backgroundImage: `url('${decorBgSrc}')` }}
+          />
+          <div className={s.gateDoorLeftGrad} />
 
-        {/* Right Gate Door */}
-        <div
-          className={`${s.gateDoorRight} absolute inset-y-0 right-0 w-1/2 bg-[#2c180b] border-l-2 border-[#d49b35]/60 overflow-hidden flex flex-col justify-between p-6`}
-        >
-          <div className="absolute inset-0 bg-gradient-to-l from-[#1f1006] via-[#2c180b]/90 to-[#4a2c18]/85" />
-          <div className="relative z-10 flex justify-around items-start pt-6 pointer-events-none">
-            <RonceMelatiStrand className={`w-14 sm:w-16 h-56 sm:h-64 ${s.swayMelatiAlt}`} />
+          <div className={s.gateMelatiRow}>
+            <RonceMelatiStrand className={`${s.melatiLongSvg} ${s.swayMelati}`} />
+            <RonceMelatiShort className={`${s.melatiShortSvg} ${s.swayMelatiAlt}`} />
           </div>
-          <div className="relative z-10 mt-auto opacity-50 self-end hidden sm:block">
-            <PayungAgung className="w-32 h-32 text-[#d49b35] transform scale-x-[-1]" />
+
+          <div className={s.gatePayungLeft}>
+            <PayungAgung className={s.payungSvg} />
           </div>
         </div>
 
-        {/* Center Portal Content Card */}
-        <div
-          className={`${s.gateCenterContent} relative z-30 max-w-md w-11/12 mx-auto bg-[#241307]/95 border-2 border-[#d49b35] p-6 sm:p-8 rounded-3xl text-center shadow-2xl backdrop-blur-md`}
-        >
-          <div className="flex justify-center mb-3">
-            <SigerCrown className={`w-28 h-16 ${s.sigerCrownAnim}`} />
+        {/* Right Gate Door (Gebyok Jati & Bilik Bambu Kanan) */}
+        <div className={s.gateDoorRight}>
+          <div
+            className={s.gateDoorBgImage}
+            style={{ backgroundImage: `url('${decorBgSrc}')` }}
+          />
+          <div className={s.gateDoorRightGrad} />
+
+          <div className={s.gateMelatiRow}>
+            <RonceMelatiShort className={`${s.melatiShortSvg} ${s.swayMelati}`} />
+            <RonceMelatiStrand className={`${s.melatiLongSvg} ${s.swayMelatiAlt}`} />
           </div>
-          <p className="text-xs uppercase tracking-[0.25em] text-[#f3d28a] font-medium mb-1">
-            Pawiwahan Adat Sunda
+
+          <div className={s.gatePayungRight}>
+            <PayungAgung className={`${s.payungSvg} ${s.payungMirror}`} />
+          </div>
+        </div>
+
+        {/* Gate Center Medallion: Siger Sunda Kencana & Julang Ngapak Roof */}
+        <div className={s.gateCenterContent}>
+          <div className={s.gateSigerWrap}>
+            <SigerCrown
+              className={`${s.gateSigerSvg} ${s.sigerCrownAnim}`}
+              pinClassName={s.kembangGoyangPin}
+            />
+          </div>
+
+          <p className={s.gateAksara}>ᮝᮤᮜᮥᮏᮨᮀ ᮞᮥᮙ᮪ᮕᮤᮀ</p>
+          <p className={s.gateSubtitle}>
+            Wilujeng Sumping • Walimatul Ursy Adat Sunda
           </p>
-          <h1 className={`${s.fontSerif} text-3xl sm:text-4xl font-bold text-[#fcf8f2] mb-3 leading-tight`}>
-            {content.partnerOneName} <span className={s.goldText}>&amp;</span> {content.partnerTwoName}
+
+          <h1 className={s.gateTitle}>
+            {content.partnerOneName}{' '}
+            <span className={`${s.goldText} ${s.fontEditorial}`}>&amp;</span>{' '}
+            {content.partnerTwoName}
           </h1>
+          <p className={s.gateDateVenue}>
+            {formattedPrimaryDate} • {mainVenueName}
+          </p>
 
-          <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#d49b35] to-transparent mx-auto my-3" />
-
-          <p className="text-xs text-[#fcf8f2]/75 mb-1">Kahatur kersana simkuring sakulawargi:</p>
-          <div className="bg-[#4a2c18]/60 border border-[#d49b35]/40 rounded-xl py-2 px-3 mb-5">
-            <p className="text-sm font-semibold text-[#fff0c2]">{guestName}</p>
-            <p className="text-[11px] text-[#f3d28a]/80">{guestGreeting}</p>
+          <div className={s.gateGuestCard}>
+            <p className={s.gateGuestLabel}>
+              Kahatur Bapak/Ibu/Saderek Hormateun
+            </p>
+            <p className={s.gateGuestName}>{guestName}</p>
+            <p className={s.gateGuestPlace}>{guestGreeting}</p>
           </div>
 
           <button
             type="button"
             onClick={handleOpenInvitation}
-            className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[#d49b35] via-[#f3d28a] to-[#d49b35] text-[#2c180b] font-semibold text-sm tracking-wide shadow-lg hover:brightness-105 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className={s.gateOpenBtn}
           >
-            <span>📜</span> Buka Serat Uleman
+            <span>Buka Lawang Kabagjaan</span>
+            <span>→</span>
           </button>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* MAIN INVITATION BODY                                           */}
+      {/* SECTION 1: HERO                                                */}
       {/* ============================================================== */}
-      <main className="w-full relative">
-        {/* HERO SECTION */}
-        <section className={`${s.bgJatiUkir} min-h-screen relative flex flex-col justify-center items-center text-center px-4 py-16 sm:py-24 border-b-4 border-[#d49b35]`}>
-          <div className="relative z-10 max-w-3xl mx-auto">
-            <BaleJulangNgapak className="w-56 sm:w-72 h-12 text-[#f3d28a] mx-auto mb-3" />
-            <p className="text-xs sm:text-sm uppercase tracking-[0.3em] text-[#f3d28a] font-medium mb-3">
-              Sampurasun • Pawiwahan Pasundan
-            </p>
+      <section id="hero" className={s.heroSection}>
+        <div className={s.heroBgWrap}>
+          <img
+            src={decorBgSrc}
+            alt="Bale Julang Ngapak Parahyangan"
+            className={s.heroBgImg}
+          />
+          <div className={s.heroBgOverlay} />
+        </div>
 
-            <h1 className={`${s.fontSerif} text-4xl sm:text-6xl md:text-7xl font-bold text-[#fcf8f2] tracking-tight mb-4 leading-none`}>
-              {content.partnerOneName} <span className={s.goldText}>&amp;</span> {content.partnerTwoName}
-            </h1>
+        <div className={s.heroTopFrame}>
+          <HeroMelatiFrame className={s.heroTopSvg} />
+        </div>
 
-            <p className={`${s.fontEditorial} italic text-lg sm:text-2xl text-[#f3d28a] max-w-2xl mx-auto mb-2`}>
-              “{content.openingGreeting || 'Silih asih, silih asah, silih asuh — ngambah sagara rumah tangga dina panangtayungan Gusti.'}”
-            </p>
-            <p className="text-xs sm:text-sm text-[#fcf8f2]/80 max-w-xl mx-auto mb-8">
-              Saling mengasihi, saling membimbing, dan saling menjaga dalam kehangatan adat Pasundan.
-            </p>
-
-            {/* Couple Hero Portrait with Siger Arch Frame */}
-            <div className="relative w-64 sm:w-72 h-80 sm:h-96 mx-auto mb-8">
-              <div className="absolute -left-6 top-6 z-20 pointer-events-none hidden sm:block">
-                <RonceMelatiStrand className={`w-10 h-48 ${s.swayMelati}`} />
-              </div>
-              <div className="absolute -right-6 top-6 z-20 pointer-events-none hidden sm:block">
-                <RonceMelatiStrand className={`w-10 h-48 ${s.swayMelatiAlt}`} />
-              </div>
-
-              <div className={`p-2 ${s.sigerArchFrame} bg-gradient-to-b from-[#f3d28a] via-[#d49b35] to-[#4a2c18] shadow-2xl h-full`}>
-                <img
-                  src={heroSrc}
-                  alt={`${content.partnerOneName} & ${content.partnerTwoName}`}
-                  className="w-full h-full object-cover rounded-[130px_130px_20px_20px]"
-                />
-              </div>
-            </div>
-
-            {/* Countdown Display */}
-            <div className="max-w-md mx-auto grid grid-cols-4 gap-2 sm:gap-3 mb-6">
-              <div className={s.countdownBox}>
-                <span className="block text-2xl sm:text-3xl font-bold text-[#fff0c2] leading-none">
-                  {String(timeLeft.days).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] sm:text-xs text-[#f3d28a]/80 uppercase tracking-wider">
-                  Dinten
-                </span>
-              </div>
-              <div className={s.countdownBox}>
-                <span className="block text-2xl sm:text-3xl font-bold text-[#fff0c2] leading-none">
-                  {String(timeLeft.hours).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] sm:text-xs text-[#f3d28a]/80 uppercase tracking-wider">
-                  Tabuh
-                </span>
-              </div>
-              <div className={s.countdownBox}>
-                <span className="block text-2xl sm:text-3xl font-bold text-[#fff0c2] leading-none">
-                  {String(timeLeft.minutes).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] sm:text-xs text-[#f3d28a]/80 uppercase tracking-wider">
-                  Menit
-                </span>
-              </div>
-              <div className={s.countdownBox}>
-                <span className="block text-2xl sm:text-3xl font-bold text-[#fff0c2] leading-none">
-                  {String(timeLeft.seconds).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] sm:text-xs text-[#f3d28a]/80 uppercase tracking-wider">
-                  Detik
-                </span>
-              </div>
-            </div>
-
-            <p className="text-xs sm:text-sm text-[#fcf8f2]/90 font-medium">
-              📅 {content.ceremonies?.[0]?.startDateTime ? formatCeremonyDate(content.ceremonies[0].startDateTime, content.timeZone) : 'Sabtu, 24 Juli 2027'}
-            </p>
+        <div className={s.heroCenter}>
+          <p className={s.heroAksara}>ᮕᮝᮤᮝᮠᮔ᮪ ᮃᮓᮒ᮪ ᮞᮥᮔ᮪ᮓ</p>
+          <div className={s.heroBadgePill}>
+            <span>✦</span>
+            <span>Walimatul Ursy • Adat Sunda Priangan</span>
+            <span>✦</span>
           </div>
-        </section>
 
-        {/* GREETING & MEMPELAI SECTION */}
-        <section className={`${s.bgBilikSunda} py-16 sm:py-24 px-4 sm:px-6`}>
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="flex justify-center mb-4">
-              <SigerCrown className="w-20 h-12 text-[#d49b35]" />
+          <div className={s.heroCrestWrap}>
+            <BaleJulangNgapak className={s.heroCrestSvg} />
+          </div>
+
+          <h2 className={s.heroCoupleTitle}>
+            {content.partnerOneFullName || content.partnerOneName}{' '}
+            <span className={`${s.heroAmpersand} ${s.goldText}`}>&amp;</span>{' '}
+            {content.partnerTwoFullName || content.partnerTwoName}
+          </h2>
+
+          <p className={s.heroQuoteSunda}>
+            “
+            {content.openingGreeting ||
+              'Silih asih, silih asah, silih asuh — ngambah sagara rumah tangga dina panangtayungan Gusti.'}
+            ”
+          </p>
+          <p className={s.heroQuoteIndo}>
+            Saling mengasihi, saling mencerdaskan, dan saling menjaga dalam
+            kehangatan adat Pasundan.
+          </p>
+
+          {/* Couple Portrait Framed with Siger Arch & Swaying Melati */}
+          <div className={s.heroPortraitContainer}>
+            <PortraitMelatiStrand
+              className={`${s.heroMelatiLeft} ${s.swayMelati}`}
+            />
+            <PortraitMelatiStrand
+              className={`${s.heroMelatiRight} ${s.swayMelatiAlt}`}
+            />
+
+            <div className={s.heroPortraitFrame}>
+              <img
+                src={heroSrc}
+                alt={`${content.partnerOneName} & ${content.partnerTwoName}`}
+                className={s.heroPortraitImg}
+              />
             </div>
 
-            <p className="text-xs uppercase tracking-[0.25em] text-[#4a2c18] font-semibold mb-2">
-              Bismillahirahmanirrahim
+            <div className={s.heroDateBadge}>{formattedPrimaryDate}</div>
+          </div>
+
+          <div className={s.heroActionRow}>
+            <a href="#greeting" className={s.heroBtnPrimary}>
+              Buka Rangkaian Acara ↓
+            </a>
+            <a href="#rsvp" className={s.heroBtnSecondary}>
+              RSVP &amp; Tiket QR Tamu
+            </a>
+          </div>
+        </div>
+
+        <div className={s.heroWaveWrap}>
+          <HeroWaveDivider className={s.heroWaveSvg} />
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* SECTION 2: GREETING & MEMPELAI (MOJANG & JAJAKA)               */}
+      {/* ============================================================== */}
+      <section id="greeting" className={s.sectionLight}>
+        <div className={s.greetingHeader}>
+          <p className={s.aksaraGold}>ᮞᮙ᮪ᮕᮥᮛᮞᮥᮔ᮪</p>
+          <span className={s.sectionEyebrowDark}>
+            02 / SAMPURASUN &amp; PANGANTEN
+          </span>
+
+          <div className={s.kujangDividerWrap}>
+            <KujangSigerDivider className={s.kujangDividerSvg} />
+          </div>
+
+          <p className={s.salamTitle}>
+            Assalamu’alaikum Warahmatullahi Wabarakatuh
+          </p>
+          <p className={s.sampurasunQuote}>
+            “Sampurasun — Rampes. Mugia rahayu sagung dumadi.”
+          </p>
+          <p className={s.greetingBodyText}>
+            Dengan memohon rahmat dan ridho Allah SWT, serta menjunjung tinggi
+            nilai luhur budaya Tatar Pasundan, kami bermaksud menyelenggarakan
+            syukuran pernikahan putra-putri kami:
+          </p>
+
+          <div className={s.verseBox}>
+            “
+            {content.prayer ||
+              'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.'}
+            ”
+            <span className={s.verseRef}>— QS. Ar-Rum: 21</span>
+          </div>
+        </div>
+
+        {/* Mojang & Jajaka Parahyangan Cards */}
+        <div className={s.coupleGrid}>
+          {/* Bride Card (Mojang Priangan) */}
+          <div className={s.coupleCard}>
+            <MiniSigerCrown className={s.miniCrownSvg} />
+
+            <div className={s.personArchFrame}>
+              <img
+                src={brideSrc}
+                alt={content.partnerOneFullName || content.partnerOneName}
+                className={s.personImg}
+              />
+            </div>
+
+            <span className={s.personRolePill}>Mojang Panganten</span>
+            <h3 className={s.personFullName}>
+              {content.partnerOneFullName || content.partnerOneName}
+            </h3>
+            <p className={s.personFamilyText}>
+              {content.partnerOneFamily ||
+                'Putri Cikal ti Pasangan Bapak H. Dedi Kusnandar & Ibu Hj. Ratna Ningrum (Kulawarga Ageng Sumedang Larang & Bandung)'}
             </p>
-
-            <blockquote className={`${s.fontEditorial} italic text-base sm:text-xl text-[#4a2c18] max-w-2xl mx-auto mb-4`}>
-              “{content.prayer || 'Maha Suci Allah anu parantos nyiptakeun mahluk-Na sapasang-sapasang. Mugia Gusti maparinan kaberkahan, ngarumat dina katengtreman lahir sinareng batin.'}”
-            </blockquote>
-            <p className="text-xs text-[#4a2c18]/70 mb-12">
-              (QS. Ar-Rum: 21)
-            </p>
-
-            {/* Couple Profiles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-center">
-              {/* Mempelai Wanita (Bride) */}
-              <div className={`bg-[#fcf8f2] border border-[#d49b35]/40 rounded-3xl p-6 sm:p-8 ${s.sundaCard}`}>
-                <div className="w-40 h-40 mx-auto rounded-full overflow-hidden border-4 border-[#d49b35] shadow-lg mb-4">
-                  <img src={brideSrc} alt={content.partnerOneFullName || content.partnerOneName} className="w-full h-full object-cover" />
-                </div>
-                <h3 className={`${s.fontSerif} text-2xl font-bold text-[#4a2c18] mb-1`}>
-                  {content.partnerOneFullName || content.partnerOneName}
-                </h3>
-                <p className="text-xs uppercase tracking-wider text-[#d49b35] font-semibold mb-3">
-                  Panganten Istri
-                </p>
-                <p className="text-xs sm:text-sm text-[#4a2c18]/80 leading-relaxed">
-                  {content.partnerOneFamily || 'Putri bungsu ti Bapa Asep Hidayat & Ibu Nining Rustini'}
-                </p>
-              </div>
-
-              {/* Mempelai Pria (Groom) */}
-              <div className={`bg-[#fcf8f2] border border-[#d49b35]/40 rounded-3xl p-6 sm:p-8 ${s.sundaCard}`}>
-                <div className="w-40 h-40 mx-auto rounded-full overflow-hidden border-4 border-[#d49b35] shadow-lg mb-4">
-                  <img src={groomSrc} alt={content.partnerTwoFullName || content.partnerTwoName} className="w-full h-full object-cover" />
-                </div>
-                <h3 className={`${s.fontSerif} text-2xl font-bold text-[#4a2c18] mb-1`}>
-                  {content.partnerTwoFullName || content.partnerTwoName}
-                </h3>
-                <p className="text-xs uppercase tracking-wider text-[#d49b35] font-semibold mb-3">
-                  Panganten Pameget
-                </p>
-                <p className="text-xs sm:text-sm text-[#4a2c18]/80 leading-relaxed">
-                  {content.partnerTwoFamily || 'Putra cikal ti Bapa Dudung Suherman & Ibu Euis Kartini'}
-                </p>
-              </div>
+            <div className={s.personSocialFooter}>
+              <span className={s.personSocialBadge}>
+                <span>✦</span>
+                <span>Mempelai Istri</span>
+              </span>
             </div>
           </div>
-        </section>
 
-        {/* CEREMONIES & RUNDOWN ADAT PASUNDAN SECTION */}
-        <section className={`${s.bgJatiUkir} py-16 sm:py-24 px-4 sm:px-6 text-[#fcf8f2]`}>
-          <div className="max-w-4xl mx-auto text-center">
-            <BaleJulangNgapak className="w-48 sm:w-60 h-10 text-[#f3d28a] mx-auto mb-2" />
-            <h2 className={`${s.fontSerif} text-3xl sm:text-4xl font-bold text-[#fcf8f2] mb-3`}>
-              Runtuyan Acara Pawiwahan
-            </h2>
-            <p className="text-xs sm:text-sm text-[#f3d28a]/90 max-w-xl mx-auto mb-12">
-              Mugi Gusti maparin kalancaran tur karahayuan dina sakur acara anu bade dilaksanakeun.
-            </p>
+          {/* Groom Card (Jajaka Pasundan) */}
+          <div className={s.coupleCard}>
+            <MiniBendo className={s.miniCrownSvg} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              {content.ceremonies && content.ceremonies.length > 0 ? (
-                content.ceremonies.map((ceremony, idx) => (
-                  <div
-                    key={idx}
-                    className={`bg-[#1f1006]/85 border-2 border-[#d49b35]/70 rounded-3xl p-6 sm:p-8 text-left ${s.sundaCardDark}`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-xs uppercase tracking-widest text-[#f3d28a] font-semibold bg-[#4a2c18] px-3 py-1 rounded-full border border-[#d49b35]/40">
-                        {idx === 0 ? 'Ijáb Qobul' : 'Pangbagéa'}
-                      </span>
-                      <span className="text-2xl">💍</span>
-                    </div>
-
-                    <h3 className={`${s.fontSerif} text-2xl font-bold text-[#fff0c2] mb-2`}>
-                      {ceremony.title}
-                    </h3>
-
-                    <div className="space-y-2 text-xs sm:text-sm text-[#fcf8f2]/85 mb-6">
-                      <p className="flex items-center gap-2">
-                        <span>🗓️</span>
-                        <span>{formatCeremonyDate(ceremony.startDateTime, content.timeZone)}</span>
-                      </p>
-                      <p className="flex items-center gap-2">
-                        <span>⏰</span>
-                        <span>{formatCeremonyTimeRange(ceremony.startDateTime, ceremony.endDateTime, content.timeZone)}</span>
-                      </p>
-                      <p className="flex items-start gap-2">
-                        <span>🏛️</span>
-                        <span>
-                          <strong className="text-[#f3d28a] block">{ceremony.venue}</strong>
-                          {ceremony.address && <span className="text-[#fcf8f2]/70 block mt-0.5">{ceremony.address}</span>}
-                        </span>
-                      </p>
-                    </div>
-
-                    {ceremony.mapsUrl && (
-                      <a
-                        href={ceremony.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#d49b35] hover:bg-[#f3d28a] text-[#2c180b] font-semibold text-xs rounded-xl shadow transition-all"
-                      >
-                        <span>📍</span> Pituduh Lokasi (Google Maps)
-                      </a>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 text-center text-sm text-[#f3d28a]/80">
-                  Jadwal acara pernikahan akan segera diperbarui.
-                </div>
-              )}
+            <div className={s.personArchFrame}>
+              <img
+                src={groomSrc}
+                alt={content.partnerTwoFullName || content.partnerTwoName}
+                className={s.personImg}
+              />
             </div>
 
-            {/* Showcase Prosesi Adat Sunda */}
-            <div className="bg-[#241307]/80 border border-[#d49b35]/50 rounded-3xl p-6 sm:p-8 text-left">
-              <h4 className={`${s.fontSerif} text-xl font-bold text-[#fff0c2] mb-4 text-center`}>
-                Prosesi &amp; Upacara Adat Pasundan
+            <span className={s.personRolePill}>Jajaka Panganten</span>
+            <h3 className={s.personFullName}>
+              {content.partnerTwoFullName || content.partnerTwoName}
+            </h3>
+            <p className={s.personFamilyText}>
+              {content.partnerTwoFamily ||
+                'Putra Kadua ti Pasangan Bapak Ir. H. Suryono Wibowo & Ibu Hj. Dewi Sartika (Kulawarga Ageng Galuh Ciamis & Bogor)'}
+            </p>
+            <div className={s.personSocialFooter}>
+              <span className={s.personSocialBadge}>
+                <span>✦</span>
+                <span>Mempelai Pameget</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Lalakon Asih (Tahapan Adat Pernikahan Sunda) */}
+        <div className={`${s.lalakonBox} ${s.bgJatiUkir}`}>
+          <div className={s.lalakonHeader}>
+            <span className={s.lalakonEyebrow}>Lalakon Cinta Tatar Sunda</span>
+            <h3 className={s.lalakonTitle}>
+              Rangkaian Tradisi Menuju Pelaminan
+            </h3>
+          </div>
+
+          <div className={s.lalakonGrid}>
+            <div className={s.lalakonStepCard}>
+              <span className={s.lalakonStepNum}>01 • Neundeun Omong</span>
+              <h4 className={s.lalakonStepTitle}>
+                Pertemuan di Bumi Priangan
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div className="p-3 bg-[#4a2c18]/50 rounded-2xl border border-[#d49b35]/30">
-                  <span className="text-2xl mb-1 block">🌿</span>
-                  <p className="text-xs font-semibold text-[#f3d28a]">Ngeuyeuk Seureuh</p>
-                  <p className="text-[10px] text-[#fcf8f2]/70">Neda pituah sepuh</p>
+              <p className={s.lalakonStepDesc}>
+                Berawal dari silaturahmi hangat keluarga di Bandung, niat baik
+                disimpan dalam hati hingga tiba waktunya menyatukan dua keluarga
+                besar.
+              </p>
+            </div>
+
+            <div className={s.lalakonStepCard}>
+              <span className={s.lalakonStepNum}>
+                02 • Narosan &amp; Ngeuyeuk Seureuh
+              </span>
+              <h4 className={s.lalakonStepTitle}>Petuah Luhur Sepuh</h4>
+              <p className={s.lalakonStepDesc}>
+                Melalui prosesi lamaran (Narosan) dan Ngeuyeuk Seureuh, kami
+                menerima wejangan hidup rukun ka cai jadi saleuwi, ka darat jadi
+                salogak.
+              </p>
+            </div>
+
+            <div className={s.lalakonStepCard}>
+              <span className={s.lalakonStepNum}>
+                03 • Mapag &amp; Sawer Panganten
+              </span>
+              <h4 className={s.lalakonStepTitle}>
+                Ikrar Suci Sehidup Semati
+              </h4>
+              <p className={s.lalakonStepDesc}>
+                Di bawah naungan Payung Agung kuning keemasan dan taburan beras
+                kuning Sawer Panganten, kami melangkah menuju bahtera rumah
+                tangga.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* SECTION 3: EVENT DETAILS (WAKTOS & TEMPAT PAWIWAHAN)           */}
+      {/* ============================================================== */}
+      <section id="eventDetails" className={`${s.sectionDarkFull} ${s.bgJatiUkir}`}>
+        <div className={s.containerMax5xl}>
+          <div className={s.sectionHeaderCenter}>
+            <p className={s.aksaraLight}>ᮝᮊ᮪ᮒᮥ ᮞᮛᮨᮀ ᮒᮨᮙ᮪ᮕᮒ᮪</p>
+            <span className={s.sectionEyebrowGold}>
+              03 / RANGKAIAN PROSESI ADAT SUNDA
+            </span>
+            <h2 className={s.sectionTitleLight}>Waktos &amp; Tempat Pawiwahan</h2>
+            <p className={s.sectionDescLight}>
+              Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila
+              Bapak/Ibu/Saderek berkenan hadir memberikan doa restu pada:
+            </p>
+          </div>
+
+          <div className={s.eventsGrid3}>
+            {/* Card 1: Akad Nikah */}
+            <div className={s.eventCardRegular}>
+              <div>
+                <div className={s.eventCardTopBar}>
+                  <span className={s.eventBadgeRegular}>Sesi I • Sakral</span>
+                  <span className={s.eventIconTop}>✦</span>
                 </div>
-                <div className="p-3 bg-[#4a2c18]/50 rounded-2xl border border-[#d49b35]/30">
-                  <span className="text-2xl mb-1 block">🪗</span>
-                  <p className="text-xs font-semibold text-[#f3d28a]">Mapag Panganten</p>
-                  <p className="text-[10px] text-[#fcf8f2]/70">Pangiring Lengser</p>
-                </div>
-                <div className="p-3 bg-[#4a2c18]/50 rounded-2xl border border-[#d49b35]/30">
-                  <span className="text-2xl mb-1 block">🪙</span>
-                  <p className="text-xs font-semibold text-[#f3d28a]">Sawer Panganten</p>
-                  <p className="text-[10px] text-[#fcf8f2]/70">Beas koneng &amp; artos</p>
-                </div>
-                <div className="p-3 bg-[#4a2c18]/50 rounded-2xl border border-[#d49b35]/30">
-                  <span className="text-2xl mb-1 block">🍚</span>
-                  <p className="text-xs font-semibold text-[#f3d28a]">Huap Lingkung</p>
-                  <p className="text-[10px] text-[#fcf8f2]/70">Silih asih suap bakti</p>
+                <h3 className={s.eventCardTitle}>
+                  {primaryCeremony?.title || 'Akad Nikah'}
+                </h3>
+                <p className={s.eventCardSub}>
+                  Mapag Panganten, Ijab Qabul &amp; Sungkeman
+                </p>
+                <div className={s.eventMetaList}>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>📅</span>
+                    <span>{formattedPrimaryDate}</span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>🕗</span>
+                    <span>
+                      {primaryCeremony?.startDateTime
+                        ? formatCeremonyTimeRange(
+                            primaryCeremony.startDateTime,
+                            primaryCeremony.endDateTime,
+                            content.timeZone,
+                          )
+                        : '08.00 – 10.00 WIB'}
+                    </span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>📍</span>
+                    <span>
+                      {mainVenueName}
+                      {primaryCeremony?.address
+                        ? `, ${primaryCeremony.address}`
+                        : ', Dago Pakar, Bandung'}
+                    </span>
+                  </p>
                 </div>
               </div>
+              <a href="#location" className={s.eventBtnOutline}>
+                Lihat Lokasi Bale
+              </a>
             </div>
-          </div>
-        </section>
 
-        {/* PHOTO GALLERY SECTION */}
-        <section className={`${s.bgBilikSunda} py-16 sm:py-24 px-4 sm:px-6`}>
-          <div className="max-w-5xl mx-auto text-center">
-            <h2 className={`${s.fontSerif} text-3xl sm:text-4xl font-bold text-[#4a2c18] mb-2`}>
-              Galeri Momen Kabagjaan
-            </h2>
-            <p className="text-xs sm:text-sm text-[#4a2c18]/70 mb-10">
-              Dokumentasi potret asih dina runtuyan rasa jeung carita.
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {galleryImages.map((src, i) => (
-                <div
-                  key={i}
-                  onClick={() => setLightbox(i)}
-                  className="relative aspect-[3/4] rounded-2xl overflow-hidden border-2 border-[#d49b35]/50 shadow-md cursor-pointer hover:scale-[1.02] transition-transform"
-                >
-                  <img src={src} alt={`Dokumentasi ${i + 1}`} className="w-full h-full object-cover" />
+            {/* Card 2: Upacara Adat Sunda (Sawer, Nincak Endog, Huap Lingkung) */}
+            <div className={s.eventCardFeatured}>
+              <div>
+                <div className={s.eventCardTopBar}>
+                  <span className={s.eventBadgeFeatured}>
+                    Sesi II • Puncak Adat
+                  </span>
+                  <span className={s.eventIconTop}>👑</span>
                 </div>
-              ))}
+                <h3 className={s.eventCardTitle}>Upacara Adat Sunda</h3>
+                <p className={s.eventCardSub}>
+                  Sawer Panganten, Nincak Endog, Peupeus Kendi &amp; Huap Lingkung
+                </p>
+                <div className={s.eventMetaList}>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>📅</span>
+                    <span>{formattedPrimaryDate}</span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>🕙</span>
+                    <span>10.00 – 11.30 WIB</span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>🎶</span>
+                    <span>
+                      Diiringi Kidung Sawer, Tari Merak &amp; Gamelan Degung
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <a href="#rsvp" className={s.eventBtnGold}>
+                Konfirmasi Kehadiran
+              </a>
+            </div>
+
+            {/* Card 3: Resepsi Walimatul Ursy */}
+            <div className={s.eventCardRegular}>
+              <div>
+                <div className={s.eventCardTopBar}>
+                  <span className={s.eventBadgeRegular}>
+                    Sesi III • Walimahan
+                  </span>
+                  <span className={s.eventIconTop}>✦</span>
+                </div>
+                <h3 className={s.eventCardTitle}>
+                  {secondaryCeremony?.title || 'Resepsi Pernikahan'}
+                </h3>
+                <p className={s.eventCardSub}>
+                  Jamuan Kasih Tatamu &amp; Kesenian Kacapi Suling
+                </p>
+                <div className={s.eventMetaList}>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>📅</span>
+                    <span>
+                      {secondaryCeremony?.startDateTime
+                        ? formatCeremonyDate(
+                            secondaryCeremony.startDateTime,
+                            content.timeZone,
+                          )
+                        : formattedPrimaryDate}
+                    </span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>🕚</span>
+                    <span>
+                      {secondaryCeremony?.startDateTime
+                        ? formatCeremonyTimeRange(
+                            secondaryCeremony.startDateTime,
+                            secondaryCeremony.endDateTime,
+                            content.timeZone,
+                          )
+                        : '11.30 – 14.30 WIB'}
+                    </span>
+                  </p>
+                  <p className={s.eventMetaItem}>
+                    <span className={s.eventMetaIcon}>📍</span>
+                    <span>
+                      {secondaryCeremony?.venue ||
+                        'Pendopo Agung Julang Ngapak, Bandung'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <a href="#location" className={s.eventBtnOutline}>
+                Petunjuk Peta
+              </a>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* DIGITAL ENVELOPE / TANDA KASIH */}
-        {content.giftAccounts && content.giftAccounts.length > 0 && (
-          <section className={`${s.bgJatiUkir} py-16 sm:py-20 px-4 sm:px-6 text-[#fcf8f2]`}>
-            <div className="max-w-md mx-auto text-center">
-              <span className="text-3xl mb-2 block">🎁</span>
-              <h2 className={`${s.fontSerif} text-2xl sm:text-3xl font-bold text-[#fff0c2] mb-2`}>
-                {content.giftTitle || 'Tanda Asih Digital'}
-              </h2>
-              <p className="text-xs text-[#fcf8f2]/80 mb-8">
-                {content.giftMessage || 'Kagem wargi sadaya anu badé ngintunkeun tanda asih, tiasa ngalangkungan rekening ieu di handap:'}
+      {/* ============================================================== */}
+      {/* SECTION 4: COUNTDOWN                                           */}
+      {/* ============================================================== */}
+      <section id="countdown" className={s.countdownSection}>
+        <div className={s.countdownCard}>
+          <span className={s.eyebrowBrown}>04 / BILANGAN WAKTOS KABAGJAAN</span>
+          <h3 className={s.countdownHeading}>Menuju Hari Penyatuan Dua Hati</h3>
+
+          <div className={s.countdownGrid}>
+            <div className={s.countdownTile}>
+              <span className={s.countdownNumber}>
+                {String(timeLeft.days).padStart(2, '0')}
+              </span>
+              <span className={s.countdownUnit}>Dinten (Hari)</span>
+            </div>
+            <div className={s.countdownTile}>
+              <span className={s.countdownNumber}>
+                {String(timeLeft.hours).padStart(2, '0')}
+              </span>
+              <span className={s.countdownUnit}>Jam</span>
+            </div>
+            <div className={s.countdownTile}>
+              <span className={s.countdownNumber}>
+                {String(timeLeft.minutes).padStart(2, '0')}
+              </span>
+              <span className={s.countdownUnit}>Menit</span>
+            </div>
+            <div className={s.countdownTile}>
+              <span className={s.countdownNumber}>
+                {String(timeLeft.seconds).padStart(2, '0')}
+              </span>
+              <span className={s.countdownUnit}>Detik</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              showToast('Pengingat acara berhasil ditambahkan ke kalender Anda!')
+            }
+            className={s.saveCalendarBtn}
+          >
+            + Simpan Tanggal ke Kalender
+          </button>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* SECTION 5: GALLERY                                             */}
+      {/* ============================================================== */}
+      <section id="gallery" className={s.gallerySection}>
+        <div className={s.galleryHeader}>
+          <span className={s.eyebrowBrown}>05 / GALERI PANINEUNGAN</span>
+          <h2 className={s.sectionTitleBrown}>Potret Kasih Parahyangan</h2>
+          <p className={s.sectionDescBrown}>
+            Klik pada potret untuk melihat tampilan penuh dalam bingkai Siger
+            Kencana.
+          </p>
+        </div>
+
+        <div className={s.galleryGrid}>
+          {galleryImages.map((src, i) => (
+            <div
+              key={i}
+              onClick={() => setLightbox(i)}
+              className={s.galleryCard}
+            >
+              <img
+                src={src}
+                alt={GALLERY_CAPTIONS[i] || `Potret ${i + 1}`}
+                className={s.galleryImg}
+              />
+              <div className={s.galleryOverlay}>
+                <span className={s.galleryCaption}>
+                  {GALLERY_CAPTIONS[i] || 'Potret Kusuma Parahyangan'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* SECTION 6: LOCATION                                            */}
+      {/* ============================================================== */}
+      <section id="location" className={s.locationSection}>
+        <div className={s.locationSplitCard}>
+          <div className={s.locationInfoCol}>
+            <span className={s.eyebrowBrown}>06 / PETA &amp; TEMPAT ACARA</span>
+            <h3 className={s.locationVenueTitle}>{mainVenueName}</h3>
+            <p className={s.locationAddressText}>{mainVenueAddress}</p>
+            <div className={s.locationNoteBox}>
+              <p className={s.locationNoteTitle}>
+                Penyambutan Tamu (Lengser &amp; Pager Ayu):
               </p>
+              <p className={s.locationNoteBody}>
+                Tersedia layanan parkir valet di Pelataran Bale Timur serta
+                penyambutan kesenian Angklung Buncis &amp; Kacapi Suling.
+              </p>
+            </div>
+            <div className={s.locationBtnGroup}>
+              <button
+                type="button"
+                onClick={() =>
+                  copyToClipboard(
+                    mainVenueAddress,
+                    'Alamat lokasi berhasil disalin!',
+                  )
+                }
+                className={s.btnSolidBrown}
+              >
+                Salin Alamat Lengkap
+              </button>
+              <a
+                href={mainMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={s.btnOutlineBrown}
+              >
+                Buka Google Maps ↗
+              </a>
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                {content.giftAccounts.map((account, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#1f1006]/90 border border-[#d49b35]/60 rounded-2xl p-5 text-left shadow-lg"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-sm text-[#f3d28a]">
-                        {account.bankName}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(account.accountNumber, `${account.bankName}-${idx}`)}
-                        className="text-xs px-3 py-1 bg-[#d49b35] hover:bg-[#f3d28a] text-[#2c180b] font-semibold rounded-lg transition-all"
-                      >
-                        {copiedAccount === `${account.bankName}-${idx}` ? '✓ Kasalin!' : 'Salin Rekening'}
-                      </button>
+          <div className={s.locationMapCol}>
+            <div className={s.locationMapHeader}>
+              <span className={s.locationMapLabel}>
+                Peta Rute Kawasan — {mainVenueName}
+              </span>
+              <span className={s.locationMapBadge}>Lokasi Utama Pawiwahan</span>
+            </div>
+            <DagoPakarVectorMap
+              className={s.vectorMapSvg}
+              venueTitle={mainVenueName}
+              venueSubtitle="Titik Lokasi Akad & Upacara Adat Sunda"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* SECTION 7 & 8: RSVP, GUEST QR & AMPLOP DIGITAL                 */}
+      {/* ============================================================== */}
+      <section id="rsvp" className={s.rsvpSection}>
+        <div className={s.galleryHeader}>
+          <span className={s.eyebrowBrown}>
+            07 &amp; 08 / KONFIRMASI &amp; TIKET QR TAMU
+          </span>
+          <h2 className={s.sectionTitleBrown}>RSVP &amp; Tiket Registrasi</h2>
+          <p className={s.sectionDescBrown}>
+            Silakan isi konfirmasi kehadiran dan doa pangjajap untuk memperbarui
+            Tiket QR Check-in Anda.
+          </p>
+        </div>
+
+        <div className={s.rsvpSplitGrid}>
+          {/* Left Column: RSVP Form + Live Wishes */}
+          <div className={s.rsvpCard}>
+            <h3 className={s.rsvpCardTitle}>Formulir Konfirmasi Kehadiran</h3>
+
+            {showRsvpAndQr ? (
+              <RsvpForm
+                key={uniqueCode || 'preview-rsvp'}
+                uniqueCode={uniqueCode || 'simulasi-tamu'}
+                maxPax={data.guest?.maxPax || 2}
+                initialRsvp={
+                  data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }
+                }
+              />
+            ) : (
+              <form onSubmit={handleDemoRsvpSubmit} className={s.demoForm}>
+                <div>
+                  <label htmlFor="demoGuestName" className={s.formLabel}>
+                    Nama Lengkap Tamu
+                  </label>
+                  <input
+                    id="demoGuestName"
+                    type="text"
+                    required
+                    value={demoGuestName}
+                    onChange={(e) => setDemoGuestName(e.target.value)}
+                    className={s.formInput}
+                    placeholder="Masukkan nama lengkap Anda"
+                  />
+                </div>
+
+                <div className={s.formFieldRow2}>
+                  <div>
+                    <label htmlFor="demoAttendance" className={s.formLabel}>
+                      Status Kehadiran
+                    </label>
+                    <select
+                      id="demoAttendance"
+                      value={demoAttendance}
+                      onChange={(e) => setDemoAttendance(e.target.value)}
+                      className={s.formSelect}
+                    >
+                      <option value="Hadir — Akad & Upacara Adat">
+                        Hadir — Akad &amp; Upacara Adat
+                      </option>
+                      <option value="Hadir — Resepsi Walimahan">
+                        Hadir — Resepsi Walimahan
+                      </option>
+                      <option value="Berhalangan Hadir (Kirim Doa)">
+                        Berhalangan Hadir (Kirim Doa)
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="demoGuestCount" className={s.formLabel}>
+                      Jumlah Tamu
+                    </label>
+                    <select
+                      id="demoGuestCount"
+                      value={demoGuestCount}
+                      onChange={(e) => setDemoGuestCount(e.target.value)}
+                      className={s.formSelect}
+                    >
+                      <option value="1 Orang">1 Orang</option>
+                      <option value="2 Orang (Berpasangan)">
+                        2 Orang (Berpasangan)
+                      </option>
+                      <option value="3 Orang (Keluarga)">
+                        3 Orang (Keluarga)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="demoWishMessage" className={s.formLabel}>
+                    Doa &amp; Pangjajap Panganten
+                  </label>
+                  <textarea
+                    id="demoWishMessage"
+                    rows={3}
+                    required
+                    value={demoWishText}
+                    onChange={(e) => setDemoWishText(e.target.value)}
+                    className={s.formTextarea}
+                    placeholder="Tuliskan doa restu terbaik untuk kedua mempelai..."
+                  />
+                </div>
+
+                <button type="submit" className={s.rsvpSubmitBtn}>
+                  Kirim Konfirmasi &amp; Perbarui Tiket QR
+                </button>
+              </form>
+            )}
+
+            {/* Live Wishes Feed */}
+            <div className={s.wishesSection}>
+              <div className={s.wishesHeader}>
+                <h4 className={s.wishesTitle}>
+                  Untaian Pangjajap &amp; Doa Tamu
+                </h4>
+                <span className={s.wishesBadge}>{wishes.length} Ucapan</span>
+              </div>
+              <div className={s.wishesList}>
+                {wishes.map((item, idx) => (
+                  <div key={idx} className={s.wishItemCard}>
+                    <div className={s.wishItemTop}>
+                      <span className={s.wishAuthor}>{item.name}</span>
+                      <span className={s.wishStatusPill}>{item.status}</span>
                     </div>
-                    <p className="text-lg font-mono tracking-wider text-[#fcf8f2] mb-1">
-                      {account.accountNumber}
-                    </p>
-                    <p className="text-xs text-[#fcf8f2]/70">
-                      a.n. {account.accountHolder}
-                    </p>
+                    <p className={s.wishText}>{item.message}</p>
+                    <span className={s.wishTime}>{item.time}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
-        )}
+          </div>
 
-        {/* RSVP FORM SECTION */}
-        {showRsvpAndQr && (
-          <section className={`${s.bgBilikSunda} py-16 sm:py-24 px-4 sm:px-6 border-t border-[#d49b35]/30`}>
-            <div className="max-w-xl mx-auto">
-              <div className="text-center mb-8">
-                <span className="text-3xl mb-2 block">💌</span>
-                <h2 className={`${s.fontSerif} text-3xl font-bold text-[#4a2c18] mb-2`}>
-                  Konfirmasi Kasumpingan (RSVP)
-                </h2>
-                <p className="text-xs sm:text-sm text-[#4a2c18]/75">
-                  Mugia Bapa/Ibu/Wargi sadaya kersa ngintunkeun konfirmasi kasumpingan sarta pidua restu.
-                </p>
+          {/* Right Column: Guest QR Check-In Pass */}
+          <div id="guestQr" className={`${s.qrPassCard} ${s.bgJatiUkir}`}>
+            <div className={s.qrPassHeader}>
+              <div>
+                <span className={s.qrPassEyebrow}>
+                  TIKET TATAMU PARAHYANGAN
+                </span>
+                <h3 className={s.qrPassTitle}>Kode QR Kehadiran</h3>
               </div>
+              <span className={s.qrVerifiedBadge}>Terverifikasi</span>
+            </div>
 
-              <div className="bg-[#fcf8f2] border-2 border-[#d49b35]/60 rounded-3xl p-6 sm:p-8 shadow-xl">
-                <RsvpForm
-                  key={uniqueCode || 'preview-rsvp'}
-                  uniqueCode={uniqueCode || 'simulasi-tamu'}
-                  maxPax={data.guest?.maxPax || 2}
-                  initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
-                />
+            <div className={s.qrWhiteBox}>
+              <QRDisplay
+                canonicalUrl={effectiveCanonicalUrl}
+                guestName={showRsvpAndQr ? guestName : demoGuestName}
+                maxPax={data.guest?.maxPax || 2}
+                tableNumber={data.guest?.tableNumber}
+              />
+            </div>
+
+            <div className={s.qrMetaTable}>
+              <div className={s.qrMetaRow}>
+                <span className={s.qrMetaLabel}>Nama Tamu:</span>
+                <span className={s.qrMetaValueWhite}>
+                  {showRsvpAndQr ? guestName : demoGuestName}
+                </span>
+              </div>
+              <div className={s.qrMetaRow}>
+                <span className={s.qrMetaLabel}>Status RSVP:</span>
+                <span className={s.qrMetaValueGold}>
+                  {showRsvpAndQr
+                    ? data.rsvp?.response === 'YES'
+                      ? 'Hadir'
+                      : data.rsvp?.response === 'NO'
+                        ? 'Berhalangan'
+                        : 'Menunggu Konfirmasi'
+                    : demoAttendance}
+                </span>
+              </div>
+              <div className={s.qrMetaRow}>
+                <span className={s.qrMetaLabel}>Kuota Kursi:</span>
+                <span className={s.qrMetaValueWhite}>
+                  {showRsvpAndQr
+                    ? `${data.guest?.maxPax || 2} Orang`
+                    : demoGuestCount}
+                </span>
+              </div>
+              <div className={s.qrMetaRow}>
+                <span className={s.qrMetaLabel}>Area Tatamu:</span>
+                <span className={s.qrMetaValueGold}>
+                  {data.guest?.tableNumber
+                    ? `Meja ${data.guest.tableNumber}`
+                    : 'Bale Utama • Parahyangan VIP'}
+                </span>
               </div>
             </div>
-          </section>
-        )}
 
-        {/* GUEST QR CODE / TICKET SECTION */}
-        {showRsvpAndQr && (
-          <section className={`${s.bgJatiUkir} py-16 sm:py-20 px-4 sm:px-6 text-[#fcf8f2]`}>
-            <div className="max-w-md mx-auto text-center">
-              <span className="text-3xl mb-2 block">🎫</span>
-              <h2 className={`${s.fontSerif} text-2xl sm:text-3xl font-bold text-[#fff0c2] mb-2`}>
-                Tiket QR Kasumpingan
-              </h2>
-              <p className="text-xs text-[#fcf8f2]/80 mb-6">
-                Tembongkeun kode QR ieu ka panata calagara (meja resepsionis) nalika lebet ka gedung acara.
-              </p>
+            <p className={s.qrPassFooterNote}>
+              Tunjukkan kode QR ini kepada penerima tamu (Pager Ayu &amp; Pager
+              Bagus) saat tiba di lokasi acara.
+            </p>
+          </div>
+        </div>
 
-              <div className="bg-[#fcf8f2] text-[#2c180b] rounded-3xl p-6 shadow-2xl border-4 border-[#d49b35]">
-                <QRDisplay
-                  canonicalUrl={effectiveCanonicalUrl}
-                  guestName={guestName}
-                  maxPax={data.guest?.maxPax || 2}
-                  tableNumber={data.guest?.tableNumber}
-                />
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* CLOSING SECTION */}
-        <section className={`${s.bgBilikSunda} py-16 sm:py-24 px-4 sm:px-6 text-center border-t border-[#d49b35]/40`}>
-          <div className="max-w-2xl mx-auto">
-            <BaleJulangNgapak className="w-40 sm:w-48 h-8 text-[#d49b35] mx-auto mb-4" />
-            <h2 className={`${s.fontSerif} text-3xl font-bold text-[#4a2c18] mb-3`}>
-              Hatur Nuhun
-            </h2>
-            <p className="text-xs sm:text-sm text-[#4a2c18]/80 leading-relaxed mb-6">
-              {content.closing || 'Mangrupi hiji kahormatan sareng kabagjaan kanggo simkuring sakulawargi saupami Bapa/Ibu/Saderek kersa sumping ngaluuhan sarta maparin pidua restu. Hatur nuhun kana sagala perhatosan sareng piduana.'}
+        {/* Tanda Kasih (Amplop Digital) */}
+        {content.giftAccounts && content.giftAccounts.length > 0 && (
+          <div className={s.giftBoxCard}>
+            <span className={s.eyebrowBrown}>
+              TANDA KASIH &amp; AMPLOP DIGITAL
+            </span>
+            <h3 className={s.giftTitle}>
+              {content.giftTitle || 'Kirimkan Tanda Kasih'}
+            </h3>
+            <p className={s.giftDesc}>
+              {content.giftMessage ||
+                'Doa restu Anda merupakan karunia terindah bagi kami. Namun apabila Anda ingin memberikan tanda kasih secara digital, dapat melalui rekening berikut:'}
             </p>
 
-            <p className={`${s.fontEditorial} italic text-xl text-[#d49b35] mb-2`}>
-              Wassalamu’alaikum Warahmatullahi Wabarakatuh
-            </p>
-            <p className="text-xs text-[#4a2c18]/70">
-              Keluarga Besar Pasangan Pengantin Pasundan
-            </p>
-
-            <div className="mt-8 pt-6 border-t border-[#d49b35]/30">
-              <p className="text-[11px] text-[#4a2c18]/50 uppercase tracking-widest font-mono">
-                Irvite.id — Undangan Digital Pasundan
-              </p>
+            <div className={s.giftAccountsGrid}>
+              {content.giftAccounts.map((acc, idx) => (
+                <div key={idx} className={s.giftAccountItem}>
+                  <div>
+                    <span className={s.giftBankLabel}>{acc.bankName}</span>
+                    <p className={s.giftAccountNum}>{acc.accountNumber}</p>
+                    <p className={s.giftAccountHolder}>
+                      a.n. {acc.accountHolder}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyToClipboard(
+                        acc.accountNumber,
+                        `Nomor rekening ${acc.bankName} ${acc.accountNumber} berhasil disalin!`,
+                      )
+                    }
+                    className={s.giftCopyBtn}
+                  >
+                    Salin
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-        </section>
-      </main>
+        )}
+      </section>
 
-      {/* Lightbox Modal */}
+      {/* ============================================================== */}
+      {/* SECTION 9: CLOSING                                             */}
+      {/* ============================================================== */}
+      <section id="closing" className={`${s.closingSection} ${s.bgJatiUkir}`}>
+        <div className={s.closingInner}>
+          <div className={s.merakWrap}>
+            <MerakNgibingFan className={`${s.merakSvg} ${s.merakFanAnim}`} />
+          </div>
+
+          <p className={s.aksaraLight}>ᮠᮒᮥᮁ ᮔᮥᮠᮥᮔ᮪ ᮕᮤᮞᮔ᮪</p>
+          <span className={s.sectionEyebrowGold}>09 / HATUR NUHUN PISAN</span>
+          <h2 className={s.closingCoupleTitle}>
+            {content.partnerOneName}{' '}
+            <span className={`${s.goldText} ${s.fontEditorial}`}>&amp;</span>{' '}
+            {content.partnerTwoName}
+          </h2>
+          <p className={s.closingProverb}>
+            “Cageur, Bageur, Bener, Pinter, Singer — Ka cai jadi saleuwi, ka
+            darat jadi salogak.”
+          </p>
+          <p className={s.closingMessage}>
+            {content.closing ||
+              'Kehadiran serta doa restu Bapak/Ibu/Saderek merupakan kado terindah bagi perjalanan awal bahtera rumah tangga kami. Hatur nuhun pisan kana sagala kasaean sareng perhatosanana.'}
+          </p>
+          <p className={s.closingSalam}>
+            Wassalamu’alaikum Warahmatullahi Wabarakatuh
+          </p>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* FLOATING BOTTOM CAPSULE NAVBAR                                 */}
+      {/* ============================================================== */}
+      <nav className={s.bottomNav} aria-label="Navigasi Undangan">
+        <a href="#hero" className={s.navLink}>
+          Beranda
+        </a>
+        <a href="#greeting" className={s.navLink}>
+          Mempelai
+        </a>
+        <a href="#eventDetails" className={s.navLink}>
+          Acara
+        </a>
+        <a href="#gallery" className={s.navLink}>
+          Galeri
+        </a>
+        <a href="#rsvp" className={s.navLinkCta}>
+          RSVP &amp; QR
+        </a>
+        <button
+          type="button"
+          onClick={handleReplayGate}
+          title="Ulangi Animasi Gerbang Sunda"
+          className={s.navCircleBtn}
+        >
+          ↺
+        </button>
+        <button
+          type="button"
+          onClick={toggleAudio}
+          title="Putar/Hentikan Kacapi Suling Laras Degung"
+          className={s.navCircleBtn}
+        >
+          <span>{isPlaying ? '⏸' : '♪'}</span>
+        </button>
+      </nav>
+
+      {/* ============================================================== */}
+      {/* LIGHTBOX MODAL FOR GALLERY                                     */}
+      {/* ============================================================== */}
       {lightbox !== null && (
         <div
           role="dialog"
           aria-label="Tinjau Foto Galeri"
-          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-md"
+          className={s.lightboxBackdrop}
           onClick={() => setLightbox(null)}
         >
-          <button
-            type="button"
-            className="absolute top-6 right-6 text-white text-3xl font-light hover:text-[#f3d28a]"
-            onClick={() => setLightbox(null)}
+          <div
+            className={s.lightboxCard}
+            onClick={(e) => e.stopPropagation()}
           >
-            &times;
-          </button>
-          <img
-            src={galleryImages[lightbox]}
-            alt="Dokumentasi Acara"
-            className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl border-2 border-[#d49b35]"
-          />
+            <div className={s.lightboxHeader}>
+              <span className={s.lightboxTitle}>
+                {GALLERY_CAPTIONS[lightbox] || 'Potret Kusuma Parahyangan'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightbox(null)}
+                className={s.lightboxCloseBtn}
+              >
+                Tutup ✕
+              </button>
+            </div>
+            <div className={s.lightboxBody}>
+              <img
+                src={galleryImages[lightbox]}
+                alt={GALLERY_CAPTIONS[lightbox] || 'Preview'}
+                className={s.lightboxImg}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
-

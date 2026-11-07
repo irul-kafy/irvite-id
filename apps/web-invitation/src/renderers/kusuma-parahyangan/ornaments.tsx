@@ -19,47 +19,68 @@ export function BaleJulangNgapak({ className = '' }: { className?: string }) {
 }
 
 /**
- * Mahkota Siger Sunda & Kembang Goyang Trembling Ornament
+ * Mahkota Siger Sunda Kencana & Kembang Goyang Trembling Ornament
  */
-export function SigerCrown({ className = '' }: { className?: string }) {
+export function SigerCrown({
+  className = '',
+  pinClassName = '',
+}: {
+  className?: string;
+  pinClassName?: string;
+}) {
   return (
-    <svg className={className} viewBox="0 0 240 130" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="goldSigerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFF0C2" />
-          <stop offset="45%" stopColor="#E7B95A" />
-          <stop offset="100%" stopColor="#B87B18" />
-        </linearGradient>
-      </defs>
+    <svg
+      className={className}
+      viewBox="0 0 240 160"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      {/* Trembling Kembang Goyang Stalks (Hiasan Tusuk Konde Sunda) */}
+      <g className={pinClassName}>
+        <line x1="120" y1="42" x2="120" y2="12" stroke="#F3D28A" strokeWidth="1.6" />
+        <circle cx="120" cy="10" r="6" fill="#F3D28A" />
+        <circle cx="120" cy="10" r="3" fill="#4A2C18" />
+      </g>
+      <g className={pinClassName} style={{ animationDelay: '0.3s' }}>
+        <line x1="92" y1="54" x2="82" y2="24" stroke="#F3D28A" strokeWidth="1.5" />
+        <circle cx="80" cy="22" r="5" fill="#D49B35" />
+      </g>
+      <g className={pinClassName} style={{ animationDelay: '0.6s' }}>
+        <line x1="148" y1="54" x2="158" y2="24" stroke="#F3D28A" strokeWidth="1.5" />
+        <circle cx="160" cy="22" r="5" fill="#D49B35" />
+      </g>
+      <g className={pinClassName} style={{ animationDelay: '0.9s' }}>
+        <line x1="66" y1="70" x2="50" y2="44" stroke="#F3D28A" strokeWidth="1.4" />
+        <circle cx="48" cy="42" r="4.5" fill="#F3D28A" />
+      </g>
+      <g className={pinClassName} style={{ animationDelay: '1.2s' }}>
+        <line x1="174" y1="70" x2="190" y2="44" stroke="#F3D28A" strokeWidth="1.4" />
+        <circle cx="192" cy="42" r="4.5" fill="#F3D28A" />
+      </g>
 
-      {/* Main Siger Crown Arch & Pointed Diadem (9 Peaked Crown of Pasundan Queens) */}
+      {/* Siger Sunda Kencana Crown Body */}
       <path
-        d="M20 115 C35 110 50 108 70 110 C85 92 90 70 95 45 C102 65 110 40 120 15 C130 40 138 65 145 45 C150 70 155 92 170 110 C190 108 205 110 220 115 C195 125 145 128 120 128 C95 128 45 125 20 115 Z"
-        fill="url(#goldSigerGrad)"
+        d="M24 122 C46 78, 88 68, 120 30 C152 68, 194 78, 216 122 C175 106, 65 106, 24 122 Z"
+        stroke="#F3D28A"
+        strokeWidth="2.5"
+        fill="#D49B35"
+        fillOpacity="0.28"
+      />
+      <path
+        d="M48 114 C72 84, 96 74, 120 48 C144 74, 168 84, 192 114"
         stroke="#F3D28A"
         strokeWidth="1.6"
       />
+      <polygon points="120,72 129,88 120,104 111,88" fill="#F3D28A" />
 
-      {/* Intricate Filigree Details & Gem Insets */}
-      <circle cx="120" cy="55" r="5" fill="#FCF8F2" stroke="#4A2C18" strokeWidth="1" />
-      <circle cx="95" cy="72" r="3.5" fill="#FCF8F2" />
-      <circle cx="145" cy="72" r="3.5" fill="#FCF8F2" />
-      <circle cx="72" cy="88" r="3" fill="#FCF8F2" />
-      <circle cx="168" cy="88" r="3" fill="#FCF8F2" />
-
-      {/* 5 Kembang Goyang Pins (Trembling Golden Floral Pins) */}
-      <g stroke="#D49B35" strokeWidth="1.5">
-        <line x1="80" y1="42" x2="68" y2="14" />
-        <circle cx="68" cy="14" r="5" fill="#F3D28A" />
-        <line x1="102" y1="30" x2="94" y2="6" />
-        <circle cx="94" cy="6" r="5.5" fill="#F3D28A" />
-        <line x1="120" y1="15" x2="120" y2="2" />
-        <circle cx="120" cy="2" r="6" fill="#FFF0C2" />
-        <line x1="138" y1="30" x2="146" y2="6" />
-        <circle cx="146" cy="6" r="5.5" fill="#F3D28A" />
-        <line x1="160" y1="42" x2="172" y2="14" />
-        <circle cx="172" cy="14" r="5" fill="#F3D28A" />
-      </g>
+      {/* Hanging Jasmine Ronce Mangle on Left & Right Ear */}
+      <circle cx="32" cy="130" r="4" fill="#FCF8F2" />
+      <circle cx="32" cy="141" r="3.5" fill="#FCF8F2" />
+      <circle cx="32" cy="151" r="3" fill="#F3D28A" />
+      <circle cx="208" cy="130" r="4" fill="#FCF8F2" />
+      <circle cx="208" cy="141" r="3.5" fill="#FCF8F2" />
+      <circle cx="208" cy="151" r="3" fill="#F3D28A" />
     </svg>
   );
 }
@@ -78,8 +99,42 @@ export function RonceMelatiStrand({ className = '' }: { className?: string }) {
       <ellipse cx="30" cy="126" rx="7" ry="10" fill="#FCF8F2" />
       <ellipse cx="30" cy="152" rx="8" ry="11" fill="#FCF8F2" />
       <ellipse cx="30" cy="178" rx="6" ry="9" fill="#FCF8F2" />
-      {/* Kembang Kantil Drop */}
       <path d="M21 200 L30 232 L39 200 Z" fill="#F3D28A" />
+    </svg>
+  );
+}
+
+/**
+ * Secondary Shorter Ronce Melati Strand
+ */
+export function RonceMelatiShort({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 60 200" fill="none" aria-hidden="true">
+      <line x1="30" y1="0" x2="30" y2="170" stroke="#D49B35" strokeWidth="1.2" />
+      <ellipse cx="30" cy="22" rx="6" ry="9" fill="#FCF8F2" />
+      <ellipse cx="30" cy="46" rx="7" ry="10" fill="#FCF8F2" />
+      <ellipse cx="30" cy="70" rx="6" ry="9" fill="#FCF8F2" />
+      <ellipse cx="30" cy="94" rx="7" ry="10" fill="#FCF8F2" />
+      <ellipse cx="30" cy="118" rx="6" ry="9" fill="#FCF8F2" />
+      <path d="M23 155 L30 182 L37 155 Z" fill="#D49B35" />
+    </svg>
+  );
+}
+
+/**
+ * Portrait Frame Ronce Melati Strand
+ */
+export function PortraitMelatiStrand({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 40 180" fill="none" aria-hidden="true">
+      <line x1="20" y1="0" x2="20" y2="155" stroke="#D49B35" strokeWidth="1.5" />
+      <circle cx="20" cy="20" r="5" fill="#FCF8F2" />
+      <circle cx="20" cy="40" r="5.5" fill="#FCF8F2" />
+      <circle cx="20" cy="60" r="5" fill="#FCF8F2" />
+      <circle cx="20" cy="80" r="5.5" fill="#FCF8F2" />
+      <circle cx="20" cy="100" r="5" fill="#FCF8F2" />
+      <circle cx="20" cy="120" r="5" fill="#FCF8F2" />
+      <path d="M14 145 L20 170 L26 145 Z" fill="#F3D28A" />
     </svg>
   );
 }
@@ -152,3 +207,201 @@ export function LawangValance({ className = '' }: { className?: string }) {
   );
 }
 
+/**
+ * Hero Top Hanging Ronce Melati Frame
+ */
+export function HeroMelatiFrame({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        d="M0,5 Q200,85 400,10 Q600,90 800,10 Q1000,85 1200,5"
+        fill="none"
+        stroke="#FCF8F2"
+        strokeWidth="5"
+        strokeDasharray="2 12"
+        strokeLinecap="round"
+      />
+      <path
+        d="M0,18 Q200,98 400,22 Q600,102 800,22 Q1000,98 1200,18"
+        fill="none"
+        stroke="#F3D28A"
+        strokeWidth="3"
+        strokeDasharray="1 10"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Bottom Carved Sundanese Wave Divider
+ */
+export function HeroWaveDivider({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M0,70 C320,10 560,85 720,35 C880,85 1120,10 1440,70 L1440,90 L0,90 Z"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Siger & Kujang Kembar Ornamental Divider
+ */
+export function KujangSigerDivider({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 280 65" fill="none" aria-hidden="true">
+      <path
+        d="M25 35 C65 35, 95 15, 115 8 C105 28, 105 42, 120 50"
+        stroke="#4A2C18"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M255 35 C215 35, 185 15, 165 8 C175 28, 175 42, 160 50"
+        stroke="#4A2C18"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M115 42 L140 10 L165 42 Z"
+        stroke="#D49B35"
+        strokeWidth="2"
+        fill="#D49B35"
+        fillOpacity="0.2"
+      />
+      <circle cx="140" cy="28" r="3.5" fill="#B87B18" />
+    </svg>
+  );
+}
+
+/**
+ * Top Mini Siger Crown Ornament for Mojang Card
+ */
+export function MiniSigerCrown({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 120 55" fill="none" aria-hidden="true">
+      <path
+        d="M10 48 C30 22, 45 20, 60 6 C75 20, 90 22, 110 48 Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="#D49B35"
+        fillOpacity="0.18"
+      />
+      <circle cx="60" cy="6" r="3.5" fill="#B87B18" />
+    </svg>
+  );
+}
+
+/**
+ * Top Mini Bendo & Kujang Ornament for Jajaka Card
+ */
+export function MiniBendo({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 120 55" fill="none" aria-hidden="true">
+      <path
+        d="M15 45 Q60 8 105 45 Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        fill="#4A2C18"
+        fillOpacity="0.15"
+      />
+      <path d="M35 45 Q60 20 85 45" stroke="#B87B18" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+/**
+ * Merak Ngibing Sunda (Blooming Sundanese Peacock Fan Animation)
+ */
+export function MerakNgibingFan({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 220 120" fill="none" aria-hidden="true">
+      <path
+        d="M18 108 C18 48, 62 14, 110 14 C158 14, 202 48, 202 108"
+        stroke="#D49B35"
+        strokeWidth="1.6"
+        strokeDasharray="4 4"
+      />
+      <path
+        d="M42 108 C42 62, 74 32, 110 32 C146 32, 178 62, 178 108"
+        stroke="#F3D28A"
+        strokeWidth="1.8"
+      />
+      <line x1="110" y1="108" x2="110" y2="14" stroke="#F3D28A" strokeWidth="1.8" />
+      <line x1="110" y1="108" x2="60" y2="28" stroke="#D49B35" strokeWidth="1.4" />
+      <line x1="110" y1="108" x2="160" y2="28" stroke="#D49B35" strokeWidth="1.4" />
+      <line x1="110" y1="108" x2="28" y2="64" stroke="#D49B35" strokeWidth="1.4" />
+      <line x1="110" y1="108" x2="192" y2="64" stroke="#D49B35" strokeWidth="1.4" />
+      <circle cx="110" cy="14" r="6" fill="#F3D28A" />
+      <circle cx="60" cy="28" r="5" fill="#D49B35" />
+      <circle cx="160" cy="28" r="5" fill="#D49B35" />
+      <circle cx="28" cy="64" r="4.5" fill="#F3D28A" />
+      <circle cx="192" cy="64" r="4.5" fill="#F3D28A" />
+    </svg>
+  );
+}
+
+/**
+ * Stylized Vector Map Card in Warm Sunda Teak Theme
+ */
+export function DagoPakarVectorMap({
+  className = '',
+  venueTitle = 'BALE JULANG NGAPAK PARAHYANGAN',
+  venueSubtitle = 'Titik Lokasi Akad & Upacara Adat Sunda',
+}: {
+  className?: string;
+  venueTitle?: string;
+  venueSubtitle?: string;
+}) {
+  return (
+    <svg className={className} viewBox="0 0 600 240" fill="none" aria-hidden="true">
+      <path
+        d="M0 180 Q180 160 300 120 T600 70"
+        stroke="#4A2C18"
+        strokeWidth="18"
+        strokeLinecap="round"
+      />
+      <path
+        d="M0 180 Q180 160 300 120 T600 70"
+        stroke="#D49B35"
+        strokeWidth="2"
+        strokeDasharray="6 6"
+      />
+      <path d="M220 0 Q260 110 300 120 Q340 135 390 240" stroke="#3B2211" strokeWidth="12" />
+      <circle cx="350" cy="105" r="24" fill="#D49B35" fillOpacity="0.25" />
+      <circle cx="350" cy="105" r="10" fill="#F3D28A" stroke="#2C180B" strokeWidth="3" />
+      <rect
+        x="215"
+        y="38"
+        width="270"
+        height="44"
+        rx="10"
+        fill="#2C180B"
+        stroke="#F3D28A"
+        strokeWidth="1.4"
+      />
+      <text
+        x="350"
+        y="57"
+        textAnchor="middle"
+        fill="#F3D28A"
+        fontSize="11"
+        fontWeight="bold"
+        fontFamily="sans-serif"
+      >
+        {venueTitle.slice(0, 34).toUpperCase()}
+      </text>
+      <text
+        x="350"
+        y="73"
+        textAnchor="middle"
+        fill="#FCF8F2"
+        fontSize="9"
+        fontFamily="sans-serif"
+      >
+        {venueSubtitle}
+      </text>
+    </svg>
+  );
+}
