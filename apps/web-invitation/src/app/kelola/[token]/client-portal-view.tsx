@@ -584,21 +584,70 @@ export function ClientPortalView({
           </div>
         </section>
 
-        {/* Toolbar: Search, Filters, Add Guest */}
+        {/* Toolbar: Search, Filters, Actions */}
         <section className="portal-toolbar">
-          <div className="portal-search-wrap">
-            <span className="portal-search-icon">🔍</span>
-            <input
-              type="text"
-              className="portal-search-input"
-              placeholder="Cari nama, nomor WA, atau meja..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          {/* Top Row: Search (Left) & Actions (Right) */}
+          <div className="portal-toolbar-top">
+            <div className="portal-search-wrap">
+              <span className="portal-search-icon">🔍</span>
+              <input
+                type="text"
+                className="portal-search-input"
+                placeholder="Cari nama, nomor WA, atau meja..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="portal-search-clear"
+                  onClick={() => setSearchQuery('')}
+                  title="Hapus pencarian"
+                  aria-label="Hapus pencarian"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="portal-toolbar-actions">
+              <button
+                type="button"
+                className="btn-portal-secondary"
+                onClick={handleExportCsv}
+                title="Unduh daftar tamu ke format CSV / Excel"
+              >
+                <span>📥</span>
+                <span>Unduh CSV</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-open-auto-sender"
+                className="btn-portal-wa-auto"
+                onClick={() => setIsAutoSenderOpen(true)}
+                title="Asisten kirim undangan WhatsApp cepat berurutan"
+              >
+                <span>⚡</span>
+                <span>Asisten Kirim Cepat WA</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn-portal-primary"
+                onClick={handleOpenAddModal}
+              >
+                <span>+</span>
+                <span>Tambah Tamu</span>
+              </button>
+            </div>
           </div>
 
-          <div className="portal-toolbar-actions">
-            {/* Filter Tabs */}
+          {/* Divider */}
+          <div className="portal-toolbar-divider" />
+
+          {/* Bottom Row: Filter Tabs (Left) & Results Info (Right) */}
+          <div className="portal-toolbar-bottom">
             <div className="portal-filter-tabs">
               <button
                 type="button"
@@ -652,35 +701,23 @@ export function ClientPortalView({
               </button>
             </div>
 
-            <button
-              type="button"
-              className="btn-portal-secondary"
-              onClick={handleExportCsv}
-              title="Unduh daftar tamu ke format CSV / Excel"
-            >
-              <span>📥</span>
-              <span>CSV</span>
-            </button>
-
-            <button
-              type="button"
-              id="btn-open-auto-sender"
-              className="btn-portal-wa-auto"
-              onClick={() => setIsAutoSenderOpen(true)}
-              title="Asisten kirim undangan WhatsApp cepat berurutan"
-            >
-              <span>⚡</span>
-              <span>Asisten Kirim Cepat WA</span>
-            </button>
-
-            <button
-              type="button"
-              className="btn-portal-primary"
-              onClick={handleOpenAddModal}
-            >
-              <span>+</span>
-              <span>Tambah Tamu</span>
-            </button>
+            <div className="portal-toolbar-meta">
+              <span className="portal-results-count">
+                Menampilkan <strong>{filteredGuests.length}</strong> dari {guests.length} tamu
+              </span>
+              {(searchQuery || activeFilter !== 'all') && (
+                <button
+                  type="button"
+                  className="portal-reset-filter-btn"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActiveFilter('all');
+                  }}
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
           </div>
         </section>
 
@@ -721,11 +758,11 @@ export function ClientPortalView({
             <table className="portal-table">
               <thead>
                 <tr>
-                  <th>Tamu</th>
-                  <th>Kategori & Meja</th>
-                  <th>Status Kirim WA</th>
-                  <th>Status RSVP</th>
-                  <th style={{ textAlign: 'right' }}>Aksi</th>
+                  <th style={{ width: '28%' }}>Tamu</th>
+                  <th style={{ width: '22%' }}>Kategori &amp; Meja</th>
+                  <th style={{ width: '17%' }}>Status Kirim WA</th>
+                  <th style={{ width: '17%' }}>Status RSVP</th>
+                  <th style={{ width: '16%', textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
