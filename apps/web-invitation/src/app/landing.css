@@ -797,12 +797,41 @@ h1 em {
 
 /* ── Packages Section ─────────────────────────────────────────────────────── */
 .packages {
+  position: relative;
   background: var(--paper-deep);
+  overflow: hidden;
+}
+
+.packages-orbit {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.packages-orbit--left {
+  width: 540px;
+  height: 540px;
+  top: 10%;
+  left: -200px;
+  border: 1px solid rgba(197, 168, 128, 0.28);
+  background: radial-gradient(circle, rgba(197, 168, 128, 0.1) 0%, transparent 68%);
+}
+
+.packages-orbit--right {
+  width: 620px;
+  height: 620px;
+  bottom: 0%;
+  right: -240px;
+  border: 1px solid rgba(25, 56, 44, 0.08);
+  background: radial-gradient(circle, rgba(25, 56, 44, 0.04) 0%, transparent 70%);
 }
 
 .packages .shell {
   max-width: 1040px;
   margin-inline: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .packages .section-heading.compact {
@@ -1011,6 +1040,98 @@ h1 em {
   width: 17px;
   height: 17px;
   flex: 0 0 auto;
+}
+
+/* ── Packages Trust Banner ───────────────────────────────────────────────── */
+.packages-trust-banner {
+  max-width: 820px;
+  margin: 40px auto 0;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(197, 168, 128, 0.35);
+  border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(24, 30, 27, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.packages-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #3b4640;
+}
+
+.packages-trust-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(25, 56, 44, 0.08);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.packages-trust-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.packages-trust-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(24, 30, 27, 0.12);
+}
+
+@media (min-width: 1024px) {
+  .packages .section-heading.compact {
+    max-width: 1000px;
+    margin-bottom: 48px;
+    gap: 60px;
+  }
+
+  .package-grid {
+    grid-template-columns: repeat(2, minmax(340px, 480px));
+    max-width: 1000px;
+    gap: 36px;
+  }
+
+  .package-card {
+    padding: 42px 36px 36px;
+  }
+
+  .packages-trust-banner {
+    max-width: 1000px;
+    padding: 16px 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .packages-orbit {
+    display: none;
+  }
+
+  .packages-trust-banner {
+    border-radius: 20px;
+    padding: 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .packages-trust-divider {
+    display: none;
+  }
 }
 
 /* ── Cara Kerja (Process) ─────────────────────────────────────────────────── */

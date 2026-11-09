@@ -172,6 +172,10 @@ function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
 function PackagesSection() {
   return (
     <section className="section packages" id="paket">
+      {/* Ambient decorative luxury rings for wide viewports */}
+      <div className="packages-orbit packages-orbit--left" aria-hidden="true" />
+      <div className="packages-orbit packages-orbit--right" aria-hidden="true" />
+
       <div className="shell">
         <div className="section-heading compact">
           <div>
@@ -320,6 +324,37 @@ function PackagesSection() {
               </button>
             )}
           </article>
+        </div>
+
+        {/* Jaminan Layanan & Kenyamanan Klien */}
+        <div className="packages-trust-banner" role="region" aria-label="Jaminan Layanan">
+          <div className="packages-trust-item">
+            <span className="packages-trust-icon" aria-hidden="true">
+              <IconCheck />
+            </span>
+            <span>Konsultasi &amp; draf awal gratis</span>
+          </div>
+          <div className="packages-trust-divider" aria-hidden="true" />
+          <div className="packages-trust-item">
+            <span className="packages-trust-icon" aria-hidden="true">
+              <IconCheck />
+            </span>
+            <span>Garansi server aktif hingga hari-H</span>
+          </div>
+          <div className="packages-trust-divider" aria-hidden="true" />
+          <div className="packages-trust-item">
+            <span className="packages-trust-icon" aria-hidden="true">
+              <IconCheck />
+            </span>
+            <span>Privasi data tamu terenkripsi aman</span>
+          </div>
+          <div className="packages-trust-divider" aria-hidden="true" />
+          <div className="packages-trust-item">
+            <span className="packages-trust-icon" aria-hidden="true">
+              <IconCheck />
+            </span>
+            <span>Dukungan tim admin siap mendampingi</span>
+          </div>
         </div>
       </div>
     </section>
