@@ -11,11 +11,10 @@ import { getGeneralContactUrl } from '../utils/contact';
 const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
 
 const HERO_FEATURES = [
-  'Konsultasi gratis',
-  'Desain personal',
-  'Scanner on-site',
-  'Laporan real-time',
-  'QR unik per tamu',
+  { icon: '✨', label: 'Desain Eksklusif' },
+  { icon: '💌', label: 'Tautan Personal' },
+  { icon: '⚡', label: 'RSVP Real-Time' },
+  { icon: '📱', label: 'Check-in QR Tamu' },
 ];
 const MSG_BASIC = 'Halo IRVITE, saya ingin memesan Paket Esensial untuk undangan digital.';
 const MSG_PREMIUM = 'Halo IRVITE, saya ingin memesan Paket Personal dengan Tim Scanner di venue.';
@@ -67,15 +66,15 @@ function HeroSection() {
         <p className="eyebrow">PLATFORM UNDANGAN DIGITAL &amp; KELOLA TAMU</p>
         <h1>
           Sambut setiap tamu,
-          <br />
+          <br className="hero-br" />
           <em>rayakan setiap momen</em>
-          <br />
+          <br className="hero-br" />
           dengan sempurna.
         </h1>
         <p className="lead">
           Undangan digital personal dan terkelola rapi—mulai dari pembagian
-          tautan eksklusif, kepastian konfirmasi kehadiran (RSVP), hingga
-          kemudahan registrasi tamu di lokasi acara.
+          tautan eksklusif, konfirmasi kehadiran (RSVP), hingga kemudahan
+          check-in registrasi tamu di lokasi acara.
         </p>
         <div className="hero-actions">
           <a id="hero-catalog-btn" className="button primary" href="#katalog">
@@ -107,9 +106,12 @@ function HeroSection() {
           )}
         </div>
         <div className="hero-features" aria-label="Keunggulan layanan">
-          {HERO_FEATURES.map((item, index) => (
-            <span key={item} className="hero-feature-item">
-              <b>{String(index + 1).padStart(2, '0')}</b> {item}
+          {HERO_FEATURES.map((item) => (
+            <span key={item.label} className="hero-feature-item">
+              <span className="hero-feature-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
             </span>
           ))}
         </div>
