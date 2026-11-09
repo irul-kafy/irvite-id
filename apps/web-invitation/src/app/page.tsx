@@ -35,6 +35,24 @@ function IconWA({ className, style }: { className?: string; style?: React.CSSPro
   );
 }
 
+function IconCheck({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg
+      className={className}
+      style={style}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 // ── Hero Section ───────────────────────────────────────────────────────────────
 function HeroSection() {
   const contactUrl = getGeneralContactUrl(MSG_GENERAL);
@@ -167,26 +185,44 @@ function PackagesSection() {
         </div>
         <div className="package-grid">
           <article className="package-card">
-            <p className="package-label">Paket Esensial</p>
-            <h3>Satu tautan untuk semua</h3>
-            <p className="package-desc">
-              Undangan digital praktis dan tetap berkelas untuk dibagikan ke seluruh tamu.
-            </p>
-            <ul>
+            <div className="package-card-header">
+              <span className="package-label">Paket Esensial</span>
+              <h3>Satu tautan untuk semua</h3>
+              <p className="package-desc">
+                Undangan digital praktis dan tetap berkelas untuk dibagikan ke seluruh tamu.
+              </p>
+            </div>
+            <div className="package-divider" aria-hidden="true" />
+            <ul className="package-features">
               <li>
-                <span className="icon" aria-hidden="true">✓</span> 1 tautan publik untuk semua tamu
+                <span className="pkg-feature-icon" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>1 tautan publik untuk semua tamu</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Pilihan desain katalog eksklusif
+                <span className="pkg-feature-icon" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Pilihan desain katalog eksklusif</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Form RSVP dan ucapan tamu online
+                <span className="pkg-feature-icon" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Form RSVP dan ucapan tamu online</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Informasi acara, peta maps, dan galeri
+                <span className="pkg-feature-icon" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Informasi acara, peta maps, dan galeri</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Tanpa QR Code individual tamu
+                <span className="pkg-feature-icon" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Format praktis tanpa sistem scanner on-site</span>
               </li>
             </ul>
             {getGeneralContactUrl(MSG_BASIC) ? (
@@ -198,7 +234,7 @@ function PackagesSection() {
                 rel="noopener noreferrer"
               >
                 <IconWA className="wa-icon" />
-                Tanyakan paket ini
+                <span>Tanyakan paket ini</span>
               </a>
             ) : (
               <button
@@ -210,33 +246,53 @@ function PackagesSection() {
                 title="Kontak belum dikonfigurasi"
               >
                 <IconWA className="wa-icon" />
-                Tanyakan paket ini
+                <span>Tanyakan paket ini</span>
               </button>
             )}
           </article>
 
           <article className="package-card featured">
-            <span className="recommended">Paling diminati</span>
-            <p className="package-label">Paket Personal</p>
-            <h3>Setiap tamu terasa istimewa</h3>
-            <p className="package-desc">
-              Pengalaman personal premium lengkap dengan QR per tamu dan scanner di venue.
-            </p>
-            <ul>
+            <span className="recommended">
+              <span aria-hidden="true">✨</span> Paling diminati
+            </span>
+            <div className="package-card-header">
+              <span className="package-label">Paket Personal</span>
+              <h3>Setiap tamu terasa istimewa</h3>
+              <p className="package-desc">
+                Pengalaman personal premium lengkap dengan QR per tamu dan scanner di venue.
+              </p>
+            </div>
+            <div className="package-divider" aria-hidden="true" />
+            <ul className="package-features">
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Tautan personal dengan nama tamu masing-masing
+                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Tautan personal dengan nama tamu masing-masing</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> QR Code eksklusif per tamu undangan
+                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>QR Code eksklusif per tamu undangan</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Tim scanner hadir siaga di lokasi acara
+                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Tim scanner hadir siaga di lokasi acara</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Dashboard dan laporan kehadiran real-time
+                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Dashboard dan laporan kehadiran real-time</span>
               </li>
               <li>
-                <span className="icon" aria-hidden="true">✓</span> Semua fitur desain dan dukungan prioritas
+                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                  <IconCheck />
+                </span>
+                <span>Semua fitur desain dan dukungan prioritas</span>
               </li>
             </ul>
             {getGeneralContactUrl(MSG_PREMIUM) ? (
@@ -248,7 +304,7 @@ function PackagesSection() {
                 rel="noopener noreferrer"
               >
                 <IconWA className="wa-icon" />
-                Konsultasi paket personal
+                <span>Konsultasi paket personal</span>
               </a>
             ) : (
               <button
@@ -260,7 +316,7 @@ function PackagesSection() {
                 title="Kontak belum dikonfigurasi"
               >
                 <IconWA className="wa-icon" />
-                Konsultasi paket personal
+                <span>Konsultasi paket personal</span>
               </button>
             )}
           </article>
