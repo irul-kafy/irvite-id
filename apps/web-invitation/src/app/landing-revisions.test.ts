@@ -54,5 +54,31 @@ test('Landing Page & Customizer Lecturer Revisions Contract', async (t) => {
       'Studio must use Ketentuan instead of Paten',
     );
   });
+
+  await t.test('5. Mobile navigation menu toggle and responsive drawer are present for smartphone viewports', () => {
+    const navbarCssPath = path.resolve(__dirname, '../components/landing-navbar.css');
+    const navbarCss = fs.readFileSync(navbarCssPath, 'utf8');
+
+    assert.ok(
+      navbar.includes('mobile-menu-btn'),
+      'Navbar must render a mobile hamburger menu button',
+    );
+    assert.ok(
+      navbar.includes('mobile-nav-drawer'),
+      'Navbar must render a mobile drawer panel with navigation links',
+    );
+    assert.ok(
+      navbar.includes('aria-expanded'),
+      'Mobile menu button must include aria-expanded attribute for accessibility',
+    );
+    assert.ok(
+      navbarCss.includes('.mobile-menu-btn'),
+      'landing-navbar.css must style .mobile-menu-btn',
+    );
+    assert.ok(
+      /@media\s*\([^)]*720px[^)]*\)\s*\{[\s\S]*?\.mobile-menu-btn\s*\{[\s\S]*?display:\s*inline-flex;/m.test(navbarCss),
+      'landing-navbar.css must display hamburger button on mobile screens (<= 720px)',
+    );
+  });
 });
 

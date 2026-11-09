@@ -1,0 +1,262 @@
+/* ==========================================================================
+   IRVITE — Responsive Mobile Navigation & Hamburger Menu
+   ========================================================================== */
+
+/* ── Mobile Hamburger Toggle Button ── */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(24, 30, 27, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: #181e1b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(24, 30, 27, 0.04);
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(25, 56, 44, 0.08);
+  border-color: rgba(25, 56, 44, 0.25);
+  color: #19382c;
+  transform: translateY(-1px);
+}
+
+.mobile-menu-btn.is-active {
+  background: #19382c;
+  color: #ffffff;
+  border-color: #19382c;
+  box-shadow: 0 4px 12px rgba(25, 56, 44, 0.22);
+}
+
+/* ── Mobile Backdrop Overlay ── */
+.mobile-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  top: 72px;
+  background: rgba(10, 20, 16, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 998;
+  animation: mobileNavFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes mobileNavFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Mobile Drawer / Dropdown Panel ── */
+.mobile-nav-drawer {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  right: 0;
+  max-height: calc(100vh - 72px);
+  overflow-y: auto;
+  background: rgba(253, 252, 248, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(24, 30, 27, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  padding: 16px 20px 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: mobileNavSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes mobileNavSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-nav-drawer__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobile-nav-drawer__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-radius: 12px;
+  color: #181e1b;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  background: transparent;
+}
+
+.mobile-nav-drawer__link:hover,
+.mobile-nav-drawer__link:focus-visible {
+  background: rgba(25, 56, 44, 0.06);
+  color: #19382c;
+  transform: translateX(3px);
+}
+
+.mobile-nav-drawer__link.is-active {
+  background: rgba(25, 56, 44, 0.08);
+  color: #19382c;
+  font-weight: 700;
+}
+
+.mobile-nav-drawer__link-arrow {
+  color: #8a968f;
+  font-size: 1.15rem;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.mobile-nav-drawer__link:hover .mobile-nav-drawer__link-arrow {
+  color: #19382c;
+  transform: translateX(2px);
+}
+
+.mobile-nav-drawer__divider {
+  height: 1px;
+  background: rgba(24, 30, 27, 0.08);
+  margin: 4px 0;
+}
+
+.mobile-nav-drawer__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-nav-drawer__catalog-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(197, 163, 101, 0.12);
+  border: 1px solid rgba(197, 163, 101, 0.35);
+  color: #795d24;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-drawer__catalog-cta:hover {
+  background: rgba(197, 163, 101, 0.22);
+  color: #5c4516;
+}
+
+.mobile-nav-drawer__wa-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #19382c;
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(25, 56, 44, 0.2);
+  transition: all 0.2s ease;
+}
+
+.mobile-nav-drawer__wa-cta:hover {
+  background: #122c22;
+  transform: translateY(-1px);
+}
+
+/* ── Dark Mode Adaptations ── */
+html.dark .mobile-menu-btn {
+  background: rgba(30, 42, 36, 0.9);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f3efe6;
+}
+
+html.dark .mobile-menu-btn.is-active {
+  background: #254a3b;
+  color: #ffffff;
+  border-color: #254a3b;
+}
+
+html.dark .mobile-nav-drawer {
+  background: rgba(18, 26, 22, 0.98);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .mobile-nav-drawer__link {
+  color: #f3efe6;
+}
+
+html.dark .mobile-nav-drawer__link:hover,
+html.dark .mobile-nav-drawer__link:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+html.dark .mobile-nav-drawer__link.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e5d5b7;
+}
+
+html.dark .mobile-nav-drawer__divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .mobile-nav-drawer__catalog-cta {
+  background: rgba(197, 163, 101, 0.15);
+  border-color: rgba(197, 163, 101, 0.4);
+  color: #ebd5a7;
+}
+
+/* ── Responsive Mobile Visibility ── */
+@media (max-width: 720px) {
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .mobile-nav-backdrop,
+  .mobile-nav-drawer {
+    top: 64px;
+  }
+
+  .mobile-nav-drawer {
+    max-height: calc(100vh - 64px);
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nav-cta {
+    padding: 7px 11px;
+    font-size: 0.78rem;
+    gap: 5px;
+  }
+}

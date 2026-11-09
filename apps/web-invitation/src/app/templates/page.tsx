@@ -4,6 +4,7 @@ import { getCatalogTemplates, filterAvailableTemplates } from '@/catalog';
 import { fetchPublicTemplateAvailability, fetchPublicTemplatePackages } from '@/api/client';
 import type { CatalogTemplateItem } from '@/catalog/template-catalog.types';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
+import { LandingNavbar } from '@/components/landing-navbar';
 import './templates.css';
 
 export const dynamic = 'force-dynamic';
@@ -58,58 +59,8 @@ export default async function PublicTemplatesPage() {
 
   return (
     <div className="cat-page">
-      {/* Main Site Header (matching Landing Page) */}
-      <header className="site-header cat-nav" aria-label="Navigasi Utama">
-        <div className="site-header-inner cat-nav__inner">
-          <Link href="/" className="brand cat-nav__brand" aria-label="IRVITE Beranda">
-            IRVITE
-          </Link>
-
-          <div className="site-nav-group cat-nav__actions">
-            <nav className="cat-nav__links-group" aria-label="Navigasi Menu">
-              <Link href="/" className="cat-nav__link">
-                Beranda
-              </Link>
-              <Link href="/templates" className="cat-nav__link cat-nav__link--active" aria-current="page">
-                Katalog
-              </Link>
-              <Link href="/#cara-kerja" className="cat-nav__link">
-                Alur Pemesanan
-              </Link>
-              <Link href="/#paket" className="cat-nav__link">
-                Paket
-              </Link>
-            </nav>
-
-            <div className="nav-actions">
-              {navContactUrl ? (
-                <a
-                  id="cat-nav-wa-cta"
-                  href={navContactUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="nav-cta cat-nav__cta"
-                >
-                  <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
-                  <span>Konsultasi</span>
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  id="cat-nav-wa-cta"
-                  disabled
-                  className="nav-cta cat-nav__cta"
-                  style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                  title="Kontak belum dikonfigurasi"
-                >
-                  <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
-                  <span>Konsultasi</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Main Site Header (matching Landing Page with Responsive Mobile Menu) */}
+      <LandingNavbar currentPath="/templates" className="cat-nav" />
 
       {/* Hero Section */}
       <section className="cat-hero">

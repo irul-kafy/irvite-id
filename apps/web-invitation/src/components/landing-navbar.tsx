@@ -1,9 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { getGeneralContactUrl } from '../utils/contact';
+import './landing-navbar.css';
 
-const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
+const DEFAULT_MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
+
+export interface LandingNavbarProps {
+  currentPath?: string;
+  className?: string;
+  contactMessage?: string;
+}
 
 function IconWA({ style }: { style?: React.CSSProperties }) {
   return (
@@ -19,37 +28,109 @@ function IconWA({ style }: { style?: React.CSSProperties }) {
   );
 }
 
-export function LandingNavbar() {
-  const contactUrl = getGeneralContactUrl(MSG_GENERAL);
+export function LandingNavbar({
+  currentPath,
+  className = '',
+  contactMessage = DEFAULT_MSG_GENERAL,
+}: LandingNavbarProps = {}) {
+  let detectedPath = '';
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    detectedPath = usePathname() || '';
+  } catch {
+    detectedPath = '';
+  }
+
+  const activePath = currentPath || detectedPath;
+  const isTemplatesPage = activePath === '/templates' || activePath.startsWith('/templates');
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const contactUrl = getGeneralContactUrl(contactMessage);
+
+  // Close mobile drawer when pressing Escape or scrolling on desktop
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  const waCtaId = isTemplatesPage ? 'cat-nav-wa-cta' : 'nav-wa-cta';
+  const ctaClass = isTemplatesPage ? 'nav-cta cat-nav__cta' : 'nav-cta';
 
   return (
-    <header className="site-header" aria-label="Navigasi utama situs">
-      <div className="site-header-inner">
-        <a className="brand" href="#top" aria-label="IRVITE beranda">
-          IRVITE
-        </a>
-        <div className="site-nav-group">
-          <nav aria-label="Navigasi utama">
-            <a href="#katalog">Katalog</a>
-            <a href="#cara-kerja">Alur Pemesanan</a>
-            <a href="#paket">Paket</a>
-          </nav>
+    <header
+      className={`site-header ${isTemplatesPage ? 'cat-nav' : ''} ${className}`.trim()}
+      aria-label="Navigasi utama situs"
+    >
+      <div className={`site-header-inner ${isTemplatesPage ? 'cat-nav__inner' : ''}`}>
+        {isTemplatesPage ? (
+          <Link href="/" className="brand cat-nav__brand" aria-label="IRVITE beranda">
+            IRVITE
+          </Link>
+        ) : (
+          <a className="brand" href="#top" aria-label="IRVITE beranda">
+            IRVITE
+          </a>
+        )}
+
+        <div className={`site-nav-group ${isTemplatesPage ? 'cat-nav__actions' : ''}`}>
+          {/* Desktop Horizontal Navigation Links */}
+          {isTemplatesPage ? (
+            <nav className="cat-nav__links-group" aria-label="Navigasi Menu">
+              <Link href="/" className="cat-nav__link">
+                Beranda
+              </Link>
+              <Link
+                href="/templates"
+                className="cat-nav__link cat-nav__link--active"
+                aria-current="page"
+              >
+                Katalog
+              </Link>
+              <Link href="/#cara-kerja" className="cat-nav__link">
+                Alur Pemesanan
+              </Link>
+              <Link href="/#paket" className="cat-nav__link">
+                Paket
+              </Link>
+            </nav>
+          ) : (
+            <nav aria-label="Navigasi utama">
+              <a href="#katalog">Katalog</a>
+              <a href="#cara-kerja">Alur Pemesanan</a>
+              <a href="#paket">Paket</a>
+            </nav>
+          )}
+
           <div className="nav-actions">
             {contactUrl ? (
               <a
-                id="nav-wa-cta"
+                id={waCtaId}
                 href={contactUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="nav-cta"
+                className={ctaClass}
               >
                 <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
                 <span>Konsultasi</span>
               </a>
             ) : (
               <span
-                id="nav-wa-cta"
-                className="nav-cta"
+                id={waCtaId}
+                className={ctaClass}
                 style={{ opacity: 0.5, cursor: 'not-allowed' }}
                 title="Kontak belum dikonfigurasi"
               >
@@ -57,9 +138,192 @@ export function LandingNavbar() {
                 <span>Konsultasi</span>
               </span>
             )}
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              type="button"
+              className={`mobile-menu-btn ${mobileMenuOpen ? 'is-active' : ''}`}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              aria-label={mobileMenuOpen ? 'Tutup navigasi menu' : 'Buka navigasi menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-nav-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Navigation Dropdown Drawer */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu navigasi mobile"
+        >
+          <ul className="mobile-nav-drawer__list">
+            {isTemplatesPage ? (
+              <>
+                <li>
+                  <Link
+                    href="/"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Beranda</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/templates"
+                    className="mobile-nav-drawer__link is-active"
+                    aria-current="page"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Katalog</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/#cara-kerja"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Alur Pemesanan</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/#paket"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Paket</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <a
+                    href="#katalog"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Katalog</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#cara-kerja"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Alur Pemesanan</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#paket"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Paket</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </a>
+                </li>
+              </>
+            )}
+          </ul>
+
+          <div className="mobile-nav-drawer__divider" />
+
+          <div className="mobile-nav-drawer__footer">
+            {!isTemplatesPage && (
+              <Link
+                href="/templates"
+                className="mobile-nav-drawer__catalog-cta"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span>Buka Semua Template di Katalog</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            )}
+            {contactUrl && (
+              <a
+                href={contactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mobile-nav-drawer__wa-cta"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <IconWA style={{ width: 17, height: 17, flex: '0 0 auto' }} />
+                <span>Konsultasi via WhatsApp</span>
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
