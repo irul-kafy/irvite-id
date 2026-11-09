@@ -448,11 +448,13 @@ export function TemplateCustomizerStudio({
               className="irv-studio-bar__back"
               style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
             >
-              ← Kembali
+              <span aria-hidden="true">←</span>
+              <span className="irv-studio-bar__back-text">Kembali</span>
             </button>
           ) : (
             <Link href="/templates" className="irv-studio-bar__back">
-              ← Katalog
+              <span aria-hidden="true">←</span>
+              <span className="irv-studio-bar__back-text">Katalog</span>
             </Link>
           )}
           <div className="irv-studio-bar__title-group">
@@ -528,8 +530,10 @@ export function TemplateCustomizerStudio({
             id="btn-toggle-customizer"
             className={`irv-studio-btn irv-studio-btn--customize ${drawerOpen ? 'is-active' : ''}`}
             onClick={() => setDrawerOpen((prev) => !prev)}
+            aria-label={drawerOpen ? 'Tutup Panel Kustomisasi' : 'Buka Panel Kustomisasi Data & Foto'}
           >
-            {drawerOpen ? '✕ Tutup Panel' : 'Ubah Data & Foto'}
+            <span className="irv-studio-btn__label-full">{drawerOpen ? '✕ Tutup Panel' : 'Ubah Data & Foto'}</span>
+            <span className="irv-studio-btn__label-short">{drawerOpen ? '✕ Tutup' : 'Ubah Data'}</span>
           </button>
 
           <button
@@ -541,8 +545,10 @@ export function TemplateCustomizerStudio({
               setSubmitError(null);
               setShowOrderModal(true);
             }}
+            aria-label="Pesan Undangan Sekarang"
           >
-            Pesan Sekarang →
+            <span className="irv-studio-btn__label-full">Pesan Sekarang →</span>
+            <span className="irv-studio-btn__label-short">Pesan →</span>
           </button>
         </div>
         )}
