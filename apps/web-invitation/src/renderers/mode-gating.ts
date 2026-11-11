@@ -1,5 +1,62 @@
 export type InvitationMode = 'PUBLIC' | 'PERSONAL' | 'PERSONALIZED';
 
+export const MAX_PUBLIC_RECIPIENT_LENGTH = 60;
+
+/**
+ * Sanitizes a custom public recipient / group name from URL query parameters (?to=, ?tamu=, ?kepada=, ?guest=).
+ * Strips HTML tags and control characters, normalizes whitespace, and limits length to prevent layout overflow.
+ */
+export function sanitizePublicRecipientName(raw?: string | null): string | undefined {
+  if (!raw || typeof raw !== 'string') return undefined;
+  let cleaned = raw;
+  try {
+    // Handle literal '+' from query strings if not already decoded as space
+    cleaned = cleaned.replace(/\+/g, ' ');
+  } catch {
+    // Ignore
+  }
+  cleaned = cleaned
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!cleaned) return undefined;
+  if (cleaned.length > MAX_PUBLIC_RECIPIENT_LENGTH) {
+    cleaned = cleaned.slice(0, MAX_PUBLIC_RECIPIENT_LENGTH).trim();
+  }
+  return cleaned || undefined;
+}
+
+/**
+ * Extracts a sanitized custom recipient name from Next.js searchParams or URLSearchParams.
+ * Supports ?to=, ?tamu=, ?kepada=, and ?guest=.
+ */
+export function extractPublicRecipientFromSearchParams(
+  params?: Record<string, string | string[] | undefined> | URLSearchParams | null,
+): string | undefined {
+  if (!params) return undefined;
+  const keys = ['to', 'tamu', 'kepada', 'guest'] as const;
+
+  if (typeof URLSearchParams !== 'undefined' && params instanceof URLSearchParams) {
+    for (const key of keys) {
+      const val = params.get(key);
+      const sanitized = sanitizePublicRecipientName(val);
+      if (sanitized) return sanitized;
+    }
+    return undefined;
+  }
+
+  const record = params as Record<string, string | string[] | undefined>;
+  for (const key of keys) {
+    const raw = record[key];
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const sanitized = sanitizePublicRecipientName(value);
+    if (sanitized) return sanitized;
+  }
+  return undefined;
+}
+
 export function resolveSereneEffectiveMode(mode?: InvitationMode): 'PUBLIC' | 'PERSONALIZED' {
   if (mode === 'PERSONAL' || mode === 'PERSONALIZED') {
     return 'PERSONALIZED';
@@ -9,9 +66,58 @@ export function resolveSereneEffectiveMode(mode?: InvitationMode): 'PUBLIC' | 'P
 
 export function shouldRenderSereneGuest(
   mode?: InvitationMode,
-  guest?: { name?: string } | null,
+  guest?: { name?: string; isPublicRecipient?: boolean } | null,
 ): boolean {
-  return resolveSereneEffectiveMode(mode) === 'PERSONALIZED' && Boolean(guest && guest.name);
+  if (!guest || !guest.name) return false;
+  if (resolveSereneEffectiveMode(mode) === 'PERSONALIZED') return true;
+  if (guest.isPublicRecipient && Boolean(sanitizePublicRecipientName(guest.name))) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Resolves the effective guest object for cover/greeting display across both PERSONAL and PUBLIC (?to=...) modes.
+ * Note: This ONLY affects the cover greeting display name. RSVP & QR remain strictly gated by shouldRenderRsvpAndQr.
+ */
+export function resolveEffectiveDisplayGuest(
+  mode?: InvitationMode,
+  guest?: {
+    name: string;
+    customGreeting?: string | null;
+    maxPax: number;
+    tableNumber?: string | null;
+    isPublicRecipient?: boolean;
+  } | null,
+  urlRecipientParam?: string | null,
+): {
+  name: string;
+  customGreeting: string | null;
+  maxPax: number;
+  tableNumber?: string | null;
+  isPublicRecipient?: boolean;
+} | null {
+  if (resolveSereneEffectiveMode(mode) === 'PERSONALIZED' && guest && guest.name) {
+    return {
+      ...guest,
+      customGreeting: guest.customGreeting ?? null,
+    };
+  }
+
+  const fromGuest = guest?.isPublicRecipient ? sanitizePublicRecipientName(guest.name) : undefined;
+  const fromUrl = sanitizePublicRecipientName(urlRecipientParam);
+  const publicName = fromUrl || fromGuest;
+
+  if (publicName) {
+    return {
+      name: publicName,
+      customGreeting: guest?.customGreeting ?? null,
+      maxPax: 0,
+      isPublicRecipient: true,
+    };
+  }
+
+  return null;
 }
 
 export function shouldRenderSereneRsvp(

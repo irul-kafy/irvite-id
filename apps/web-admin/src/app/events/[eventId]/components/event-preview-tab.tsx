@@ -20,7 +20,22 @@ export function EventPreviewTab({
   hasContent,
 }: EventPreviewTabProps) {
   const [copied, setCopied] = useState(false);
+  const [customRecipient, setCustomRecipient] = useState('');
+  const [copiedCustom, setCopiedCustom] = useState(false);
   const isPublished = status === 'PUBLISHED';
+
+  const sanitizedRecipient = customRecipient
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60)
+    .trim();
+
+  const customPublicUrl = canonicalUrl
+    ? sanitizedRecipient
+      ? `${canonicalUrl}${canonicalUrl.includes('?') ? '&' : '?'}to=${encodeURIComponent(sanitizedRecipient)}`
+      : canonicalUrl
+    : '';
 
   const handleCopy = async () => {
     if (!canonicalUrl) return;
@@ -28,6 +43,17 @@ export function EventPreviewTab({
       await navigator.clipboard.writeText(canonicalUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback if clipboard API unavailable
+    }
+  };
+
+  const handleCopyCustom = async () => {
+    if (!customPublicUrl) return;
+    try {
+      await navigator.clipboard.writeText(customPublicUrl);
+      setCopiedCustom(true);
+      setTimeout(() => setCopiedCustom(false), 2000);
     } catch {
       // Fallback if clipboard API unavailable
     }
@@ -72,33 +98,82 @@ export function EventPreviewTab({
             </div>
 
             {canonicalUrl ? (
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label text-xs">Tautan Publik Resmi (Canonical URL)</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    readOnly
-                    className="form-input font-mono text-sm"
-                    value={canonicalUrl}
-                    style={{ background: 'var(--admin-bg)', color: 'var(--text-primary)' }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={handleCopy}
-                    id="copy-preview-link-btn"
-                  >
-                    {copied ? '✓ Tersalin' : 'Salin URL'}
-                  </button>
-                  <a
-                    href={canonicalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primary btn-sm flex-center gap-1"
-                    id="open-published-invitation-btn"
-                  >
-                    Buka Undangan &rarr;
-                  </a>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label text-xs">Tautan Publik Resmi (Canonical URL)</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      readOnly
+                      className="form-input font-mono text-sm"
+                      value={canonicalUrl}
+                      style={{ background: 'var(--admin-bg)', color: 'var(--text-primary)' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleCopy}
+                      id="copy-preview-link-btn"
+                    >
+                      {copied ? '✓ Tersalin' : 'Salin URL'}
+                    </button>
+                    <a
+                      href={canonicalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary btn-sm flex-center gap-1"
+                      id="open-published-invitation-btn"
+                    >
+                      Buka Undangan &rarr;
+                    </a>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: '1rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--admin-border)',
+                    background: 'var(--admin-bg)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.65rem',
+                  }}
+                >
+                  <div>
+                    <label className="form-label text-xs" style={{ marginBottom: '0.15rem' }}>
+                      Generator Link Publik Custom (Grup WA / Followers / Komunitas)
+                    </label>
+                    <p className="text-xs text-muted" style={{ margin: 0 }}>
+                      Ubah sapaan <em>&ldquo;Bapak / Ibu / Saudara / i&rdquo;</em> di sampul menjadi nama grup atau komunitas via parameter <code>?to=...</code> (RSVP &amp; QR tetap nonaktif).
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      className="form-input text-sm"
+                      placeholder="Contoh: Grup Alumni SMAN 8, Followers Instagram, Keluarga Besar..."
+                      value={customRecipient}
+                      onChange={(e) => setCustomRecipient(e.target.value)}
+                      style={{ flex: '1 1 240px' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleCopyCustom}
+                    >
+                      {copiedCustom ? '✓ Link Custom Tersalin' : 'Salin Link Custom'}
+                    </button>
+                    <a
+                      href={customPublicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary btn-sm flex-center gap-1"
+                    >
+                      Tes Buka &rarr;
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (

@@ -42,3 +42,4 @@ export function extractCoupleNamesFromTitle(
 
   return [p1, p2];
 }
+

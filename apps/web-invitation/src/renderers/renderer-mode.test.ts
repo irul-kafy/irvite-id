@@ -8,6 +8,10 @@ import {
   shouldRenderGiftSection,
   resolveCoverGuestName,
   shouldRenderRsvpAndQr,
+  sanitizePublicRecipientName,
+  extractPublicRecipientFromSearchParams,
+  resolveEffectiveDisplayGuest,
+  shouldRenderSereneGuest,
 } from './mode-gating';
 
 test('Renderer Mode Safety & Gating (Pure Logic Contract)', async (t) => {
@@ -94,5 +98,33 @@ test('Renderer Mode Safety & Gating (Pure Logic Contract)', async (t) => {
     // Template Studio preview: must be true to allow previewing RSVP and QR components
     assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', undefined, true), true);
     assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', undefined, true), true);
+  });
+
+  await t.test('Public Custom Recipient (?to= / ?tamu=) displays custom cover greeting while keeping RSVP & QR locked', () => {
+    assert.strictEqual(
+      sanitizePublicRecipientName('<b>Grup+Alumni+SMA+8</b>'),
+      'Grup Alumni SMA 8',
+    );
+    assert.strictEqual(sanitizePublicRecipientName('   <script></script>   '), undefined);
+    assert.strictEqual(
+      sanitizePublicRecipientName('A'.repeat(90))?.length,
+      60,
+    );
+
+    assert.strictEqual(
+      extractPublicRecipientFromSearchParams({ to: 'Followers & Sahabat IG' }),
+      'Followers & Sahabat IG',
+    );
+    assert.strictEqual(
+      extractPublicRecipientFromSearchParams({ tamu: 'Keluarga Besar Bandung' }),
+      'Keluarga Besar Bandung',
+    );
+
+    const publicGuest = resolveEffectiveDisplayGuest('PUBLIC', null, 'Grup Kantor Divisi IT');
+    assert.ok(publicGuest);
+    assert.strictEqual(publicGuest?.name, 'Grup Kantor Divisi IT');
+    assert.strictEqual(publicGuest?.isPublicRecipient, true);
+    assert.strictEqual(shouldRenderSereneGuest('PUBLIC', publicGuest), true);
+    assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', '', false), false);
   });
 });

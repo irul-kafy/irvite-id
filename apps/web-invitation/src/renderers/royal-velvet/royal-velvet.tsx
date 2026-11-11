@@ -8,6 +8,7 @@ import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
   shouldRenderSereneGuest,
+  extractPublicRecipientFromSearchParams,
 } from '../mode-gating';
 import {
   adaptRoyalVelvetContent,
@@ -89,19 +90,21 @@ export function RoyalVelvetRenderer({
   const [guestName, setGuestName] = useState<string>(() => {
     if (guestVisible && data.guest?.name) return data.guest.name;
     if (data.guest?.name) return data.guest.name;
-    return 'Keluarga Besar & Sahabat Kehormatan';
+    return 'Bapak / Ibu / Saudara/i';
   });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
-      const urlGuest = sp.get('to') || sp.get('guest');
+      const urlGuest = extractPublicRecipientFromSearchParams(sp);
       if (urlGuest) {
         setGuestName(urlGuest);
       } else if (guestVisible && data.guest?.name) {
         setGuestName(data.guest.name);
       } else if (data.guest?.name) {
         setGuestName(data.guest.name);
+      } else {
+        setGuestName('Bapak / Ibu / Saudara/i');
       }
     }
   }, [data.guest?.name, guestVisible]);

@@ -13,6 +13,7 @@ import {
   resolveCoverGuestName,
   shouldRenderGiftSection,
 } from '../mode-gating';
+import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import MediaGallery from '../../components/media-gallery';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
@@ -564,6 +565,7 @@ export default function GenericTheme({
 }) {
   const { event, guest, invitation, template, media, mediaBySlot, rsvp } = data;
   const effectiveMode = resolveEffectiveMode(mode === 'PERSONALIZED' ? 'PERSONAL' : mode);
+  const effectiveDisplayGuest = useEffectiveDisplayGuest(mode, guest);
   const config = normalizeConfig(template?.config || null);
   const [isOpened, setIsOpened] = useState(isPreview); // Skip cover in preview mode
 
@@ -795,7 +797,7 @@ export default function GenericTheme({
         <CoverScreen
           title={displayCoupleTitle}
           eventDate={event.eventDate}
-          guestName={resolveCoverGuestName(effectiveMode, guest?.name)}
+          guestName={resolveCoverGuestName(effectiveMode, guest?.name) || effectiveDisplayGuest?.name}
           onOpen={handleOpen}
         />
       )}

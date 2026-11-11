@@ -22,6 +22,7 @@ export interface PublicInvitationResponse {
     customGreeting: string | null;
     maxPax: number;
     tableNumber?: string | null;
+    isPublicRecipient?: boolean;
   };
   event: {
     title: string;

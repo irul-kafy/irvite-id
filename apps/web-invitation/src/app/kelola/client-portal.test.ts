@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert';
 import {
   buildWhatsAppShareUrl,
+  buildPublicCustomInvitationUrl,
+  buildPublicGroupWhatsAppShareUrl,
   generateGuestsCsv,
   normalizeWhatsAppPhone,
 } from '../../utils/whatsapp-share';
@@ -72,6 +74,24 @@ test('Client Portal Contract Tests', async (t) => {
     assert.ok(csv.includes('"Belum Terkirim"'));
     assert.ok(csv.includes('"Sudah Terkirim"'));
     assert.ok(csv.includes('"VIP"'));
+  });
+
+  await t.test('Public custom invitation URL and group WA share URL format recipient properly', () => {
+    const base = 'https://irvite.id/e/amila-raiswa-59da78';
+    assert.strictEqual(buildPublicCustomInvitationUrl(base, ''), base);
+    assert.strictEqual(
+      buildPublicCustomInvitationUrl(base, 'Grup Alumni SMA 8'),
+      'https://irvite.id/e/amila-raiswa-59da78?to=Grup%20Alumni%20SMA%208',
+    );
+
+    const waGroupUrl = buildPublicGroupWhatsAppShareUrl(
+      'Followers & Sahabat Online',
+      'Pernikahan Amila & Raiswa',
+      base,
+    );
+    assert.ok(waGroupUrl.startsWith('https://wa.me/?text='));
+    assert.ok(waGroupUrl.includes(encodeURIComponent('Followers & Sahabat Online')));
+    assert.ok(waGroupUrl.includes(encodeURIComponent('to=Followers%20%26%20Sahabat%20Online')));
   });
 });
 

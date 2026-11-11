@@ -6,6 +6,7 @@ import InvitationTemplate from './InvitationTemplate';
 import { adaptOpalineNocturneData } from './opaline-nocturne.adapter';
 import type { Guest, RsvpSubmission } from './types';
 import { shouldRenderSereneGuest, shouldRenderRsvpAndQr } from '../mode-gating';
+import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { getCanonicalInvitationUrl } from '../../utils/url';
@@ -18,15 +19,16 @@ export default function OpalineNocturneRenderer({
   isPreview = false,
 }: RendererProps) {
   const invitationData = adaptOpalineNocturneData(data, isPreview);
-  const guestVisible = shouldRenderSereneGuest(mode, data.guest);
+  const effectiveGuest = useEffectiveDisplayGuest(mode, data.guest);
+  const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
 
-  const guest: Guest | undefined = guestVisible && data.guest
+  const guest: Guest | undefined = guestVisible && effectiveGuest
     ? {
         kind: 'personal',
-        name: data.guest.name,
-        maxPax: data.guest.maxPax,
-        invitationLabel: data.guest.customGreeting || 'Tamu Undangan',
+        name: effectiveGuest.name,
+        maxPax: effectiveGuest.maxPax,
+        invitationLabel: effectiveGuest.customGreeting || 'Tamu Undangan',
       }
     : undefined;
 

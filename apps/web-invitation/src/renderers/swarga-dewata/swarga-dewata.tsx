@@ -10,6 +10,7 @@ import {
   shouldRenderRsvpAndQr,
   shouldRenderSereneGuest,
 } from '../mode-gating';
+import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import {
   adaptSwargaDewataContent,
   adaptSwargaDewataMedia,
@@ -123,7 +124,8 @@ export function SwargaDewataRenderer({
     [data?.mediaBySlot, data?.media, isPreview],
   );
 
-  const guestVisible = shouldRenderSereneGuest(mode, data?.guest);
+  const effectiveGuest = useEffectiveDisplayGuest(mode, data?.guest);
+  const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
 
   const [isGateOpen, setIsGateOpen] = useState(false);
@@ -410,8 +412,8 @@ export function SwargaDewataRenderer({
   };
 
   const guestDisplayName =
-    guestVisible && data?.guest?.name
-      ? data.guest.name
+    guestVisible && effectiveGuest?.name
+      ? effectiveGuest.name
       : 'Bapak / Ibu / Saudara/i';
 
   return (

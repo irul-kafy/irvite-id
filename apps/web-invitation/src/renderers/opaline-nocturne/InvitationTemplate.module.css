@@ -80,7 +80,7 @@
 .coverDate{margin-top:22px!important;font-family:var(--inv-font-display);font-size:1.1rem;letter-spacing:.14em;animation:coverWord 1.5s ease both .8s}
 .guestGreeting{margin:34px auto 22px;padding:14px 22px;max-width:320px;border-radius:18px;background:#1633367a;border:1px solid #c9b88f59;backdrop-filter:blur(6px);animation:coverWord 1.5s ease both 1s}
 .guestGreeting span{display:block;font-size:.66rem;letter-spacing:.08em}
-.guestGreeting strong{display:block;margin-top:4px;font:400 1.35rem/1.35 var(--inv-font-display)}
+.guestGreeting strong{display:block;margin-top:4px;font:400 1.35rem/1.35 var(--inv-font-display);text-wrap:balance;overflow-wrap:break-word}
 .coverContent>.button{animation:coverWord 1.5s ease both 1.1s;z-index:6;box-shadow:0 8px 24px #11282a75}
 .coverBrand{display:block;font-size:.66rem;margin-top:18px;opacity:.88}
 .opening>.flowers{width:clamp(140px,18vw,215px);height:clamp(220px,28vw,310px)}

@@ -4,6 +4,8 @@ import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
   buildWhatsAppShareUrl,
+  buildPublicCustomInvitationUrl,
+  buildPublicGroupWhatsAppShareUrl,
   generateGuestsCsv,
   generateSpintaxMessage,
   normalizeWhatsAppPhone,
@@ -74,6 +76,7 @@ export function ClientPortalView({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [publicRecipientLabel, setPublicRecipientLabel] = useState('');
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -200,6 +203,40 @@ export function ClientPortalView({
       return `${window.location.origin}/i/${encodeURIComponent(uniqueCode)}`;
     }
     return `/i/${encodeURIComponent(uniqueCode)}`;
+  };
+
+  const getBasePublicEventUrl = () => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}/e/${encodeURIComponent(event.slug)}`;
+    }
+    return `/e/${encodeURIComponent(event.slug)}`;
+  };
+
+  const customPublicUrl = buildPublicCustomInvitationUrl(
+    getBasePublicEventUrl(),
+    publicRecipientLabel,
+  );
+
+  const handleCopyPublicCustomUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(customPublicUrl);
+      showToast(
+        publicRecipientLabel.trim()
+          ? `Link publik untuk "${publicRecipientLabel.trim()}" berhasil disalin!`
+          : 'Link publik undangan berhasil disalin!',
+      );
+    } catch {
+      showToast('Gagal menyalin link otomatis. Silakan salin manual.');
+    }
+  };
+
+  const handleSharePublicGroupWa = () => {
+    const waUrl = buildPublicGroupWhatsAppShareUrl(
+      publicRecipientLabel,
+      event.title,
+      getBasePublicEventUrl(),
+    );
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 
   // WhatsApp Share Action
@@ -516,6 +553,124 @@ export function ClientPortalView({
             Tamu akan menerima salam pembuka yang ramah beserta tautan undangan pribadi mereka.
           </p>
         </section>
+
+        {/* Custom Public Link Generator for Groups / Social Media / Communities */}
+        {event.slug && (
+          <section
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '1.25rem 1.35rem',
+              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.85rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>🌐</span>
+                  <span>Generator Link Publik Custom (Grup WA / Followers / Komunitas)</span>
+                </strong>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.8125rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Ubah sapaan <em>&ldquo;Bapak / Ibu / Saudara / i&rdquo;</em> pada sampul link publik menjadi nama grup, alumni, rekan kantor, atau followers media sosial (tanpa tiket QR/RSVP personal).
+                </p>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '999px',
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  fontWeight: 600,
+                }}
+              >
+                Sapaan Sampul: {publicRecipientLabel.trim() || 'Bapak / Ibu / Saudara/i'}
+              </span>
+            </div>
+
+            {/* Preset Chips */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+              {[
+                { label: 'Default (Bapak/Ibu)', value: '' },
+                { label: 'Keluarga Besar & Kerabat', value: 'Keluarga Besar & Kerabat' },
+                { label: 'Sahabat & Teman-teman', value: 'Sahabat & Teman-teman' },
+                { label: 'Followers & Sahabat Online', value: 'Followers & Sahabat Online' },
+                { label: 'Rekan Kerja & Kolega', value: 'Rekan Kerja & Kolega' },
+                { label: 'Keluarga Besar Alumni', value: 'Keluarga Besar Alumni' },
+              ].map((preset) => {
+                const isSelected = publicRecipientLabel === preset.value;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setPublicRecipientLabel(preset.value)}
+                    style={{
+                      padding: '0.3rem 0.7rem',
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      border: isSelected ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                      background: isSelected ? '#0f172a' : '#f8fafc',
+                      color: isSelected ? '#ffffff' : '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Input + Action Buttons */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                maxLength={60}
+                value={publicRecipientLabel}
+                onChange={(e) => setPublicRecipientLabel(e.target.value)}
+                placeholder="Ketik nama grup / penerima (misal: Grup Alumni SMAN 8, Tim Finance, Followers IG)..."
+                style={{
+                  flex: '1 1 260px',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: '9px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.875rem',
+                  color: '#0f172a',
+                }}
+              />
+              <button
+                type="button"
+                className="btn-portal-secondary"
+                onClick={handleCopyPublicCustomUrl}
+              >
+                <span>📋</span>
+                <span>Salin Link</span>
+              </button>
+              <button
+                type="button"
+                className="btn-portal-wa-auto"
+                onClick={handleSharePublicGroupWa}
+              >
+                <span>💬</span>
+                <span>Share ke Grup WA</span>
+              </button>
+              <a
+                href={customPublicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-portal-secondary"
+                style={{ textDecoration: 'none' }}
+              >
+                <span>↗</span>
+                <span>Lihat Sampul</span>
+              </a>
+            </div>
+          </section>
+        )}
 
         {/* Offline / Draft Status Notice for Couple */}
         {event.status === 'DRAFT' && (

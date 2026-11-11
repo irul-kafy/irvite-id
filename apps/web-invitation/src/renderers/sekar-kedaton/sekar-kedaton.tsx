@@ -7,6 +7,7 @@ import QRDisplay from '../../components/QRDisplay';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
+import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import { formatCeremonyDate, formatCeremonyDateShort, formatCeremonyTimeRange, parseTargetEpoch } from '../datetime-formatter';
 import { Scene, Florals, Gunungan, Kawung, Petals } from './ornaments';
 import s from './sekar-kedaton.module.css';
@@ -81,7 +82,8 @@ export default function SekarKedatonRenderer({
   const start = useRef<HTMLElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
-  const guestVisible = shouldRenderSereneGuest(mode, data.guest);
+  const effectiveGuest = useEffectiveDisplayGuest(mode, data.guest);
+  const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
   const rsvpVisible = showRsvpAndQr && shouldRenderSereneRsvp(mode, data.guest, data.rsvp);
   void rsvpVisible;
@@ -218,8 +220,8 @@ export default function SekarKedatonRenderer({
             <p className={s.coverDate}>{formatCeremonyDateShort(primaryDate, timezone)}</p>
             <div className={s.guest}>
               <span>Kepada Yth.</span>
-              <strong>{guestVisible ? data.guest?.name : 'Bapak / Ibu / Saudara/i'}</strong>
-              {guestVisible && data.guest?.customGreeting && <small>{data.guest.customGreeting}</small>}
+              <strong>{guestVisible && effectiveGuest?.name ? effectiveGuest.name : 'Bapak / Ibu / Saudara/i'}</strong>
+              {guestVisible && effectiveGuest?.customGreeting && <small>{effectiveGuest.customGreeting}</small>}
             </div>
             <button className={s.primaryButton} onClick={openInvitation}>Buka undangan <span>↗</span></button>
           </div>

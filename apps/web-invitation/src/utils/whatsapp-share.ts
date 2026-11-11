@@ -216,3 +216,64 @@ export function generateGuestsCsv(guests: CsvGuestRow[]): string {
   return '\uFEFF' + [headers.map(escapeCsv).join(','), ...rows.map((r) => r.join(','))].join('\r\n');
 }
 
+/**
+ * Builds a public invitation URL with a custom recipient / group greeting (?to=...).
+ * If recipientName is empty, returns the clean basePublicUrl.
+ */
+export function buildPublicCustomInvitationUrl(
+  basePublicUrl: string,
+  recipientName?: string | null,
+): string {
+  const cleanBase = basePublicUrl.trim().replace(/[?&]+$/, '');
+  if (!recipientName || typeof recipientName !== 'string') {
+    return cleanBase;
+  }
+
+  const sanitized = recipientName
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\u0000-\u001F\u007F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60)
+    .trim();
+
+  if (!sanitized) {
+    return cleanBase;
+  }
+
+  const separator = cleanBase.includes('?') ? '&' : '?';
+  return `${cleanBase}${separator}to=${encodeURIComponent(sanitized)}`;
+}
+
+/**
+ * Builds a WhatsApp share URL specifically tailored for sharing a public invitation link
+ * to a WhatsApp Group, Community, or Social Media audience.
+ */
+export function buildPublicGroupWhatsAppShareUrl(
+  recipientLabel: string | null | undefined,
+  eventTitle: string,
+  publicUrl: string,
+): string {
+  const targetUrl = buildPublicCustomInvitationUrl(publicUrl, recipientLabel);
+  const displayRecipient =
+    recipientLabel && recipientLabel.trim()
+      ? recipientLabel.trim().slice(0, 60)
+      : 'Bapak/Ibu/Saudara/i & Sahabat Terkasih';
+
+  const message = [
+    `Kepada Yth. ${displayRecipient},`,
+    '',
+    `Dengan penuh rasa syukur dan kebahagiaan, kami bermaksud mengundang ${displayRecipient} untuk berbagi sukacita serta doa restu di hari bahagia kami: ${eventTitle}.`,
+    '',
+    'Silakan buka tautan undangan digital kami melalui link berikut:',
+    targetUrl,
+    '',
+    'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas kehadiran serta doa restu yang diberikan.',
+    '',
+    'Terima kasih.',
+  ].join('\n');
+
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+
