@@ -1133,7 +1133,7 @@ export function SwargaDewataRenderer({
           initialWishes={data?.wishes?.items}
           title={data?.wishes?.title}
           description={data?.wishes?.description}
-          variant="dark"
+          variant="balinese"
         />
 
         <div className={styles.tridatuRibbon} />

@@ -43,10 +43,10 @@
   --w-scrollbar: rgba(184, 134, 11, 0.3);
 }
 
-/* Dark Theme Variables */
+/* Dark Theme Variables (Neutral Slate/Obsidian) */
 .dark {
-  --w-bg: rgba(20, 16, 26, 0.95);
-  --w-card-bg: rgba(28, 22, 36, 0.88);
+  --w-bg: rgba(18, 18, 20, 0.95);
+  --w-card-bg: rgba(24, 24, 28, 0.88);
   --w-card-border: rgba(229, 200, 142, 0.3);
   --w-card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(229, 200, 142, 0.15) inset;
   --w-text-title: #f7f3eb;
@@ -61,7 +61,7 @@
   --w-btn-bg: linear-gradient(135deg, #e5c88e 0%, #d4af37 50%, #b8860b 100%);
   --w-btn-text: #1a1202;
   --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.35);
-  --w-feed-bg: rgba(32, 25, 42, 0.85);
+  --w-feed-bg: rgba(26, 26, 32, 0.85);
   --w-feed-border: rgba(229, 200, 142, 0.25);
   --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 200, 142, 0.25) 0%, rgba(184, 134, 11, 0.4) 100%);
@@ -72,6 +72,68 @@
   --w-badge-border: rgba(229, 200, 142, 0.3);
   --w-quote-watermark: rgba(229, 200, 142, 0.1);
   --w-scrollbar: rgba(229, 200, 142, 0.35);
+}
+
+/* Balinese (Swarga Dewata) Theme Variables - Warm Obsidian Stone, Deep Teakwood & Prada Gold */
+.balinese {
+  --w-bg: rgba(18, 9, 8, 0.95);
+  --w-card-bg: rgba(22, 12, 10, 0.92);
+  --w-card-border: rgba(229, 184, 75, 0.4);
+  --w-card-shadow: 0 16px 44px -4px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(229, 184, 75, 0.15) inset;
+  --w-text-title: #fdf8ea;
+  --w-text-body: #ecd9bc;
+  --w-text-muted: #b09e88;
+  --w-eyebrow: #e5b84b;
+  --w-input-bg: rgba(255, 255, 255, 0.05);
+  --w-input-border: rgba(229, 184, 75, 0.35);
+  --w-input-text: #ffffff;
+  --w-input-focus: #e5b84b;
+  --w-input-glow: rgba(229, 184, 75, 0.25);
+  --w-btn-bg: linear-gradient(135deg, #f4dfb0 0%, #e5b84b 50%, #b8860b 100%);
+  --w-btn-text: #180d05;
+  --w-btn-shadow: 0 8px 24px -2px rgba(229, 184, 75, 0.35);
+  --w-feed-bg: rgba(26, 14, 12, 0.9);
+  --w-feed-border: rgba(229, 184, 75, 0.3);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5);
+  --w-avatar-bg: linear-gradient(135deg, rgba(229, 184, 75, 0.35) 0%, rgba(184, 66, 40, 0.35) 100%);
+  --w-avatar-border: #e5b84b;
+  --w-avatar-text: #fdf8ea;
+  --w-badge-bg: rgba(229, 184, 75, 0.16);
+  --w-badge-text: #e5b84b;
+  --w-badge-border: rgba(229, 184, 75, 0.4);
+  --w-quote-watermark: rgba(229, 184, 75, 0.12);
+  --w-scrollbar: rgba(229, 184, 75, 0.4);
+}
+
+/* Aetheria (Woodland Twilight) Theme Variables */
+.aetheria {
+  --w-bg: rgba(20, 16, 26, 0.95);
+  --w-card-bg: rgba(28, 22, 36, 0.88);
+  --w-card-border: rgba(239, 191, 163, 0.35);
+  --w-card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(239, 191, 163, 0.15) inset;
+  --w-text-title: #f4e4d8;
+  --w-text-body: #c6b6ce;
+  --w-text-muted: #95849d;
+  --w-eyebrow: #efbfa3;
+  --w-input-bg: rgba(255, 255, 255, 0.06);
+  --w-input-border: rgba(239, 191, 163, 0.3);
+  --w-input-text: #f4e4d8;
+  --w-input-focus: #efbfa3;
+  --w-input-glow: rgba(239, 191, 163, 0.25);
+  --w-btn-bg: linear-gradient(135deg, #efbfa3 0%, #d89b7d 100%);
+  --w-btn-text: #2a1733;
+  --w-btn-shadow: 0 8px 24px -2px rgba(239, 191, 163, 0.35);
+  --w-feed-bg: rgba(32, 25, 42, 0.85);
+  --w-feed-border: rgba(239, 191, 163, 0.25);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
+  --w-avatar-bg: linear-gradient(135deg, rgba(239, 191, 163, 0.3) 0%, rgba(189, 226, 211, 0.3) 100%);
+  --w-avatar-border: #efbfa3;
+  --w-avatar-text: #f4e4d8;
+  --w-badge-bg: rgba(239, 191, 163, 0.15);
+  --w-badge-text: #efbfa3;
+  --w-badge-border: rgba(239, 191, 163, 0.35);
+  --w-quote-watermark: rgba(239, 191, 163, 0.12);
+  --w-scrollbar: rgba(239, 191, 163, 0.35);
 }
 
 /* Header & Typography */
@@ -183,7 +245,9 @@
   color: var(--w-text-muted);
 }
 
-.dark .charCount {
+.dark .charCount,
+.balinese .charCount,
+.aetheria .charCount {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -272,7 +336,9 @@
   border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
-.dark .alertSuccess {
+.dark .alertSuccess,
+.balinese .alertSuccess,
+.aetheria .alertSuccess {
   background: rgba(16, 185, 129, 0.2);
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.4);
@@ -284,7 +350,9 @@
   border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
-.dark .alertError {
+.dark .alertError,
+.balinese .alertError,
+.aetheria .alertError {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.4);

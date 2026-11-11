@@ -12,7 +12,7 @@ export interface WishesSectionProps {
   title?: string;
   description?: string;
   className?: string;
-  variant?: 'light' | 'dark' | 'auto';
+  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'auto';
 }
 
 function formatWishDate(dateStr?: string): string {
@@ -125,7 +125,14 @@ export function WishesSection({
     }
   };
 
-  const themeClass = variant === 'dark' ? styles.dark : styles.light;
+  let themeClass = styles.light;
+  if (variant === 'dark') {
+    themeClass = styles.dark;
+  } else if (variant === 'balinese') {
+    themeClass = styles.balinese;
+  } else if (variant === 'aetheria') {
+    themeClass = styles.aetheria;
+  }
 
   return (
     <section className={`${styles.section} ${themeClass} ${className || ''}`} id="wishes">
