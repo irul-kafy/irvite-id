@@ -1,4 +1,8 @@
-import { PublicMediaDescriptor, PublicTemplateAssetDescriptor } from './public-invitation';
+import {
+  PublicMediaDescriptor,
+  PublicTemplateAssetDescriptor,
+  PublicWishesData,
+} from './public-invitation';
 
 export interface PublicEventResponse {
   event: {
@@ -16,4 +20,5 @@ export interface PublicEventResponse {
   } | null;
   media: PublicMediaDescriptor[];
   mediaBySlot?: Record<string, PublicMediaDescriptor[]>;
+  wishes?: PublicWishesData;
 }

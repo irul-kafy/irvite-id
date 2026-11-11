@@ -13,6 +13,21 @@ export interface PublicTemplateAssetDescriptor {
   src: string;
 }
 
+export interface PublicWishItem {
+  id: string;
+  name: string;
+  message: string;
+  createdAt?: string;
+  dateLabel?: string;
+}
+
+export interface PublicWishesData {
+  title?: string;
+  description?: string;
+  total?: number;
+  items: PublicWishItem[];
+}
+
 export interface PublicInvitationResponse {
   invitation: {
     customMessage: string | null;
@@ -29,6 +44,7 @@ export interface PublicInvitationResponse {
     description: string | null;
     eventDate: string;
     locationDetails: string | null;
+    slug?: string;
     content?: Record<string, unknown> | null;
   };
   template: {
@@ -43,4 +59,5 @@ export interface PublicInvitationResponse {
     pax: number | null;
     canRespond: boolean;
   };
+  wishes?: PublicWishesData;
 }

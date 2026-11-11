@@ -9,6 +9,7 @@ import { shouldRenderSereneGuest, shouldRenderRsvpAndQr } from '../mode-gating';
 import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { WishesSection } from '../../components/wishes/WishesSection';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 
 export default function AetheriaRenderer({
@@ -41,7 +42,7 @@ export default function AetheriaRenderer({
     story: true,
     events: true,
     gallery: true,
-    wishes: false,
+    wishes: true,
     gift: true,
     music: true,
   };
@@ -69,6 +70,17 @@ export default function AetheriaRenderer({
     />
   ) : null;
 
+  const wishesSlot = (
+    <WishesSection
+      uniqueCode={uniqueCode}
+      eventSlug={data.event?.slug}
+      defaultName={guestVisible && data.guest?.name ? data.guest.name : ''}
+      initialWishes={data.wishes?.items}
+      title={data.wishes?.title}
+      description={data.wishes?.description}
+    />
+  );
+
   return (
     <InvitationTemplate
       data={{
@@ -78,6 +90,7 @@ export default function AetheriaRenderer({
       guest={guest}
       rsvpSlot={rsvpSlot}
       qrSlot={qrSlot}
+      wishesSlot={wishesSlot}
     />
   );
 }

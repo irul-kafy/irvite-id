@@ -31,6 +31,10 @@ describe('ClientPortalService', () => {
       findFirst: jest.Mock;
       update: jest.Mock;
     };
+    wish: {
+      findMany: jest.Mock;
+      count: jest.Mock;
+    };
   };
 
   const mockCreatedAt = new Date('2026-06-01T10:00:00.000Z');
@@ -61,6 +65,10 @@ describe('ClientPortalService', () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+      },
+      wish: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
       },
     };
 

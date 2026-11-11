@@ -10,6 +10,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateInvitationDto } from './dto/update-invitation.dto';
 import { PublicRsvpDto } from './dto/public-rsvp.dto';
+import { CreateWishDto } from '../events/dto/create-wish.dto';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role, Prisma, InvitationStatus } from 'database';
 import * as crypto from 'crypto';
@@ -448,6 +449,24 @@ export class InvitationsService {
       }
     }
 
+    const [wishesCount, wishesList] = await Promise.all([
+      this.prisma.wish
+        ? this.prisma.wish.count({ where: { eventId: context.eventId } })
+        : Promise.resolve(0),
+      this.prisma.wish
+        ? this.prisma.wish.findMany({
+            where: { eventId: context.eventId },
+            orderBy: { createdAt: 'desc' },
+            take: 30,
+            select: { id: true, name: true, message: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const safeWishesList = Array.isArray(wishesList) ? wishesList : [];
+    const safeWishesCount =
+      typeof wishesCount === 'number' ? wishesCount : safeWishesList.length;
+
     return {
       invitation: {
         customMessage: invitation.customMessage,
@@ -492,6 +511,97 @@ export class InvitationsService {
             : null,
         canRespond,
       },
+      wishes: {
+        title: 'Untaian Doa & Ucapan',
+        description:
+          'Doa restu dan ucapan hangat dari keluarga, sahabat, dan kerabat terkasih.',
+        total: safeWishesCount,
+        items: safeWishesList.map((w) => ({
+          id: w.id,
+          name: w.name,
+          message: w.message,
+          createdAt:
+            w.createdAt instanceof Date
+              ? w.createdAt.toISOString()
+              : String(w.createdAt),
+        })),
+      },
+    };
+  }
+
+  async getPublicWishes(uniqueCode: string, limit = 50) {
+    const context =
+      await this.publicAccessService.getEligibleContext(uniqueCode);
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+
+    const [total, items] = await Promise.all([
+      this.prisma.wish
+        ? this.prisma.wish.count({ where: { eventId: context.eventId } })
+        : Promise.resolve(0),
+      this.prisma.wish
+        ? this.prisma.wish.findMany({
+            where: { eventId: context.eventId },
+            orderBy: { createdAt: 'desc' },
+            take: safeLimit,
+            select: { id: true, name: true, message: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const safeItems = Array.isArray(items) ? items : [];
+    const safeTotal = typeof total === 'number' ? total : safeItems.length;
+
+    return {
+      total: safeTotal,
+      items: safeItems.map((w) => ({
+        id: w.id,
+        name: w.name,
+        message: w.message,
+        createdAt:
+          w.createdAt instanceof Date
+            ? w.createdAt.toISOString()
+            : String(w.createdAt),
+      })),
+    };
+  }
+
+  async createPublicWish(uniqueCode: string, dto: CreateWishDto) {
+    const context =
+      await this.publicAccessService.getEligibleContext(uniqueCode);
+
+    const cleanName = (dto.name || '')
+      .replace(/<[^>]*>?/gm, '')
+      .trim()
+      .slice(0, 120);
+
+    const cleanMessage = (dto.message || '')
+      .replace(/<[^>]*>?/gm, '')
+      .trim()
+      .slice(0, 500);
+
+    if (!cleanName || !cleanMessage) {
+      throw new BadRequestException('Nama dan pesan ucapan wajib diisi');
+    }
+
+    const wish = await this.prisma.wish.create({
+      data: {
+        eventId: context.eventId,
+        name: cleanName,
+        message: cleanMessage,
+      },
+      select: {
+        id: true,
+        name: true,
+        message: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      id: wish.id,
+      name: wish.name,
+      message: wish.message,
+      createdAt: wish.createdAt.toISOString(),
     };
   }
 

@@ -13,6 +13,7 @@ import { detectSignature } from '../media/media-signature';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatePublicDraftDto } from './dto/create-public-draft.dto';
+import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
 import { Role, MediaType, Prisma } from 'database';
@@ -556,6 +557,24 @@ export class EventsService {
       }
     }
 
+    const [wishesCount, wishesList] = await Promise.all([
+      this.prisma.wish
+        ? this.prisma.wish.count({ where: { eventId: event.id } })
+        : Promise.resolve(0),
+      this.prisma.wish
+        ? this.prisma.wish.findMany({
+            where: { eventId: event.id },
+            orderBy: { createdAt: 'desc' },
+            take: 30,
+            select: { id: true, name: true, message: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const safeWishesList = Array.isArray(wishesList) ? wishesList : [];
+    const safeWishesCount =
+      typeof wishesCount === 'number' ? wishesCount : safeWishesList.length;
+
     return {
       event: {
         title: stripPublicDraftTag(event.title) || event.title,
@@ -583,6 +602,124 @@ export class EventsService {
         : null,
       media: mediaDescriptors,
       mediaBySlot,
+      wishes: {
+        title: 'Untaian Doa & Ucapan',
+        description:
+          'Doa restu dan ucapan hangat dari keluarga, sahabat, dan kerabat terkasih.',
+        total: safeWishesCount,
+        items: safeWishesList.map((w) => ({
+          id: w.id,
+          name: w.name,
+          message: w.message,
+          createdAt:
+            w.createdAt instanceof Date
+              ? w.createdAt.toISOString()
+              : String(w.createdAt),
+        })),
+      },
+    };
+  }
+
+  async getPublicWishes(slug: string, limit = 50) {
+    if (!slug || typeof slug !== 'string' || slug.trim() === '') {
+      throw new NotFoundException('Event not found');
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { slug },
+      select: { id: true, status: true, eventDate: true },
+    });
+
+    if (!event || event.status !== 'PUBLISHED') {
+      throw new NotFoundException('Event not found');
+    }
+
+    const safeLimit = Math.min(Math.max(1, limit), 100);
+
+    const [total, items] = await Promise.all([
+      this.prisma.wish
+        ? this.prisma.wish.count({ where: { eventId: event.id } })
+        : Promise.resolve(0),
+      this.prisma.wish
+        ? this.prisma.wish.findMany({
+            where: { eventId: event.id },
+            orderBy: { createdAt: 'desc' },
+            take: safeLimit,
+            select: { id: true, name: true, message: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const safeItems = Array.isArray(items) ? items : [];
+    const safeTotal = typeof total === 'number' ? total : safeItems.length;
+
+    return {
+      total: safeTotal,
+      items: safeItems.map((w) => ({
+        id: w.id,
+        name: w.name,
+        message: w.message,
+        createdAt:
+          w.createdAt instanceof Date
+            ? w.createdAt.toISOString()
+            : String(w.createdAt),
+      })),
+    };
+  }
+
+  async createPublicWish(slug: string, dto: CreateWishDto) {
+    if (!slug || typeof slug !== 'string' || slug.trim() === '') {
+      throw new NotFoundException('Event not found');
+    }
+
+    const event = await this.prisma.event.findUnique({
+      where: { slug },
+      select: { id: true, status: true, eventDate: true },
+    });
+
+    if (!event || event.status !== 'PUBLISHED') {
+      throw new NotFoundException('Event not found');
+    }
+
+    const now = new Date();
+    const expiryAtMs = event.eventDate.getTime() + 30 * 24 * 60 * 60 * 1000;
+    if (now.getTime() >= expiryAtMs) {
+      throw new BadRequestException('Event has expired');
+    }
+
+    const cleanName = (dto.name || '')
+      .replace(/<[^>]*>?/gm, '')
+      .trim()
+      .slice(0, 120);
+
+    const cleanMessage = (dto.message || '')
+      .replace(/<[^>]*>?/gm, '')
+      .trim()
+      .slice(0, 500);
+
+    if (!cleanName || !cleanMessage) {
+      throw new BadRequestException('Nama dan pesan ucapan wajib diisi');
+    }
+
+    const wish = await this.prisma.wish.create({
+      data: {
+        eventId: event.id,
+        name: cleanName,
+        message: cleanMessage,
+      },
+      select: {
+        id: true,
+        name: true,
+        message: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      id: wish.id,
+      name: wish.name,
+      message: wish.message,
+      createdAt: wish.createdAt.toISOString(),
     };
   }
   async archive(id: string, userId: string, role: Role) {

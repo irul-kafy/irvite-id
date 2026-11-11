@@ -47,6 +47,13 @@ export interface PortalEvent {
   clientKey: string;
 }
 
+export interface PortalWish {
+  id: string;
+  name: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface PortalStats {
   totalGuests: number;
   totalPax: number;
@@ -57,12 +64,14 @@ export interface PortalStats {
   rsvpNoCount: number;
   rsvpPendingCount: number;
   attendedCount: number;
+  wishesCount?: number;
 }
 
 interface ClientPortalViewProps {
   initialEvent: PortalEvent;
   initialStats: PortalStats;
   initialGuests: PortalGuest[];
+  initialWishes?: PortalWish[];
   accessKey: string;
 }
 
@@ -70,7 +79,9 @@ type FilterTab = 'all' | 'wa_unsent' | 'wa_sent' | 'rsvp_yes' | 'rsvp_pending';
 
 export function ClientPortalView({
   initialEvent,
+  initialStats,
   initialGuests,
+  initialWishes = [],
   accessKey,
 }: ClientPortalViewProps) {
   const [event] = useState<PortalEvent>(initialEvent);
@@ -872,6 +883,12 @@ export function ClientPortalView({
             <span className="portal-stat-value">{stats.rsvpPendingCount}</span>
             <span className="portal-stat-sub">Menunggu RSVP</span>
           </div>
+
+          <div className="portal-stat-card">
+            <span className="portal-stat-label">💌 Doa &amp; Ucapan</span>
+            <span className="portal-stat-value">{initialWishes.length}</span>
+            <span className="portal-stat-sub">Pesan dari tamu</span>
+          </div>
         </section>
 
         {/* Toolbar: Search, Filters, Actions */}
@@ -1328,6 +1345,126 @@ export function ClientPortalView({
             })}
           </div>
         )}
+
+        {/* Doa & Ucapan Tamu Section */}
+        <section
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '14px',
+            padding: '1.25rem 1.35rem',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+            marginTop: '1.5rem',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+              borderBottom: '1px solid #f1f5f9',
+              paddingBottom: '0.75rem',
+            }}
+          >
+            <div>
+              <h2
+                style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <span>💌</span>
+                <span>Doa &amp; Ucapan Tamu ({initialWishes.length})</span>
+              </h2>
+              <p
+                style={{
+                  margin: '0.2rem 0 0',
+                  fontSize: '0.8125rem',
+                  color: '#64748b',
+                }}
+              >
+                Untaian doa restu dan ucapan selamat yang dikirimkan oleh tamu undangan.
+              </p>
+            </div>
+          </div>
+
+          {initialWishes.length > 0 ? (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: '0.875rem',
+                maxHeight: '420px',
+                overflowY: 'auto',
+                paddingRight: '0.25rem',
+              }}
+            >
+              {initialWishes.map((w) => (
+                <div
+                  key={w.id}
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '10px',
+                    padding: '0.875rem 1rem',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.375rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>
+                      {w.name}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                      {new Date(w.createdAt).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '0.8125rem',
+                      lineHeight: 1.5,
+                      color: '#334155',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {w.message}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '2rem 1rem',
+                color: '#94a3b8',
+                fontSize: '0.875rem',
+                fontStyle: 'italic',
+              }}
+            >
+              Belum ada ucapan doa yang dikirim oleh tamu undangan.
+            </div>
+          )}
+        </section>
       </main>
 
       {/* Floating Action Button for Mobile */}

@@ -255,9 +255,24 @@ export function adaptOpalineNocturneData(
       maxPax: payload.guest?.maxPax || 2,
     },
     wishes: {
-      title: 'Doa & Ucapan',
-      description: 'Kirimkan untaian doa dan harapan terbaik untuk kami.',
-      items: [],
+      title: payload.wishes?.title || 'Doa & Ucapan',
+      description:
+        payload.wishes?.description ||
+        'Kirimkan untaian doa dan harapan terbaik untuk kami.',
+      items: (payload.wishes?.items || []).map((w) => ({
+        id: w.id,
+        name: w.name,
+        message: w.message,
+        dateLabel:
+          w.dateLabel ||
+          (w.createdAt
+            ? new Date(w.createdAt).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })
+            : undefined),
+      })),
     },
     gifts: {
       title: 'Tanda Kasih',

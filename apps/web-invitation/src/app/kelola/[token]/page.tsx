@@ -219,6 +219,7 @@ export default async function ClientPortalPage({
       initialEvent={data.event}
       initialStats={data.stats}
       initialGuests={data.guests}
+      initialWishes={data.wishes || []}
       accessKey={clientKey}
     />
   );

@@ -32,10 +32,55 @@ export default function OpalineNocturneRenderer({
       }
     : undefined;
 
+  const [localWishes, setLocalWishes] = React.useState(
+    invitationData.wishes.items,
+  );
+
+  React.useEffect(() => {
+    setLocalWishes(invitationData.wishes.items);
+  }, [invitationData.wishes.items]);
+
+  const handleWishSubmit = async (value: { name: string; message: string }) => {
+    let res: Response | null = null;
+    if (uniqueCode) {
+      res = await fetch(
+        `/api-proxy/invitations/public/${encodeURIComponent(uniqueCode)}/wishes`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(value),
+        },
+      );
+    } else if (data.event?.slug) {
+      res = await fetch(
+        `/api-proxy/events/public/${encodeURIComponent(data.event.slug)}/wishes`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(value),
+        },
+      );
+    }
+
+    if (res && !res.ok) {
+      throw new Error('Gagal mengirimkan ucapan');
+    }
+
+    const created = res ? await res.json().catch(() => null) : null;
+    const newWish = {
+      id: created?.id || `local-${Date.now()}`,
+      name: value.name,
+      message: value.message,
+      dateLabel: 'Baru saja',
+    };
+
+    setLocalWishes((prev) => [newWish, ...prev]);
+  };
+
   const features = {
     rsvp: showRsvpAndQr,
     guestQr: showRsvpAndQr,
-    wishes: false,
+    wishes: true,
     livestream: false,
   };
 
@@ -79,12 +124,17 @@ export default function OpalineNocturneRenderer({
     <InvitationTemplate
       data={{
         ...invitationData,
+        wishes: {
+          ...invitationData.wishes,
+          items: localWishes,
+        },
         features,
       }}
       guest={guest}
       rsvpSlot={rsvpSlot}
       qrSlot={qrSlot}
       onRsvpSubmit={handleRsvpSubmit}
+      onWishSubmit={handleWishSubmit}
     />
   );
 }

@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../database/prisma.service';
 import { MediaStorageService } from '../media/media-storage.service';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { Role, Prisma } from 'database';
 
 describe('EventsService', () => {
@@ -33,6 +33,11 @@ describe('EventsService', () => {
               findUnique: jest.fn(),
             },
             media: {
+              findMany: jest.fn(),
+              count: jest.fn(),
+            },
+            wish: {
+              create: jest.fn(),
               findMany: jest.fn(),
               count: jest.fn(),
             },
@@ -794,6 +799,91 @@ describe('EventsService', () => {
       expect(
         (res.event.content as Record<string, unknown>)._mediaFallback,
       ).toBeUndefined();
+    });
+  });
+
+  describe('public wishes (Fitur Ucapan & Doa)', () => {
+    const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+
+    it('creates a wish successfully when event is published', async () => {
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+      });
+
+      const now = new Date();
+      (prisma.wish.create as jest.Mock).mockResolvedValue({
+        id: 'wish-1',
+        name: 'Budi Santoso',
+        message: 'Barakallahu lakuma, selamat berbahagia!',
+        createdAt: now,
+      });
+
+      const res = await service.createPublicWish('test-slug', {
+        name: '  <b>Budi Santoso</b>  ',
+        message: '  Barakallahu lakuma, selamat berbahagia!  ',
+      });
+
+      expect(prisma.wish.create).toHaveBeenCalledWith({
+        data: {
+          eventId: 'event-1',
+          name: 'Budi Santoso',
+          message: 'Barakallahu lakuma, selamat berbahagia!',
+        },
+        select: {
+          id: true,
+          name: true,
+          message: true,
+          createdAt: true,
+        },
+      });
+
+      expect(res.name).toBe('Budi Santoso');
+      expect(res.message).toBe('Barakallahu lakuma, selamat berbahagia!');
+    });
+
+    it('rejects wish submission if name or message is empty after sanitization', async () => {
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+      });
+
+      let thrown: any = null;
+      try {
+        await service.createPublicWish('test-slug', {
+          name: '<script></script>',
+          message: 'Selamat!',
+        });
+      } catch (err) {
+        thrown = err;
+      }
+      expect(thrown).toBeInstanceOf(BadRequestException);
+    });
+
+    it('retrieves public wishes list and total count', async () => {
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+      });
+
+      const now = new Date();
+      (prisma.wish.count as jest.Mock).mockResolvedValue(1);
+      (prisma.wish.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'wish-1',
+          name: 'Siti',
+          message: 'Happy wedding!',
+          createdAt: now,
+        },
+      ]);
+
+      const res = await service.getPublicWishes('test-slug', 10);
+      expect(res.total).toBe(1);
+      expect(res.items).toHaveLength(1);
+      expect(res.items[0].name).toBe('Siti');
     });
   });
 });

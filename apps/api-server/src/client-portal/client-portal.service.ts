@@ -295,6 +295,27 @@ export class ClientPortalService {
       };
     });
 
+    const [wishesCount, rawWishes] = await Promise.all([
+      this.prisma.wish
+        ? this.prisma.wish.count({ where: { eventId } })
+        : Promise.resolve(0),
+      this.prisma.wish
+        ? this.prisma.wish.findMany({
+            where: { eventId },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+            select: { id: true, name: true, message: true, createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const wishes = rawWishes.map((w) => ({
+      id: w.id,
+      name: w.name,
+      message: w.message,
+      createdAt: w.createdAt.toISOString(),
+    }));
+
     return {
       event: {
         id: event.id,
@@ -321,8 +342,10 @@ export class ClientPortalService {
         rsvpNoCount,
         rsvpPendingCount,
         attendedCount,
+        wishesCount,
       },
       guests,
+      wishes,
     };
   }
 

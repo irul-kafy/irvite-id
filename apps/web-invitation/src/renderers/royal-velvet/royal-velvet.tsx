@@ -203,10 +203,48 @@ export function RoyalVelvetRenderer({
   } | null>(null);
 
   // Royal Wishes Form & Feed
-  const [wishes, setWishes] = useState<WishItem[]>(DEFAULT_WISHES);
-  const [formName, setFormName] = useState('');
+  const initialWishItems: WishItem[] =
+    data.wishes?.items && data.wishes.items.length > 0
+      ? data.wishes.items.map((w) => ({
+          name: w.name,
+          message: w.message,
+          createdAt:
+            w.dateLabel ||
+            (w.createdAt
+              ? new Date(w.createdAt).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : 'Baru saja'),
+        }))
+      : DEFAULT_WISHES;
+
+  const [wishes, setWishes] = useState<WishItem[]>(initialWishItems);
+  const [formName, setFormName] = useState(data.guest?.name || '');
   const [formMsg, setFormMsg] = useState('');
+  const [isSubmittingWish, setIsSubmittingWish] = useState(false);
   const [copyStatus, setCopyStatus] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (data.wishes?.items && data.wishes.items.length > 0) {
+      setWishes(
+        data.wishes.items.map((w) => ({
+          name: w.name,
+          message: w.message,
+          createdAt:
+            w.dateLabel ||
+            (w.createdAt
+              ? new Date(w.createdAt).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : 'Baru saja'),
+        })),
+      );
+    }
+  }, [data.wishes?.items]);
 
   const handleCopyAccount = useCallback(
     (accountNumber: string, idx: number, bankName: string) => {
@@ -222,19 +260,49 @@ export function RoyalVelvetRenderer({
     [showToast],
   );
 
-  const handleWishSubmit = (e: React.FormEvent) => {
+  const handleWishSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formMsg.trim()) return;
+    if (!formName.trim() || !formMsg.trim() || isSubmittingWish) return;
 
-    const newWish: WishItem = {
-      name: formName.trim(),
-      message: formMsg.trim(),
-      createdAt: 'Baru saja',
-    };
+    setIsSubmittingWish(true);
+    const cleanName = formName.trim();
+    const cleanMsg = formMsg.trim();
 
-    setWishes((prev) => [newWish, ...prev]);
-    setFormMsg('');
-    showToast('Terima kasih! Untaian doa restu Anda telah terkirim.');
+    try {
+      if (uniqueCode) {
+        await fetch(
+          `/api-proxy/invitations/public/${encodeURIComponent(uniqueCode)}/wishes`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: cleanName, message: cleanMsg }),
+          },
+        );
+      } else if (data.event?.slug) {
+        await fetch(
+          `/api-proxy/events/public/${encodeURIComponent(data.event.slug)}/wishes`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: cleanName, message: cleanMsg }),
+          },
+        );
+      }
+
+      const newWish: WishItem = {
+        name: cleanName,
+        message: cleanMsg,
+        createdAt: 'Baru saja',
+      };
+
+      setWishes((prev) => [newWish, ...prev]);
+      setFormMsg('');
+      showToast('Terima kasih! Untaian doa restu Anda telah terkirim.');
+    } catch {
+      showToast('Terjadi kesalahan saat mengirim doa restu.');
+    } finally {
+      setIsSubmittingWish(false);
+    }
   };
 
   // Active Bottom Nav Tracker
@@ -856,11 +924,15 @@ export function RoyalVelvetRenderer({
               />
             </div>
 
-            <button type="submit" className={styles.btnRoyalGold}>
+            <button
+              type="submit"
+              className={styles.btnRoyalGold}
+              disabled={isSubmittingWish}
+            >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
-              <span>Kirim Untaian Doa</span>
+              <span>{isSubmittingWish ? 'Mengirimkan…' : 'Kirim Untaian Doa'}</span>
             </button>
           </form>
 

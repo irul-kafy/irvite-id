@@ -17,6 +17,7 @@ import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import MediaGallery from '../../components/media-gallery';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { WishesSection } from '../../components/wishes/WishesSection';
 import { cleanInvitationEventTitle } from '../adapter-utils';
 import './generic-theme.css';
 
@@ -875,6 +876,18 @@ export default function GenericTheme({
               </section>
             </Reveal>
           )}
+
+          {/* Section: Doa & Ucapan Tamu */}
+          <Reveal index={sectionIndex++}>
+            <WishesSection
+              uniqueCode={uniqueCode}
+              eventSlug={data.event?.slug}
+              defaultName={effectiveDisplayGuest?.name || ''}
+              initialWishes={data.wishes?.items}
+              title={data.wishes?.title}
+              description={data.wishes?.description}
+            />
+          </Reveal>
 
           {/* Final Slide: Closing Section */}
           <Reveal index={sectionIndex++}>

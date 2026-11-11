@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { WishesSection } from '../../components/wishes/WishesSection';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -1125,6 +1126,17 @@ export function SwargaDewataRenderer({
 
         <div className={styles.tridatuRibbon} />
 
+        <WishesSection
+          uniqueCode={uniqueCode}
+          eventSlug={data?.event?.slug}
+          defaultName={guestDisplayName !== 'Bapak / Ibu / Saudara/i' ? guestDisplayName : ''}
+          initialWishes={data?.wishes?.items}
+          title={data?.wishes?.title}
+          description={data?.wishes?.description}
+        />
+
+        <div className={styles.tridatuRibbon} />
+
         {/* SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI */}
         <footer id="closing" className={styles.closingSection}>
           <div className={styles.closingRadialBg} />
@@ -1205,6 +1217,13 @@ export function SwargaDewataRenderer({
             className={styles.bottomNavLink}
           >
             Hadiah
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToSection('wishes')}
+            className={styles.bottomNavLink}
+          >
+            Doa
           </button>
           <button
             type="button"

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { WishesSection } from '../../components/wishes/WishesSection';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
@@ -442,6 +443,15 @@ export default function SekarKedatonRenderer({
             </section>
           )}
 
+          <WishesSection
+            uniqueCode={uniqueCode}
+            eventSlug={data.event?.slug}
+            defaultName={guestVisible && data.guest?.name ? data.guest.name : ''}
+            initialWishes={data.wishes?.items}
+            title={data.wishes?.title}
+            description={data.wishes?.description}
+          />
+
           <section className={`${s.section} ${s.closing}`} data-motion>
             <Scene />
             <div data-reveal="soft">
@@ -462,6 +472,7 @@ export default function SekarKedatonRenderer({
             {gallery.length > 0 && <a href="#gallery">Galeri</a>}
             {Boolean(content.giftAccounts?.length) && <a href="#gift">Gift</a>}
             {showRsvpAndQr && <a href="#rsvp">RSVP &amp; QR</a>}
+            <a href="#wishes">Doa</a>
           </nav>
         </main>
       )}
