@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 
@@ -22,6 +22,9 @@ export function EventPreviewTab({
   const [copied, setCopied] = useState(false);
   const [customRecipient, setCustomRecipient] = useState('');
   const [copiedCustom, setCopiedCustom] = useState(false);
+  const [broadcastTone, setBroadcastTone] = useState<'formal' | 'casual' | 'social' | 'islamic'>('formal');
+  const [customBroadcastText, setCustomBroadcastText] = useState<string | null>(null);
+  const [copiedBroadcast, setCopiedBroadcast] = useState(false);
   const isPublished = status === 'PUBLISHED';
 
   const sanitizedRecipient = customRecipient
@@ -36,6 +39,66 @@ export function EventPreviewTab({
       ? `${canonicalUrl}${canonicalUrl.includes('?') ? '&' : '?'}to=${encodeURIComponent(sanitizedRecipient)}`
       : canonicalUrl
     : '';
+
+  const displayRecipient = sanitizedRecipient || 'Bapak/Ibu/Saudara/i & Sahabat Terkasih';
+
+  const defaultBroadcastMessage = (() => {
+    if (!customPublicUrl) return '';
+    switch (broadcastTone) {
+      case 'casual':
+        return [
+          `Halo teman-teman ${displayRecipient}!`,
+          '',
+          `Dengan penuh kebahagiaan, kami mau berbagi kabar baik dan mengundang ${displayRecipient} ke hari spesial kami.`,
+          '',
+          'Info lengkap lokasi & jadwal acara bisa langsung dibuka di sini ya:',
+          customPublicUrl,
+          '',
+          'Ditunggu kehadiran & doa restunya ya! Terima kasih banyak.',
+        ].join('\n');
+      case 'social':
+        return [
+          `Hai ${displayRecipient}!`,
+          '',
+          `Sebuah babak baru segera dimulai — kami dengan senang hati mengundang ${displayRecipient} untuk ikut merayakan hari bahagia kami.`,
+          '',
+          'Yuk lihat detail lengkap undangan digital kami di link berikut:',
+          customPublicUrl,
+          '',
+          'Terima kasih atas dukungan, perhatian, dan doa baiknya!',
+        ].join('\n');
+      case 'islamic':
+        return [
+          "Assalamu'alaikum Warahmatullahi Wabarakatuh",
+          '',
+          `Kepada Yth. ${displayRecipient},`,
+          `Dengan memohon rahmat dan ridho Allah SWT, kami bermaksud mengundang ${displayRecipient} untuk hadir dan memberikan doa restu pada acara pernikahan kami.`,
+          '',
+          'Tautan undangan digital resmi dapat diakses melalui link berikut:',
+          customPublicUrl,
+          '',
+          'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas kehadiran serta doa restunya.',
+          "Wassalamu'alaikum Warahmatullahi Wabarakatuh.",
+        ].join('\n');
+      case 'formal':
+      default:
+        return [
+          `Kepada Yth. ${displayRecipient},`,
+          '',
+          `Tanpa mengurangi rasa hormat, kami bermaksud mengundang ${displayRecipient} untuk berbagi sukacita serta doa restu di hari bahagia kami.`,
+          '',
+          'Informasi lengkap jadwal & lokasi acara dapat diakses melalui tautan undangan berikut:',
+          customPublicUrl,
+          '',
+          'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir dan memberikan doa restu.',
+          '',
+          'Terima kasih.',
+        ].join('\n');
+    }
+  })();
+
+  const activeBroadcastMessage =
+    customBroadcastText !== null ? customBroadcastText : defaultBroadcastMessage;
 
   const handleCopy = async () => {
     if (!canonicalUrl) return;
@@ -54,6 +117,17 @@ export function EventPreviewTab({
       await navigator.clipboard.writeText(customPublicUrl);
       setCopiedCustom(true);
       setTimeout(() => setCopiedCustom(false), 2000);
+    } catch {
+      // Fallback if clipboard API unavailable
+    }
+  };
+
+  const handleCopyBroadcast = async () => {
+    if (!activeBroadcastMessage) return;
+    try {
+      await navigator.clipboard.writeText(activeBroadcastMessage);
+      setCopiedBroadcast(true);
+      setTimeout(() => setCopiedBroadcast(false), 2000);
     } catch {
       // Fallback if clipboard API unavailable
     }
@@ -173,6 +247,61 @@ export function EventPreviewTab({
                     >
                       Tes Buka &rarr;
                     </a>
+                  </div>
+
+                  <div style={{ marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      <label className="form-label text-xs" style={{ margin: 0 }}>
+                        Kata-kata Pengantar Undangan (Bisa Diedit)
+                      </label>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        {(
+                          [
+                            { id: 'formal', label: 'Formal' },
+                            { id: 'casual', label: 'Santai Grup' },
+                            { id: 'social', label: 'Sosmed / Followers' },
+                            { id: 'islamic', label: 'Islami' },
+                          ] as const
+                        ).map((tone) => (
+                          <button
+                            key={tone.id}
+                            type="button"
+                            className={`btn btn-sm ${broadcastTone === tone.id && customBroadcastText === null ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ padding: '0.2rem 0.55rem', fontSize: '0.72rem' }}
+                            onClick={() => {
+                              setBroadcastTone(tone.id);
+                              setCustomBroadcastText(null);
+                            }}
+                          >
+                            {tone.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <textarea
+                      rows={6}
+                      className="form-input text-xs"
+                      value={activeBroadcastMessage}
+                      onChange={(e) => setCustomBroadcastText(e.target.value)}
+                      style={{ lineHeight: 1.5, resize: 'vertical' }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={handleCopyBroadcast}
+                      >
+                        {copiedBroadcast ? '✓ Kata-kata & Link Tersalin' : 'Salin Kata-kata + Link'}
+                      </button>
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(activeBroadcastMessage)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm flex-center gap-1"
+                      >
+                        Share ke WA &rarr;
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>

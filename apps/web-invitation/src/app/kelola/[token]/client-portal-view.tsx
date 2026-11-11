@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import {
   buildWhatsAppShareUrl,
   buildPublicCustomInvitationUrl,
   buildPublicGroupWhatsAppShareUrl,
+  generatePublicBroadcastMessage,
   generateGuestsCsv,
   generateSpintaxMessage,
   normalizeWhatsAppPhone,
+  type PublicBroadcastTone,
 } from '@/utils/whatsapp-share';
 import { WhatsAppAutoSenderModal } from './whatsapp-auto-sender-modal';
 
@@ -77,6 +79,15 @@ export function ClientPortalView({
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [publicRecipientLabel, setPublicRecipientLabel] = useState('');
+  const [publicBroadcastTone, setPublicBroadcastTone] = useState<PublicBroadcastTone>('formal');
+  const [customBroadcastText, setCustomBroadcastText] = useState<string | null>(null);
+  const [clientOrigin, setClientOrigin] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setClientOrigin(window.location.origin);
+    }
+  }, []);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -206,16 +217,29 @@ export function ClientPortalView({
   };
 
   const getBasePublicEventUrl = () => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/e/${encodeURIComponent(event.slug)}`;
-    }
-    return `/e/${encodeURIComponent(event.slug)}`;
+    const path = `/e/${encodeURIComponent(event.slug)}`;
+    return clientOrigin ? `${clientOrigin}${path}` : path;
   };
 
   const customPublicUrl = buildPublicCustomInvitationUrl(
     getBasePublicEventUrl(),
     publicRecipientLabel,
   );
+
+  const generatedPublicBroadcastMessage = useMemo(
+    () =>
+      generatePublicBroadcastMessage(
+        publicRecipientLabel,
+        event.title,
+        getBasePublicEventUrl(),
+        publicBroadcastTone,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [publicRecipientLabel, event.title, event.slug, clientOrigin, publicBroadcastTone],
+  );
+
+  const activePublicBroadcastMessage =
+    customBroadcastText !== null ? customBroadcastText : generatedPublicBroadcastMessage;
 
   const handleCopyPublicCustomUrl = async () => {
     try {
@@ -230,11 +254,22 @@ export function ClientPortalView({
     }
   };
 
+  const handleCopyPublicBroadcastMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(activePublicBroadcastMessage);
+      showToast('Kata-kata pengantar beserta link undangan berhasil disalin!');
+    } catch {
+      showToast('Gagal menyalin pesan otomatis. Silakan salin manual dari kotak pesan.');
+    }
+  };
+
   const handleSharePublicGroupWa = () => {
     const waUrl = buildPublicGroupWhatsAppShareUrl(
       publicRecipientLabel,
       event.title,
       getBasePublicEventUrl(),
+      publicBroadcastTone,
+      customBroadcastText,
     );
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
@@ -647,16 +682,8 @@ export function ClientPortalView({
                 className="btn-portal-secondary"
                 onClick={handleCopyPublicCustomUrl}
               >
-                <span>📋</span>
+                <span>🔗</span>
                 <span>Salin Link</span>
-              </button>
-              <button
-                type="button"
-                className="btn-portal-wa-auto"
-                onClick={handleSharePublicGroupWa}
-              >
-                <span>💬</span>
-                <span>Share ke Grup WA</span>
               </button>
               <a
                 href={customPublicUrl}
@@ -668,6 +695,114 @@ export function ClientPortalView({
                 <span>↗</span>
                 <span>Lihat Sampul</span>
               </a>
+            </div>
+
+            {/* Kata-kata Pengantar Undangan (Editable Broadcast Copy) */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '0.9rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b' }}>
+                  ✍️ Kata-kata Pengantar Undangan (Bisa Diedit)
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                  {(
+                    [
+                      { id: 'formal', label: 'Formal' },
+                      { id: 'casual', label: 'Santai Grup' },
+                      { id: 'social', label: 'Sosmed / Followers' },
+                      { id: 'islamic', label: 'Islami' },
+                    ] as const
+                  ).map((toneOption) => {
+                    const active = publicBroadcastTone === toneOption.id && customBroadcastText === null;
+                    return (
+                      <button
+                        key={toneOption.id}
+                        type="button"
+                        onClick={() => {
+                          setPublicBroadcastTone(toneOption.id);
+                          setCustomBroadcastText(null);
+                        }}
+                        style={{
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          border: active ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                          background: active ? '#0f172a' : '#ffffff',
+                          color: active ? '#ffffff' : '#475569',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {toneOption.label}
+                      </button>
+                    );
+                  })}
+                  {customBroadcastText !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomBroadcastText(null)}
+                      style={{
+                        padding: '0.25rem 0.55rem',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        border: '1px solid #fecaca',
+                        background: '#fef2f2',
+                        color: '#b91c1c',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Reset Teks
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <textarea
+                rows={7}
+                value={activePublicBroadcastMessage}
+                onChange={(e) => setCustomBroadcastText(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.7rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.5,
+                  color: '#0f172a',
+                  background: '#ffffff',
+                  fontFamily: 'inherit',
+                  resize: 'vertical',
+                }}
+              />
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-portal-primary"
+                  onClick={handleCopyPublicBroadcastMessage}
+                >
+                  <span>📋</span>
+                  <span>Salin Kata-kata + Link</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-portal-wa-auto"
+                  onClick={handleSharePublicGroupWa}
+                >
+                  <span>💬</span>
+                  <span>Share ke Grup WA</span>
+                </button>
+              </div>
             </div>
           </section>
         )}

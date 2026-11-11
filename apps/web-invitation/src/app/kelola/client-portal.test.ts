@@ -4,6 +4,7 @@ import {
   buildWhatsAppShareUrl,
   buildPublicCustomInvitationUrl,
   buildPublicGroupWhatsAppShareUrl,
+  generatePublicBroadcastMessage,
   generateGuestsCsv,
   normalizeWhatsAppPhone,
 } from '../../utils/whatsapp-share';
@@ -92,6 +93,32 @@ test('Client Portal Contract Tests', async (t) => {
     assert.ok(waGroupUrl.startsWith('https://wa.me/?text='));
     assert.ok(waGroupUrl.includes(encodeURIComponent('Followers & Sahabat Online')));
     assert.ok(waGroupUrl.includes(encodeURIComponent('to=Followers%20%26%20Sahabat%20Online')));
+
+    const casualMsg = generatePublicBroadcastMessage(
+      'Grup Alumni SMAN 8',
+      'Pernikahan Amila & Raiswa',
+      base,
+      'casual',
+    );
+    assert.ok(casualMsg.includes('Halo teman-teman Grup Alumni SMAN 8!'));
+    assert.ok(casualMsg.includes('?to=Grup%20Alumni%20SMAN%208'));
+
+    const islamicMsg = generatePublicBroadcastMessage(
+      'Keluarga Besar Surabaya',
+      'Pernikahan Amila & Raiswa',
+      base,
+      'islamic',
+    );
+    assert.ok(islamicMsg.includes("Assalamu'alaikum"));
+
+    const customWaUrl = buildPublicGroupWhatsAppShareUrl(
+      'Grup Kantor',
+      'Pernikahan Amila & Raiswa',
+      base,
+      'formal',
+      'Pesan custom manual https://irvite.id/e/amila-raiswa-59da78?to=Grup%20Kantor',
+    );
+    assert.ok(customWaUrl.includes(encodeURIComponent('Pesan custom manual')));
   });
 });
 

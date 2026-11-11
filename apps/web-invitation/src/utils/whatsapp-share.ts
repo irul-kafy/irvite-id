@@ -245,6 +245,80 @@ export function buildPublicCustomInvitationUrl(
   return `${cleanBase}${separator}to=${encodeURIComponent(sanitized)}`;
 }
 
+export type PublicBroadcastTone = 'formal' | 'casual' | 'social' | 'islamic';
+
+/**
+ * Generates ready-to-edit broadcast invitation wording for sharing a public link
+ * to WhatsApp groups, alumni/office communities, or social media followers.
+ */
+export function generatePublicBroadcastMessage(
+  recipientLabel: string | null | undefined,
+  eventTitle: string,
+  publicUrl: string,
+  tone: PublicBroadcastTone = 'formal',
+): string {
+  const targetUrl = buildPublicCustomInvitationUrl(publicUrl, recipientLabel);
+  const displayRecipient =
+    recipientLabel && recipientLabel.trim()
+      ? recipientLabel.trim().slice(0, 60)
+      : 'Bapak/Ibu/Saudara/i & Sahabat Terkasih';
+
+  switch (tone) {
+    case 'casual':
+      return [
+        `Halo teman-teman ${displayRecipient}!`,
+        '',
+        `Dengan penuh kebahagiaan, kami mau berbagi kabar baik dan mengundang ${displayRecipient} ke hari spesial kami: ${eventTitle}.`,
+        '',
+        'Info lengkap lokasi & jadwal acara bisa langsung dibuka di sini ya:',
+        targetUrl,
+        '',
+        'Ditunggu kehadiran & doa restunya ya! Terima kasih banyak.',
+      ].join('\n');
+
+    case 'social':
+      return [
+        `Hai ${displayRecipient}!`,
+        '',
+        `Sebuah babak baru segera dimulai — kami dengan senang hati mengundang ${displayRecipient} untuk ikut merayakan ${eventTitle}.`,
+        '',
+        'Yuk lihat detail lengkap undangan digital kami di link berikut:',
+        targetUrl,
+        '',
+        'Terima kasih atas dukungan, perhatian, dan doa baiknya!',
+      ].join('\n');
+
+    case 'islamic':
+      return [
+        "Assalamu'alaikum Warahmatullahi Wabarakatuh",
+        '',
+        `Kepada Yth. ${displayRecipient},`,
+        `Dengan memohon rahmat dan ridho Allah SWT, kami bermaksud mengundang ${displayRecipient} untuk hadir dan memberikan doa restu pada acara kami: ${eventTitle}.`,
+        '',
+        'Tautan undangan digital resmi dapat diakses melalui link berikut:',
+        targetUrl,
+        '',
+        'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas kehadiran serta doa restunya.',
+        "Wassalamu'alaikum Warahmatullahi Wabarakatuh.",
+      ].join('\n');
+
+    case 'formal':
+    default:
+      return [
+        `Kepada Yth. ${displayRecipient},`,
+        '',
+        `Tanpa mengurangi rasa hormat, kami bermaksud mengundang ${displayRecipient} untuk berbagi sukacita serta doa restu di hari bahagia kami: ${eventTitle}.`,
+        '',
+        'Informasi lengkap jadwal & lokasi acara dapat diakses melalui tautan undangan berikut:',
+        targetUrl,
+        '',
+        'Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila berkenan hadir dan memberikan doa restu.',
+        '',
+        'Terima kasih.',
+      ].join('\n');
+  }
+}
+
 /**
  * Builds a WhatsApp share URL specifically tailored for sharing a public invitation link
  * to a WhatsApp Group, Community, or Social Media audience.
@@ -253,25 +327,13 @@ export function buildPublicGroupWhatsAppShareUrl(
   recipientLabel: string | null | undefined,
   eventTitle: string,
   publicUrl: string,
+  tone: PublicBroadcastTone = 'formal',
+  customMessageOverride?: string | null,
 ): string {
-  const targetUrl = buildPublicCustomInvitationUrl(publicUrl, recipientLabel);
-  const displayRecipient =
-    recipientLabel && recipientLabel.trim()
-      ? recipientLabel.trim().slice(0, 60)
-      : 'Bapak/Ibu/Saudara/i & Sahabat Terkasih';
-
-  const message = [
-    `Kepada Yth. ${displayRecipient},`,
-    '',
-    `Dengan penuh rasa syukur dan kebahagiaan, kami bermaksud mengundang ${displayRecipient} untuk berbagi sukacita serta doa restu di hari bahagia kami: ${eventTitle}.`,
-    '',
-    'Silakan buka tautan undangan digital kami melalui link berikut:',
-    targetUrl,
-    '',
-    'Merupakan suatu kehormatan dan kebahagiaan bagi kami atas kehadiran serta doa restu yang diberikan.',
-    '',
-    'Terima kasih.',
-  ].join('\n');
+  const message =
+    customMessageOverride && customMessageOverride.trim()
+      ? customMessageOverride.trim()
+      : generatePublicBroadcastMessage(recipientLabel, eventTitle, publicUrl, tone);
 
   return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }

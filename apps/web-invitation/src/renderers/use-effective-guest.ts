@@ -32,3 +32,4 @@ export function useEffectiveDisplayGuest(
 
   return resolveEffectiveDisplayGuest(mode, guest, urlRecipient);
 }
+
