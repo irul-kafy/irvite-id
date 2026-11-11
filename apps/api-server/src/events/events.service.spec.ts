@@ -751,5 +751,49 @@ describe('EventsService', () => {
       expect(res).toBeDefined();
       expect(res.template?.themeCode).toBe('CLASSIC_LETTER');
     });
+
+    it('preserves couple names and strips _mediaFallback (>64 KiB) and (Draf Klien #...) tag in resolvePublic', async () => {
+      const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      const largeBase64 = 'A'.repeat(90 * 1024); // > 64 KiB
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'event-amila-raiswa',
+        title: 'Pernikahan Amila & Raiswa (Draf Klien #IRV-59DA78)',
+        description: 'Undangan Pernikahan',
+        status: 'PUBLISHED',
+        eventDate: futureDate,
+        locationDetails: 'Bandung',
+        slug: 'amila-raiswa-59da78',
+        content: {
+          partnerOneName: 'Amila',
+          partnerTwoName: 'Raiswa',
+          timeZone: 'Asia/Jakarta',
+          _mediaFallback: {
+            'events/event-amila-raiswa/hero.jpg': largeBase64,
+          },
+        },
+        template: {
+          themeCode: 'OPALINE_NOCTURNE',
+          config: null,
+        },
+      });
+      (prisma.media.findMany as jest.Mock).mockResolvedValue([
+        { id: 'media-hero', type: 'PHOTO', slot: 'hero', order: 0 },
+      ]);
+
+      const res = await service.resolvePublic('amila-raiswa-59da78');
+
+      expect(res.event.title).toBe('Pernikahan Amila & Raiswa');
+      expect(res.event.content).not.toBeNull();
+      expect(res.event.content).toEqual(
+        expect.objectContaining({
+          partnerOneName: 'Amila',
+          partnerTwoName: 'Raiswa',
+          timeZone: 'Asia/Jakarta',
+        }),
+      );
+      expect(
+        (res.event.content as Record<string, unknown>)._mediaFallback,
+      ).toBeUndefined();
+    });
   });
 });

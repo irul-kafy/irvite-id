@@ -298,7 +298,13 @@ export class ClientPortalService {
     return {
       event: {
         id: event.id,
-        title: event.title,
+        title:
+          event.title
+            .replace(
+              /\s*\((?:Draf Klien|PENGAJUAN KLIEN)\s*#[A-Za-z0-9-]+\)/gi,
+              '',
+            )
+            .trim() || event.title,
         slug: event.slug,
         eventDate: event.eventDate.toISOString(),
         status: event.status,

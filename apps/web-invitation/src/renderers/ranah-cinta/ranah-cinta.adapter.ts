@@ -1,4 +1,8 @@
 import type { RendererData } from '../registry';
+import {
+  cleanInvitationEventTitle,
+  extractCoupleNamesFromTitle,
+} from '../adapter-utils';
 import type { InvitationData, WeddingEvent, GiftAccount } from './types';
 
 const DEFAULT_ASSET_BASE = '/templates/ranah-cinta';
@@ -18,11 +22,22 @@ export function adaptRanahCintaData(
 ): InvitationData {
   const content = (payload.event.content || {}) as Record<string, unknown>;
   const timeZone = (typeof content.timeZone === 'string' && content.timeZone) || 'Asia/Jakarta';
+  const extractedCouple = extractCoupleNamesFromTitle(payload.event.title);
 
-  const partnerOneName = (typeof content.partnerOneName === 'string' && content.partnerOneName.trim()) || 'Salma';
-  const partnerTwoName = (typeof content.partnerTwoName === 'string' && content.partnerTwoName.trim()) || 'Fadli';
-  const partnerOneFullName = (typeof content.partnerOneFullName === 'string' && content.partnerOneFullName.trim()) || 'Salma Putri Maharani';
-  const partnerTwoFullName = (typeof content.partnerTwoFullName === 'string' && content.partnerTwoFullName.trim()) || 'Fadli Aditya Pratama';
+  const partnerOneName =
+    (typeof content.partnerOneName === 'string' && content.partnerOneName.trim()) ||
+    extractedCouple?.[0] ||
+    'Salma';
+  const partnerTwoName =
+    (typeof content.partnerTwoName === 'string' && content.partnerTwoName.trim()) ||
+    extractedCouple?.[1] ||
+    'Fadli';
+  const partnerOneFullName =
+    (typeof content.partnerOneFullName === 'string' && content.partnerOneFullName.trim()) ||
+    (partnerOneName === 'Salma' ? 'Salma Putri Maharani' : partnerOneName);
+  const partnerTwoFullName =
+    (typeof content.partnerTwoFullName === 'string' && content.partnerTwoFullName.trim()) ||
+    (partnerTwoName === 'Fadli' ? 'Fadli Aditya Pratama' : partnerTwoName);
 
   const partnerOneFamily = (typeof content.partnerOneFamily === 'string' && content.partnerOneFamily.trim()) || 'Putri dari Bapak Hendra Wijaya\ndan Ibu Ratna Puspita';
   const partnerTwoFamily = (typeof content.partnerTwoFamily === 'string' && content.partnerTwoFamily.trim()) || 'Putra dari Bapak Bambang Pratama\ndan Ibu Dewi Lestari';
@@ -52,17 +67,30 @@ export function adaptRanahCintaData(
 
   // Ceremonies -> events
   const rawCeremonies = Array.isArray(content.ceremonies) ? content.ceremonies : [];
+  const rawEventDateStr =
+    typeof payload.event.eventDate === 'string' && payload.event.eventDate.trim()
+      ? payload.event.eventDate.trim()
+      : '';
+  const fallbackDatePart =
+    rawEventDateStr && !isNaN(Date.parse(rawEventDateStr))
+      ? new Date(rawEventDateStr).toISOString().split('T')[0]
+      : '2026-11-22';
+  const fallbackLocation =
+    typeof payload.event.locationDetails === 'string' &&
+    payload.event.locationDetails.trim()
+      ? payload.event.locationDetails.trim()
+      : '';
   let events: WeddingEvent[] = [];
 
   if (rawCeremonies.length > 0) {
     events = rawCeremonies.map((c: Record<string, unknown>, idx: number) => ({
       id: `event-${idx + 1}`,
       title: (typeof c.title === 'string' && c.title.trim()) || (idx === 0 ? 'Akad Nikah' : 'Resepsi'),
-      date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || '2026-11-22',
+      date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || fallbackDatePart,
       startTime: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[1]?.substring(0, 5)) || '08:00',
       endTime: (typeof c.endDateTime === 'string' && c.endDateTime.split('T')[1]?.substring(0, 5)) || undefined,
-      venue: (typeof c.venue === 'string' && c.venue.trim()) || 'Balairung Keluarga',
-      address: (typeof c.address === 'string' && c.address.trim()) || 'Padang, Sumatera Barat',
+      venue: (typeof c.venue === 'string' && c.venue.trim()) || fallbackLocation || 'Balairung Keluarga',
+      address: (typeof c.address === 'string' && c.address.trim()) || fallbackLocation || 'Padang, Sumatera Barat',
       mapsUrl: typeof c.mapsUrl === 'string' && c.mapsUrl.startsWith('http') ? c.mapsUrl : undefined,
     }));
   } else {
@@ -70,21 +98,21 @@ export function adaptRanahCintaData(
       {
         id: 'ceremony',
         title: 'Akad Nikah',
-        date: '2026-11-22',
+        date: fallbackDatePart,
         startTime: '08:00 WIB',
         endTime: '10:00 WIB',
-        venue: 'Balairung Keluarga',
-        address: 'Padang, Sumatera Barat',
+        venue: fallbackLocation || 'Balairung Keluarga',
+        address: fallbackLocation || 'Padang, Sumatera Barat',
         mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Padang%2C+Sumatera+Barat',
       },
       {
         id: 'reception',
         title: 'Resepsi',
-        date: '2026-11-22',
+        date: fallbackDatePart,
         startTime: '11:00 WIB',
         endTime: '14:00 WIB',
-        venue: 'Balairung Keluarga',
-        address: 'Padang, Sumatera Barat',
+        venue: fallbackLocation || 'Balairung Keluarga',
+        address: fallbackLocation || 'Padang, Sumatera Barat',
         mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Padang%2C+Sumatera+Barat',
       },
     ];
@@ -145,19 +173,30 @@ export function adaptRanahCintaData(
     `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
   const bgMusic = findMedia('BG-MUSIC') || findMedia('BACKGROUND_MUSIC');
 
-  const rawEventDate = payload.event.eventDate || '2026-11-22T08:00:00+07:00';
+  const firstCeremonyStart =
+    rawCeremonies.length > 0 &&
+    typeof (rawCeremonies[0] as Record<string, unknown>)?.startDateTime === 'string' &&
+    ((rawCeremonies[0] as Record<string, unknown>).startDateTime as string).trim()
+      ? ((rawCeremonies[0] as Record<string, unknown>).startDateTime as string).trim()
+      : '';
+
+  const rawEventDate = firstCeremonyStart || payload.event.eventDate || '2026-11-22T08:00:00+07:00';
   const dateLabel =
-    rawEventDate !== '2026-11-22T08:00:00+07:00' && !isNaN(Date.parse(rawEventDate))
+    !isNaN(Date.parse(rawEventDate))
       ? new Date(rawEventDate).toLocaleDateString('id-ID', {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
+          timeZone,
         })
       : '22 November 2026';
 
   return {
     event: {
-      title: payload.event.title || `Pernikahan ${partnerOneName} & ${partnerTwoName}`,
+      title: cleanInvitationEventTitle(
+        payload.event.title,
+        `Pernikahan ${partnerOneName} & ${partnerTwoName}`,
+      ),
       datetime: rawEventDate,
       dateLabel,
       locale: 'id-ID',

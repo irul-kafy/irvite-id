@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import { fetchPublicEvent } from '../../../api/client';
 import { RenderTheme } from '../../../renderers/registry';
+import { cleanInvitationEventTitle } from '../../../renderers/adapter-utils';
 
 export async function generateMetadata({
   params,
@@ -17,9 +18,11 @@ export async function generateMetadata({
     };
   }
 
+  const cleanTitle = cleanInvitationEventTitle(data.event.title, data.event.title);
+
   return {
-    title: `${data.event.title} - Digital Invitation`,
-    description: data.event.description || `You are invited to ${data.event.title}`,
+    title: `${cleanTitle} - Digital Invitation`,
+    description: data.event.description || `You are invited to ${cleanTitle}`,
   };
 }
 

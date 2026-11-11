@@ -22,6 +22,13 @@ import {
 } from '../templates/definitions';
 import { computeDefaultClientKey } from '../client-portal/client-portal.service';
 
+export function stripPublicDraftTag(title: string | null | undefined): string {
+  if (!title || typeof title !== 'string') return '';
+  return title
+    .replace(/\s*\((?:Draf Klien|PENGAJUAN KLIEN)\s*#[A-Za-z0-9-]+\)/gi, '')
+    .trim();
+}
+
 @Injectable()
 export class EventsService {
   private readonly logger = new Logger(EventsService.name);
@@ -250,6 +257,7 @@ export class EventsService {
       where: whereScope,
       select: {
         id: true,
+        title: true,
         status: true,
         templateId: true,
         content: true,
@@ -400,6 +408,20 @@ export class EventsService {
       dataToUpdate.content = contentToUpdateObj as Prisma.InputJsonObject;
     }
 
+    if (
+      updateEventDto.status === 'PUBLISHED' &&
+      updateEventDto.title === undefined &&
+      typeof existingEvent.title === 'string' &&
+      /\((?:Draf Klien|PENGAJUAN KLIEN)\s*#[A-Za-z0-9-]+\)/i.test(
+        existingEvent.title,
+      )
+    ) {
+      const cleanedTitle = stripPublicDraftTag(existingEvent.title);
+      if (cleanedTitle) {
+        dataToUpdate.title = cleanedTitle;
+      }
+    }
+
     try {
       const updatedEvent = await this.prisma.event.update({
         where: { id: existingEvent.id },
@@ -536,7 +558,7 @@ export class EventsService {
 
     return {
       event: {
-        title: event.title,
+        title: stripPublicDraftTag(event.title) || event.title,
         description: event.description,
         eventDate: event.eventDate,
         locationDetails: event.locationDetails,
@@ -892,11 +914,11 @@ export class EventsService {
             .slice(0, maxItems)
             .map((s) => ({
               year:
-                typeof s.year === 'string'
+                typeof s.year === 'string' && s.year.trim()
                   ? s.year.trim().slice(0, 40)
                   : '2025',
               title:
-                typeof s.title === 'string'
+                typeof s.title === 'string' && s.title.trim()
                   ? s.title.trim().slice(0, 80)
                   : 'Kisah Kami',
               description:

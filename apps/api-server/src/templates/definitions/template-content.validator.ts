@@ -194,16 +194,38 @@ export function validateEventContent(
     );
   }
 
-  checkPrototypePollution(content);
+  const INTERNAL_PLATFORM_KEYS = new Set([
+    '_schemaVersion',
+    'integrations',
+    'clientPortalEnabled',
+    'clientKey',
+    '_mediaFallback',
+    'clientDraftSubmission',
+  ]);
 
-  const serialized = JSON.stringify(content);
+  const rawObj = content as Record<string, unknown>;
+
+  for (const dangerous of PROTOTYPE_POLLUTION_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(rawObj, dangerous)) {
+      throw new BadRequestException(`Invalid content key: ${dangerous}`);
+    }
+  }
+
+  const contentWithoutInternal: Record<string, unknown> = {};
+  for (const key of Object.keys(rawObj)) {
+    if (!INTERNAL_PLATFORM_KEYS.has(key)) {
+      contentWithoutInternal[key] = rawObj[key];
+    }
+  }
+
+  checkPrototypePollution(contentWithoutInternal);
+
+  const serialized = JSON.stringify(contentWithoutInternal);
   if (Buffer.byteLength(serialized, 'utf8') > MAX_CONTENT_SIZE_BYTES) {
     throw new BadRequestException(
       'Content exceeds maximum allowed size of 64 KiB',
     );
   }
-
-  const rawObj = content as Record<string, unknown>;
 
   // Reject _templateKey if present
   if ('_templateKey' in rawObj) {
@@ -217,7 +239,7 @@ export function validateEventContent(
   if (!definition) {
     // Legacy or template without strict registered definition: only null / empty allowed
     const nonVersionKeys = Object.keys(rawObj).filter(
-      (k) => k !== '_schemaVersion' && k !== 'integrations',
+      (k) => !INTERNAL_PLATFORM_KEYS.has(k),
     );
     if (nonVersionKeys.length > 0) {
       throw new BadRequestException(
@@ -227,17 +249,7 @@ export function validateEventContent(
     return null;
   }
 
-  const INTERNAL_PLATFORM_KEYS = new Set([
-    '_schemaVersion',
-    'integrations',
-    'clientPortalEnabled',
-    'clientKey',
-    '_mediaFallback',
-  ]);
-
-  const contentFieldKeys = Object.keys(rawObj).filter(
-    (k) => !INTERNAL_PLATFORM_KEYS.has(k),
-  );
+  const contentFieldKeys = Object.keys(contentWithoutInternal);
   if (contentFieldKeys.length === 0) {
     return null;
   }

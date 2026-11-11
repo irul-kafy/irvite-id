@@ -13,6 +13,13 @@ import { adaptOpalineNocturneData } from '../renderers/opaline-nocturne/opaline-
 import { adaptAetheriaData } from '../renderers/aetheria/aetheria.adapter';
 import { adaptRanahCintaData } from '../renderers/ranah-cinta/ranah-cinta.adapter';
 import { adaptSwargaDewataContent } from '../renderers/swarga-dewata/swarga-dewata.adapter';
+import { adaptRoyalVelvetContent } from '../renderers/royal-velvet/royal-velvet.adapter';
+import {
+  cleanInvitationEventTitle,
+  extractCoupleNamesFromTitle,
+} from '../renderers/adapter-utils';
+import fs from 'node:fs';
+import path from 'node:path';
 
 test('Live Demo Fixtures & Gating Safety', async (t) => {
   await t.test('getDemoFixture resolves approved codex themeCodes', () => {
@@ -117,5 +124,74 @@ test('Live Demo Fixtures & Gating Safety', async (t) => {
     assert.equal(adapted.stories?.length, 3);
     assert.equal(adapted.giftAccounts?.length, 2);
     assert.equal(adapted.timeZone, 'Asia/Makassar');
+  });
+
+  await t.test('All template adapters strip (Draf Klien #...) tags and extract couple names from title when content is null', () => {
+    const draftTitle = 'Pernikahan Amila & Raiswa (Draf Klien #IRV-59DA78)';
+    assert.equal(cleanInvitationEventTitle(draftTitle), 'Pernikahan Amila & Raiswa');
+    assert.deepEqual(extractCoupleNamesFromTitle(draftTitle), ['Amila', 'Raiswa']);
+
+    const nullContentPayload = {
+      event: {
+        title: draftTitle,
+        description: null,
+        eventDate: '2027-05-15T09:00:00+07:00',
+        locationDetails: 'Grand Ballroom Jakarta',
+        slug: 'amila-raiswa-59da78',
+        content: null,
+      },
+      template: { themeCode: 'OPALINE_NOCTURNE', config: {} },
+      media: [],
+      mediaBySlot: {},
+    };
+
+    const opaline = adaptOpalineNocturneData(nullContentPayload);
+    assert.equal(opaline.event.title, 'Pernikahan Amila & Raiswa');
+    assert.equal(opaline.couple.bride.shortName, 'Amila');
+    assert.equal(opaline.couple.groom.shortName, 'Raiswa');
+    assert.equal(opaline.couple.bride.name, 'Amila');
+    assert.equal(opaline.couple.groom.name, 'Raiswa');
+    assert.ok(opaline.event.dateLabel.includes('2027'));
+
+    const aetheria = adaptAetheriaData(nullContentPayload);
+    assert.equal(aetheria.event.title, 'Pernikahan Amila & Raiswa');
+    assert.equal(aetheria.couple.bride.shortName, 'Amila');
+    assert.equal(aetheria.couple.groom.shortName, 'Raiswa');
+
+    const ranah = adaptRanahCintaData(nullContentPayload);
+    assert.equal(ranah.event.title, 'Pernikahan Amila & Raiswa');
+    assert.equal(ranah.couple.bride.shortName, 'Amila');
+    assert.equal(ranah.couple.groom.shortName, 'Raiswa');
+
+    const sekar = adaptSekarKedatonContent(null, draftTitle);
+    assert.equal(sekar.partnerOneName, 'Amila');
+    assert.equal(sekar.partnerTwoName, 'Raiswa');
+
+    const royal = adaptRoyalVelvetContent(null, draftTitle, '2027-05-15T09:00:00+07:00', 'Grand Ballroom Jakarta');
+    assert.equal(royal.partnerOneName, 'Amila');
+    assert.equal(royal.partnerTwoName, 'Raiswa');
+    assert.equal(royal.partnerOneFullName, 'Amila');
+    assert.equal(royal.partnerTwoFullName, 'Raiswa');
+    assert.equal(royal.ceremonies[0].venue, 'Grand Ballroom Jakarta');
+
+    const swarga = adaptSwargaDewataContent(null, draftTitle, '2027-05-15T09:00:00+08:00', 'Puri Agung');
+    assert.equal(swarga.partnerOneName, 'Amila');
+    assert.equal(swarga.partnerTwoName, 'Raiswa');
+    assert.equal(swarga.partnerOneFullName, 'Amila');
+    assert.equal(swarga.partnerTwoFullName, 'Raiswa');
+    assert.equal(swarga.ceremonies[0].venue, 'Puri Agung');
+  });
+
+  await t.test('Opaline Nocturne CSS places coverContent, heroIntro, and inner above decorative flowers and frame', () => {
+    const cssPath = path.resolve(
+      process.cwd(),
+      'src/renderers/opaline-nocturne/InvitationTemplate.module.css',
+    );
+    const css = fs.readFileSync(cssPath, 'utf8');
+    assert.match(css, /\.coverContent\{[^}]*z-index:6/);
+    assert.match(css, /\.heroIntro\{[^}]*z-index:6/);
+    assert.match(css, /\.inner\{[^}]*z-index:6/);
+    assert.match(css, /\.flowers\{[^}]*z-index:3/);
+    assert.match(css, /\.coverFrame\{[^}]*z-index:2/);
   });
 });

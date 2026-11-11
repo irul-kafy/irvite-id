@@ -62,8 +62,19 @@ export function RoyalVelvetRenderer({
   canonicalUrl,
 }: RendererProps) {
   const content = useMemo(
-    () => adaptRoyalVelvetContent(data.event?.content, data.event?.title),
-    [data.event?.content, data.event?.title],
+    () =>
+      adaptRoyalVelvetContent(
+        data.event?.content,
+        data.event?.title,
+        data.event?.eventDate,
+        data.event?.locationDetails,
+      ),
+    [
+      data.event?.content,
+      data.event?.title,
+      data.event?.eventDate,
+      data.event?.locationDetails,
+    ],
   );
 
   const media = useMemo(

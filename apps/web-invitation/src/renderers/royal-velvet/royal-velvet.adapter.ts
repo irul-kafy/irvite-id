@@ -50,6 +50,8 @@ function toShortNickname(rawName: string, fallback: string): string {
 export function adaptRoyalVelvetContent(
   rawContent?: unknown,
   eventTitle?: string,
+  eventDate?: string | Date | null,
+  locationDetails?: string | null,
 ): RoyalVelvetContent {
   const c =
     rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
@@ -77,15 +79,19 @@ export function adaptRoyalVelvetContent(
 
   const partnerOneFullName = asString(
     c.partnerOneFullName,
-    rawP1.length > partnerOneName.length
+    partnerOneName !== 'Citra'
       ? rawP1
-      : 'Neng Citra Kirana, S.Ars.',
+      : rawP1.length > partnerOneName.length
+        ? rawP1
+        : 'Neng Citra Kirana, S.Ars.',
   );
   const partnerTwoFullName = asString(
     c.partnerTwoFullName,
-    rawP2.length > partnerTwoName.length
+    partnerTwoName !== 'Galih'
       ? rawP2
-      : 'Kang Galih Prakoso, M.B.A.',
+      : rawP2.length > partnerTwoName.length
+        ? rawP2
+        : 'Kang Galih Prakoso, M.B.A.',
   );
 
   const partnerOneFamily = asString(
@@ -151,6 +157,14 @@ export function adaptRoyalVelvetContent(
     ),
   );
 
+  const rawEventDateIso =
+    eventDate instanceof Date
+      ? eventDate.toISOString()
+      : typeof eventDate === 'string' && eventDate.trim() && !isNaN(Date.parse(eventDate))
+        ? eventDate.trim()
+        : '';
+  const fallbackLocation = asString(locationDetails, '');
+
   const rawCeremonies = Array.isArray(c.ceremonies) ? c.ceremonies : [];
   const ceremonies =
     rawCeremonies.length > 0
@@ -168,22 +182,25 @@ export function adaptRoyalVelvetContent(
             ),
             startDateTime: asString(
               item.startDateTime,
-              idx === 0
-                ? '2027-02-14T08:00:00+07:00'
-                : '2027-02-14T18:30:00+07:00',
+              rawEventDateIso ||
+                (idx === 0
+                  ? '2027-02-14T08:00:00+07:00'
+                  : '2027-02-14T18:30:00+07:00'),
             ),
             endDateTime: asString(item.endDateTime, '') || undefined,
             venue: asString(
               item.venue,
-              idx === 0
-                ? 'Grand Heritage Glasshouse — Senayan'
-                : 'The Imperial Ballroom — Dharmawangsa',
+              fallbackLocation ||
+                (idx === 0
+                  ? 'Grand Heritage Glasshouse — Senayan'
+                  : 'The Imperial Ballroom — Dharmawangsa'),
             ),
             address: asString(
               item.address,
-              idx === 0
-                ? 'Jl. Jenderal Sudirman Kav. 52-53, Senayan, Kebayoran Baru, Jakarta Selatan'
-                : 'Jl. Brawijaya Raya No. 26, Kebayoran Baru, Jakarta Selatan',
+              fallbackLocation ||
+                (idx === 0
+                  ? 'Jl. Jenderal Sudirman Kav. 52-53, Senayan, Kebayoran Baru, Jakarta Selatan'
+                  : 'Jl. Brawijaya Raya No. 26, Kebayoran Baru, Jakarta Selatan'),
             ),
             mapsUrl: asString(
               item.mapsUrl,
@@ -195,20 +212,22 @@ export function adaptRoyalVelvetContent(
       : [
           {
             title: 'Akad Nikah / Upacara Utama',
-            startDateTime: '2027-02-14T08:00:00+07:00',
+            startDateTime: rawEventDateIso || '2027-02-14T08:00:00+07:00',
             endDateTime: '2027-02-14T10:00:00+07:00',
-            venue: 'Grand Heritage Glasshouse — Senayan',
+            venue: fallbackLocation || 'Grand Heritage Glasshouse — Senayan',
             address:
+              fallbackLocation ||
               'Jl. Jenderal Sudirman Kav. 52-53, Senayan, Kebayoran Baru, Jakarta Selatan',
             mapsUrl:
               'https://maps.google.com/?q=Jl.+Jenderal+Sudirman+Kav+52-53+Jakarta+Selatan',
           },
           {
             title: 'Royal Evening Reception',
-            startDateTime: '2027-02-14T18:30:00+07:00',
+            startDateTime: rawEventDateIso || '2027-02-14T18:30:00+07:00',
             endDateTime: '2027-02-14T21:30:00+07:00',
-            venue: 'The Imperial Ballroom — Dharmawangsa',
+            venue: fallbackLocation || 'The Imperial Ballroom — Dharmawangsa',
             address:
+              fallbackLocation ||
               'Jl. Brawijaya Raya No. 26, Kebayoran Baru, Jakarta Selatan',
             mapsUrl:
               'https://maps.google.com/?q=Jl.+Brawijaya+Raya+No.+26+Kebayoran+Baru+Jakarta+Selatan',

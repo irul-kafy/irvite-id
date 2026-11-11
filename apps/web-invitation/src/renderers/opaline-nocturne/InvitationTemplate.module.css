@@ -32,7 +32,7 @@
 .script{font:italic 1.65rem/1.5 var(--inv-font-display)}
 .flourish{display:block;color:var(--inv-secondary);font:2.3rem/1 Georgia,serif;margin:22px auto}
 .textLink{font-size:.78rem;letter-spacing:.06em}
-.inner{position:relative;z-index:2;max-width:var(--inv-content-width);margin:auto}
+.inner{position:relative;z-index:6;max-width:var(--inv-content-width);margin:auto}
 .section{position:relative;padding:var(--inv-section-spacing) 64px 135px;isolation:isolate;background:linear-gradient(110deg,#ffffff09,#213e3b0d),url("/templates/opaline-nocturne/ornaments/paper.svg"),var(--inv-background)}
 .heading{max-width:590px;margin:0 auto 52px;text-align:center}
 .heading h2{margin-top:14px}
@@ -42,7 +42,7 @@
 .main[data-stage="opening"]{height:100svh;overflow:hidden}
 
 /* The scenery, carved frame, flowers and lace are independent layers. */
-.flowers{position:absolute;width:clamp(125px,21%,235px);height:320px;pointer-events:none;z-index:4;--bloom-x:-35px;--bloom-turn:-11deg}
+.flowers{position:absolute;width:clamp(125px,21%,235px);height:320px;pointer-events:none;z-index:3;--bloom-x:-35px;--bloom-turn:-11deg}
 .flowers i{display:block;width:100%;height:100%;background:url("/templates/opaline-nocturne/images/woodland-flowers.webp") center/contain no-repeat;transform-origin:40% 85%;animation:flowerWind 8s ease-in-out infinite alternate paused;filter:drop-shadow(2px 5px 3px #123b3b28)}
 .topLeft{top:-64px;left:-46px;rotate:155deg}
 .topRight{top:-42px;right:-46px;rotate:195deg;--bloom-x:35px;--bloom-turn:12deg}
@@ -53,41 +53,41 @@
 .magnolia i{background-size:180% auto;background-position:5% 91%;mask-image:radial-gradient(ellipse 57% 53% at 48% 57%,#000 65%,transparent 99%);filter:drop-shadow(2px 5px 3px #123b3b28) saturate(.78)}
 .trumpet i{background-size:155% auto;background-position:94% 27%;mask-image:radial-gradient(ellipse 55% 57% at 51% 48%,#000 62%,transparent 100%)}
 .blossoms i{background-size:125% auto;background-position:8% 22%;mask-image:radial-gradient(ellipse 57% 58% at 48% 48%,#000 61%,transparent 100%);filter:saturate(.62) hue-rotate(7deg) drop-shadow(2px 5px 3px #123b3b28)}
-.swan{position:absolute;z-index:4;bottom:38px;right:-12px;width:clamp(95px,18vw,175px);aspect-ratio:2/3;pointer-events:none}
+.swan{position:absolute;z-index:3;bottom:38px;right:-12px;width:clamp(95px,18vw,175px);aspect-ratio:2/3;pointer-events:none}
 .swan i{display:block;width:100%;height:100%;background:url("/templates/opaline-nocturne/images/ivory-swan.webp") center/contain no-repeat;transform-origin:50% 90%;animation:swanGlide 9s ease-in-out infinite alternate paused}
 .swanReverse{left:-18px;right:auto;scale:-1 1}
 .swanRosette{position:absolute;top:38%;left:25%;width:45%;height:24%;background:url("/templates/opaline-nocturne/images/woodland-flowers.webp") 9% 91%/190% auto;mask-image:radial-gradient(ellipse,#000 25%,transparent 68%);filter:hue-rotate(325deg) saturate(.65)}
 .swan i{filter:sepia(.12) hue-rotate(128deg) saturate(.72)}
-.carvedFrame{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;filter:drop-shadow(1px 3px 2px #1b383b88)}
-.coverFrame{position:absolute;z-index:3;inset:24px auto 70px;left:50%;width:min(95%,660px);transform:translateX(-50%);pointer-events:none}
-.lace{position:absolute;z-index:5;left:0;bottom:-1px;width:100%;height:84px;background:url("/templates/opaline-nocturne/ornaments/woodland-lace.svg") top center/400px 82px repeat-x;filter:drop-shadow(0 4px 3px #183b3b45);pointer-events:none}
-.petals{position:absolute;inset:0;overflow:hidden;z-index:2;pointer-events:none}
+.carvedFrame{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;filter:drop-shadow(1px 3px 2px #1b383b88)}
+.coverFrame{position:absolute;z-index:2;inset:24px auto 70px;left:50%;width:min(95%,660px);transform:translateX(-50%);pointer-events:none}
+.lace{position:absolute;z-index:4;left:0;bottom:-1px;width:100%;height:84px;background:url("/templates/opaline-nocturne/ornaments/woodland-lace.svg") top center/400px 82px repeat-x;filter:drop-shadow(0 4px 3px #183b3b45);pointer-events:none}
+.petals{position:absolute;inset:0;overflow:hidden;z-index:1;pointer-events:none}
 .petals i{position:absolute;top:-8%;left:calc(8% + var(--petal-index)*13%);width:7px;height:12px;border-radius:80% 0 80% 20%;background:#f6ead1b3;box-shadow:0 0 8px #fff5d655;animation:petalFall calc(14s + var(--petal-index)*2s) linear infinite paused;animation-delay:calc(var(--petal-index)*-3s)}
 .fan{display:block;width:240px;max-width:75%;height:auto;overflow:visible;margin:0 auto 18px;filter:drop-shadow(0 6px 6px #213e3b44)}
 .fan g{transform-origin:180px 184px;transform:rotate(var(--fan-angle))}
-.botanical{display:block;position:absolute;z-index:4;bottom:-40px;left:-65px;width:140px;height:230px;background:url("/templates/opaline-nocturne/images/woodland-flowers.webp") center/contain no-repeat;transform-origin:50% 90%;animation:flowerWind 8.3s ease-in-out infinite alternate paused;pointer-events:none}
+.botanical{display:block;position:absolute;z-index:3;bottom:-40px;left:-65px;width:140px;height:230px;background:url("/templates/opaline-nocturne/images/woodland-flowers.webp") center/contain no-repeat;transform-origin:50% 90%;animation:flowerWind 8.3s ease-in-out infinite alternate paused;pointer-events:none}
 .botanicalRight{left:auto;right:-65px;scale:-1 1}
 
 /* Cover peels open through a widening oval window. */
-.opening{min-height:100svh;position:relative;display:grid;place-items:center;padding:155px 30px 135px;text-align:center;color:var(--inv-on-primary);isolation:isolate;overflow:hidden;background:var(--inv-primary)}
+.opening{min-height:100svh;position:relative;display:grid;place-items:center;padding:135px 30px 155px;text-align:center;color:var(--inv-on-primary);isolation:isolate;overflow:hidden;background:var(--inv-primary)}
 .coverScenery{position:absolute!important;inset:0;width:100%;height:100%;object-position:center 64%;z-index:-2;filter:saturate(.82)}
-.opening::after,.heroVista::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#1b3c4140,#17363830 35%,#1736386b 68%,#17363818)}
-.coverContent{position:relative;z-index:3;width:min(460px,82%);padding:50px 16px 0;text-shadow:0 2px 12px #1736389c}
+.opening::after,.heroVista::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#16323675,#17363845 36%,#15313485 72%,#15313455)}
+.coverContent{position:relative;z-index:6;width:min(460px,84%);padding:56px 20px 32px;text-shadow:0 2px 14px #112a2ce6,0 1px 3px #000000a6}
 .coverContent>.eyebrow{animation:coverWord 1.4s ease both .25s}
-.coverContent>.script{margin:15px auto 25px;font-size:1.2rem;animation:coverWord 1.4s ease both .5s}
+.coverContent>.script{margin:14px auto 22px;font-size:1.2rem;animation:coverWord 1.4s ease both .5s}
 .coverContent h1{font-size:clamp(4.2rem,8vw,6.2rem);line-height:.98;letter-spacing:-.02em;animation:coverNames 1.8s cubic-bezier(.2,.7,.2,1) both .4s}
 .coverContent h1 span{display:block;font-style:italic;font-size:.57em;margin:10px auto}
-.coverDate{margin-top:25px!important;font-family:var(--inv-font-display);font-size:1.1rem;letter-spacing:.14em;animation:coverWord 1.5s ease both .8s}
-.guestGreeting{margin:70px auto 22px;animation:coverWord 1.5s ease both 1s}
-.guestGreeting span{display:block;font-size:.65rem;letter-spacing:.08em}
-.guestGreeting strong{display:block;font:400 1.35rem/1.4 var(--inv-font-display)}
-.coverContent>.button{animation:coverWord 1.5s ease both 1.1s}
-.coverBrand{display:block;font-size:.66rem;margin-top:20px}
-.opening>.flowers{width:clamp(170px,25%,290px);height:410px}
-.opening>.topLeft{left:calc(50% - min(48%,330px));top:-85px}
-.opening>.topRight{right:calc(50% - min(48%,330px));top:-80px}
-.opening>.bottomLeft{left:calc(50% - min(50%,345px));bottom:45px}
-.opening>.bottomRight{right:calc(50% - min(50%,345px));bottom:45px}
+.coverDate{margin-top:22px!important;font-family:var(--inv-font-display);font-size:1.1rem;letter-spacing:.14em;animation:coverWord 1.5s ease both .8s}
+.guestGreeting{margin:34px auto 22px;padding:14px 22px;max-width:320px;border-radius:18px;background:#1633367a;border:1px solid #c9b88f59;backdrop-filter:blur(6px);animation:coverWord 1.5s ease both 1s}
+.guestGreeting span{display:block;font-size:.66rem;letter-spacing:.08em}
+.guestGreeting strong{display:block;margin-top:4px;font:400 1.35rem/1.35 var(--inv-font-display)}
+.coverContent>.button{animation:coverWord 1.5s ease both 1.1s;z-index:6;box-shadow:0 8px 24px #11282a75}
+.coverBrand{display:block;font-size:.66rem;margin-top:18px;opacity:.88}
+.opening>.flowers{width:clamp(140px,18vw,215px);height:clamp(220px,28vw,310px)}
+.opening>.topLeft{left:calc(50% - min(49%,375px));top:-65px}
+.opening>.topRight{right:calc(50% - min(49%,375px));top:-60px}
+.opening>.bottomLeft{left:calc(50% - min(50%,390px));bottom:35px}
+.opening>.bottomRight{right:calc(50% - min(50%,390px));bottom:35px}
 .opening .flowers i,.opening .petals i{animation-play-state:running}
 .opening>.flowers{animation:flowerArrive 2s ease both}
 .opening>.topRight{animation-delay:.15s}
@@ -103,8 +103,8 @@
 .heroVista{min-height:920px;min-height:max(850px,100svh);position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;text-align:center;color:var(--inv-on-primary);padding:190px 65px}
 .heroScenery{position:absolute;inset:0;z-index:-2;background:var(--inv-garden) center 65%/cover no-repeat;animation:forestSettle 4s ease both;animation-play-state:paused}
 .main[data-stage="open"] .heroScenery{animation-play-state:running}
-.heroVista>.flowers{width:clamp(150px,25%,300px);height:440px}
-.heroIntro{position:relative;z-index:3;max-width:510px;text-shadow:0 2px 16px #15383b}
+.heroVista>.flowers{width:clamp(140px,19vw,230px);height:clamp(230px,30vw,330px)}
+.heroIntro{position:relative;z-index:6;max-width:510px;text-shadow:0 2px 16px #15383b,0 1px 3px #00000099}
 .heroIntro>.script{margin:16px 0 30px}
 .heroIntro h2{font-size:clamp(4.5rem,9vw,7.4rem);line-height:1.02;overflow:visible}
 .heroIntro h2 em{display:block;font-size:.46em;line-height:1.2;margin:12px 0;color:var(--inv-secondary)}
@@ -113,10 +113,10 @@
 .heroIntro>p:not(.script){max-width:325px;margin:34px auto 25px;font-size:.92rem}
 .datePill{display:inline-block;border-block:1px solid #e9ddbb77;padding:9px 22px;font:1.1rem var(--inv-font-display);letter-spacing:.12em}
 .heroPrelude{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;padding:95px 95px 115px;background:url("/templates/opaline-nocturne/ornaments/paper.svg"),var(--inv-background)}
-.heroFrame{position:relative;width:100%;max-width:385px;padding:28px 30px 48px}
-.heroFrame>img{width:100%;aspect-ratio:3/4;border-radius:38% 38% 22% 22%;object-fit:cover}
-.frameNote{display:block;font:italic 1.15rem var(--inv-font-display);text-align:center;margin-top:20px}
-.heroPrayer{text-align:center}
+.heroFrame{position:relative;z-index:5;width:100%;max-width:385px;padding:28px 30px 48px}
+.heroFrame>img{position:relative;z-index:4;width:100%;aspect-ratio:3/4;border-radius:38% 38% 22% 22%;object-fit:cover}
+.frameNote{position:relative;z-index:4;display:block;font:italic 1.15rem var(--inv-font-display);text-align:center;margin-top:20px}
+.heroPrayer{position:relative;z-index:5;text-align:center}
 .heroPrayer>p{font-size:.91rem;margin-bottom:25px}
 .heroPrayer blockquote{font:italic 1.95rem/1.4 var(--inv-font-display)}
 .heroPrayer cite{display:block;margin-top:22px;font-size:.66rem;letter-spacing:.08em}
@@ -215,12 +215,13 @@
 .closing{position:relative;isolation:isolate;min-height:820px;display:grid;place-items:center;padding:100px 45px 175px;text-align:center;color:var(--inv-on-primary)}
 .closingPhoto{position:absolute;inset:0;width:100%;height:100%;z-index:-2;filter:saturate(.7)}
 .closing::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(#294e53a6,#294e53ba,#254a51ed)}
-.closingContent{position:relative;width:min(100%,540px);padding:90px 60px}
+.closingContent{position:relative;z-index:6;width:min(100%,540px);padding:90px 60px}
+.closingContent>:not(.carvedFrame){position:relative;z-index:5}
 .closingContent h2{font-size:4.6rem;margin:16px 0 28px}
 .closingContent>p:not(.script):not(.eyebrow){font-size:.9rem;line-height:1.95}
 .closingContent h3{font-size:3rem;margin:25px 0}
 .closingContent h3 em{font-size:.6em;margin:0 10px}
-.brand{position:absolute;z-index:4;bottom:120px;left:0;right:0;font-size:.65rem;letter-spacing:.04em}
+.brand{position:absolute;z-index:6;bottom:120px;left:0;right:0;font-size:.65rem;letter-spacing:.04em}
 .brand span{margin-left:5px}
 .navigation{position:fixed;z-index:30;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:4px;padding:8px 13px;max-width:calc(100% - 20px);background:color-mix(in srgb,var(--inv-primary) 95%,transparent);border:1px solid var(--inv-secondary);border-radius:70px;box-shadow:0 5px 25px #14323366;color:var(--inv-on-primary);backdrop-filter:blur(8px)}
 .navigation a{display:block;min-width:53px;min-height:42px;text-align:center;text-decoration:none;font-size:1.1rem;line-height:1.3;padding:2px}
@@ -287,7 +288,7 @@
 @keyframes laceUnroll{from{opacity:0;clip-path:inset(0 50%)}to{opacity:1;clip-path:inset(0)}}
 @keyframes fanUnfold{from{transform:rotate(0)}to{transform:rotate(var(--fan-angle))}}
 @keyframes countTurn{from{opacity:.3;transform:rotateX(-35deg)}to{opacity:1;transform:rotateX(0)}}
-@media(min-width:900px){.opening{min-height:980px;min-height:max(900px,100svh)}.coverScenery{object-position:center 62%}.opening::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#234e59c9,transparent 35% 65%,#234e59c9);z-index:-1}.heroVista .flowers{left:auto;right:auto}.heroVista>.topLeft{left:12%;top:-65px}.heroVista>.topRight{right:12%;top:-70px}.heroVista>.bottomLeft{left:11%}.heroVista>.bottomRight{right:11%}}
+@media(min-width:900px){.opening{min-height:980px;min-height:max(900px,100svh)}.coverScenery{object-position:center 62%}.opening::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#234e59c9,transparent 35% 65%,#234e59c9);z-index:-1}.heroVista .flowers{left:auto;right:auto}.heroVista>.topLeft{left:calc(50% - min(49%,375px));top:-65px}.heroVista>.topRight{right:calc(50% - min(49%,375px));top:-70px}.heroVista>.bottomLeft{left:calc(50% - min(50%,390px))}.heroVista>.bottomRight{right:calc(50% - min(50%,390px))}}
 @media(max-width:760px){
   .template{--inv-section-spacing:80px;font-size:14px}
   .section{padding:80px 27px 115px}
@@ -295,27 +296,27 @@
   .heading h2{font-size:2.8rem}
   .heading p{font-size:.88rem}
   .heading .eyebrow{font-size:.61rem;letter-spacing:.13em}
-  .flowers{width:146px;height:235px}
+  .flowers{width:136px;height:215px}
   .topLeft{left:-62px;top:-65px}.topRight{right:-62px;top:-65px}
   .bottomLeft{left:-65px;bottom:25px}.bottomRight{right:-65px;bottom:25px}
   .lace{height:66px;background-size:320px 66px}
   .coverFrame{inset:35px auto 72px;left:50%;width:99%}
-  .opening{min-height:850px;min-height:max(850px,100svh);padding:185px 20px 130px}
-  .opening>.flowers{width:168px;height:270px}
-  .opening>.topLeft{left:-63px;top:-44px}.opening>.topRight{right:-63px;top:-44px}
-  .opening>.bottomLeft{left:-78px;bottom:65px}.opening>.bottomRight{right:-78px;bottom:65px}
-  .coverContent{width:85%;padding:18px 5px 0}
+  .opening{min-height:850px;min-height:max(850px,100svh);padding:155px 20px 145px}
+  .opening>.flowers{width:128px;height:205px}
+  .opening>.topLeft{left:-58px;top:-46px}.opening>.topRight{right:-58px;top:-46px}
+  .opening>.bottomLeft{left:-68px;bottom:48px}.opening>.bottomRight{right:-68px;bottom:48px}
+  .coverContent{width:86%;padding:32px 10px 24px}
   .coverContent h1{font-size:4.1rem}
   .coverContent>.script{font-size:1.1rem;margin:10px 0 23px}
   .coverContent>.eyebrow{font-size:.65rem}
   .coverContent .flourish{display:none}
   .coverDate{font-size:.95rem;margin-top:23px!important}
-  .guestGreeting{margin:100px auto 20px}
+  .guestGreeting{margin:36px auto 20px;padding:12px 18px}
   .guestGreeting strong{font-size:1.25rem}
   .heroVista{min-height:max(820px,100svh);padding:185px 35px 185px}
-  .heroVista>.flowers{width:180px;height:290px}
-  .heroVista>.topLeft{left:-65px;top:-45px}.heroVista>.topRight{right:-65px;top:-45px}
-  .heroVista>.bottomLeft{left:-70px;bottom:40px;width:160px;height:245px}.heroVista>.bottomRight{right:-70px;bottom:40px;width:160px;height:245px}
+  .heroVista>.flowers{width:135px;height:215px}
+  .heroVista>.topLeft{left:-60px;top:-45px}.heroVista>.topRight{right:-60px;top:-45px}
+  .heroVista>.bottomLeft{left:-66px;bottom:40px;width:130px;height:205px}.heroVista>.bottomRight{right:-66px;bottom:40px;width:130px;height:205px}
   .heroIntro h2{font-size:4.75rem}
   .heroIntro>.script{font-size:1.35rem}
   .heroIntro>p:not(.script){font-size:.85rem;max-width:245px}
@@ -386,22 +387,22 @@
   .bottomLeft{left:-65px;bottom:25px}.bottomRight{right:-65px;bottom:25px}
   .lace{height:60px;background-size:300px 60px}
   .coverFrame{inset:30px auto 64px;left:50%;width:98%}
-  .opening{min-height:760px;padding:130px 18px 100px}
-  .opening>.flowers{width:150px;height:240px}
-  .opening>.topLeft{left:-63px;top:-44px}.opening>.topRight{right:-63px;top:-44px}
-  .opening>.bottomLeft{left:-78px;bottom:55px}.opening>.bottomRight{right:-78px;bottom:55px}
-  .coverContent{width:88%;padding:14px 5px 0}
+  .opening{min-height:760px;padding:125px 18px 130px}
+  .opening>.flowers{width:124px;height:195px}
+  .opening>.topLeft{left:-58px;top:-44px}.opening>.topRight{right:-58px;top:-44px}
+  .opening>.bottomLeft{left:-66px;bottom:44px}.opening>.bottomRight{right:-66px;bottom:44px}
+  .coverContent{width:88%;padding:28px 10px 20px}
   .coverContent h1{font-size:3.6rem}
   .coverContent>.script{font-size:1.05rem;margin:10px 0 18px}
   .coverContent>.eyebrow{font-size:.62rem}
   .coverContent .flourish{display:none}
   .coverDate{font-size:.9rem;margin-top:18px!important}
-  .guestGreeting{margin:50px auto 18px}
+  .guestGreeting{margin:30px auto 18px;padding:11px 16px}
   .guestGreeting strong{font-size:1.15rem}
   .heroVista{min-height:740px;padding:140px 26px 140px}
-  .heroVista>.flowers{width:160px;height:250px}
-  .heroVista>.topLeft{left:-65px;top:-45px}.heroVista>.topRight{right:-65px;top:-45px}
-  .heroVista>.bottomLeft{left:-70px;bottom:35px;width:140px;height:215px}.heroVista>.bottomRight{right:-70px;bottom:35px;width:140px;height:215px}
+  .heroVista>.flowers{width:130px;height:205px}
+  .heroVista>.topLeft{left:-60px;top:-45px}.heroVista>.topRight{right:-60px;top:-45px}
+  .heroVista>.bottomLeft{left:-66px;bottom:35px;width:124px;height:195px}.heroVista>.bottomRight{right:-66px;bottom:35px;width:124px;height:195px}
   .heroIntro h2{font-size:4.1rem}
   .heroIntro>.script{font-size:1.25rem}
   .heroIntro>p:not(.script){font-size:.82rem;max-width:240px}

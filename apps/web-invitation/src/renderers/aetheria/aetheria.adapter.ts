@@ -1,5 +1,9 @@
 import type { PublicMediaDescriptor } from '../../types/public-invitation';
 import type { RendererData } from '../registry';
+import {
+  cleanInvitationEventTitle,
+  extractCoupleNamesFromTitle,
+} from '../adapter-utils';
 import type { InvitationData, WeddingEvent, GiftAccount } from './types';
 
 const DEFAULT_ASSET_BASE = '/templates/aetheria';
@@ -19,11 +23,22 @@ export function adaptAetheriaData(
 ): InvitationData {
   const content = (payload.event.content || {}) as Record<string, unknown>;
   const timeZone = (typeof content.timeZone === 'string' && content.timeZone) || 'Asia/Jakarta';
+  const extractedCouple = extractCoupleNamesFromTitle(payload.event.title);
 
-  const partnerOneName = (typeof content.partnerOneName === 'string' && content.partnerOneName.trim()) || 'Lyra';
-  const partnerTwoName = (typeof content.partnerTwoName === 'string' && content.partnerTwoName.trim()) || 'Elian';
-  const partnerOneFullName = (typeof content.partnerOneFullName === 'string' && content.partnerOneFullName.trim()) || `${partnerOneName} Adeline`;
-  const partnerTwoFullName = (typeof content.partnerTwoFullName === 'string' && content.partnerTwoFullName.trim()) || `${partnerTwoName} Mahendra`;
+  const partnerOneName =
+    (typeof content.partnerOneName === 'string' && content.partnerOneName.trim()) ||
+    extractedCouple?.[0] ||
+    'Lyra';
+  const partnerTwoName =
+    (typeof content.partnerTwoName === 'string' && content.partnerTwoName.trim()) ||
+    extractedCouple?.[1] ||
+    'Elian';
+  const partnerOneFullName =
+    (typeof content.partnerOneFullName === 'string' && content.partnerOneFullName.trim()) ||
+    (partnerOneName === 'Lyra' ? 'Lyra Adeline' : partnerOneName);
+  const partnerTwoFullName =
+    (typeof content.partnerTwoFullName === 'string' && content.partnerTwoFullName.trim()) ||
+    (partnerTwoName === 'Elian' ? 'Elian Mahendra' : partnerTwoName);
 
   const partnerOneFamily = (typeof content.partnerOneFamily === 'string' && content.partnerOneFamily.trim()) || 'Putri dari Bapak Arya Pranata & Ibu Laras Kirana';
   const partnerTwoFamily = (typeof content.partnerTwoFamily === 'string' && content.partnerTwoFamily.trim()) || 'Putra dari Bapak Surya Mahendra & Ibu Maya Andriani';
@@ -53,17 +68,30 @@ export function adaptAetheriaData(
 
   // Ceremonies -> events
   const rawCeremonies = Array.isArray(content.ceremonies) ? content.ceremonies : [];
+  const rawEventDateStr =
+    typeof payload.event.eventDate === 'string' && payload.event.eventDate.trim()
+      ? payload.event.eventDate.trim()
+      : '';
+  const fallbackDatePart =
+    rawEventDateStr && !isNaN(Date.parse(rawEventDateStr))
+      ? new Date(rawEventDateStr).toISOString().split('T')[0]
+      : '2027-06-20';
+  const fallbackLocation =
+    typeof payload.event.locationDetails === 'string' &&
+    payload.event.locationDetails.trim()
+      ? payload.event.locationDetails.trim()
+      : '';
   let events: WeddingEvent[] = [];
 
   if (rawCeremonies.length > 0) {
     events = rawCeremonies.map((c: Record<string, unknown>, idx: number) => ({
       id: `event-${idx + 1}`,
       title: (typeof c.title === 'string' && c.title.trim()) || (idx === 0 ? 'Pemberkatan' : 'Resepsi'),
-      date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || '2027-06-20',
+      date: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[0]) || fallbackDatePart,
       startTime: (typeof c.startDateTime === 'string' && c.startDateTime.split('T')[1]?.substring(0, 5)) || '16.00',
       endTime: (typeof c.endDateTime === 'string' && c.endDateTime.split('T')[1]?.substring(0, 5)) || undefined,
-      venue: (typeof c.venue === 'string' && c.venue.trim()) || 'The Glasshouse',
-      address: (typeof c.address === 'string' && c.address.trim()) || 'Ciumbuleuit, Bandung, Jawa Barat',
+      venue: (typeof c.venue === 'string' && c.venue.trim()) || fallbackLocation || 'The Glasshouse',
+      address: (typeof c.address === 'string' && c.address.trim()) || fallbackLocation || 'Ciumbuleuit, Bandung, Jawa Barat',
       mapsUrl: typeof c.mapsUrl === 'string' && c.mapsUrl.startsWith('http') ? c.mapsUrl : undefined,
     }));
   } else {
@@ -71,21 +99,21 @@ export function adaptAetheriaData(
       {
         id: 'ceremony',
         title: 'Pemberkatan',
-        date: '2027-06-20',
+        date: fallbackDatePart,
         startTime: '16.00 WIB',
         endTime: '17.00 WIB',
-        venue: 'The Glasshouse',
-        address: 'Ciumbuleuit, Bandung, Jawa Barat',
+        venue: fallbackLocation || 'The Glasshouse',
+        address: fallbackLocation || 'Ciumbuleuit, Bandung, Jawa Barat',
         mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ciumbuleuit+Bandung',
       },
       {
         id: 'reception',
         title: 'Resepsi',
-        date: '2027-06-20',
+        date: fallbackDatePart,
         startTime: '18.30 WIB',
         endTime: '21.00 WIB',
-        venue: 'The Glasshouse Garden',
-        address: 'Ciumbuleuit, Bandung, Jawa Barat',
+        venue: fallbackLocation || 'The Glasshouse Garden',
+        address: fallbackLocation || 'Ciumbuleuit, Bandung, Jawa Barat',
         mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Ciumbuleuit+Bandung',
       },
     ];
@@ -172,14 +200,22 @@ export function adaptAetheriaData(
   const bgMusicDesc = mediaBySlot['bg-music']?.[0] || payload.media?.find((m) => m.slot === 'bg-music');
   const bgMusicUrl = resolveMediaUrl(bgMusicDesc?.src, isPreview);
 
-  const eventDate = payload.event.eventDate || '2027-06-20T16:00:00+07:00';
+  const firstCeremonyStart =
+    rawCeremonies.length > 0 &&
+    typeof (rawCeremonies[0] as Record<string, unknown>)?.startDateTime === 'string' &&
+    ((rawCeremonies[0] as Record<string, unknown>).startDateTime as string).trim()
+      ? ((rawCeremonies[0] as Record<string, unknown>).startDateTime as string).trim()
+      : '';
+
+  const eventDate = firstCeremonyStart || payload.event.eventDate || '2027-06-20T16:00:00+07:00';
   const dateLabel =
-    eventDate !== '2027-06-20T16:00:00+07:00' && !isNaN(Date.parse(eventDate))
+    !isNaN(Date.parse(eventDate))
       ? new Date(eventDate)
           .toLocaleDateString('id-ID', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
+            timeZone,
           })
           .toUpperCase()
       : '20 JUNI 2027';
@@ -190,7 +226,7 @@ export function adaptAetheriaData(
 
   return {
     event: {
-      title: payload.event.title || 'The wedding of',
+      title: cleanInvitationEventTitle(payload.event.title, 'The wedding of'),
       datetime: eventDate,
       dateLabel,
       locale: 'id-ID',

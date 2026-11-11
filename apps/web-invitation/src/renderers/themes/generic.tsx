@@ -16,6 +16,7 @@ import {
 import MediaGallery from '../../components/media-gallery';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { cleanInvitationEventTitle } from '../adapter-utils';
 import './generic-theme.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -584,8 +585,11 @@ export default function GenericTheme({
   const rawContent = (event.content || {}) as Record<string, unknown>;
   const partnerOneName = typeof rawContent.partnerOneName === 'string' ? rawContent.partnerOneName.trim() : '';
   const partnerTwoName = typeof rawContent.partnerTwoName === 'string' ? rawContent.partnerTwoName.trim() : '';
+  const cleanedEventTitle = cleanInvitationEventTitle(event.title, event.title);
   const displayCoupleTitle =
-    partnerOneName && partnerTwoName ? `${partnerOneName} & ${partnerTwoName}` : event.title;
+    partnerOneName && partnerTwoName
+      ? `${partnerOneName} & ${partnerTwoName}`
+      : cleanedEventTitle;
   const customIntro =
     (typeof rawContent.intro === 'string' && rawContent.intro.trim()) ||
     (typeof rawContent.openingText === 'string' && rawContent.openingText.trim()) ||

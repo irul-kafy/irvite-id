@@ -17,6 +17,7 @@ import * as crypto from 'crypto';
 import { PublicInvitationAccessService } from './public-invitation-access.service';
 import { validateEventContent } from '../templates/definitions';
 import { mapRsvpStatus } from './public-invitation-rsvp';
+import { stripPublicDraftTag } from '../events/events.service';
 
 @Injectable()
 export class InvitationsService {
@@ -458,7 +459,8 @@ export class InvitationsService {
         tableNumber: invitation.guest.tableNumber ?? null,
       },
       event: {
-        title: invitation.event.title,
+        title:
+          stripPublicDraftTag(invitation.event.title) || invitation.event.title,
         description: invitation.event.description,
         eventDate: invitation.event.eventDate,
         locationDetails: invitation.event.locationDetails,

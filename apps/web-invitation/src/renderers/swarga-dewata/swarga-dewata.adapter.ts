@@ -47,6 +47,8 @@ function toShortNickname(rawName: string, fallback: string): string {
 export function adaptSwargaDewataContent(
   rawContent?: unknown,
   eventTitle?: string,
+  eventDate?: string | Date | null,
+  locationDetails?: string | null,
 ): SwargaDewataContent {
   const c =
     rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
@@ -74,15 +76,19 @@ export function adaptSwargaDewataContent(
 
   const partnerOneFullName = asString(
     c.partnerOneFullName,
-    rawP1.length > partnerOneName.length
+    partnerOneName !== 'Ayu'
       ? rawP1
-      : 'dr. Anak Agung Ayu Saraswati, S.Ked.',
+      : rawP1.length > partnerOneName.length
+        ? rawP1
+        : 'dr. Anak Agung Ayu Saraswati, S.Ked.',
   );
   const partnerTwoFullName = asString(
     c.partnerTwoFullName,
-    rawP2.length > partnerTwoName.length
+    partnerTwoName !== 'Bagus'
       ? rawP2
-      : 'Tjokorda Gde Bagus Mahendra, M.Ars.',
+      : rawP2.length > partnerTwoName.length
+        ? rawP2
+        : 'Tjokorda Gde Bagus Mahendra, M.Ars.',
   );
 
   const partnerOneFamily = asString(
@@ -153,6 +159,14 @@ export function adaptSwargaDewataContent(
     ),
   );
 
+  const rawEventDateIso =
+    eventDate instanceof Date
+      ? eventDate.toISOString()
+      : typeof eventDate === 'string' && eventDate.trim() && !isNaN(Date.parse(eventDate))
+        ? eventDate.trim()
+        : '';
+  const fallbackLocation = asString(locationDetails, '');
+
   const rawCeremonies = Array.isArray(c.ceremonies) ? c.ceremonies : [];
   const ceremonies =
     rawCeremonies.length > 0
@@ -165,16 +179,20 @@ export function adaptSwargaDewataContent(
             title: asString(item.title, 'Upacara Mabyakala & Mejaya-Jaya'),
             startDateTime: asString(
               item.startDateTime,
-              asString(item.dateTime, '2026-10-18T08:00:00+08:00'),
+              asString(
+                item.dateTime,
+                rawEventDateIso || '2026-10-18T08:00:00+08:00',
+              ),
             ),
             endDateTime: asString(item.endDateTime, ''),
             venue: asString(
               item.venue,
-              'Bale Gede Pemerajan Agung Puri Ubud',
+              fallbackLocation || 'Bale Gede Pemerajan Agung Puri Ubud',
             ),
             address: asString(
               item.address,
-              'Jl. Raya Ubud No. 88, Kecamatan Ubud, Kabupaten Gianyar, Bali',
+              fallbackLocation ||
+                'Jl. Raya Ubud No. 88, Kecamatan Ubud, Kabupaten Gianyar, Bali',
             ),
             mapsUrl: asString(
               item.mapsUrl,
@@ -184,19 +202,23 @@ export function adaptSwargaDewataContent(
       : [
           {
             title: 'Upacara Mabyakala & Mejaya-Jaya',
-            startDateTime: '2026-10-18T08:00:00+08:00',
+            startDateTime: rawEventDateIso || '2026-10-18T08:00:00+08:00',
             endDateTime: '2026-10-18T11:30:00+08:00',
-            venue: 'Bale Gede Pemerajan Agung Puri Ubud',
+            venue: fallbackLocation || 'Bale Gede Pemerajan Agung Puri Ubud',
             address:
+              fallbackLocation ||
               'Jl. Raya Ubud No. 88, Kecamatan Ubud, Kabupaten Gianyar, Bali',
             mapsUrl: 'https://maps.google.com/?q=Puri+Saren+Agung+Ubud+Bali',
           },
           {
             title: 'Resepsi Dharma Suaka Agung',
-            startDateTime: '2026-10-18T17:00:00+08:00',
+            startDateTime: rawEventDateIso || '2026-10-18T17:00:00+08:00',
             endDateTime: '2026-10-18T21:30:00+08:00',
-            venue: 'Wantilan Kencana & Taman Sanga Mandala Puri Ubud',
+            venue:
+              fallbackLocation ||
+              'Wantilan Kencana & Taman Sanga Mandala Puri Ubud',
             address:
+              fallbackLocation ||
               'Jl. Raya Ubud No. 88, Kecamatan Ubud, Kabupaten Gianyar, Bali',
             mapsUrl: 'https://maps.google.com/?q=Puri+Saren+Agung+Ubud+Bali',
           },

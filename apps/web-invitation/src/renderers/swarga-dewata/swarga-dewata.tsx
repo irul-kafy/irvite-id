@@ -102,8 +102,15 @@ export function SwargaDewataRenderer({
       adaptSwargaDewataContent(
         data?.event?.content,
         data?.event?.title,
+        data?.event?.eventDate,
+        data?.event?.locationDetails,
       ),
-    [data?.event?.content, data?.event?.title],
+    [
+      data?.event?.content,
+      data?.event?.title,
+      data?.event?.eventDate,
+      data?.event?.locationDetails,
+    ],
   );
 
   const media = useMemo(
