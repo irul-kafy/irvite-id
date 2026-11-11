@@ -92,7 +92,17 @@ export function ClientPortalView({
   const [publicRecipientLabel, setPublicRecipientLabel] = useState('');
   const [publicBroadcastTone, setPublicBroadcastTone] = useState<PublicBroadcastTone>('formal');
   const [customBroadcastText, setCustomBroadcastText] = useState<string | null>(null);
+  const [wishSearchQuery, setWishSearchQuery] = useState('');
   const [clientOrigin, setClientOrigin] = useState('');
+
+  const filteredWishes = useMemo(() => {
+    if (!wishSearchQuery.trim()) return initialWishes;
+    const q = wishSearchQuery.toLowerCase();
+    return initialWishes.filter(
+      (w) =>
+        w.name.toLowerCase().includes(q) || w.message.toLowerCase().includes(q),
+    );
+  }, [initialWishes, wishSearchQuery]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1362,6 +1372,8 @@ export function ClientPortalView({
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
               marginBottom: '1rem',
               borderBottom: '1px solid #f1f5f9',
               paddingBottom: '0.75rem',
@@ -1392,64 +1404,134 @@ export function ClientPortalView({
                 Untaian doa restu dan ucapan selamat yang dikirimkan oleh tamu undangan.
               </p>
             </div>
+
+            {initialWishes.length > 0 && (
+              <div style={{ position: 'relative', width: '220px' }}>
+                <input
+                  type="text"
+                  placeholder="Cari doa atau nama..."
+                  value={wishSearchQuery}
+                  onChange={(e) => setWishSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.75rem',
+                    fontSize: '0.78rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    outline: 'none',
+                    background: '#f8fafc',
+                  }}
+                />
+              </div>
+            )}
           </div>
 
-          {initialWishes.length > 0 ? (
+          {filteredWishes.length > 0 ? (
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                 gap: '0.875rem',
-                maxHeight: '420px',
+                maxHeight: '440px',
                 overflowY: 'auto',
                 paddingRight: '0.25rem',
               }}
             >
-              {initialWishes.map((w) => (
-                <div
-                  key={w.id}
-                  style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '0.875rem 1rem',
-                    background: '#f8fafc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.375rem',
-                  }}
-                >
+              {filteredWishes.map((w) => {
+                const initial = (w.name || 'T').charAt(0).toUpperCase();
+                return (
                   <div
+                    key={w.id}
                     style={{
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '0.875rem 1rem',
+                      background: '#ffffff',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)',
                       display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
                     }}
                   >
-                    <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>
-                      {w.name}
-                    </strong>
-                    <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                      {new Date(w.createdAt).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            background: '#fef3c7',
+                            border: '1px solid #d97706',
+                            color: '#92400e',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '0.78rem',
+                          }}
+                        >
+                          {initial}
+                        </div>
+                        <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>
+                          {w.name}
+                        </strong>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                        {new Date(w.createdAt).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: '0.8125rem',
+                        lineHeight: 1.55,
+                        color: '#334155',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {w.message}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.35rem', borderTop: '1px dashed #f1f5f9' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            navigator.clipboard.writeText(`"${w.message}" — ${w.name}`);
+                            showToast('Pesan doa berhasil disalin!');
+                          }
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#64748b',
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: '4px',
+                        }}
+                        title="Salin ucapan untuk WhatsApp / Story"
+                      >
+                        <span>📋</span>
+                        <span>Salin Ucapan</span>
+                      </button>
+                    </div>
                   </div>
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: '0.8125rem',
-                      lineHeight: 1.5,
-                      color: '#334155',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    {w.message}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div
@@ -1461,7 +1543,7 @@ export function ClientPortalView({
                 fontStyle: 'italic',
               }}
             >
-              Belum ada ucapan doa yang dikirim oleh tamu undangan.
+              {wishSearchQuery ? 'Tidak ada doa yang cocok dengan pencarian.' : 'Belum ada ucapan doa yang dikirim oleh tamu undangan.'}
             </div>
           )}
         </section>

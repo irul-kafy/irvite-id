@@ -12,6 +12,7 @@ export interface WishesSectionProps {
   title?: string;
   description?: string;
   className?: string;
+  variant?: 'light' | 'dark' | 'auto';
 }
 
 function formatWishDate(dateStr?: string): string {
@@ -26,9 +27,9 @@ function formatWishDate(dateStr?: string): string {
     const diffDay = Math.floor(diffHour / 24);
 
     if (diffMin < 1) return 'Baru saja';
-    if (diffMin < 60) return `${diffMin} menit yang lalu`;
-    if (diffHour < 24) return `${diffHour} jam yang lalu`;
-    if (diffDay < 7) return `${diffDay} hari yang lalu`;
+    if (diffMin < 60) return `${diffMin} mnt lalu`;
+    if (diffHour < 24) return `${diffHour} jam lalu`;
+    if (diffDay < 7) return `${diffDay} hari lalu`;
     return d.toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
@@ -44,9 +45,10 @@ export function WishesSection({
   eventSlug,
   defaultName = '',
   initialWishes = [],
-  title = 'Untaian Doa & Ucapan',
-  description = 'Tuliskan doa tulus dan harapan terbaik Anda untuk mengiringi hari bahagia kami.',
+  title = 'Untaian Doa & Pesan Restu',
+  description = 'Tuliskan doa tulus dan harapan terbaik Anda untuk mengiringi hari bahagia kedua mempelai.',
   className,
+  variant = 'light',
 }: WishesSectionProps) {
   const [items, setItems] = useState<PublicWishItem[]>(initialWishes);
   const [name, setName] = useState(defaultName);
@@ -72,7 +74,7 @@ export function WishesSection({
     const cleanMsg = message.trim();
 
     if (!cleanName || !cleanMsg) {
-      setAlert({ type: 'error', message: 'Mohon isi nama dan ucapan doa Anda.' });
+      setAlert({ type: 'error', message: 'Mohon isi nama dan pesan ucapan Anda.' });
       return;
     }
 
@@ -113,7 +115,7 @@ export function WishesSection({
       setMessage('');
       setAlert({
         type: 'success',
-        message: 'Terima kasih! Doa dan ucapan hangat Anda telah terkirim.',
+        message: 'Terima kasih! Untaian doa restu Anda telah terkirim.',
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Terjadi kesalahan sistem';
@@ -123,12 +125,23 @@ export function WishesSection({
     }
   };
 
+  const themeClass = variant === 'dark' ? styles.dark : styles.light;
+
   return (
-    <section className={`${styles.section} ${className || ''}`} id="wishes">
+    <section className={`${styles.section} ${themeClass} ${className || ''}`} id="wishes">
       <div className={styles.header}>
+        <div className={styles.ornament} aria-hidden="true">
+          <span>✧</span>
+          <span>✦</span>
+          <span>✧</span>
+        </div>
         <span className={styles.eyebrow}>Doa &amp; Restu</span>
         <h2 className={styles.title}>{title}</h2>
         <p className={styles.description}>{description}</p>
+        <div className={styles.counterBadge}>
+          <span>💌</span>
+          <span>{items.length} Doa Restu Masuk</span>
+        </div>
       </div>
 
       <div className={styles.formCard}>
@@ -136,7 +149,7 @@ export function WishesSection({
           <div className={styles.formGroup}>
             <div className={styles.labelRow}>
               <label htmlFor="wish-name" className={styles.label}>
-                Nama Anda
+                Nama Anda / Tamu Kehormatan
               </label>
               <span className={styles.charCount}>{name.length}/120</span>
             </div>
@@ -144,7 +157,7 @@ export function WishesSection({
               id="wish-name"
               type="text"
               className={styles.input}
-              placeholder="Contoh: Budi &amp; Pasangan"
+              placeholder="Contoh: Budi Santoso &amp; Pasangan"
               maxLength={120}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -156,14 +169,14 @@ export function WishesSection({
           <div className={styles.formGroup}>
             <div className={styles.labelRow}>
               <label htmlFor="wish-msg" className={styles.label}>
-                Untaian Doa &amp; Ucapan
+                Untaian Doa &amp; Pesan Restu
               </label>
               <span className={styles.charCount}>{message.length}/500</span>
             </div>
             <textarea
               id="wish-msg"
               className={styles.textarea}
-              placeholder="Tuliskan ucapan selamat dan doa terbaik Anda di sini…"
+              placeholder="Tuliskan ucapan selamat dan doa tulus untuk kedua mempelai..."
               maxLength={500}
               rows={4}
               value={message}
@@ -178,7 +191,7 @@ export function WishesSection({
             className={styles.submitBtn}
             disabled={submitting || !name.trim() || !message.trim()}
           >
-            {submitting ? 'Mengirimkan…' : 'Kirim Doa Restu'}
+            {submitting ? 'Mengirimkan Doa…' : 'Kirim Untaian Doa Restu'}
             <span aria-hidden="true">↗</span>
           </button>
 
@@ -195,6 +208,14 @@ export function WishesSection({
         </form>
       </div>
 
+      <div className={styles.feedHeaderRow}>
+        <h3 className={styles.feedTitle}>
+          <span>📖</span>
+          <span>Buku Doa Tamu</span>
+        </h3>
+        <span className={styles.counterBadge}>{items.length} pesan</span>
+      </div>
+
       <div className={styles.feedList} aria-label="Daftar ucapan dan doa">
         {items.length > 0 ? (
           items.map((item) => {
@@ -202,11 +223,17 @@ export function WishesSection({
             const dateText = item.dateLabel || formatWishDate(item.createdAt);
             return (
               <article key={item.id} className={styles.feedCard}>
-                <div className={styles.feedHeader}>
+                <span className={styles.quoteWatermark} aria-hidden="true">
+                  “
+                </span>
+                <div className={styles.cardHeader}>
                   <div className={styles.avatar}>{initial}</div>
                   <div className={styles.authorInfo}>
                     <strong className={styles.authorName}>{item.name}</strong>
-                    <span className={styles.timeAgo}>{dateText}</span>
+                    <span className={styles.timeAgo}>
+                      <span aria-hidden="true">🕒</span>
+                      {dateText}
+                    </span>
                   </div>
                 </div>
                 <p className={styles.message}>{item.message}</p>
@@ -215,7 +242,13 @@ export function WishesSection({
           })
         ) : (
           <div className={styles.emptyState}>
-            Belum ada ucapan doa. Jadilah yang pertama menitipkan doa restu untuk kedua mempelai.
+            <span className={styles.emptyIcon} aria-hidden="true">
+              🕊️
+            </span>
+            <p className={styles.emptyTitle}>Belum ada untaian doa</p>
+            <p className={styles.emptyDesc}>
+              Jadilah yang pertama menitipkan doa restu dan ucapan selamat untuk mengiringi langkah kedua mempelai.
+            </p>
           </div>
         )}
       </div>

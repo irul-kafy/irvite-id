@@ -182,19 +182,22 @@
 .formLayout,.wishesLayout{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
 .formLayout{align-items:center}
 .formLayout>.heading{margin:0}
-.formCard{display:flex;min-width:0;flex-direction:column;background:#fffbedbf;border:1px solid var(--inv-secondary);padding:35px;border-radius:30px 30px 8px 8px;box-shadow:0 15px 25px #21494918}
-.formCard label{font-size:.82rem;margin:14px 0 7px}
+.formCard{display:flex;min-width:0;flex-direction:column;background:rgba(255,252,242,0.92);backdrop-filter:blur(14px);border:1px solid rgba(113,147,143,0.45);padding:32px 28px;border-radius:24px;box-shadow:0 16px 36px rgba(33,73,73,0.12),0 0 0 1px rgba(255,255,255,0.8) inset}
+.formCard label{font-size:.84rem;font-weight:600;color:var(--inv-primary);margin:14px 0 7px}
 .formCard label:first-child{margin-top:0}
-.formCard input,.formCard select,.formCard textarea{width:100%;min-height:46px;padding:12px;border:1px solid #476c7055;background:#fffbedaa;color:var(--inv-text);font-size:16px}
-.formCard textarea{resize:vertical}
-.formCard button{margin-top:24px}
-.formStatus{font-size:.83rem;margin-top:16px!important}
+.formCard input,.formCard select,.formCard textarea{width:100%;min-height:46px;padding:12px 14px;border:1px solid rgba(71,108,112,0.35);border-radius:12px;background:rgba(255,255,255,0.75);color:var(--inv-text);font-size:15px;outline:none;transition:border-color .2s,box-shadow .2s}
+.formCard input:focus,.formCard textarea:focus{border-color:var(--inv-primary);background:#ffffff;box-shadow:0 0 0 3px rgba(33,73,73,0.15)}
+.formCard textarea{resize:vertical;min-height:95px;line-height:1.6}
+.formCard button{margin-top:22px}
+.formStatus{font-size:.85rem;margin-top:14px!important;padding:8px 12px;border-radius:8px;text-align:center}
 .formStatus:empty{display:none}
-.wishList{max-height:550px;overflow:auto;padding:12px 10px;scrollbar-color:var(--inv-primary) transparent}
-.wishItem{position:relative;padding:25px 10px 30px 30px;border-bottom:1px solid var(--inv-border)}
-.quoteMark{position:absolute;top:5px;left:0;font:3.8rem/1 var(--inv-font-display);color:var(--inv-accent)}
-.wishItem>p{font:1.55rem/1.4 var(--inv-font-display);white-space:pre-wrap}
-.wishItem footer{display:flex;gap:12px;justify-content:space-between;margin-top:20px;font-size:.71rem}
+.wishList{max-height:520px;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:var(--inv-primary) transparent}
+.wishItem{position:relative;padding:18px 20px 18px 22px;border-radius:16px;background:rgba(255,252,242,0.85);backdrop-filter:blur(8px);border:1px solid rgba(113,147,143,0.32);box-shadow:0 4px 16px rgba(33,73,73,0.06);transition:border-color .2s}
+.wishItem:hover{border-color:var(--inv-primary)}
+.quoteMark{position:absolute;top:8px;right:14px;left:auto;font:italic 3.2rem/1 Georgia,serif;color:rgba(113,147,143,0.22);pointer-events:none}
+.wishItem>p{font:0.95rem/1.65 var(--inv-font-body);color:#1e3639;white-space:pre-wrap;margin:4px 0 12px 0;word-break:break-word}
+.wishItem footer{display:flex;gap:10px;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px dashed rgba(113,147,143,0.25);font-size:.8rem;color:#476c70}
+.wishItem footer strong{font-weight:700;color:#163336;font-size:.88rem}
 .giftSection{background:linear-gradient(#355c60b8,#355c60d9),var(--inv-garden) center 78%/cover;color:var(--inv-on-primary);text-align:center}
 .giftGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:28px;max-width:790px;margin:auto;perspective:1000px}
 .bankCard{position:relative;min-width:0;overflow:hidden;text-align:left;padding:32px;border:1px solid var(--inv-secondary);border-radius:var(--inv-radius-md);background:linear-gradient(135deg,#f8f0dd,#d5dfc8);color:var(--inv-text);box-shadow:0 15px 40px #12373533;transform-origin:center top}

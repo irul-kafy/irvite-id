@@ -893,6 +893,10 @@ export function RoyalVelvetRenderer({
               Tuliskan doa tulus dan ucapan selamat penuh berkah untuk mengiringi
               langkah mulia kedua mempelai.
             </p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5C88E]/15 border border-[#E5C88E]/30 text-[#E5C88E] text-xs font-semibold mt-3">
+              <span>💌</span>
+              <span>{wishes.length} Doa Restu Masuk</span>
+            </div>
           </div>
 
           {/* Form Kirim Doa Restu */}
@@ -901,10 +905,14 @@ export function RoyalVelvetRenderer({
             className={`${styles.baroqueCard} mb-8`}
           >
             <div className={styles.formFieldGroup}>
-              <label className={styles.formLabel}>Nama Anda / Tamu Kehormatan</label>
+              <div className="flex justify-between items-baseline mb-1">
+                <label className={styles.formLabel}>Nama Anda / Tamu Kehormatan</label>
+                <span className="text-[10px] text-[#D2C2B0]/80">{formName.length}/120</span>
+              </div>
               <input
                 type="text"
                 className={styles.formControl}
+                maxLength={120}
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Tuliskan nama Anda..."
@@ -913,10 +921,14 @@ export function RoyalVelvetRenderer({
             </div>
 
             <div className={styles.formFieldGroup}>
-              <label className={styles.formLabel}>Untaian Doa &amp; Pesan Restu</label>
+              <div className="flex justify-between items-baseline mb-1">
+                <label className={styles.formLabel}>Untaian Doa &amp; Pesan Restu</label>
+                <span className="text-[10px] text-[#D2C2B0]/80">{formMsg.length}/500</span>
+              </div>
               <textarea
                 className={styles.formControl}
                 rows={3}
+                maxLength={500}
                 value={formMsg}
                 onChange={(e) => setFormMsg(e.target.value)}
                 placeholder="Tuliskan ucapan selamat dan doa tulus untuk kedua mempelai..."
@@ -938,24 +950,32 @@ export function RoyalVelvetRenderer({
 
           {/* Feed Doa Restu */}
           <div className={styles.wishesFeed}>
-            {wishes.map((w, idx) => (
-              <div key={idx} className={styles.wishEntry}>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={styles.wishAvatar}>
-                    <span>{w.name.charAt(0).toUpperCase()}</span>
+            {wishes.length > 0 ? (
+              wishes.map((w, idx) => (
+                <div key={idx} className={styles.wishEntry}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={styles.wishAvatar}>
+                      <span>{w.name.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <strong className="font-serif text-base text-[#F4DFB0] block truncate">
+                        {w.name}
+                      </strong>
+                      <span className="text-[10px] text-[#D2C2B0]">{w.createdAt}</span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <strong className="font-serif text-base text-[#F4DFB0] block truncate">
-                      {w.name}
-                    </strong>
-                    <span className="text-[10px] text-[#D2C2B0]">{w.createdAt}</span>
-                  </div>
+                  <p className="text-xs sm:text-sm text-[#F9F4EC] leading-relaxed pl-11">
+                    {w.message}
+                  </p>
                 </div>
-                <p className="text-xs sm:text-sm text-[#F9F4EC] leading-relaxed pl-11">
-                  {w.message}
-                </p>
+              ))
+            ) : (
+              <div className="text-center py-10 px-4 rounded-xl border border-dashed border-[#E5C88E]/30 bg-[#14080B]/60 text-[#D2C2B0]">
+                <span className="text-3xl block mb-2" aria-hidden="true">🕊️</span>
+                <strong className="block text-sm text-[#F4DFB0] mb-1">Belum Ada Untaian Doa</strong>
+                <p className="text-xs max-w-xs mx-auto">Jadilah yang pertama menitipkan doa dan ucapan restu bagi kedua mempelai.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>

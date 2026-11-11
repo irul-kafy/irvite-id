@@ -11,3 +11,4 @@ export class CreateWishDto {
   @MaxLength(500, { message: 'Pesan ucapan maksimal 500 karakter' })
   message: string;
 }
+

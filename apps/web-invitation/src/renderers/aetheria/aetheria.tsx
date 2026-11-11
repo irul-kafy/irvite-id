@@ -78,6 +78,7 @@ export default function AetheriaRenderer({
       initialWishes={data.wishes?.items}
       title={data.wishes?.title}
       description={data.wishes?.description}
+      variant="dark"
     />
   );
 
