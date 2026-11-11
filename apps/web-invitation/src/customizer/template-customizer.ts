@@ -219,7 +219,6 @@ const TEMPLATE_PHOTO_SLOT_SCHEMAS: Record<
     },
     DEFAULT_SLOT_CATALOG.bride,
     DEFAULT_SLOT_CATALOG.groom,
-    DEFAULT_SLOT_CATALOG.story,
     {
       ...DEFAULT_SLOT_CATALOG.gallery,
       title: 'Galeri Momen Bahagia',

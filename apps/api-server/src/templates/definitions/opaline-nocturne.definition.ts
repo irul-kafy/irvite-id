@@ -214,14 +214,6 @@ export const OPALINE_NOCTURNE_DEFINITION: TemplateDefinition = {
       maxSizeBytes: 5 * 1024 * 1024,
     },
     {
-      key: 'story',
-      label: 'Foto Kisah',
-      mediaType: 'PHOTO',
-      multiple: false,
-      maxItems: 1,
-      maxSizeBytes: 5 * 1024 * 1024,
-    },
-    {
       key: 'gallery',
       label: 'Galeri Foto',
       mediaType: 'PHOTO',

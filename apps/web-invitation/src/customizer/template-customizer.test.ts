@@ -185,8 +185,8 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
     const opalineSlots = getTemplatePhotoSlotsConfig('OPALINE_NOCTURNE');
     assert.deepEqual(
       opalineSlots.map((s) => s.slot),
-      ['hero', 'bride', 'groom', 'story', 'gallery', 'closing'],
-      'Opaline Nocturne must have all 6 photo slots',
+      ['hero', 'bride', 'groom', 'gallery', 'closing'],
+      'Opaline Nocturne must have exactly 5 photo slots (no story photo slot)',
     );
 
     // Verify slugs and aliases with hyphens map accurately
@@ -204,6 +204,11 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
       getTemplatePhotoSlotsConfig('sekar-kedaton').map((s) => s.slot),
       ['hero', 'bride', 'groom', 'gallery'],
       'Sekar Kedaton slug must resolve to exactly 4 photo slots',
+    );
+    assert.deepEqual(
+      getTemplatePhotoSlotsConfig('opaline-nocturne').map((s) => s.slot),
+      ['hero', 'bride', 'groom', 'gallery', 'closing'],
+      'Opaline Nocturne slug must resolve to exactly 5 photo slots',
     );
     assert.deepEqual(
       getTemplatePhotoSlotsConfig('enchanted-woodland').map((s) => s.slot),

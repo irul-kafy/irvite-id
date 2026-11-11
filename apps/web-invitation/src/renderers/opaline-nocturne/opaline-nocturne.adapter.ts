@@ -145,12 +145,11 @@ export function adaptOpalineNocturneData(
   const mediaBySlot = payload.mediaBySlot || {};
   const heroDesc: PublicMediaDescriptor | undefined = mediaBySlot['hero']?.[0] || payload.media?.find((m) => m.slot === 'hero' || m.slot === 'cover');
   const closingDesc: PublicMediaDescriptor | undefined = mediaBySlot['closing']?.[0] || payload.media?.find((m) => m.slot === 'closing');
-  const storyDesc: PublicMediaDescriptor | undefined = mediaBySlot['story']?.[0] || payload.media?.find((m) => m.slot === 'story');
   const galleryDescList: PublicMediaDescriptor[] = mediaBySlot['gallery'] || payload.media?.filter((m) => m.slot === 'gallery') || [];
 
   const heroUrl = resolveMediaUrl(heroDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`;
   const closingUrl = resolveMediaUrl(closingDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/closing.webp`;
-  const storyUrl = resolveMediaUrl(storyDesc?.src, isPreview) || `${DEFAULT_ASSET_BASE}/images/enchanted-forest.webp`;
+  const storyUrl = `${DEFAULT_ASSET_BASE}/images/enchanted-forest.webp`;
 
   const brideDesc: PublicMediaDescriptor | undefined =
     mediaBySlot['bride']?.[0] ||

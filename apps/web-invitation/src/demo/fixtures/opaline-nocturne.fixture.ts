@@ -92,13 +92,6 @@ export const OPALINE_NOCTURNE_DEMO_FIXTURE: RendererData = {
       src: '/templates/opaline-nocturne/images/closing.webp',
     },
     {
-      id: 'demo-story',
-      type: 'PHOTO',
-      slot: 'story',
-      order: 0,
-      src: '/templates/opaline-nocturne/images/enchanted-forest.webp',
-    },
-    {
       id: 'demo-gallery-0',
       type: 'PHOTO',
       slot: 'gallery',
@@ -144,15 +137,6 @@ export const OPALINE_NOCTURNE_DEMO_FIXTURE: RendererData = {
         slot: 'closing',
         order: 0,
         src: '/templates/opaline-nocturne/images/closing.webp',
-      },
-    ],
-    story: [
-      {
-        id: 'demo-story',
-        type: 'PHOTO',
-        slot: 'story',
-        order: 0,
-        src: '/templates/opaline-nocturne/images/enchanted-forest.webp',
       },
     ],
     gallery: [
