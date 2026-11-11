@@ -12,7 +12,7 @@ export interface WishesSectionProps {
   title?: string;
   description?: string;
   className?: string;
-  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'auto';
+  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'ranah-cinta' | 'sekar-kedaton' | 'auto';
 }
 
 function formatWishDate(dateStr?: string): string {
@@ -132,6 +132,10 @@ export function WishesSection({
     themeClass = styles.balinese;
   } else if (variant === 'aetheria') {
     themeClass = styles.aetheria;
+  } else if (variant === 'ranah-cinta') {
+    themeClass = styles.ranahCinta;
+  } else if (variant === 'sekar-kedaton') {
+    themeClass = styles.sekarKedaton;
   }
 
   return (

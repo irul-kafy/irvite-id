@@ -450,6 +450,7 @@ export default function SekarKedatonRenderer({
             initialWishes={data.wishes?.items}
             title={data.wishes?.title}
             description={data.wishes?.description}
+            variant="sekar-kedaton"
           />
 
           <section className={`${s.section} ${s.closing}`} data-motion>

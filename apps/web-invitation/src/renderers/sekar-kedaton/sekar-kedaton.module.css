@@ -1252,6 +1252,92 @@
   width: 100%;
 }
 
+.rsvpCardSlot :global(.card) {
+  background: rgba(251, 242, 225, 0.96) !important;
+  border: 1px solid rgba(166, 122, 69, 0.35) !important;
+  color: #2b4238 !important;
+  box-shadow: 0 12px 32px rgba(43, 66, 56, 0.1) !important;
+  border-radius: 14px !important;
+}
+
+.rsvpCardSlot :global(.card) :global(h3) {
+  color: #183e37 !important;
+  font-family: 'Kedaton', Georgia, serif !important;
+}
+
+.rsvpCardSlot :global(.choiceText) {
+  background: rgba(245, 235, 215, 0.75) !important;
+  border-color: rgba(166, 122, 69, 0.28) !important;
+  color: #2b4238 !important;
+  transition: all 0.2s ease !important;
+}
+
+.rsvpCardSlot :global(.choice:hover .choiceText) {
+  background: rgba(240, 228, 205, 0.95) !important;
+  border-color: rgba(166, 122, 69, 0.45) !important;
+}
+
+.rsvpCardSlot :global(.radio:checked + .choiceText) {
+  background: rgba(24, 62, 55, 0.12) !important;
+  border-color: #183e37 !important;
+  color: #183e37 !important;
+  box-shadow: inset 0 0 0 1px #183e37 !important;
+}
+
+.rsvpCardSlot :global(.select) {
+  background: rgba(245, 235, 215, 0.85) !important;
+  border-color: rgba(166, 122, 69, 0.3) !important;
+  color: #2b4238 !important;
+}
+
+.rsvpCardSlot :global(.submit) {
+  background: linear-gradient(135deg, #183e37 0%, #28574b 100%) !important;
+  color: #f1e5ce !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 6px 20px rgba(24, 62, 55, 0.25) !important;
+}
+
+.rsvpCardSlot :global(.submit:hover:not(:disabled)) {
+  opacity: 0.95 !important;
+  transform: translateY(-1px) !important;
+}
+
+.qrCardSlot :global(.qr-container) {
+  background: rgba(251, 242, 225, 0.96) !important;
+  border: 1px solid rgba(166, 122, 69, 0.35) !important;
+  color: #2b4238 !important;
+  box-shadow: 0 12px 32px rgba(43, 66, 56, 0.1) !important;
+  border-radius: 14px !important;
+}
+
+.qrCardSlot :global(.qr-badge) {
+  background: rgba(158, 96, 61, 0.12) !important;
+  color: #9e603d !important;
+  border: 1px solid rgba(158, 96, 61, 0.3) !important;
+}
+
+.qrCardSlot :global(.qr-heading) {
+  color: #183e37 !important;
+  font-family: 'Kedaton', Georgia, serif !important;
+}
+
+.qrCardSlot :global(.qr-guest-name) {
+  color: #2b4238 !important;
+}
+
+.qrCardSlot :global(.qr-box) {
+  background: #ffffff !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(166, 122, 69, 0.3) !important;
+  box-shadow: 0 6px 18px rgba(43, 66, 56, 0.1) !important;
+}
+
+.qrCardSlot :global(.qr-instruction) {
+  color: #67715f !important;
+}
+
 .hostRsvp {
   background: #fbf2e1;
   border: 1px solid rgba(166, 122, 69, 0.25);

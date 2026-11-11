@@ -12,27 +12,27 @@
   position: relative;
 }
 
-/* Light Theme Variables (Default) */
+/* Light Theme Variables (Luxury Warm Champagne & Ivory) */
 .light {
-  --w-bg: rgba(255, 255, 255, 0.92);
-  --w-card-bg: #ffffff;
-  --w-card-border: rgba(212, 175, 55, 0.28);
-  --w-card-shadow: 0 12px 32px -4px rgba(180, 150, 110, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
-  --w-text-title: #1a202c;
-  --w-text-body: #4a5568;
-  --w-text-muted: #8c97a5;
+  --w-bg: rgba(253, 250, 245, 0.95);
+  --w-card-bg: rgba(254, 252, 248, 0.98);
+  --w-card-border: rgba(200, 165, 105, 0.36);
+  --w-card-shadow: 0 16px 40px -4px rgba(150, 120, 80, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.95) inset;
+  --w-text-title: #1f1b16;
+  --w-text-body: #4b4238;
+  --w-text-muted: #8d8376;
   --w-eyebrow: #b8860b;
-  --w-input-bg: #faf8f5;
-  --w-input-border: rgba(200, 175, 130, 0.35);
-  --w-input-text: #1a202c;
+  --w-input-bg: #f8f5ee;
+  --w-input-border: rgba(200, 165, 105, 0.38);
+  --w-input-text: #1f1b16;
   --w-input-focus: #b8860b;
-  --w-input-glow: rgba(184, 134, 11, 0.16);
-  --w-btn-bg: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
-  --w-btn-text: #f7fafc;
-  --w-btn-shadow: 0 8px 20px -3px rgba(26, 32, 44, 0.3);
-  --w-feed-bg: #ffffff;
-  --w-feed-border: rgba(212, 175, 55, 0.22);
-  --w-feed-shadow: 0 4px 16px -2px rgba(160, 130, 90, 0.08);
+  --w-input-glow: rgba(184, 134, 11, 0.2);
+  --w-btn-bg: linear-gradient(135deg, #2e261e 0%, #1a1612 100%);
+  --w-btn-text: #faf7f2;
+  --w-btn-shadow: 0 8px 22px -3px rgba(26, 22, 18, 0.35);
+  --w-feed-bg: rgba(254, 252, 248, 0.96);
+  --w-feed-border: rgba(200, 165, 105, 0.28);
+  --w-feed-shadow: 0 6px 18px -2px rgba(150, 120, 80, 0.08);
   --w-avatar-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   --w-avatar-border: #d97706;
   --w-avatar-text: #78350f;
@@ -134,6 +134,68 @@
   --w-badge-border: rgba(239, 191, 163, 0.35);
   --w-quote-watermark: rgba(239, 191, 163, 0.12);
   --w-scrollbar: rgba(239, 191, 163, 0.35);
+}
+
+/* Ranah Cinta (Minang Palace) Theme Variables - Deep Royal Emerald Velvet & Gold Filigree */
+.ranahCinta {
+  --w-bg: rgba(8, 26, 20, 0.95);
+  --w-card-bg: rgba(13, 36, 29, 0.92);
+  --w-card-border: rgba(212, 175, 55, 0.45);
+  --w-card-shadow: 0 18px 48px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.18) inset;
+  --w-text-title: #fbf6ee;
+  --w-text-body: #d4e3dc;
+  --w-text-muted: #8ca89d;
+  --w-eyebrow: #f7e6a7;
+  --w-input-bg: rgba(8, 26, 20, 0.78);
+  --w-input-border: rgba(212, 175, 55, 0.38);
+  --w-input-text: #ffffff;
+  --w-input-focus: #f7e6a7;
+  --w-input-glow: rgba(212, 175, 55, 0.28);
+  --w-btn-bg: linear-gradient(135deg, #f7e6a7 0%, #d4af37 50%, #997836 100%);
+  --w-btn-text: #081a14;
+  --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.38);
+  --w-feed-bg: rgba(16, 46, 36, 0.88);
+  --w-feed-border: rgba(212, 175, 55, 0.32);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.45);
+  --w-avatar-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.4) 0%, rgba(92, 24, 34, 0.5) 100%);
+  --w-avatar-border: #d4af37;
+  --w-avatar-text: #fbf6ee;
+  --w-badge-bg: rgba(212, 175, 55, 0.15);
+  --w-badge-text: #f7e6a7;
+  --w-badge-border: rgba(212, 175, 55, 0.38);
+  --w-quote-watermark: rgba(212, 175, 55, 0.12);
+  --w-scrollbar: rgba(212, 175, 55, 0.35);
+}
+
+/* Sekar Kedaton (Javanese Royal Kraton) Theme Variables - Warm Daluwang Parchment, Antique Copper & Royal Jade */
+.sekarKedaton {
+  --w-bg: rgba(245, 237, 222, 0.95);
+  --w-card-bg: rgba(250, 244, 230, 0.96);
+  --w-card-border: rgba(158, 96, 61, 0.38);
+  --w-card-shadow: 0 14px 38px -4px rgba(43, 66, 56, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  --w-text-title: #183e37;
+  --w-text-body: #2b4238;
+  --w-text-muted: #67715f;
+  --w-eyebrow: #9e603d;
+  --w-input-bg: #f5eedf;
+  --w-input-border: rgba(158, 96, 61, 0.32);
+  --w-input-text: #183e37;
+  --w-input-focus: #183e37;
+  --w-input-glow: rgba(24, 62, 55, 0.2);
+  --w-btn-bg: linear-gradient(135deg, #183e37 0%, #28574b 100%);
+  --w-btn-text: #f1e5ce;
+  --w-btn-shadow: 0 8px 22px -3px rgba(24, 62, 55, 0.32);
+  --w-feed-bg: rgba(253, 249, 238, 0.94);
+  --w-feed-border: rgba(158, 96, 61, 0.28);
+  --w-feed-shadow: 0 6px 18px -2px rgba(43, 66, 56, 0.08);
+  --w-avatar-bg: linear-gradient(135deg, #e8ddc7 0%, #d8caa9 100%);
+  --w-avatar-border: #9e603d;
+  --w-avatar-text: #183e37;
+  --w-badge-bg: rgba(158, 96, 61, 0.12);
+  --w-badge-text: #9e603d;
+  --w-badge-border: rgba(158, 96, 61, 0.3);
+  --w-quote-watermark: rgba(158, 96, 61, 0.12);
+  --w-scrollbar: rgba(158, 96, 61, 0.3);
 }
 
 /* Header & Typography */
@@ -247,8 +309,14 @@
 
 .dark .charCount,
 .balinese .charCount,
-.aetheria .charCount {
+.aetheria .charCount,
+.ranahCinta .charCount {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.sekarKedaton .charCount {
+  background: rgba(24, 62, 55, 0.08);
+  color: #183e37;
 }
 
 .input,
@@ -338,7 +406,9 @@
 
 .dark .alertSuccess,
 .balinese .alertSuccess,
-.aetheria .alertSuccess {
+.aetheria .alertSuccess,
+.ranahCinta .alertSuccess,
+.sekarKedaton .alertSuccess {
   background: rgba(16, 185, 129, 0.2);
   color: #6ee7b7;
   border: 1px solid rgba(16, 185, 129, 0.4);
@@ -352,7 +422,9 @@
 
 .dark .alertError,
 .balinese .alertError,
-.aetheria .alertError {
+.aetheria .alertError,
+.ranahCinta .alertError,
+.sekarKedaton .alertError {
   background: rgba(239, 68, 68, 0.2);
   color: #fca5a5;
   border: 1px solid rgba(239, 68, 68, 0.4);

@@ -1758,6 +1758,98 @@
   width: 100%;
 }
 
+.rsvpSectionSlot :global(.card) {
+  background: rgba(22, 12, 10, 0.92) !important;
+  border: 1px solid rgba(229, 184, 75, 0.4) !important;
+  color: #fdf8ea !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 0 30px rgba(229, 184, 75, 0.05) !important;
+  border-radius: 1.25rem !important;
+}
+
+.rsvpSectionSlot :global(.card) :global(h3) {
+  color: #f4dfb0 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+}
+
+.rsvpSectionSlot :global(.choiceText) {
+  background: rgba(14, 8, 7, 0.75) !important;
+  border-color: rgba(229, 184, 75, 0.3) !important;
+  color: #ecd9bc !important;
+  transition: all 0.2s ease !important;
+}
+
+.rsvpSectionSlot :global(.choice:hover .choiceText) {
+  background: rgba(26, 14, 12, 0.9) !important;
+  border-color: rgba(229, 184, 75, 0.5) !important;
+}
+
+.rsvpSectionSlot :global(.radio:checked + .choiceText) {
+  background: rgba(229, 184, 75, 0.2) !important;
+  border-color: #e5b84b !important;
+  color: #fdf8ea !important;
+  box-shadow: inset 0 0 0 1px #e5b84b !important;
+}
+
+.rsvpSectionSlot :global(.select) {
+  background: rgba(14, 8, 7, 0.85) !important;
+  border-color: rgba(229, 184, 75, 0.35) !important;
+  color: #fdf8ea !important;
+}
+
+.rsvpSectionSlot :global(.submit) {
+  background: linear-gradient(135deg, #f4dfb0 0%, #e5b84b 50%, #b8860b 100%) !important;
+  color: #180d05 !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 24px -2px rgba(229, 184, 75, 0.35) !important;
+}
+
+.rsvpSectionSlot :global(.submit:hover:not(:disabled)) {
+  opacity: 0.95 !important;
+  transform: translateY(-1px) !important;
+}
+
+.rsvpSectionSlot :global(.submit:disabled) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.rsvpSectionSlot :global(.qr-container) {
+  background: rgba(22, 12, 10, 0.92) !important;
+  border: 1px solid rgba(229, 184, 75, 0.4) !important;
+  color: #fdf8ea !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 0 30px rgba(229, 184, 75, 0.05) !important;
+  border-radius: 1.25rem !important;
+}
+
+.rsvpSectionSlot :global(.qr-badge) {
+  background: rgba(229, 184, 75, 0.16) !important;
+  color: #e5b84b !important;
+  border: 1px solid rgba(229, 184, 75, 0.35) !important;
+}
+
+.rsvpSectionSlot :global(.qr-heading) {
+  color: #f4dfb0 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+}
+
+.rsvpSectionSlot :global(.qr-guest-name) {
+  color: #ecd9bc !important;
+}
+
+.rsvpSectionSlot :global(.qr-box) {
+  background: #ffffff !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(229, 184, 75, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.rsvpSectionSlot :global(.qr-instruction) {
+  color: #b09e88 !important;
+}
+
 /* ============================================================================
    SECTION 08: CLOSING MATUR SUKSMA & OM SHANTI
    ============================================================================ */

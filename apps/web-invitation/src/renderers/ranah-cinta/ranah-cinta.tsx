@@ -71,6 +71,7 @@ export default function RanahCintaRenderer({
       initialWishes={data.wishes?.items}
       title={data.wishes?.title}
       description={data.wishes?.description}
+      variant="ranah-cinta"
     />
   );
 

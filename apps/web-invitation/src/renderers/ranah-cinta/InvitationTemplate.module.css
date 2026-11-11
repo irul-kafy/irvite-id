@@ -1343,6 +1343,99 @@
   width: 100%;
 }
 
+.rsvpCardSlot :global(.card) {
+  background: rgba(10, 30, 24, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.42) !important;
+  color: #fbf6ee !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(212, 175, 55, 0.04) !important;
+  border-radius: 14px !important;
+}
+
+.rsvpCardSlot :global(.card) :global(h3) {
+  color: #f7e6a7 !important;
+  font-family: var(--serif) !important;
+  font-size: 1.25rem !important;
+}
+
+.rsvpCardSlot :global(.choiceText) {
+  background: rgba(8, 24, 19, 0.75) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+  color: #d4e3dc !important;
+  transition: all 0.2s ease !important;
+}
+
+.rsvpCardSlot :global(.choice:hover .choiceText) {
+  background: rgba(16, 46, 36, 0.9) !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+.rsvpCardSlot :global(.radio:checked + .choiceText) {
+  background: rgba(212, 175, 55, 0.18) !important;
+  border-color: #d4af37 !important;
+  color: #f7e6a7 !important;
+  box-shadow: inset 0 0 0 1px #d4af37 !important;
+}
+
+.rsvpCardSlot :global(.select) {
+  background: rgba(8, 24, 19, 0.85) !important;
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  color: #fbf6ee !important;
+}
+
+.rsvpCardSlot :global(.submit) {
+  background: linear-gradient(135deg, #f7e6a7 0%, #d4af37 50%, #997836 100%) !important;
+  color: #081a14 !important;
+  border: none !important;
+  font-weight: 700 !important;
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3) !important;
+}
+
+.rsvpCardSlot :global(.submit:hover:not(:disabled)) {
+  opacity: 0.95 !important;
+  transform: translateY(-1px) !important;
+}
+
+.rsvpCardSlot :global(.submit:disabled) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.qrCardSlot :global(.qr-container) {
+  background: rgba(10, 30, 24, 0.92) !important;
+  border: 1px solid rgba(212, 175, 55, 0.42) !important;
+  color: #fbf6ee !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(212, 175, 55, 0.04) !important;
+  border-radius: 14px !important;
+}
+
+.qrCardSlot :global(.qr-badge) {
+  background: rgba(212, 175, 55, 0.15) !important;
+  color: #f7e6a7 !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+}
+
+.qrCardSlot :global(.qr-heading) {
+  color: #f7e6a7 !important;
+  font-family: var(--serif) !important;
+}
+
+.qrCardSlot :global(.qr-guest-name) {
+  color: #d4e3dc !important;
+}
+
+.qrCardSlot :global(.qr-box) {
+  background: #ffffff !important;
+  padding: 12px !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(212, 175, 55, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.qrCardSlot :global(.qr-instruction) {
+  color: #8ca89d !important;
+}
+
 .ticketCopy h3 {
   font: 32px/1.3 var(--serif);
   margin: 12px 0 8px;
