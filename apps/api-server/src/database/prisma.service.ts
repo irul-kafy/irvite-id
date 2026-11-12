@@ -29,6 +29,24 @@ export class PrismaService
     } catch {
       // Column may already exist (ER_DUP_FIELDNAME) or user has restricted DDL; fail open safely
     }
+
+    try {
+      await this.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS \`wishes\` (
+          \`id\` VARCHAR(191) NOT NULL,
+          \`event_id\` VARCHAR(191) NOT NULL,
+          \`name\` VARCHAR(120) NOT NULL,
+          \`message\` VARCHAR(500) NOT NULL,
+          \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          INDEX \`wishes_event_id_idx\`(\`event_id\`),
+          INDEX \`wishes_event_id_created_at_idx\`(\`event_id\`, \`created_at\`),
+          PRIMARY KEY (\`id\`)
+        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+      `);
+      this.logger.log('Schema compatibility: ensured wishes table.');
+    } catch {
+      // Table may already exist or user has restricted DDL; fail open safely
+    }
   }
 
   async onModuleDestroy() {
