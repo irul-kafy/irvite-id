@@ -8,6 +8,8 @@ import {
   Query,
   Body,
   Header,
+  HttpException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { Throttle, seconds } from '@nestjs/throttler';
 import { Public } from '../auth/decorators/public.decorator';
@@ -32,7 +34,21 @@ export class ClientPortalController {
     @Param('eventId') eventId: string,
     @Query('key') key?: string,
   ) {
-    return this.clientPortalService.getPortalData(eventId, key);
+    try {
+      return await this.clientPortalService.getPortalData(eventId, key);
+    } catch (err: unknown) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      throw new InternalServerErrorException({
+        statusCode: 500,
+        message: 'Portal processing error: ' + msg,
+        details: msg,
+        stack,
+      });
+    }
   }
 
   @Public()
