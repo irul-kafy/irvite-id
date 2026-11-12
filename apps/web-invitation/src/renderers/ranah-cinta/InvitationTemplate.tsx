@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { InvitationTemplateProps, ImageAsset } from './types';
+import { AddToCalendarButton } from '../../components/calendar';
 import s from './InvitationTemplate.module.css';
 
 function safeUrl(src?: string) {
@@ -658,17 +659,30 @@ export default function InvitationTemplate({
                   </p>
                   <h4 className={s.eventVenueTitle}>{evt.venue}</h4>
                   <p className={s.eventVenueAddress}>{evt.address}</p>
-                  {evt.mapsUrl && (
-                    <a
-                      href={evt.mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={s.primaryBtn}
-                      style={{ marginTop: 18 }}
-                    >
-                      Buka Google Maps &rarr;
-                    </a>
-                  )}
+                  <div className={s.eventActions}>
+                    {evt.mapsUrl && (
+                      <a
+                        href={evt.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={s.primaryBtn}
+                      >
+                        Buka Google Maps &rarr;
+                      </a>
+                    )}
+                    <AddToCalendarButton
+                      event={{
+                        title: `${evt.title} - ${data.couple.groom.shortName} & ${data.couple.bride.shortName}`,
+                        startDateTime: `${evt.date}T${evt.startTime}`,
+                        endDateTime: evt.endTime ? `${evt.date}T${evt.endTime}` : undefined,
+                        venue: evt.venue,
+                        address: evt.address,
+                        description: `Baralek Gadang & Pernikahan ${data.couple.groom.name} & ${data.couple.bride.name}. Kehadiran Anda merupakan kehormatan istimewa bagi kami.`,
+                        timeZone: data.event.timeZone,
+                      }}
+                      theme="ranah-cinta"
+                    />
+                  </div>
                 </article>
               ))}
             </div>

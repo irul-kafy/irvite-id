@@ -1,0 +1,297 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.triggerBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  outline: none;
+  box-sizing: border-box;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.triggerBtn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.caret {
+  font-size: 0.75rem;
+  transition: transform 0.2s ease;
+  opacity: 0.75;
+}
+
+.caretOpen {
+  transform: rotate(180deg);
+}
+
+.calendarIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* POPOVER DROPDOWN MENU */
+.dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  z-index: 60;
+  min-width: 210px;
+  padding: 0.4rem;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dropdownOpen {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.menuItem:hover {
+  transform: translateX(2px);
+}
+
+.menuItemIcon {
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* =========================================================================
+   THEME VARIANTS
+   ========================================================================= */
+
+/* 1. ROYAL VELVET (Burgundy & Gold) */
+.themeRoyalVelvet .triggerBtn {
+  background: linear-gradient(135deg, rgba(229, 200, 142, 0.15), rgba(244, 223, 176, 0.08));
+  color: #f4dfb0;
+  border: 1px solid rgba(229, 200, 142, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.themeRoyalVelvet .triggerBtn:hover {
+  background: linear-gradient(135deg, #e5c88e, #d4a753);
+  color: #1a080c;
+  border-color: #f4dfb0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(229, 200, 142, 0.3);
+}
+.themeRoyalVelvet .dropdown {
+  background: rgba(22, 9, 13, 0.95);
+  border: 1px solid rgba(229, 200, 142, 0.4);
+}
+.themeRoyalVelvet .menuItem {
+  color: #f4dfb0;
+}
+.themeRoyalVelvet .menuItem:hover {
+  background: rgba(229, 200, 142, 0.18);
+  color: #fff;
+}
+
+/* 2. SEKAR KEDATON (Jade & Copper) */
+.themeSekarKedaton .triggerBtn {
+  background: rgba(244, 234, 217, 0.9);
+  color: #183e37;
+  border: 1px solid rgba(158, 96, 61, 0.45);
+  box-shadow: 0 4px 14px rgba(24, 62, 55, 0.12);
+}
+.themeSekarKedaton .triggerBtn:hover {
+  background: #183e37;
+  color: #f4e4c8;
+  border-color: #9e603d;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(24, 62, 55, 0.25);
+}
+.themeSekarKedaton .dropdown {
+  background: #f7ede0;
+  border: 1px solid rgba(158, 96, 61, 0.45);
+}
+.themeSekarKedaton .menuItem {
+  color: #183e37;
+}
+.themeSekarKedaton .menuItem:hover {
+  background: rgba(24, 62, 55, 0.1);
+  color: #183e37;
+}
+
+/* 3. SWARGA DEWATA (Prada Balinese Gold & Damask) */
+.themeSwargaDewata .triggerBtn {
+  background: linear-gradient(135deg, rgba(243, 207, 104, 0.15), rgba(212, 155, 42, 0.08));
+  color: #f9e29f;
+  border: 1px solid rgba(229, 184, 75, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.themeSwargaDewata .triggerBtn:hover {
+  background: linear-gradient(135deg, #f3cf68, #d49b2a);
+  color: #160c0a;
+  border-color: #f9e29f;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(229, 184, 75, 0.35);
+}
+.themeSwargaDewata .dropdown {
+  background: rgba(24, 12, 11, 0.96);
+  border: 1px solid rgba(229, 184, 75, 0.45);
+}
+.themeSwargaDewata .menuItem {
+  color: #f9e29f;
+}
+.themeSwargaDewata .menuItem:hover {
+  background: rgba(229, 184, 75, 0.18);
+  color: #fff;
+}
+
+/* 4. RANAH CINTA (Minang Red & Gold) */
+.themeRanahCinta .triggerBtn {
+  background: linear-gradient(135deg, rgba(217, 163, 62, 0.15), rgba(166, 44, 43, 0.12));
+  color: #f5d68f;
+  border: 1px solid rgba(217, 163, 62, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.themeRanahCinta .triggerBtn:hover {
+  background: linear-gradient(135deg, #d9a33e, #b88628);
+  color: #1a0a0b;
+  border-color: #f5d68f;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(217, 163, 62, 0.35);
+}
+.themeRanahCinta .dropdown {
+  background: rgba(26, 10, 11, 0.95);
+  border: 1px solid rgba(217, 163, 62, 0.4);
+}
+.themeRanahCinta .menuItem {
+  color: #f5d68f;
+}
+.themeRanahCinta .menuItem:hover {
+  background: rgba(217, 163, 62, 0.18);
+  color: #fff;
+}
+
+/* 5. OPALINE NOCTURNE (Emerald & Botanical Pine) */
+.themeOpalineNocturne .triggerBtn {
+  background: rgba(18, 43, 40, 0.85);
+  color: #cbe3db;
+  border: 1px solid rgba(138, 186, 172, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.themeOpalineNocturne .triggerBtn:hover {
+  background: rgba(138, 186, 172, 0.22);
+  color: #fff;
+  border-color: #a8d5c7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(18, 43, 40, 0.5);
+}
+.themeOpalineNocturne .dropdown {
+  background: rgba(14, 34, 32, 0.95);
+  border: 1px solid rgba(138, 186, 172, 0.35);
+}
+.themeOpalineNocturne .menuItem {
+  color: #cbe3db;
+}
+.themeOpalineNocturne .menuItem:hover {
+  background: rgba(138, 186, 172, 0.18);
+  color: #fff;
+}
+
+/* 6. AETHERIA (Ethereal Cosmic Peach & Violet) */
+.themeAetheria .triggerBtn {
+  background: rgba(239, 191, 163, 0.12);
+  color: #f4e4d8;
+  border: 1px solid rgba(239, 191, 163, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.themeAetheria .triggerBtn:hover {
+  background: rgba(239, 191, 163, 0.25);
+  color: #ffffff;
+  border-color: #efbfa3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(239, 191, 163, 0.25);
+}
+.themeAetheria .dropdown {
+  background: rgba(38, 24, 46, 0.96);
+  border: 1px solid rgba(239, 191, 163, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+.themeAetheria .menuItem {
+  color: #f4e4d8;
+}
+.themeAetheria .menuItem:hover {
+  background: rgba(239, 191, 163, 0.2);
+  color: #ffffff;
+}
+
+/* 7. DEFAULT / FALLBACK */
+.themeDefault .triggerBtn {
+  background: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+.themeDefault .triggerBtn:hover {
+  background: #e5e7eb;
+  color: #111827;
+  transform: translateY(-2px);
+}
+.themeDefault .dropdown {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+.themeDefault .menuItem {
+  color: #374151;
+}
+.themeDefault .menuItem:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+@media (max-width: 640px) {
+  .triggerBtn {
+    font-size: 0.76rem;
+    padding: 0.55rem 0.95rem;
+  }
+}

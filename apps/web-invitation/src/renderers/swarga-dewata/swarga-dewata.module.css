@@ -1355,6 +1355,10 @@
 
 .ceremonyActions {
   margin: 1.15rem 0 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: center;
 }
 
 .btnCeremonyMaps {

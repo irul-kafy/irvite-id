@@ -5,6 +5,7 @@ import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
+import { AddToCalendarButton } from '../../components/calendar';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
@@ -353,11 +354,26 @@ export default function SekarKedatonRenderer({
                     <div className={s.rule} />
                     <h4>{event.venue}</h4>
                     <p>{event.address}</p>
-                    {webLink(event.mapsUrl) && (
-                      <a className={s.outlineButton} href={webLink(event.mapsUrl)} target="_blank" rel="noreferrer">
-                        Buka Google Maps <span>↗</span>
-                      </a>
-                    )}
+                    <div className={s.eventActions}>
+                      {webLink(event.mapsUrl) && (
+                        <a className={s.outlineButton} href={webLink(event.mapsUrl)} target="_blank" rel="noreferrer">
+                          Buka Google Maps <span>↗</span>
+                        </a>
+                      )}
+                      <AddToCalendarButton
+                        event={{
+                          title: `${event.title} - ${nameOne} & ${nameTwo}`,
+                          startDateTime: event.startDateTime,
+                          endDateTime: event.endDateTime,
+                          venue: event.venue,
+                          address: event.address,
+                          description: `Pernikahan ${nameOne} & ${nameTwo}`,
+                          url: canonicalUrl || undefined,
+                          timeZone: timezone,
+                        }}
+                        theme="sekar-kedaton"
+                      />
+                    </div>
                     <Kawung />
                   </article>
                 ))}

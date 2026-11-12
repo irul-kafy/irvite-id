@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { AddToCalendarButton } from '../../components/calendar';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -771,20 +772,35 @@ export function RoyalVelvetRenderer({
                   </div>
                 </div>
 
-                {cer.mapsUrl && (
-                  <a
-                    href={cer.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.btnRoyalGold}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>Buka Google Maps</span>
-                  </a>
-                )}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4">
+                  {cer.mapsUrl && (
+                    <a
+                      href={cer.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.btnRoyalGold}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>Buka Google Maps</span>
+                    </a>
+                  )}
+                  <AddToCalendarButton
+                    event={{
+                      title: `${cer.title} - ${content.partnerOneName} & ${content.partnerTwoName}`,
+                      startDateTime: cer.startDateTime,
+                      endDateTime: cer.endDateTime,
+                      venue: cer.venue,
+                      address: cer.address,
+                      description: `Pernikahan ${content.partnerOneName} & ${content.partnerTwoName}. Merupakan kehormatan bagi kami atas kehadiran dan doa restu Anda.`,
+                      url: canonicalUrl || undefined,
+                      timeZone: content.timeZone,
+                    }}
+                    theme="royal-velvet"
+                  />
+                </div>
               </article>
             ))}
           </div>

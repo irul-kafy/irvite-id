@@ -1,5 +1,6 @@
 import type { InvitationTemplateProps, WeddingEvent } from "../types";
 import { Heading, Photo, safeUrl, Section, delay } from "./Shared";
+import { AddToCalendarButton } from "../../../components/calendar";
 import s from "../InvitationTemplate.module.css";
 export function Events({
   events,
@@ -59,24 +60,37 @@ export function Events({
               </p>
               <h4>{event.venue}</h4>
               <p>{event.address}</p>
-              {safeUrl(event.mapsUrl) && (
-                <a
-                  className={s.buttonOutline}
-                  href={safeUrl(event.mapsUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={
-                    onOpenMaps
-                      ? (e) => {
-                          e.preventDefault();
-                          onOpenMaps(event);
-                        }
-                      : undefined
-                  }
-                >
-                  Lihat Lokasi <span aria-hidden="true">↗</span>
-                </a>
-              )}
+              <div className={s.eventActions}>
+                {safeUrl(event.mapsUrl) && (
+                  <a
+                    className={s.buttonOutline}
+                    href={safeUrl(event.mapsUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={
+                      onOpenMaps
+                        ? (e) => {
+                            e.preventDefault();
+                            onOpenMaps(event);
+                          }
+                        : undefined
+                    }
+                  >
+                    Lihat Lokasi <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+                <AddToCalendarButton
+                  event={{
+                    title: event.title,
+                    startDateTime: `${event.date}T${event.startTime}`,
+                    endDateTime: event.endTime ? `${event.date}T${event.endTime}` : undefined,
+                    venue: event.venue,
+                    address: event.address,
+                    description: `Pernikahan - ${event.title}`,
+                  }}
+                  theme="opaline-nocturne"
+                />
+              </div>
             </article>
           );
         })}

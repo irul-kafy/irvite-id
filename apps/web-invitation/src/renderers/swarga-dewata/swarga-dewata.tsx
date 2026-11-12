@@ -6,6 +6,7 @@ import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
+import { AddToCalendarButton } from '../../components/calendar';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -944,6 +945,19 @@ export function SwargaDewataRenderer({
                         <span className={styles.ceremonyMapsIcon}>📍</span>
                         <span>Petunjuk Lokasi (Google Maps)</span>
                       </a>
+                      <AddToCalendarButton
+                        event={{
+                          title: `${ceremony.title} - ${content.partnerOneName} & ${content.partnerTwoName}`,
+                          startDateTime: ceremony.startDateTime,
+                          endDateTime: ceremony.endDateTime,
+                          venue: ceremony.venue,
+                          address: ceremony.address,
+                          description: `Karya Pawiwahan Agung ${content.partnerOneName} & ${content.partnerTwoName}. Matur Suksma atas doa restu Anda.`,
+                          url: canonicalUrl || undefined,
+                          timeZone: content.timeZone,
+                        }}
+                        theme="swarga-dewata"
+                      />
                     </div>
                   </div>
 

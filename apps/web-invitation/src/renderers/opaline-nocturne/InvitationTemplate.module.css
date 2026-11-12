@@ -164,7 +164,9 @@
 .eventTime{margin:18px 0 25px!important;font-size:.83rem}
 .eventCard h4{font-size:1.9rem;margin:0 0 16px}
 .eventCard>p{font-size:.86rem}
-.eventCard a{margin-top:25px;background:var(--inv-accent)}
+.eventCard a{background:var(--inv-accent)}
+.eventActions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:25px;width:100%}
+.eventActions a{margin-top:0}
 .venueImage{width:100%;aspect-ratio:16/10;border-radius:20px;margin-top:22px}
 .gallerySection{background:linear-gradient(#ffffff08,#385c5b25),url("/templates/opaline-nocturne/ornaments/paper.svg"),var(--inv-background)}
 .gallery{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;max-width:790px;margin:auto;align-items:center}
