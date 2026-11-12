@@ -55,6 +55,10 @@ async function fetchPortalData(eventId: string, clientKey: string) {
       return { disabled: true };
     }
 
+    if (res.status >= 500) {
+      return { serverError: true };
+    }
+
     if (!res.ok) {
       return null;
     }
@@ -150,6 +154,64 @@ export default async function ClientPortalPage({
           >
             Kembali ke Beranda IRVITE
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (data?.serverError) {
+    return (
+      <div className="portal-root" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            maxWidth: '480px',
+            margin: '4rem 1.5rem',
+            padding: '2.5rem 2rem',
+            background: '#ffffff',
+            borderRadius: '16px',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+            textAlign: 'center',
+            border: '1px solid #e5e7eb',
+          }}
+        >
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+          <h1
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              color: '#181e1b',
+              marginBottom: '0.75rem',
+            }}
+          >
+            Kendala Server Sementara
+          </h1>
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: '#5c6b64',
+              lineHeight: 1.6,
+              marginBottom: '1.5rem',
+            }}
+          >
+            Sistem kami sedang mengalami pembaruan atau kendala sementara saat memuat data portal klien. Silakan coba muat ulang halaman ini.
+          </p>
+          <a
+            href={`/kelola/${encodeURIComponent(token)}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: '#1b3b2b',
+              color: '#ffffff',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              padding: '0.625rem 1.25rem',
+              borderRadius: '8px',
+              textDecoration: 'none',
+            }}
+          >
+            🔄 Muat Ulang Halaman
+          </a>
         </div>
       </div>
     );
