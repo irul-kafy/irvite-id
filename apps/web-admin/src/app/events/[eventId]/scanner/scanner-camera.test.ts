@@ -90,5 +90,95 @@ test('Scanner Camera Facing Mode (Front/Back) UI & Architecture Contract', async
       'scanner.css must style .scan-result--error .scan-result__icon'
     );
   });
+
+  await t.test('Torch (Senter) feature contract in ScannerClient and scanner.css', () => {
+    assert.ok(
+      clientContent.includes('const [torchOn, setTorchOn] = useState(false)'),
+      'ScannerClient must manage torchOn state'
+    );
+    assert.ok(
+      clientContent.includes('toggleTorch'),
+      'ScannerClient must provide toggleTorch handler'
+    );
+    assert.ok(
+      clientContent.includes('torch: nextTorch'),
+      'toggleTorch must apply hardware torch constraint to video track'
+    );
+    assert.ok(
+      clientContent.includes('id="btn-toggle-torch"'),
+      'ScannerClient must render button #btn-toggle-torch'
+    );
+    assert.ok(
+      clientContent.includes('aria-pressed={torchOn}'),
+      'Torch button must indicate pressed state with aria-pressed'
+    );
+    assert.ok(
+      clientContent.includes('scanner-viewport-container--torch-active'),
+      'ScannerClient must toggle screen illumination border when torch is active'
+    );
+    assert.ok(
+      cssContent.includes('.scanner-torch-btn'),
+      'scanner.css must style .scanner-torch-btn'
+    );
+    assert.ok(
+      cssContent.includes('.scanner-torch-btn--active'),
+      'scanner.css must style active glowing state .scanner-torch-btn--active'
+    );
+    assert.ok(
+      cssContent.includes('.scanner-viewport-container--torch-active'),
+      'scanner.css must style .scanner-viewport-container--torch-active'
+    );
+  });
+
+  await t.test('Quick Check-in by Guest Name feature contract in ScannerClient and scanner.css', () => {
+    assert.ok(
+      clientContent.includes('id="btn-quick-checkin-modal"'),
+      'ScannerClient must render trigger button #btn-quick-checkin-modal'
+    );
+    assert.ok(
+      clientContent.includes('className="scanner-quick-checkin-btn"'),
+      'ScannerClient must use scanner-quick-checkin-btn styling'
+    );
+    assert.ok(
+      clientContent.includes('showQuickCheckIn'),
+      'ScannerClient must track showQuickCheckIn modal state'
+    );
+    assert.ok(
+      clientContent.includes('quick-checkin-dialog'),
+      'ScannerClient must render modal dialog with quick-checkin-dialog class'
+    );
+    assert.ok(
+      clientContent.includes('quick-checkin-search-input'),
+      'ScannerClient must render search input for guest name'
+    );
+    assert.ok(
+      clientContent.includes('quick-checkin-pill'),
+      'ScannerClient must render category filter pills'
+    );
+    assert.ok(
+      clientContent.includes('handleDirectCheckIn'),
+      'ScannerClient must support 1-tap direct check-in'
+    );
+    assert.ok(
+      clientContent.includes('handleQuickSelectGuest'),
+      'ScannerClient must support guest selection to open pax adjustment sheet'
+    );
+    assert.ok(
+      cssContent.includes('.scanner-quick-checkin-btn'),
+      'scanner.css must style .scanner-quick-checkin-btn'
+    );
+    assert.ok(
+      cssContent.includes('.quick-checkin-backdrop'),
+      'scanner.css must style .quick-checkin-backdrop'
+    );
+    assert.ok(
+      cssContent.includes('.quick-checkin-dialog'),
+      'scanner.css must style .quick-checkin-dialog'
+    );
+    assert.ok(
+      cssContent.includes('.quick-checkin-guest-card'),
+      'scanner.css must style .quick-checkin-guest-card'
+    );
+  });
 });
 

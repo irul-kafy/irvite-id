@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
@@ -20,6 +20,23 @@ interface CheckInAudit {
   scannedPax: number;
   scannedAt: string;
   scannedById: string;
+}
+
+export interface LiveGuestItem {
+  id: string;
+  name: string;
+  category: string;
+  customGreeting?: string | null;
+  maxPax: number;
+  tableNumber?: string | null;
+  code: string | null;
+  isCheckedIn: boolean;
+  scannedPax: number;
+  remainingPax: number;
+  scannedAt: string | null;
+  scannedBy: string | null;
+  rsvpStatus: string;
+  rsvpPax: number | null;
 }
 
 function triggerScanFeedback() {
@@ -229,6 +246,115 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const mountedRef = useRef<boolean>(true);
   const handleRawInputRef = useRef<(input: string) => Promise<void>>(async () => {});
 
+  // Torch / Senter State
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+
+  // Quick Check-in by Guest Name State
+  const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [liveGuests, setLiveGuests] = useState<LiveGuestItem[]>([]);
+  const [loadingGuests, setLoadingGuests] = useState(false);
+  const [directCheckingInId, setDirectCheckingInId] = useState<string | null>(null);
+
+  const fetchLiveGuests = useCallback(async () => {
+    try {
+      setLoadingGuests(true);
+      const res = await fetch(`/api/events/${eventId}/attendance/live`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.guests)) {
+          setLiveGuests(data.guests);
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat live guests:', err);
+    } finally {
+      setLoadingGuests(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    void fetchLiveGuests();
+  }, [fetchLiveGuests]);
+
+  const guestCategories = useMemo(() => {
+    const cats = new Set<string>();
+    liveGuests.forEach((g) => {
+      if (g.category) cats.add(g.category);
+    });
+    return Array.from(cats);
+  }, [liveGuests]);
+
+  const attendedCount = useMemo(() => liveGuests.filter((g) => g.isCheckedIn).length, [liveGuests]);
+  const unattendedCount = useMemo(() => liveGuests.filter((g) => !g.isCheckedIn).length, [liveGuests]);
+
+  const filteredGuests = useMemo(() => {
+    return liveGuests.filter((g) => {
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchName = g.name.toLowerCase().includes(q);
+        const matchCode = g.code ? g.code.toLowerCase().includes(q) : false;
+        const matchTable = g.tableNumber ? g.tableNumber.toLowerCase().includes(q) : false;
+        if (!matchName && !matchCode && !matchTable) return false;
+      }
+      if (categoryFilter === 'UNATTENDED') {
+        return !g.isCheckedIn;
+      }
+      if (categoryFilter === 'ATTENDED') {
+        return g.isCheckedIn;
+      }
+      if (categoryFilter !== 'ALL') {
+        return g.category === categoryFilter;
+      }
+      return true;
+    });
+  }, [liveGuests, searchQuery, categoryFilter]);
+
+  const handleQuickSelectGuest = (guest: LiveGuestItem) => {
+    if (!guest.code) {
+      alert('Tamu ini belum memiliki kode tiket / QR code.');
+      return;
+    }
+    setShowQuickCheckIn(false);
+    void handleRawInput(guest.code);
+  };
+
+  const handleDirectCheckIn = async (guest: LiveGuestItem) => {
+    if (!guest.code) {
+      alert('Tamu ini belum memiliki kode tiket / QR code.');
+      return;
+    }
+    try {
+      setDirectCheckingInId(guest.id);
+      const paxToSubmit =
+        guest.rsvpPax && guest.rsvpPax > 0
+          ? Math.min(guest.rsvpPax, guest.remainingPax || guest.maxPax)
+          : Math.min(1, guest.remainingPax || guest.maxPax);
+
+      const res = await fetch(`/api/events/${eventId}/attendance/check-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: guest.code, pax: paxToSubmit }),
+      });
+
+      if (res.ok) {
+        triggerScanFeedback();
+        void fetchLiveGuests();
+        setShowQuickCheckIn(false);
+        void handleRawInput(guest.code);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Gagal check-in tamu.');
+      }
+    } catch {
+      alert('Terjadi kesalahan jaringan.');
+    } finally {
+      setDirectCheckingInId(null);
+    }
+  };
+
   // Stop camera controls safely
   const stopScanner = useCallback(() => {
     if (controlsRef.current) {
@@ -240,6 +366,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
+    setTorchOn(false);
   }, []);
 
   // Camera Facing State: 'environment' (rear/back) or 'user' (front/selfie)
@@ -256,6 +383,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   });
 
   const toggleCameraFacing = useCallback(() => {
+    setTorchOn(false);
     stopScanner();
     setScanStatus('INITIALIZING');
     setCameraFacing((prev) => {
@@ -268,6 +396,25 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       return next;
     });
   }, [stopScanner]);
+
+  const toggleTorch = useCallback(async () => {
+    const nextTorch = !torchOn;
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      const tracks = stream.getVideoTracks();
+      if (tracks.length > 0) {
+        const track = tracks[0];
+        try {
+          await track.applyConstraints({
+            advanced: [{ torch: nextTorch } as any],
+          });
+        } catch (err) {
+          console.warn('Hardware torch constraint failed:', err);
+        }
+      }
+    }
+    setTorchOn(nextTorch);
+  }, [torchOn]);
 
   // Initialize Scanner - High-speed hardware-accelerated detection with optimized ZXing fallback
   useEffect(() => {
@@ -353,6 +500,16 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
+
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
+            try {
+              const caps = (videoTrack.getCapabilities?.() || {}) as { torch?: boolean };
+              setTorchSupported(Boolean(caps.torch));
+            } catch {
+              setTorchSupported(false);
+            }
+          }
 
           const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
           let scanningActive = true;
@@ -458,6 +615,18 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         if (mountedRef.current) {
           controlsRef.current = controls;
           setScanStatus('READY');
+          if (videoRef.current?.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+              try {
+                const caps = (videoTrack.getCapabilities?.() || {}) as { torch?: boolean };
+                setTorchSupported(Boolean(caps.torch));
+              } catch {
+                setTorchSupported(false);
+              }
+            }
+          }
         } else {
           controls.stop();
         }
@@ -638,6 +807,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           : null,
       );
       setScanState('CHECKED_IN');
+      void fetchLiveGuests();
     } catch {
       if (!mountedRef.current) return;
       setErrorMessage('Terjadi gangguan jaringan saat mengirim data check-in.');
@@ -673,6 +843,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
       const undoData = await res.json();
       setUndoSuccessToast(undoData.message || 'Check-in berhasil diurungkan.');
+      void fetchLiveGuests();
 
       setScanState('IDLE');
       lockRef.current = false;
@@ -1110,7 +1281,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       <div
         className={`scanner-viewport-container${
           scanState !== 'IDLE' ? ' scanner-viewport-container--success' : ''
-        }`}
+        }${torchOn ? ' scanner-viewport-container--torch-active' : ''}`}
       >
         <video
           ref={videoRef}
@@ -1123,6 +1294,34 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         {scanStatus === 'READY' && scanState === 'IDLE' && (
           <div className="scanner-laser" aria-hidden="true" />
         )}
+
+        {/* Floating Torch / Senter Toggle Button (Top Left) */}
+        <button
+          type="button"
+          id="btn-toggle-torch"
+          className={`scanner-torch-btn${torchOn ? ' scanner-torch-btn--active' : ''}`}
+          onClick={toggleTorch}
+          title={torchOn ? 'Matikan Senter Scanner' : 'Nyalakan Senter Scanner'}
+          aria-label={torchOn ? 'Matikan senter scanner' : 'Nyalakan senter scanner'}
+          aria-pressed={torchOn}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill={torchOn ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M18 6V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2" />
+            <path d="M6 6h12l-2 5v9a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-9L6 6z" />
+            <line x1="12" y1="12" x2="12" y2="15" />
+          </svg>
+          <span>{torchOn ? 'Senter Aktif' : 'Senter'}</span>
+        </button>
 
         {/* Floating Flip Camera Toggle Button (Front/Back) */}
         <button
@@ -1160,6 +1359,34 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           )}
         </div>
       </div>
+
+      {/* Quick Check-In by Guest Name Trigger Button */}
+      <button
+        type="button"
+        id="btn-quick-checkin-modal"
+        className="scanner-quick-checkin-btn"
+        onClick={() => {
+          setShowQuickCheckIn(true);
+          void fetchLiveGuests();
+        }}
+        aria-label="Cari nama tamu untuk quick check-in"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <span>🔍 Cari Nama Tamu (Quick Check-In)</span>
+      </button>
 
       {/* Manual Input Fallback */}
       <div className="scanner-manual-input">
@@ -1314,6 +1541,181 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       {/* Bottom Sheet: guest data + event banner (slides up after a scan) */}
       {portalReady && createPortal(
       <>
+      {showQuickCheckIn && (
+        <div
+          className="quick-checkin-backdrop"
+          onClick={() => setShowQuickCheckIn(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Cari dan Check-In Tamu Cepat"
+        >
+          <div
+            className="quick-checkin-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="quick-checkin-header">
+              <div>
+                <h3>
+                  <span>🔍</span> Quick Check-In Tamu
+                </h3>
+                <p>Cari nama tamu yang tidak membawa QR atau tanpa undangan cetak</p>
+              </div>
+              <button
+                type="button"
+                className="quick-checkin-close-btn"
+                onClick={() => setShowQuickCheckIn(false)}
+                aria-label="Tutup pencarian"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search Input Bar */}
+            <div className="quick-checkin-search-bar">
+              <span className="quick-checkin-search-icon" aria-hidden="true">🔍</span>
+              <input
+                type="text"
+                className="quick-checkin-search-input"
+                placeholder="Ketik nama tamu, nomor meja, atau kode..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="quick-checkin-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Hapus pencarian"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Filter Pills */}
+            <div className="quick-checkin-filter-row">
+              <button
+                type="button"
+                className={`quick-checkin-pill${categoryFilter === 'ALL' ? ' quick-checkin-pill--active' : ''}`}
+                onClick={() => setCategoryFilter('ALL')}
+              >
+                Semua ({liveGuests.length})
+              </button>
+              <button
+                type="button"
+                className={`quick-checkin-pill${categoryFilter === 'UNATTENDED' ? ' quick-checkin-pill--active' : ''}`}
+                onClick={() => setCategoryFilter('UNATTENDED')}
+              >
+                ⏳ Belum Hadir ({unattendedCount})
+              </button>
+              <button
+                type="button"
+                className={`quick-checkin-pill${categoryFilter === 'ATTENDED' ? ' quick-checkin-pill--active' : ''}`}
+                onClick={() => setCategoryFilter('ATTENDED')}
+              >
+                ✓ Sudah Hadir ({attendedCount})
+              </button>
+              {guestCategories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`quick-checkin-pill${categoryFilter === cat ? ' quick-checkin-pill--active' : ''}`}
+                  onClick={() => setCategoryFilter(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Guest List */}
+            <div className="quick-checkin-list">
+              {loadingGuests ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+                  Memuat daftar tamu acara...
+                </div>
+              ) : filteredGuests.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+                  {searchQuery ? `Tidak ada tamu yang cocok dengan "${searchQuery}"` : 'Belum ada data tamu dalam kategori ini.'}
+                </div>
+              ) : (
+                filteredGuests.map((guest) => {
+                  const initial = guest.name.trim().charAt(0).toUpperCase() || '?';
+                  const isBusy = directCheckingInId === guest.id;
+                  return (
+                    <div
+                      key={guest.id}
+                      className={`quick-checkin-guest-card${guest.isCheckedIn ? ' quick-checkin-guest-card--attended' : ''}`}
+                    >
+                      <div className="quick-checkin-guest-info">
+                        <div className="quick-checkin-guest-avatar">{initial}</div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div className="quick-checkin-guest-name" title={guest.name}>
+                            {guest.name}
+                          </div>
+                          <div className="quick-checkin-guest-meta">
+                            <span style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: '4px' }}>
+                              {guest.category || 'REGULER'}
+                            </span>
+                            {guest.tableNumber && (
+                              <span style={{ color: '#38bdf8' }}>
+                                Meja {guest.tableNumber}
+                              </span>
+                            )}
+                            <span>Max {guest.maxPax} Pax</span>
+                            {guest.isCheckedIn ? (
+                              <span style={{ color: '#34d399', fontWeight: 600 }}>
+                                ✓ Hadir ({guest.scannedPax} Pax)
+                              </span>
+                            ) : guest.rsvpStatus === 'ATTENDING' || guest.rsvpStatus === 'YES' ? (
+                              <span style={{ color: '#a7f3d0' }}>
+                                RSVP Hadir ({guest.rsvpPax || 1} Pax)
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                        {guest.isCheckedIn ? (
+                          <button
+                            type="button"
+                            className="quick-checkin-action-btn quick-checkin-action-btn--secondary"
+                            onClick={() => handleQuickSelectGuest(guest)}
+                          >
+                            Buka Detail
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="quick-checkin-action-btn quick-checkin-action-btn--secondary"
+                              onClick={() => handleQuickSelectGuest(guest)}
+                              title="Pilih tamu dan tentukan jumlah pax presensi"
+                            >
+                              Pilih
+                            </button>
+                            <button
+                              type="button"
+                              className="quick-checkin-action-btn quick-checkin-action-btn--primary"
+                              disabled={isBusy}
+                              onClick={() => void handleDirectCheckIn(guest)}
+                              title="Check-In langsung 1-klik"
+                            >
+                              {isBusy ? 'Memproses...' : '⚡ Check-In'}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div
         className={`scan-sheet-backdrop${sheetOpen ? ' is-open' : ''}`}
         onClick={closeSheet}

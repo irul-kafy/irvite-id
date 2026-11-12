@@ -915,6 +915,8 @@ export class AttendanceService {
         category: cat,
         customGreeting: g.customGreeting,
         maxPax: g.maxPax,
+        tableNumber: (g as any).tableNumber ?? null,
+        code: g.invitation?.uniqueCode || null,
         isCheckedIn,
         scannedPax: att?.scannedPax || 0,
         remainingPax: Math.max(0, g.maxPax - (att?.scannedPax || 0)),

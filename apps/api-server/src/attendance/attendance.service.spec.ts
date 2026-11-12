@@ -830,6 +830,8 @@ describe('AttendanceService', () => {
       expect(live.summary.checkInRate).toBe(40.0);
       expect(live.recentCheckIns).toHaveLength(1);
       expect(live.recentCheckIns[0].guestName).toBe('Budi Santoso');
+      expect(live.guests[0].code).toBe('code1');
+      expect(live.guests[1].code).toBe('code2');
       expect(live.googleSheet.connected).toBe(true);
       expect(live.googleSheet.webhookUrl).toBe(
         'https://script.google.com/macros/s/xyz/exec',
