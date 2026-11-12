@@ -642,4 +642,33 @@ export class ClientPortalService {
         invitation.status === InvitationStatus.RSVP_NO,
     };
   }
+
+  async deleteWish(eventId: string, wishId: string, key?: string) {
+    await this.validateAccess(eventId, key);
+
+    if (!wishId || typeof wishId !== 'string') {
+      throw new BadRequestException('ID ucapan tidak valid');
+    }
+
+    const wish = await this.prisma.wish.findFirst({
+      where: {
+        id: wishId,
+        eventId,
+      },
+      select: { id: true },
+    });
+
+    if (!wish) {
+      throw new NotFoundException('Ucapan tidak ditemukan');
+    }
+
+    await this.prisma.wish.delete({
+      where: { id: wishId },
+    });
+
+    return {
+      success: true,
+      message: 'Ucapan berhasil dihapus',
+    };
+  }
 }

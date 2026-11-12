@@ -34,6 +34,8 @@ describe('ClientPortalService', () => {
     wish: {
       findMany: jest.Mock;
       count: jest.Mock;
+      findFirst: jest.Mock;
+      delete: jest.Mock;
     };
   };
 
@@ -69,6 +71,8 @@ describe('ClientPortalService', () => {
       wish: {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
+        findFirst: jest.fn(),
+        delete: jest.fn(),
       },
     };
 
@@ -316,6 +320,30 @@ describe('ClientPortalService', () => {
       );
       expect(res.isWaSent).toBe(true);
       expect(res.status).toBe(InvitationStatus.SENT);
+    });
+
+    it('deletes wish successfully via portal key', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.wish.findFirst.mockResolvedValue({
+        id: 'wish-1',
+        eventId: mockEvent.id,
+      });
+      prisma.wish.delete.mockResolvedValue({ id: 'wish-1' });
+
+      const res = await service.deleteWish(mockEvent.id, 'wish-1', validKey);
+      expect(res.success).toBe(true);
+      expect(prisma.wish.delete).toHaveBeenCalledWith({
+        where: { id: 'wish-1' },
+      });
+    });
+
+    it('throws NotFoundException if wish to delete does not exist', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.wish.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.deleteWish(mockEvent.id, 'wish-x', validKey),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

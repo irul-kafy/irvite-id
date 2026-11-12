@@ -92,17 +92,20 @@ export function ClientPortalView({
   const [publicRecipientLabel, setPublicRecipientLabel] = useState('');
   const [publicBroadcastTone, setPublicBroadcastTone] = useState<PublicBroadcastTone>('formal');
   const [customBroadcastText, setCustomBroadcastText] = useState<string | null>(null);
+  const [wishes, setWishes] = useState<PortalWish[]>(initialWishes);
+  const [deletingWish, setDeletingWish] = useState<PortalWish | null>(null);
+  const [isDeletingWish, setIsDeletingWish] = useState(false);
   const [wishSearchQuery, setWishSearchQuery] = useState('');
   const [clientOrigin, setClientOrigin] = useState('');
 
   const filteredWishes = useMemo(() => {
-    if (!wishSearchQuery.trim()) return initialWishes;
+    if (!wishSearchQuery.trim()) return wishes;
     const q = wishSearchQuery.toLowerCase();
-    return initialWishes.filter(
+    return wishes.filter(
       (w) =>
         w.name.toLowerCase().includes(q) || w.message.toLowerCase().includes(q),
     );
-  }, [initialWishes, wishSearchQuery]);
+  }, [wishes, wishSearchQuery]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -545,6 +548,33 @@ export function ClientPortalView({
     }
   };
 
+  // Submit Delete Wish
+  const handleConfirmDeleteWish = async () => {
+    if (!deletingWish) return;
+    setIsDeletingWish(true);
+    try {
+      const res = await fetch(
+        `/api-proxy/api/v1/client-portal/${event.id}/wishes/${deletingWish.id}?key=${accessKey}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Gagal menghapus ucapan');
+      }
+
+      setWishes((prev) => prev.filter((w) => w.id !== deletingWish.id));
+      showToast(`Ucapan dari "${deletingWish.name}" berhasil dihapus.`);
+      setDeletingWish(null);
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Gagal menghapus ucapan');
+    } finally {
+      setIsDeletingWish(false);
+    }
+  };
+
   // Format event date
   const eventDateFormatted = useMemo(() => {
     try {
@@ -896,7 +926,7 @@ export function ClientPortalView({
 
           <div className="portal-stat-card">
             <span className="portal-stat-label">💌 Doa &amp; Ucapan</span>
-            <span className="portal-stat-value">{initialWishes.length}</span>
+            <span className="portal-stat-value">{wishes.length}</span>
             <span className="portal-stat-sub">Pesan dari tamu</span>
           </div>
         </section>
@@ -1392,7 +1422,7 @@ export function ClientPortalView({
                 }}
               >
                 <span>💌</span>
-                <span>Doa &amp; Ucapan Tamu ({initialWishes.length})</span>
+                <span>Doa &amp; Ucapan Tamu ({wishes.length})</span>
               </h2>
               <p
                 style={{
@@ -1405,7 +1435,7 @@ export function ClientPortalView({
               </p>
             </div>
 
-            {initialWishes.length > 0 && (
+            {wishes.length > 0 && (
               <div style={{ position: 'relative', width: '220px' }}>
                 <input
                   type="text"
@@ -1502,7 +1532,7 @@ export function ClientPortalView({
                     >
                       {w.message}
                     </p>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.35rem', borderTop: '1px dashed #f1f5f9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.625rem', paddingTop: '0.35rem', borderTop: '1px dashed #f1f5f9' }}>
                       <button
                         type="button"
                         onClick={() => {
@@ -1527,6 +1557,27 @@ export function ClientPortalView({
                       >
                         <span>📋</span>
                         <span>Salin Ucapan</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeletingWish(w)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#e11d48',
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: '4px',
+                        }}
+                        title="Hapus ucapan spam atau typo"
+                      >
+                        <span>🗑️</span>
+                        <span>Hapus</span>
                       </button>
                     </div>
                   </div>
@@ -1767,6 +1818,85 @@ export function ClientPortalView({
           </div>
         </div>
       )}
+
+      {/* Delete Wish Confirmation Modal */}
+      {deletingWish && (
+        <div
+          className="portal-modal-overlay"
+          onClick={() => {
+            if (!isDeletingWish) setDeletingWish(null);
+          }}
+        >
+          <div
+            className="portal-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '420px' }}
+          >
+            <div className="portal-modal-header">
+              <h2 className="portal-modal-title" style={{ color: '#b91c1c' }}>
+                Hapus Ucapan
+              </h2>
+              <button
+                type="button"
+                className="portal-modal-close"
+                onClick={() => setDeletingWish(null)}
+                disabled={isDeletingWish}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.9rem', lineHeight: 1.5, margin: '0 0 0.85rem 0' }}>
+              Hapus ucapan dari <strong>{deletingWish.name}</strong>?
+            </p>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '0.625rem 0.75rem',
+                fontSize: '0.8rem',
+                color: '#475569',
+                fontStyle: 'italic',
+                marginBottom: '1.25rem',
+                wordBreak: 'break-word',
+              }}
+            >
+              &ldquo;{deletingWish.message}&rdquo;
+            </div>
+
+            <div className="portal-modal-actions">
+              <button
+                type="button"
+                className="btn-portal-secondary"
+                onClick={() => setDeletingWish(null)}
+                disabled={isDeletingWish}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 'var(--portal-radius-md)',
+                  padding: '0.625rem 1.125rem',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: isDeletingWish ? 'not-allowed' : 'pointer',
+                }}
+                onClick={handleConfirmDeleteWish}
+                disabled={isDeletingWish}
+              >
+                {isDeletingWish ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* WhatsApp Auto-Sender Queue Modal */}
       <WhatsAppAutoSenderModal
         isOpen={isAutoSenderOpen}

@@ -105,4 +105,16 @@ export class ClientPortalController {
       dto.isSent,
     );
   }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Delete(':eventId/wishes/:wishId')
+  @Header('Cache-Control', 'no-store')
+  async deleteWish(
+    @Param('eventId') eventId: string,
+    @Param('wishId') wishId: string,
+    @Query('key') key: string | undefined,
+  ) {
+    return this.clientPortalService.deleteWish(eventId, wishId, key);
+  }
 }

@@ -13,6 +13,7 @@ import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
+import { WishListQueryDto } from './dto/wish-list-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -82,5 +83,23 @@ export class EventsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.eventsService.restore(id, user.id, user.role);
+  }
+
+  @Get(':id/wishes')
+  async getWishes(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: WishListQueryDto,
+  ) {
+    return this.eventsService.getAdminWishes(id, user.id, user.role, query);
+  }
+
+  @Delete(':id/wishes/:wishId')
+  async deleteWish(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('wishId') wishId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.eventsService.deleteWish(id, wishId, user.id, user.role);
   }
 }

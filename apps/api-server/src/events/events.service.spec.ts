@@ -40,6 +40,8 @@ describe('EventsService', () => {
               create: jest.fn(),
               findMany: jest.fn(),
               count: jest.fn(),
+              findFirst: jest.fn(),
+              delete: jest.fn(),
             },
           },
         },
@@ -884,6 +886,71 @@ describe('EventsService', () => {
       expect(res.total).toBe(1);
       expect(res.items).toHaveLength(1);
       expect(res.items[0].name).toBe('Siti');
+    });
+
+    it('retrieves admin wishes with search and pagination', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        title: 'Wedding Event',
+      });
+
+      const now = new Date();
+      (prisma.wish.count as jest.Mock).mockResolvedValue(1);
+      (prisma.wish.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'wish-1',
+          name: 'Budi Santoso',
+          message: 'Selamat menempuh hidup baru!',
+          createdAt: now,
+        },
+      ]);
+
+      const res = await service.getAdminWishes(
+        'event-1',
+        'user-1',
+        Role.ADMIN,
+        { search: 'Budi', page: 1, limit: 10 },
+      );
+
+      expect(res.total).toBe(1);
+      expect(res.items[0].name).toBe('Budi Santoso');
+      expect(res.items[0].message).toBe('Selamat menempuh hidup baru!');
+    });
+
+    it('deletes a wish successfully', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+      });
+      (prisma.wish.findFirst as jest.Mock).mockResolvedValue({
+        id: 'wish-1',
+        name: 'Spammer',
+      });
+      (prisma.wish.delete as jest.Mock).mockResolvedValue({
+        id: 'wish-1',
+      });
+
+      const res = await service.deleteWish(
+        'event-1',
+        'wish-1',
+        'user-1',
+        Role.ADMIN,
+      );
+
+      expect(res.success).toBe(true);
+      expect(prisma.wish.delete).toHaveBeenCalledWith({
+        where: { id: 'wish-1' },
+      });
+    });
+
+    it('throws NotFoundException when deleting non-existent wish', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+      });
+      (prisma.wish.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.deleteWish('event-1', 'nonexistent', 'user-1', Role.ADMIN),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

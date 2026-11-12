@@ -27,6 +27,7 @@ import { TemplateContentEditor } from './components/template-content-editor';
 import { MediaManager } from './components/media-manager';
 import { EventPreviewTab } from './components/event-preview-tab';
 import { QrisStandeeDisplay } from './components/qris-standee-display';
+import { WishesModerationTab } from './components/wishes-moderation-tab';
 
 interface EventData {
   id: string;
@@ -174,10 +175,11 @@ export default function EventDetailPage({
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
-  const activeTab: 'overview' | 'content' | 'media' | 'qris' | 'preview' =
+  const activeTab: 'overview' | 'content' | 'media' | 'qris' | 'wishes' | 'preview' =
     tabParam === 'content' ||
     tabParam === 'media' ||
     tabParam === 'qris' ||
+    tabParam === 'wishes' ||
     tabParam === 'preview'
       ? tabParam
       : 'overview';
@@ -353,7 +355,7 @@ export default function EventDetailPage({
   };
 
   const handleTabChange = (
-    tab: 'overview' | 'content' | 'media' | 'qris' | 'preview',
+    tab: 'overview' | 'content' | 'media' | 'qris' | 'wishes' | 'preview',
   ) => {
     router.replace(`/events/${eventId}?tab=${tab}`, { scroll: false });
   };
@@ -568,6 +570,16 @@ export default function EventDetailPage({
           id="tab-qris-btn"
         >
           Pajangan QRIS Meja 🪪
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'wishes'}
+          className={`btn btn-sm ${activeTab === 'wishes' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('wishes')}
+          id="tab-wishes-btn"
+        >
+          Doa &amp; Ucapan 💬
         </button>
         <button
           type="button"
@@ -931,6 +943,31 @@ export default function EventDetailPage({
               </div>
             </div>
 
+            {/* Module: Wishes Moderation */}
+            <div
+              className="action-card"
+              onClick={() => handleTabChange('wishes')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTabChange('wishes'); }}
+              id="hub-wishes-card"
+            >
+              <div className="action-card__icon-wrap" style={{ background: 'rgba(99, 102, 241, 0.14)', color: '#6366f1' }}>
+                <span style={{ fontSize: '1.25rem' }}>💬</span>
+              </div>
+              <div>
+                <div className="action-card__title">
+                  Moderasi Doa &amp; Ucapan
+                </div>
+                <div className="action-card__desc">
+                  Pantau ucapan selamat dari tamu, cari pengirim, dan hapus pesan spam atau typo secara langsung.
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka Moderasi &rarr;
+              </div>
+            </div>
+
             {/* Module: Preview */}
             <div
               className="action-card"
@@ -1009,6 +1046,11 @@ export default function EventDetailPage({
           content={event.content}
           templateName={templateName}
         />
+      )}
+
+      {/* TAB 3C: WISHES MODERATION */}
+      {activeTab === 'wishes' && (
+        <WishesModerationTab eventId={event.id} />
       )}
 
       {/* TAB 4: PREVIEW */}

@@ -16,6 +16,7 @@ import { CreatePublicDraftDto } from './dto/create-public-draft.dto';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
+import { WishListQueryDto } from './dto/wish-list-query.dto';
 import { Role, MediaType, Prisma } from 'database';
 import {
   getTemplateDefinition,
@@ -720,6 +721,132 @@ export class EventsService {
       name: wish.name,
       message: wish.message,
       createdAt: wish.createdAt.toISOString(),
+    };
+  }
+
+  async getAdminWishes(
+    eventId: string,
+    userId: string,
+    role: Role,
+    query: WishListQueryDto,
+  ) {
+    const whereScope =
+      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
+
+    const event = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: { id: true, title: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
+    const skip = (page - 1) * limit;
+    const search = typeof query.search === 'string' ? query.search.trim() : '';
+
+    const where: Prisma.WishWhereInput = {
+      eventId,
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search } },
+              { message: { contains: search } },
+            ],
+          }
+        : {}),
+    };
+
+    let total = 0;
+    let items: Array<{
+      id: string;
+      name: string;
+      message: string;
+      createdAt: Date | string;
+    }> = [];
+
+    try {
+      if (this.prisma.wish) {
+        const [wCount, wList] = await Promise.all([
+          this.prisma.wish.count({ where }).catch(() => 0),
+          this.prisma.wish
+            .findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: limit,
+              select: { id: true, name: true, message: true, createdAt: true },
+            })
+            .catch(() => []),
+        ]);
+        total = typeof wCount === 'number' ? wCount : 0;
+        items = Array.isArray(wList) ? wList : [];
+      }
+    } catch {
+      total = 0;
+      items = [];
+    }
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+      items: items.map((w) => ({
+        id: w.id,
+        name: w.name,
+        message: w.message,
+        createdAt:
+          w.createdAt instanceof Date
+            ? w.createdAt.toISOString()
+            : String(w.createdAt),
+      })),
+    };
+  }
+
+  async deleteWish(
+    eventId: string,
+    wishId: string,
+    userId: string,
+    role: Role,
+  ) {
+    const whereScope =
+      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
+
+    const event = await this.prisma.event.findFirst({
+      where: whereScope,
+      select: { id: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (!wishId || typeof wishId !== 'string') {
+      throw new BadRequestException('ID ucapan tidak valid');
+    }
+
+    const wish = await this.prisma.wish.findFirst({
+      where: {
+        id: wishId,
+        eventId,
+      },
+      select: { id: true, name: true },
+    });
+
+    if (!wish) {
+      throw new NotFoundException('Ucapan tidak ditemukan');
+    }
+
+    await this.prisma.wish.delete({
+      where: { id: wishId },
+    });
+
+    return {
+      success: true,
+      message: 'Ucapan berhasil dihapus',
     };
   }
   async archive(id: string, userId: string, role: Role) {
