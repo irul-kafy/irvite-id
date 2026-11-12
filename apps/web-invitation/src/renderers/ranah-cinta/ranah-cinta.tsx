@@ -61,6 +61,7 @@ export default function RanahCintaRenderer({
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
       tableNumber={data.guest?.tableNumber}
+      eventTitle={data.event?.title}
       variant="ranah-cinta"
     />
   ) : null;

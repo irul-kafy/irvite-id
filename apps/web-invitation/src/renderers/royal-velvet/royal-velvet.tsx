@@ -1053,6 +1053,7 @@ export function RoyalVelvetRenderer({
                   guestName={guestName}
                   maxPax={data?.guest?.maxPax || 2}
                   tableNumber={data?.guest?.tableNumber}
+                  eventTitle={data?.event?.title}
                   variant="royal-velvet"
                 />
               </div>

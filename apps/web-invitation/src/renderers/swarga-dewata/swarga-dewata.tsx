@@ -1072,6 +1072,7 @@ export function SwargaDewataRenderer({
                   guestName={guestDisplayName}
                   maxPax={data?.guest?.maxPax || 2}
                   tableNumber={data?.guest?.tableNumber}
+                  eventTitle={data?.event?.title}
                   variant="balinese"
                 />
               </div>

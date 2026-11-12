@@ -891,6 +891,7 @@ export default function GenericTheme({
                       guestName={guest?.name || 'Tamu Undangan'}
                       maxPax={guest?.maxPax ?? 2}
                       tableNumber={data.guest?.tableNumber}
+                      eventTitle={event?.title || data.event?.title}
                       variant={themeVariant}
                     />
                   </div>
