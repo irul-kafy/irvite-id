@@ -2,8 +2,8 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { fetchPublicEvent } from '../../../api/client';
 import { RenderTheme } from '../../../renderers/registry';
-import { cleanInvitationEventTitle } from '../../../renderers/adapter-utils';
 import { extractPublicRecipientFromSearchParams } from '../../../renderers/mode-gating';
+import { buildInvitationMetadata } from '../../../utils/invitation-metadata';
 
 export async function generateMetadata({
   params,
@@ -19,21 +19,12 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: 'Event Not Found',
+      title: 'Event Not Found | IRVITE',
+      description: 'Acara pernikahan tidak ditemukan.',
     };
   }
 
-  const cleanTitle = cleanInvitationEventTitle(data.event.title, data.event.title);
-  const baseDescription = data.event.description || `Undangan Pernikahan ${cleanTitle}`;
-
-  return {
-    title: publicRecipient
-      ? `${cleanTitle} — Kepada ${publicRecipient}`
-      : `${cleanTitle} - Digital Invitation`,
-    description: publicRecipient
-      ? `Kepada Yth. ${publicRecipient} — ${baseDescription}`
-      : baseDescription,
-  };
+  return buildInvitationMetadata(data, { slug, publicRecipient });
 }
 
 export default async function PublicEventPage({
