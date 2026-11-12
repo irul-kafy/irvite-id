@@ -91,45 +91,6 @@ test('Scanner Camera Facing Mode (Front/Back) UI & Architecture Contract', async
     );
   });
 
-  await t.test('Torch (Senter) feature contract in ScannerClient and scanner.css', () => {
-    assert.ok(
-      clientContent.includes('const [torchOn, setTorchOn] = useState(false)'),
-      'ScannerClient must manage torchOn state'
-    );
-    assert.ok(
-      clientContent.includes('toggleTorch'),
-      'ScannerClient must provide toggleTorch handler'
-    );
-    assert.ok(
-      clientContent.includes('torch: nextTorch'),
-      'toggleTorch must apply hardware torch constraint to video track'
-    );
-    assert.ok(
-      clientContent.includes('id="btn-toggle-torch"'),
-      'ScannerClient must render button #btn-toggle-torch'
-    );
-    assert.ok(
-      clientContent.includes('aria-pressed={torchOn}'),
-      'Torch button must indicate pressed state with aria-pressed'
-    );
-    assert.ok(
-      clientContent.includes('scanner-viewport-container--torch-active'),
-      'ScannerClient must toggle screen illumination border when torch is active'
-    );
-    assert.ok(
-      cssContent.includes('.scanner-torch-btn'),
-      'scanner.css must style .scanner-torch-btn'
-    );
-    assert.ok(
-      cssContent.includes('.scanner-torch-btn--active'),
-      'scanner.css must style active glowing state .scanner-torch-btn--active'
-    );
-    assert.ok(
-      cssContent.includes('.scanner-viewport-container--torch-active'),
-      'scanner.css must style .scanner-viewport-container--torch-active'
-    );
-  });
-
   await t.test('Quick Check-in by Guest Name feature contract in ScannerClient and scanner.css', () => {
     assert.ok(
       clientContent.includes('id="btn-quick-checkin-modal"'),

@@ -246,10 +246,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const mountedRef = useRef<boolean>(true);
   const handleRawInputRef = useRef<(input: string) => Promise<void>>(async () => {});
 
-  // Torch / Senter State
-  const [torchOn, setTorchOn] = useState(false);
-  const [torchSupported, setTorchSupported] = useState(false);
-
   // Quick Check-in by Guest Name State
   const [showQuickCheckIn, setShowQuickCheckIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -366,7 +362,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
-    setTorchOn(false);
   }, []);
 
   // Camera Facing State: 'environment' (rear/back) or 'user' (front/selfie)
@@ -383,7 +378,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   });
 
   const toggleCameraFacing = useCallback(() => {
-    setTorchOn(false);
     stopScanner();
     setScanStatus('INITIALIZING');
     setCameraFacing((prev) => {
@@ -396,25 +390,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       return next;
     });
   }, [stopScanner]);
-
-  const toggleTorch = useCallback(async () => {
-    const nextTorch = !torchOn;
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      const tracks = stream.getVideoTracks();
-      if (tracks.length > 0) {
-        const track = tracks[0];
-        try {
-          await track.applyConstraints({
-            advanced: [{ torch: nextTorch } as any],
-          });
-        } catch (err) {
-          console.warn('Hardware torch constraint failed:', err);
-        }
-      }
-    }
-    setTorchOn(nextTorch);
-  }, [torchOn]);
 
   // Initialize Scanner - High-speed hardware-accelerated detection with optimized ZXing fallback
   useEffect(() => {
@@ -500,16 +475,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
-
-          const videoTrack = stream.getVideoTracks()[0];
-          if (videoTrack) {
-            try {
-              const caps = (videoTrack.getCapabilities?.() || {}) as { torch?: boolean };
-              setTorchSupported(Boolean(caps.torch));
-            } catch {
-              setTorchSupported(false);
-            }
-          }
 
           const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
           let scanningActive = true;
@@ -615,18 +580,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         if (mountedRef.current) {
           controlsRef.current = controls;
           setScanStatus('READY');
-          if (videoRef.current?.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            const videoTrack = stream.getVideoTracks()[0];
-            if (videoTrack) {
-              try {
-                const caps = (videoTrack.getCapabilities?.() || {}) as { torch?: boolean };
-                setTorchSupported(Boolean(caps.torch));
-              } catch {
-                setTorchSupported(false);
-              }
-            }
-          }
         } else {
           controls.stop();
         }
@@ -1281,7 +1234,7 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       <div
         className={`scanner-viewport-container${
           scanState !== 'IDLE' ? ' scanner-viewport-container--success' : ''
-        }${torchOn ? ' scanner-viewport-container--torch-active' : ''}`}
+        }`}
       >
         <video
           ref={videoRef}
@@ -1294,34 +1247,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         {scanStatus === 'READY' && scanState === 'IDLE' && (
           <div className="scanner-laser" aria-hidden="true" />
         )}
-
-        {/* Floating Torch / Senter Toggle Button (Top Left) */}
-        <button
-          type="button"
-          id="btn-toggle-torch"
-          className={`scanner-torch-btn${torchOn ? ' scanner-torch-btn--active' : ''}`}
-          onClick={toggleTorch}
-          title={torchOn ? 'Matikan Senter Scanner' : 'Nyalakan Senter Scanner'}
-          aria-label={torchOn ? 'Matikan senter scanner' : 'Nyalakan senter scanner'}
-          aria-pressed={torchOn}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="14"
-            height="14"
-            fill={torchOn ? 'currentColor' : 'none'}
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M18 6V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2" />
-            <path d="M6 6h12l-2 5v9a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-9L6 6z" />
-            <line x1="12" y1="12" x2="12" y2="15" />
-          </svg>
-          <span>{torchOn ? 'Senter Aktif' : 'Senter'}</span>
-        </button>
 
         {/* Floating Flip Camera Toggle Button (Front/Back) */}
         <button
