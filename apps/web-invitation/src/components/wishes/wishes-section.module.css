@@ -14,15 +14,15 @@
 
 /* Light Theme Variables (Luxury Warm Champagne & Ivory) */
 .light {
-  --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-bg: rgba(253, 250, 245, 0.95);
+  --w-card-bg: rgba(254, 252, 248, 0.98);
   --w-card-border: rgba(200, 165, 105, 0.36);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 16px 40px -4px rgba(150, 120, 80, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.95) inset;
   --w-text-title: #1f1b16;
   --w-text-body: #4b4238;
   --w-text-muted: #8d8376;
   --w-eyebrow: #b8860b;
-  --w-input-bg: rgba(255, 255, 255, 0.75);
+  --w-input-bg: #f8f5ee;
   --w-input-border: rgba(200, 165, 105, 0.38);
   --w-input-text: #1f1b16;
   --w-input-focus: #b8860b;
@@ -30,9 +30,9 @@
   --w-btn-bg: linear-gradient(135deg, #2e261e 0%, #1a1612 100%);
   --w-btn-text: #faf7f2;
   --w-btn-shadow: 0 8px 22px -3px rgba(26, 22, 18, 0.35);
-  --w-feed-bg: transparent;
+  --w-feed-bg: rgba(254, 252, 248, 0.96);
   --w-feed-border: rgba(200, 165, 105, 0.28);
-  --w-feed-shadow: none;
+  --w-feed-shadow: 0 6px 18px -2px rgba(150, 120, 80, 0.08);
   --w-avatar-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   --w-avatar-border: #d97706;
   --w-avatar-text: #78350f;
@@ -45,10 +45,10 @@
 
 /* Dark Theme Variables (Neutral Slate/Obsidian) */
 .dark {
-  --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-bg: rgba(18, 18, 20, 0.95);
+  --w-card-bg: rgba(24, 24, 28, 0.88);
   --w-card-border: rgba(229, 200, 142, 0.3);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(229, 200, 142, 0.15) inset;
   --w-text-title: #f7f3eb;
   --w-text-body: #e2d9cc;
   --w-text-muted: #a39585;
@@ -61,9 +61,9 @@
   --w-btn-bg: linear-gradient(135deg, #e5c88e 0%, #d4af37 50%, #b8860b 100%);
   --w-btn-text: #1a1202;
   --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.35);
-  --w-feed-bg: transparent;
+  --w-feed-bg: rgba(26, 26, 32, 0.85);
   --w-feed-border: rgba(229, 200, 142, 0.25);
-  --w-feed-shadow: none;
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 200, 142, 0.25) 0%, rgba(184, 134, 11, 0.4) 100%);
   --w-avatar-border: #e5c88e;
   --w-avatar-text: #f7f3eb;
@@ -77,9 +77,9 @@
 /* Swarga Dewata (Balinese) Theme Variables */
 .balinese {
   --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-card-bg: rgba(22, 12, 10, 0.92);
   --w-card-border: rgba(229, 184, 75, 0.4);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 16px 44px -4px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(229, 184, 75, 0.15) inset;
   --w-text-title: #fdf8ea;
   --w-text-body: #ecd9bc;
   --w-text-muted: #b09e88;
@@ -92,9 +92,9 @@
   --w-btn-bg: linear-gradient(135deg, #f4dfb0 0%, #e5b84b 50%, #b8860b 100%);
   --w-btn-text: #180d05;
   --w-btn-shadow: 0 8px 24px -2px rgba(229, 184, 75, 0.35);
-  --w-feed-bg: transparent;
-  --w-feed-border: rgba(229, 184, 75, 0.25);
-  --w-feed-shadow: none;
+  --w-feed-bg: rgba(26, 14, 12, 0.9);
+  --w-feed-border: rgba(229, 184, 75, 0.3);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5);
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 184, 75, 0.35) 0%, rgba(184, 66, 40, 0.35) 100%);
   --w-avatar-border: #e5b84b;
   --w-avatar-text: #fdf8ea;
@@ -139,9 +139,9 @@
 /* Ranah Cinta (Minang Palace) Theme Variables - Deep Royal Emerald Velvet & Gold Filigree */
 .ranahCinta {
   --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-card-bg: rgba(13, 36, 29, 0.92);
   --w-card-border: rgba(212, 175, 55, 0.45);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 18px 48px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.18) inset;
   --w-text-title: #fbf6ee;
   --w-text-body: #d4e3dc;
   --w-text-muted: #8ca89d;
@@ -154,9 +154,9 @@
   --w-btn-bg: linear-gradient(135deg, #f7e6a7 0%, #d4af37 50%, #997836 100%);
   --w-btn-text: #081a14;
   --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.38);
-  --w-feed-bg: transparent;
-  --w-feed-border: rgba(212, 175, 55, 0.28);
-  --w-feed-shadow: none;
+  --w-feed-bg: rgba(16, 46, 36, 0.88);
+  --w-feed-border: rgba(212, 175, 55, 0.32);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.45);
   --w-avatar-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.4) 0%, rgba(92, 24, 34, 0.5) 100%);
   --w-avatar-border: #d4af37;
   --w-avatar-text: #fbf6ee;
@@ -170,14 +170,14 @@
 /* Sekar Kedaton (Javanese Royal Kraton) Theme Variables - Warm Daluwang Parchment, Antique Copper & Royal Jade */
 .sekarKedaton {
   --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-card-bg: rgba(250, 244, 230, 0.96);
   --w-card-border: rgba(158, 96, 61, 0.38);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 14px 38px -4px rgba(43, 66, 56, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
   --w-text-title: #183e37;
   --w-text-body: #2b4238;
   --w-text-muted: #67715f;
   --w-eyebrow: #9e603d;
-  --w-input-bg: rgba(255, 255, 255, 0.6);
+  --w-input-bg: #f5eedf;
   --w-input-border: rgba(158, 96, 61, 0.32);
   --w-input-text: #183e37;
   --w-input-focus: #183e37;
@@ -185,9 +185,9 @@
   --w-btn-bg: linear-gradient(135deg, #183e37 0%, #28574b 100%);
   --w-btn-text: #f1e5ce;
   --w-btn-shadow: 0 8px 22px -3px rgba(24, 62, 55, 0.32);
-  --w-feed-bg: transparent;
-  --w-feed-border: rgba(158, 96, 61, 0.25);
-  --w-feed-shadow: none;
+  --w-feed-bg: rgba(253, 249, 238, 0.94);
+  --w-feed-border: rgba(158, 96, 61, 0.28);
+  --w-feed-shadow: 0 6px 18px -2px rgba(43, 66, 56, 0.08);
   --w-avatar-bg: linear-gradient(135deg, #e8ddc7 0%, #d8caa9 100%);
   --w-avatar-border: #9e603d;
   --w-avatar-text: #183e37;
@@ -201,9 +201,9 @@
 /* Royal Velvet Theme Variables */
 .royalVelvet {
   --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-card-bg: rgba(20, 8, 11, 0.92);
   --w-card-border: rgba(229, 200, 142, 0.35);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 16px 44px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(229, 200, 142, 0.18) inset;
   --w-text-title: #f9f4ec;
   --w-text-body: #d2c2b0;
   --w-text-muted: #a69888;
@@ -216,9 +216,9 @@
   --w-btn-bg: linear-gradient(135deg, #f4dfb0 0%, #e5c88e 50%, #b8860b 100%);
   --w-btn-text: #14080b;
   --w-btn-shadow: 0 8px 24px -2px rgba(229, 200, 142, 0.35);
-  --w-feed-bg: transparent;
-  --w-feed-border: rgba(229, 200, 142, 0.25);
-  --w-feed-shadow: none;
+  --w-feed-bg: rgba(24, 10, 14, 0.88);
+  --w-feed-border: rgba(229, 200, 142, 0.3);
+  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.45);
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 200, 142, 0.35) 0%, rgba(138, 38, 55, 0.4) 100%);
   --w-avatar-border: #e5c88e;
   --w-avatar-text: #f9f4ec;
@@ -232,9 +232,9 @@
 /* Opaline Nocturne Theme Variables */
 .opalineNocturne {
   --w-bg: transparent;
-  --w-card-bg: transparent;
+  --w-card-bg: rgba(255, 252, 242, 0.92);
   --w-card-border: rgba(113, 147, 143, 0.4);
-  --w-card-shadow: none;
+  --w-card-shadow: 0 16px 36px rgba(33, 73, 73, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
   --w-text-title: #163336;
   --w-text-body: #254347;
   --w-text-muted: #536766;
@@ -247,9 +247,9 @@
   --w-btn-bg: #476c70;
   --w-btn-text: #fff9ed;
   --w-btn-shadow: 0 6px 18px rgba(33, 73, 73, 0.25);
-  --w-feed-bg: transparent;
+  --w-feed-bg: rgba(255, 252, 242, 0.9);
   --w-feed-border: rgba(113, 147, 143, 0.35);
-  --w-feed-shadow: none;
+  --w-feed-shadow: 0 6px 18px -2px rgba(33, 73, 73, 0.08);
   --w-avatar-bg: linear-gradient(135deg, #e6ecd8 0%, #c9d6b2 100%);
   --w-avatar-border: #71938f;
   --w-avatar-text: #163336;
@@ -320,14 +320,22 @@
 
 /* Form Card */
 .formCard {
-  background: var(--w-card-bg, transparent);
+  background: var(--w-card-bg);
   border: 1px solid var(--w-card-border);
   border-radius: 1.25rem;
   padding: 1.85rem 1.65rem;
-  box-shadow: var(--w-card-shadow, none);
+  box-shadow: var(--w-card-shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   margin-bottom: 2.25rem;
   position: relative;
   overflow: hidden;
+}
+
+.aetheria .formCard,
+.aetheria .feedCard {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .formCard::before {
@@ -532,11 +540,13 @@
 }
 
 .feedCard {
-  background: var(--w-feed-bg, transparent);
+  background: var(--w-feed-bg);
   border: 1px solid var(--w-feed-border);
   border-radius: 1rem;
   padding: 1.25rem 1.35rem;
-  box-shadow: var(--w-feed-shadow, none);
+  box-shadow: var(--w-feed-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -623,7 +633,7 @@
   text-align: center;
   padding: 3rem 1.5rem;
   color: var(--w-text-muted);
-  background: transparent;
+  background: var(--w-feed-bg);
   border: 1px dashed var(--w-feed-border);
   border-radius: 1rem;
 }
