@@ -166,10 +166,14 @@ export default function DashboardPage() {
           if (typeof window !== 'undefined') {
             localStorage.setItem('irvite_auth_role', data.user.role);
           }
+          if (data.user.role === 'STAFF') {
+            router.replace('/events');
+            return;
+          }
         }
       })
       .catch(() => {});
-  }, []);
+  }, [router]);
 
   const toggleGuide = () => {
     setShowGuide((prev) => {
@@ -194,7 +198,7 @@ export default function DashboardPage() {
           router.push('/login');
           return;
         }
-        if (response.status === 403) { router.replace('/staff'); return; }
+        if (response.status === 403) { router.replace('/events'); return; }
         if (!response.ok) throw new Error('Ringkasan gagal dimuat. Coba lagi.');
         const summary = await response.json();
         if (isMounted) {

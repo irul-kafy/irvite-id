@@ -129,6 +129,19 @@ export default function LoginPage() {
         return;
       }
 
+      try {
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData?.user?.role === 'STAFF') {
+            router.push('/events');
+            return;
+          }
+        }
+      } catch {
+        // Non-blocking fallback to dashboard
+      }
+
       router.push('/dashboard');
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');

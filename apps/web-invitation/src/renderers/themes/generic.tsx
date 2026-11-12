@@ -17,6 +17,7 @@ import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import MediaGallery from '../../components/media-gallery';
 import { RsvpForm, type RsvpVariant } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
+import { QrisGiftCard } from '../../components/qris';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { cleanInvitationEventTitle } from '../adapter-utils';
 import './generic-theme.css';
@@ -311,73 +312,68 @@ function CopyButton({ text }: { text: string }) {
 
 // ── Digital Gift / Amplop Digital ─────────────────────────────────────────────
 
-const DEFAULT_GIFTS: GiftEntry[] = [
-  { type: 'bank', bankName: 'Bank Central Asia', accountNumber: '1234567890', accountName: 'Nama Pasangan' },
-  { type: 'qris', bankName: 'QRIS', accountNumber: 'qris-placeholder', accountName: 'Nama Pasangan' },
-];
+interface CustomBankItem {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+}
 
 function GiftSection({
   primaryColor,
   headingFontClass,
+  accounts = [],
+  qrisUrl,
+  coupleName,
 }: {
   primaryColor: string;
   headingFontClass: string;
+  accounts?: CustomBankItem[];
+  qrisUrl?: string | null;
+  coupleName?: string;
 }) {
+  const displayAccounts = accounts.length > 0 ? accounts : [
+    { bankName: 'Bank Central Asia', accountNumber: '1234567890', accountName: 'Nama Pasangan' },
+  ];
+
   return (
-    <section className="gt-gift-wrapper">
+    <section id="gift" className="gt-gift-wrapper">
       <h2 className={`gt-section-title ${headingFontClass}`} style={{ color: primaryColor }}>
         Amplop Digital
       </h2>
       <p className="gt-gift__description">
-        Bagi Bapak/Ibu yang ingin memberikan hadiah, berikut informasi transfer kami.
-        Kehadiran Anda adalah hadiah terbesar bagi kami.
+        Bagi Bapak/Ibu/Saudara/i yang ingin memberikan tanda kasih, berikut informasi nomor rekening dan QRIS kami.
+        Doa dan kehadiran Anda merupakan kado terindah bagi kami.
       </p>
       <div className="gt-gift__cards">
-        {DEFAULT_GIFTS.map((gift, i) =>
-          gift.type === 'bank' ? (
-            <div key={i} className="gt-gift__card" role="region" aria-label={`Rekening ${gift.bankName}`}>
-              <div className="gt-gift__card-header">
-                <div className="gt-gift__card-logo gt-gift__card-logo--bank" aria-hidden="true">BCA</div>
-                <span className="gt-gift__card-bank-name">{gift.bankName}</span>
-                <span className="gt-gift__card-type-badge">Transfer</span>
+        {displayAccounts.map((gift, i) => (
+          <div key={i} className="gt-gift__card" role="region" aria-label={`Rekening ${gift.bankName}`}>
+            <div className="gt-gift__card-header">
+              <div className="gt-gift__card-logo gt-gift__card-logo--bank" aria-hidden="true">
+                {(gift.bankName || 'BANK').slice(0, 4).toUpperCase()}
               </div>
-              <div className="gt-gift__card-body">
-                <div className="gt-gift__card-info">
-                  <div className="gt-gift__card-label">Nomor Rekening</div>
-                  <div className="gt-gift__card-number">{gift.accountNumber}</div>
-                  <div className="gt-gift__card-name">a.n. {gift.accountName}</div>
-                </div>
-                <CopyButton text={gift.accountNumber} />
-              </div>
+              <span className="gt-gift__card-bank-name">{gift.bankName}</span>
+              <span className="gt-gift__card-type-badge">Transfer</span>
             </div>
-          ) : (
-            <div key={i} className="gt-gift__card" role="region" aria-label="QRIS">
-              <div className="gt-gift__card-header">
-                <div className="gt-gift__card-logo gt-gift__card-logo--qris" aria-hidden="true">QR</div>
-                <span className="gt-gift__card-bank-name">QRIS</span>
-                <span className="gt-gift__card-type-badge">Scan</span>
+            <div className="gt-gift__card-body">
+              <div className="gt-gift__card-info">
+                <div className="gt-gift__card-label">Nomor Rekening</div>
+                <div className="gt-gift__card-number">{gift.accountNumber}</div>
+                <div className="gt-gift__card-name">a.n. {gift.accountName}</div>
               </div>
-              <div className="gt-gift__qris-body">
-                <div className="gt-gift__qris-mock" aria-label="QR Code placeholder">
-                  <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <rect x="8" y="8" width="34" height="34" rx="3" stroke="#333" strokeWidth="3" fill="none"/>
-                    <rect x="17" y="17" width="16" height="16" fill="#333"/>
-                    <rect x="58" y="8" width="34" height="34" rx="3" stroke="#333" strokeWidth="3" fill="none"/>
-                    <rect x="67" y="17" width="16" height="16" fill="#333"/>
-                    <rect x="8" y="58" width="34" height="34" rx="3" stroke="#333" strokeWidth="3" fill="none"/>
-                    <rect x="17" y="67" width="16" height="16" fill="#333"/>
-                    <rect x="58" y="58" width="10" height="10" fill="#333"/>
-                    <rect x="74" y="58" width="10" height="10" fill="#333"/>
-                    <rect x="58" y="74" width="10" height="10" fill="#333"/>
-                    <rect x="74" y="74" width="10" height="10" fill="#333"/>
-                  </svg>
-                </div>
-                <p className="gt-gift__qris-label">Scan untuk membayar via QRIS</p>
-              </div>
+              <CopyButton text={gift.accountNumber} />
             </div>
-          )
-        )}
+          </div>
+        ))}
       </div>
+      {qrisUrl && (
+        <div style={{ marginTop: '1.5rem', width: '100%', maxWidth: '380px' }}>
+          <QrisGiftCard
+            qrisUrl={qrisUrl}
+            coupleName={coupleName}
+            theme="royal-velvet"
+          />
+        </div>
+      )}
     </section>
   );
 }
@@ -587,6 +583,18 @@ export default function GenericTheme({
   };
 
   const rawContent = (event.content || {}) as Record<string, unknown>;
+  const rawGiftAccounts = Array.isArray(rawContent.giftAccounts)
+    ? (rawContent.giftAccounts as Array<Record<string, unknown>>)
+    : [];
+  const customGiftAccounts = rawGiftAccounts
+    .filter((a) => typeof a.bankName === 'string' && a.bankName.trim() && typeof a.accountNumber === 'string' && a.accountNumber.trim())
+    .map((a) => ({
+      bankName: String(a.bankName).trim(),
+      accountNumber: String(a.accountNumber).trim(),
+      accountName: String(a.accountName || a.owner || 'Nama Pemilik').trim(),
+    }));
+  const qrisDescSlot = mediaBySlot?.qris?.[0] || media?.find((m) => m.slot === 'qris');
+  const qrisGiftUrl = resolveMediaSrc(qrisDescSlot?.src);
   const partnerOneName = typeof rawContent.partnerOneName === 'string' ? rawContent.partnerOneName.trim() : '';
   const partnerTwoName = typeof rawContent.partnerTwoName === 'string' ? rawContent.partnerTwoName.trim() : '';
   const cleanedEventTitle = cleanInvitationEventTitle(event.title, event.title);
@@ -853,8 +861,14 @@ export default function GenericTheme({
             .map(renderSection)}
 
           {/* Digital Gift Section */}
-          {shouldRenderGiftSection() && (
-            <GiftSection primaryColor={primaryColor} headingFontClass={headingFontClass} />
+          {(customGiftAccounts.length > 0 || Boolean(qrisGiftUrl) || shouldRenderGiftSection()) && (
+            <GiftSection
+              primaryColor={primaryColor}
+              headingFontClass={headingFontClass}
+              accounts={customGiftAccounts}
+              qrisUrl={qrisGiftUrl}
+              coupleName={displayCoupleTitle}
+            />
           )}
 
           {/* Unified RSVP & Guest Check-in QR Pass right above the Closing Slide */}

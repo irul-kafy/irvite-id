@@ -299,6 +299,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   }, []);
 
   const navItems = NAV_ITEMS.filter((item) => {
+    if (userRole === 'STAFF') {
+      return item.id === 'events';
+    }
     if (item.id === 'system-check') {
       return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
     }
@@ -376,7 +379,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     : (userRole ? userRole.charAt(0).toUpperCase() : 'A');
 
   const userTitle = userEmail
-    ? `${userEmail} (${userRole || 'User'})`
+    ? `${userEmail} (${userRole === 'STAFF' ? 'Staf Lapangan' : userRole || 'User'})`
     : 'Admin User';
 
   return (

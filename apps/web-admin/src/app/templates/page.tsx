@@ -74,7 +74,7 @@ export default function TemplateCatalogPage() {
         if (isMounted) setUserRole(role);
 
         if (role === 'STAFF') {
-          router.push('/dashboard');
+          router.push('/events');
           return;
         }
 

@@ -36,6 +36,8 @@ interface EventData {
   title: string;
   slug: string;
   canonicalUrl?: string | null;
+  clientPortalUrl?: string | null;
+  clientKey?: string | null;
   description?: string | null;
   eventDate: string;
   locationDetails?: string | null;
@@ -842,6 +844,54 @@ export default function EventDetailPage({
               </div>
               <div className="action-card__arrow">
                 Buka Distribusi Undangan &rarr;
+              </div>
+            </div>
+
+            {/* Module: Client Self-Service Portal */}
+            <div
+              className="action-card"
+              style={{ border: '1px solid rgba(16, 185, 129, 0.4)', background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 95, 70, 0.02) 100%)' }}
+              id="hub-client-portal-card"
+            >
+              <div className="action-card__icon-wrap stat-card__icon-wrap--emerald">
+                <span style={{ fontSize: '1.25rem' }}>📱</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Portal Mandiri Klien (Self-Service)
+                  <span className="badge badge--success" style={{ fontSize: '0.6875rem' }}>KHUSUS PENGANTIN</span>
+                </div>
+                <div className="action-card__desc">
+                  Berikan tautan ini kepada calon pengantin / klien agar mereka bisa mengelola tamu, menyebarkan undangan via WhatsApp, dan memoderasi doa secara mandiri tanpa memerlukan akses admin.
+                </div>
+                {event.clientPortalUrl && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      id="btn-copy-portal-link"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (event.clientPortalUrl && navigator.clipboard?.writeText) {
+                          navigator.clipboard.writeText(event.clientPortalUrl);
+                          alert('✅ Tautan Portal Mandiri Klien berhasil disalin ke clipboard!');
+                        }
+                      }}
+                    >
+                      📋 Salin Tautan Portal
+                    </button>
+                    <a
+                      href={event.clientPortalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary btn-sm"
+                      id="btn-open-portal"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Buka Portal ↗
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 

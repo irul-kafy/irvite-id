@@ -28,7 +28,7 @@ export class RolesGuard implements CanActivate {
       .getRequest<{ user?: AuthenticatedUser }>();
     const user = request.user;
 
-    if (user && requiredRoles.includes(user.role)) {
+    if (user && (user.role === Role.SUPER_ADMIN || requiredRoles.includes(user.role))) {
       return true;
     }
 
