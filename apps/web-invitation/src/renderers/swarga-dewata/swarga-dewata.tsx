@@ -1195,13 +1195,6 @@ export function SwargaDewataRenderer({
           </button>
           <button
             type="button"
-            onClick={() => scrollToSection('kisah')}
-            className={styles.bottomNavLink}
-          >
-            Kisah
-          </button>
-          <button
-            type="button"
             onClick={() => scrollToSection('acara')}
             className={styles.bottomNavLink}
           >
@@ -1209,17 +1202,16 @@ export function SwargaDewataRenderer({
           </button>
           <button
             type="button"
-            onClick={() => scrollToSection('galeri')}
+            onClick={() =>
+              scrollToSection(
+                media.galleryPhotos && media.galleryPhotos.length > 0
+                  ? 'galeri'
+                  : 'kisah'
+              )
+            }
             className={styles.bottomNavLink}
           >
             Galeri
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollToSection('prada-dana')}
-            className={styles.bottomNavLink}
-          >
-            Hadiah
           </button>
           <button
             type="button"
@@ -1235,17 +1227,12 @@ export function SwargaDewataRenderer({
             }
             className={styles.bottomNavCta}
           >
-            <span className={styles.navCtaLong}>RSVP &amp; QR</span>
-            <span className={styles.navCtaShort}>RSVP</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsGateOpen(false)}
-            className={styles.bottomNavRefresh}
-            title="Buka Ulang Candi Bentar"
-            aria-label="Buka Ulang Candi Bentar"
-          >
-            ↺
+            <span className={styles.navCtaLong}>
+              {showRsvpAndQr ? 'RSVP & QR' : 'Hadiah'}
+            </span>
+            <span className={styles.navCtaShort}>
+              {showRsvpAndQr ? 'RSVP' : 'Hadiah'}
+            </span>
           </button>
         </div>
       </nav>
