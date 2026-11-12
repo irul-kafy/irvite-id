@@ -51,7 +51,7 @@
 
 .sectionHeading {
   font-family: 'Cinzel Decorative', Georgia, serif;
-  font-size: clamp(1.55rem, 4.5vw, 2.55rem);
+  font-size: clamp(1.75rem, 5vw, 2.75rem);
   line-height: 1.25;
   color: var(--gold-bright);
   letter-spacing: 0.04em;
@@ -61,13 +61,13 @@
 
 .sectionEyebrow {
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 13px;
+  font-size: clamp(12px, 2.4vw, 14.5px);
   text-transform: uppercase;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.28em;
   color: var(--gold-champagne);
   text-align: center;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .sectionSubtitle {
@@ -287,16 +287,22 @@
 
 .mainHeroBanner {
   position: relative;
-  min-height: 75vh;
-  min-height: 75dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 80px 20px 60px 20px;
+  padding: clamp(60px, 10vh, 100px) 20px clamp(50px, 8vh, 80px) 20px;
   overflow: hidden;
   border-bottom: 1px solid var(--border-gold-strong);
+}
+
+@media (min-width: 768px) {
+  .mainHeroBanner {
+    padding: 100px 36px 80px 36px;
+  }
 }
 
 .heroStage {
@@ -324,10 +330,17 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 22%;
+  object-position: center 25%;
   opacity: 0.38;
   transform: scale(1.03);
   transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease;
+}
+
+@media (min-width: 768px) {
+  .heroBgMedia img {
+    object-position: center 32%;
+    opacity: 0.44;
+  }
 }
 
 .isUnlocked .heroBgMedia img {
@@ -405,6 +418,24 @@
   border-radius: 15px;
 }
 
+@media (min-width: 768px) {
+  .heroOrnateBorder {
+    top: 24px;
+    bottom: 24px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 48px);
+    max-width: 1020px;
+    border-radius: 28px;
+  }
+
+  .heroOrnateBorder::after {
+    border-radius: 22px;
+    inset: 8px;
+  }
+}
+
 .heroTopChandeliers {
   position: relative;
   z-index: 6;
@@ -412,6 +443,7 @@
   align-items: center;
   justify-content: center;
   gap: clamp(16px, 4vw, 36px);
+  margin-bottom: clamp(8px, 1.5vh, 18px);
   padding-top: 0;
   flex-shrink: 0;
 }
@@ -419,7 +451,7 @@
 .heroCenterPiece {
   position: relative;
   z-index: 6;
-  max-width: 480px;
+  max-width: 540px;
   width: 100%;
   margin: 0 auto;
   padding: 0;
@@ -427,6 +459,12 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .heroCenterPiece {
+    max-width: 760px;
+  }
 }
 
 .cameoPortraitWrap {
@@ -481,11 +519,12 @@
 
 .heroCoupleTitle {
   font-family: 'Cinzel Decorative', Georgia, serif;
-  font-size: clamp(1.5rem, 5.2vw, 2.5rem);
-  line-height: 1.15;
+  font-size: clamp(2.1rem, 7vw, 3.8rem);
+  line-height: 1.18;
   color: var(--gold-bright);
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
-  margin-bottom: 4px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
 }
 
 .heroAmp {
@@ -501,15 +540,15 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 14px;
+  padding: 5px 18px;
   border-top: 1px solid var(--border-gold);
   border-bottom: 1px solid var(--border-gold);
   font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(11px, 2.8vw, 13px);
-  letter-spacing: 0.18em;
+  font-size: clamp(12px, 2.6vw, 15px);
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--gold-champagne);
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .heroGuestBox {
@@ -621,9 +660,9 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  margin-top: 14px;
+  font-size: clamp(11.5px, 2.2vw, 13.5px);
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--gold-champagne);
 }
