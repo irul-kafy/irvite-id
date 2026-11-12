@@ -611,3 +611,4 @@ export function WishesModerationTab({ eventId }: WishesModerationTabProps) {
     </div>
   );
 }
+

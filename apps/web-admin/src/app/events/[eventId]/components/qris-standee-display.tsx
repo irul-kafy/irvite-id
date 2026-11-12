@@ -349,6 +349,10 @@ export function QrisStandeeDisplay({
 
   const coupleLabel = extractStandeeCoupleLabel(eventTitle, content);
   const giftAccounts = extractStandeeGiftAccounts(content);
+  const displayedAccounts = showBankAccounts ? giftAccounts.slice(0, 2) : [];
+  const hasAccounts = displayedAccounts.length > 0;
+  const isTwoAccounts = displayedAccounts.length >= 2;
+
   const formattedDate = (() => {
     if (!eventDate) return '';
     const d = new Date(eventDate);
@@ -374,6 +378,24 @@ export function QrisStandeeDisplay({
       return;
     }
 
+    const printQrSizeMm = isTwoAccounts
+      ? sizeKey === 'A6'
+        ? 34
+        : sizeKey === '5R'
+          ? 44
+          : 52
+      : hasAccounts
+        ? sizeKey === 'A6'
+          ? 40
+          : sizeKey === '5R'
+            ? 52
+            : 60
+        : sizeKey === 'A6'
+          ? 46
+          : sizeKey === '5R'
+            ? 58
+            : 68;
+
     const accountsHtml =
       showBankAccounts && giftAccounts.length > 0
         ? `<div class="accounts">
@@ -382,8 +404,8 @@ export function QrisStandeeDisplay({
               .map(
                 (acc) => `
               <div class="account-pill">
-                <strong>${acc.bankName}</strong> &bull; ${acc.accountNumber}
-                <span>a.n. ${acc.accountHolder}</span>
+                <span><strong>${acc.bankName}</strong> &bull; ${acc.accountNumber}</span>
+                <span class="acc-holder">a.n. ${acc.accountHolder}</span>
               </div>`,
               )
               .join('')}
@@ -443,7 +465,7 @@ export function QrisStandeeDisplay({
       height: ${sizeSpec.heightMm}mm;
       background: ${palette.bgGradient};
       color: ${palette.textColor};
-      padding: 8mm;
+      padding: ${isTwoAccounts ? '7mm 6mm 7.5mm 6mm' : hasAccounts ? '8mm 7mm 8mm 7mm' : '9mm 8mm 9mm 8mm'};
       position: relative;
       display: flex;
       flex-direction: column;
@@ -455,44 +477,44 @@ export function QrisStandeeDisplay({
     }
     .frame-outer {
       position: absolute;
-      inset: 5mm;
+      inset: 4.5mm;
       border: 1.5px solid ${palette.borderOuter};
-      border-radius: 4mm;
+      border-radius: 3.5mm;
       pointer-events: none;
     }
     .frame-inner {
       position: absolute;
-      inset: 6.8mm;
+      inset: 6mm;
       border: 1px solid ${palette.borderInner};
-      border-radius: 3mm;
+      border-radius: 2.5mm;
       pointer-events: none;
     }
     .top-header {
       position: relative;
       z-index: 2;
-      margin-top: 2mm;
+      margin-top: ${isTwoAccounts ? '1mm' : '2mm'};
     }
     .ornament {
-      font-size: 16pt;
+      font-size: ${isTwoAccounts ? '13pt' : '16pt'};
       color: ${palette.accentColor};
       line-height: 1;
-      margin-bottom: 1.5mm;
+      margin-bottom: ${isTwoAccounts ? '1mm' : '1.5mm'};
     }
     .badge {
       display: inline-block;
       background: ${palette.badgeBg};
       color: ${palette.badgeText};
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 7.5pt;
+      font-size: ${isTwoAccounts ? '6.8pt' : '7.5pt'};
       font-weight: 800;
       letter-spacing: 0.22em;
-      padding: 1.2mm 4mm;
+      padding: ${isTwoAccounts ? '1mm 3.5mm' : '1.2mm 4mm'};
       border-radius: 999px;
       text-transform: uppercase;
-      margin-bottom: 2.5mm;
+      margin-bottom: ${isTwoAccounts ? '1.8mm' : '2.5mm'};
     }
     .couple-name {
-      font-size: ${sizeKey === 'A6' ? '16pt' : '21pt'};
+      font-size: ${sizeKey === 'A6' ? (isTwoAccounts ? '14pt' : '16pt') : (isTwoAccounts ? '18pt' : '21pt')};
       font-weight: 700;
       color: ${palette.titleColor};
       margin: 0;
@@ -500,48 +522,48 @@ export function QrisStandeeDisplay({
     }
     .event-date {
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 7.5pt;
+      font-size: ${isTwoAccounts ? '6.8pt' : '7.5pt'};
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: ${palette.mutedColor};
-      margin-top: 1.5mm;
+      margin-top: ${isTwoAccounts ? '1mm' : '1.5mm'};
     }
     .qr-box {
       position: relative;
       z-index: 2;
       background: #ffffff;
-      padding: ${sizeKey === 'A6' ? '3.5mm' : '5mm'};
-      border-radius: 4mm;
-      border: 2px solid ${palette.borderOuter};
+      padding: ${isTwoAccounts ? '2.5mm' : sizeKey === 'A6' ? '3.5mm' : '5mm'};
+      border-radius: 3.5mm;
+      border: 1.8px solid ${palette.borderOuter};
       box-shadow: 0 10px 28px rgba(0,0,0,0.28);
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 2mm 0;
+      margin: ${isTwoAccounts ? '1mm 0' : '2mm 0'};
     }
     .qr-box img {
-      width: ${sizeKey === 'A6' ? '48mm' : sizeKey === '5R' ? '60mm' : '68mm'};
-      height: ${sizeKey === 'A6' ? '48mm' : sizeKey === '5R' ? '60mm' : '68mm'};
+      width: ${printQrSizeMm}mm;
+      height: ${printQrSizeMm}mm;
       object-fit: contain;
       display: block;
     }
     .qris-caption {
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 7pt;
+      font-size: ${isTwoAccounts ? '6pt' : '7pt'};
       font-weight: 800;
       letter-spacing: 0.18em;
       color: #0f172a;
-      margin-top: 2mm;
+      margin-top: ${isTwoAccounts ? '1.2mm' : '2mm'};
       text-transform: uppercase;
     }
     .subheadline {
       position: relative;
       z-index: 2;
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: ${sizeKey === 'A6' ? '7pt' : '8.5pt'};
-      line-height: 1.45;
+      font-size: ${sizeKey === 'A6' ? (isTwoAccounts ? '6.2pt' : '7pt') : (isTwoAccounts ? '7.5pt' : '8.5pt')};
+      line-height: 1.35;
       color: ${palette.mutedColor};
-      max-width: 86%;
+      max-width: 90%;
       margin: 0 auto;
     }
     .accounts {
@@ -549,17 +571,17 @@ export function QrisStandeeDisplay({
       z-index: 2;
       display: flex;
       flex-direction: column;
-      gap: 1.5mm;
-      width: 88%;
-      margin-top: 1.5mm;
+      gap: ${isTwoAccounts ? '1.2mm' : '1.8mm'};
+      width: 90%;
+      margin-top: 1mm;
     }
     .account-pill {
       background: ${palette.cardBg};
       border: 1px solid ${palette.borderInner};
-      border-radius: 2.5mm;
-      padding: 1.5mm 3mm;
+      border-radius: 2mm;
+      padding: ${isTwoAccounts ? '1.2mm 2.8mm' : '1.5mm 3.2mm'};
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: ${sizeKey === 'A6' ? '6.8pt' : '7.8pt'};
+      font-size: ${sizeKey === 'A6' ? (isTwoAccounts ? '6pt' : '6.8pt') : (isTwoAccounts ? '7pt' : '7.8pt')};
       color: ${palette.textColor};
       display: flex;
       justify-content: space-between;
@@ -569,19 +591,20 @@ export function QrisStandeeDisplay({
     .account-pill strong {
       color: ${palette.accentColor};
     }
-    .account-pill span {
+    .account-pill .acc-holder {
       color: ${palette.mutedColor};
-      font-size: 6.8pt;
+      font-size: ${sizeKey === 'A6' ? '5.6pt' : '6.4pt'};
+      white-space: nowrap;
     }
     .footer-brand {
       position: relative;
       z-index: 2;
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 6.5pt;
-      letter-spacing: 0.22em;
+      font-size: ${sizeKey === 'A6' ? '5.6pt' : '6.4pt'};
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: ${palette.mutedColor};
-      margin-bottom: 1.5mm;
+      margin-bottom: 2mm;
     }
     .footer-brand strong {
       color: ${palette.accentColor};
@@ -618,7 +641,7 @@ export function QrisStandeeDisplay({
       ${
         qrisImageUrl
           ? `<img src="${qrisImageUrl}" alt="Barcode QRIS ${coupleLabel}" />`
-          : `<div style="width:60mm;height:60mm;display:flex;align-items:center;justify-content:center;color:#64748b;font-family:sans-serif;font-size:9pt;">Belum ada QRIS</div>`
+          : `<div style="width:${printQrSizeMm}mm;height:${printQrSizeMm}mm;display:flex;align-items:center;justify-content:center;color:#64748b;font-family:sans-serif;font-size:8.5pt;">Belum ada QRIS</div>`
       }
       <div class="qris-caption">QRIS &bull; All Payment Supported</div>
     </div>
@@ -959,243 +982,285 @@ export function QrisStandeeDisplay({
             }}
           >
             {/* Acrylic Standee Mockup Container */}
-            <div
-              style={{
-                width: '100%',
-                maxWidth: sizeKey === 'A6' ? '310px' : sizeKey === '5R' ? '340px' : '370px',
-                aspectRatio: `${sizeSpec.widthMm} / ${sizeSpec.heightMm}`,
-                background: palette.bgGradient,
-                color: palette.textColor,
-                borderRadius: '14px',
-                padding: '1.75rem 1.35rem',
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                textAlign: 'center',
-                boxShadow:
-                  '0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 6px rgba(255, 255, 255, 0.12)',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Double Ornamental Frame */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: '12px',
-                  border: `1.5px solid ${palette.borderOuter}`,
-                  borderRadius: '10px',
-                  pointerEvents: 'none',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: '16px',
-                  border: `1px solid ${palette.borderInner}`,
-                  borderRadius: '7px',
-                  pointerEvents: 'none',
-                }}
-              />
+            {(() => {
+              const previewQrSize = isTwoAccounts
+                ? sizeKey === 'A6'
+                  ? 96
+                  : sizeKey === '5R'
+                    ? 108
+                    : 116
+                : hasAccounts
+                  ? sizeKey === 'A6'
+                    ? 116
+                    : sizeKey === '5R'
+                      ? 128
+                      : 138
+                  : sizeKey === 'A6'
+                    ? 136
+                    : sizeKey === '5R'
+                      ? 152
+                      : 164;
 
-              {/* Top Section */}
-              <div style={{ position: 'relative', zIndex: 2, marginTop: '0.25rem' }}>
+              return (
                 <div
                   style={{
-                    fontSize: '1.25rem',
-                    color: palette.accentColor,
-                    marginBottom: '0.35rem',
+                    width: '100%',
+                    maxWidth: sizeKey === 'A6' ? '310px' : sizeKey === '5R' ? '340px' : '370px',
+                    aspectRatio: `${sizeSpec.widthMm} / ${sizeSpec.heightMm}`,
+                    background: palette.bgGradient,
+                    color: palette.textColor,
+                    borderRadius: '14px',
+                    padding: isTwoAccounts
+                      ? '1.15rem 1.15rem 1rem 1.15rem'
+                      : hasAccounts
+                        ? '1.4rem 1.25rem 1.2rem 1.25rem'
+                        : '1.75rem 1.35rem',
+                    position: 'relative',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    boxShadow:
+                      '0 25px 50px -12px rgba(0, 0, 0, 0.65), 0 0 0 6px rgba(255, 255, 255, 0.12)',
+                    overflow: 'hidden',
                   }}
                 >
-                  {palette.ornamentSymbol}
-                </div>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    background: palette.badgeBg,
-                    color: palette.badgeText,
-                    fontSize: '0.625rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.2em',
-                    padding: '0.22rem 0.75rem',
-                    borderRadius: '999px',
-                    textTransform: 'uppercase',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  {headline || 'AMPLOP DIGITAL'}
-                </span>
-                <h4
-                  style={{
-                    fontFamily: 'Georgia, serif',
-                    fontSize: '1.45rem',
-                    fontWeight: 700,
-                    color: palette.titleColor,
-                    margin: 0,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {coupleLabel}
-                </h4>
-                {formattedDate && (
+                  {/* Double Ornamental Frame */}
                   <div
                     style={{
-                      fontSize: '0.65rem',
-                      letterSpacing: '0.12em',
-                      textTransform: 'uppercase',
-                      color: palette.mutedColor,
-                      marginTop: '0.25rem',
-                    }}
-                  >
-                    {formattedDate}
-                  </div>
-                )}
-              </div>
-
-              {/* Center QRIS Box */}
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  background: '#ffffff',
-                  padding: '0.85rem',
-                  borderRadius: '12px',
-                  border: `2px solid ${palette.borderOuter}`,
-                  boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  margin: '0.5rem 0',
-                }}
-              >
-                {qrisImageUrl ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={qrisImageUrl}
-                    alt={`Barcode QRIS ${coupleLabel}`}
-                    style={{
-                      width: '168px',
-                      height: '168px',
-                      objectFit: 'contain',
-                      display: 'block',
+                      position: 'absolute',
+                      inset: isTwoAccounts ? '9px' : '12px',
+                      border: `1.5px solid ${palette.borderOuter}`,
+                      borderRadius: '10px',
+                      pointerEvents: 'none',
                     }}
                   />
-                ) : (
                   <div
                     style={{
-                      width: '168px',
-                      height: '168px',
+                      position: 'absolute',
+                      inset: isTwoAccounts ? '13px' : '16px',
+                      border: `1px solid ${palette.borderInner}`,
+                      borderRadius: '7px',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Top Section */}
+                  <div style={{ position: 'relative', zIndex: 2, marginTop: isTwoAccounts ? '0.1rem' : '0.25rem' }}>
+                    <div
+                      style={{
+                        fontSize: isTwoAccounts ? '0.95rem' : '1.25rem',
+                        color: palette.accentColor,
+                        marginBottom: isTwoAccounts ? '0.15rem' : '0.35rem',
+                      }}
+                    >
+                      {palette.ornamentSymbol}
+                    </div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        background: palette.badgeBg,
+                        color: palette.badgeText,
+                        fontSize: isTwoAccounts ? '0.55rem' : '0.625rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.2em',
+                        padding: isTwoAccounts ? '0.16rem 0.6rem' : '0.22rem 0.75rem',
+                        borderRadius: '999px',
+                        textTransform: 'uppercase',
+                        marginBottom: isTwoAccounts ? '0.25rem' : '0.5rem',
+                      }}
+                    >
+                      {headline || 'AMPLOP DIGITAL'}
+                    </span>
+                    <h4
+                      style={{
+                        fontFamily: 'Georgia, serif',
+                        fontSize: isTwoAccounts
+                          ? '1.18rem'
+                          : sizeKey === 'A6'
+                            ? '1.25rem'
+                            : '1.45rem',
+                        fontWeight: 700,
+                        color: palette.titleColor,
+                        margin: 0,
+                        lineHeight: 1.15,
+                      }}
+                    >
+                      {coupleLabel}
+                    </h4>
+                    {formattedDate && (
+                      <div
+                        style={{
+                          fontSize: isTwoAccounts ? '0.58rem' : '0.65rem',
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          color: palette.mutedColor,
+                          marginTop: isTwoAccounts ? '0.15rem' : '0.25rem',
+                        }}
+                      >
+                        {formattedDate}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Center QRIS Box */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      background: '#ffffff',
+                      padding: isTwoAccounts
+                        ? '0.45rem 0.55rem'
+                        : hasAccounts
+                          ? '0.6rem 0.7rem'
+                          : '0.85rem',
+                      borderRadius: '11px',
+                      border: `2px solid ${palette.borderOuter}`,
+                      boxShadow: '0 12px 28px rgba(0, 0, 0, 0.28)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#64748b',
-                      background: '#f8fafc',
-                      borderRadius: '8px',
-                      border: '1px dashed #cbd5e1',
-                      padding: '1rem',
-                      fontSize: '0.75rem',
+                      margin: isTwoAccounts
+                        ? '0.2rem 0'
+                        : hasAccounts
+                          ? '0.35rem 0'
+                          : '0.5rem 0',
                     }}
                   >
-                    <span style={{ fontSize: '1.75rem', marginBottom: '0.35rem' }}>📷</span>
-                    <span>Unggah QRIS di panel kiri untuk melihat pratinjau</span>
-                  </div>
-                )}
-                <span
-                  style={{
-                    fontSize: '0.6rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.16em',
-                    color: '#0f172a',
-                    marginTop: '0.45rem',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  QRIS &bull; ALL PAYMENT SUPPORTED
-                </span>
-              </div>
-
-              {/* Instructions & Optional Bank Accounts */}
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: '0.72rem',
-                    lineHeight: 1.45,
-                    color: palette.mutedColor,
-                    margin: 0,
-                    maxWidth: '90%',
-                  }}
-                >
-                  {subheadline}
-                </p>
-
-                {showBankAccounts && giftAccounts.length > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.3rem',
-                      width: '92%',
-                      marginTop: '0.15rem',
-                    }}
-                  >
-                    {giftAccounts.slice(0, 2).map((acc, idx) => (
-                      <div
-                        key={idx}
+                    {qrisImageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={qrisImageUrl}
+                        alt={`Barcode QRIS ${coupleLabel}`}
                         style={{
-                          background: palette.cardBg,
-                          border: `1px solid ${palette.borderInner}`,
-                          borderRadius: '6px',
-                          padding: '0.3rem 0.6rem',
-                          fontSize: '0.68rem',
+                          width: `${previewQrSize}px`,
+                          height: `${previewQrSize}px`,
+                          objectFit: 'contain',
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: `${previewQrSize}px`,
+                          height: `${previewQrSize}px`,
                           display: 'flex',
-                          justifyContent: 'space-between',
+                          flexDirection: 'column',
                           alignItems: 'center',
-                          gap: '0.5rem',
+                          justifyContent: 'center',
+                          color: '#64748b',
+                          background: '#f8fafc',
+                          borderRadius: '8px',
+                          border: '1px dashed #cbd5e1',
+                          padding: isTwoAccounts ? '0.5rem' : '1rem',
+                          fontSize: isTwoAccounts ? '0.68rem' : '0.75rem',
                         }}
                       >
-                        <span>
-                          <strong style={{ color: palette.accentColor }}>
-                            {acc.bankName}
-                          </strong>{' '}
-                          &bull; {acc.accountNumber}
-                        </span>
-                        <span style={{ color: palette.mutedColor, fontSize: '0.62rem' }}>
-                          a.n. {acc.accountHolder}
-                        </span>
+                        <span style={{ fontSize: isTwoAccounts ? '1.35rem' : '1.75rem', marginBottom: '0.25rem' }}>📷</span>
+                        <span>Unggah QRIS di panel kiri untuk melihat pratinjau</span>
                       </div>
-                    ))}
+                    )}
+                    <span
+                      style={{
+                        fontSize: isTwoAccounts ? '0.52rem' : '0.6rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.16em',
+                        color: '#0f172a',
+                        marginTop: isTwoAccounts ? '0.25rem' : '0.45rem',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      QRIS &bull; ALL PAYMENT SUPPORTED
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Footer Branding */}
-              <div
-                style={{
-                  position: 'relative',
-                  zIndex: 2,
-                  fontSize: '0.56rem',
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: palette.mutedColor,
-                  marginBottom: '0.15rem',
-                }}
-              >
-                Terima Kasih Atas Doa Restu Anda &bull;{' '}
-                <strong style={{ color: palette.accentColor }}>IRVITE.ID</strong>
-              </div>
-            </div>
+                  {/* Instructions & Optional Bank Accounts */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: isTwoAccounts ? '0.25rem' : '0.5rem',
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: isTwoAccounts ? '0.62rem' : '0.72rem',
+                        lineHeight: isTwoAccounts ? 1.35 : 1.45,
+                        color: palette.mutedColor,
+                        margin: 0,
+                        maxWidth: '92%',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {subheadline}
+                    </p>
+
+                    {showBankAccounts && giftAccounts.length > 0 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: isTwoAccounts ? '0.22rem' : '0.3rem',
+                          width: '94%',
+                          marginTop: '0.1rem',
+                        }}
+                      >
+                        {giftAccounts.slice(0, 2).map((acc, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              background: palette.cardBg,
+                              border: `1px solid ${palette.borderInner}`,
+                              borderRadius: '6px',
+                              padding: isTwoAccounts ? '0.22rem 0.5rem' : '0.3rem 0.6rem',
+                              fontSize: isTwoAccounts ? '0.6rem' : '0.68rem',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                            }}
+                          >
+                            <span>
+                              <strong style={{ color: palette.accentColor }}>
+                                {acc.bankName}
+                              </strong>{' '}
+                              &bull; {acc.accountNumber}
+                            </span>
+                            <span style={{ color: palette.mutedColor, fontSize: isTwoAccounts ? '0.55rem' : '0.62rem', whiteSpace: 'nowrap' }}>
+                              a.n. {acc.accountHolder}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Branding */}
+                  <div
+                    style={{
+                      position: 'relative',
+                      zIndex: 2,
+                      fontSize: isTwoAccounts ? '0.52rem' : '0.56rem',
+                      letterSpacing: isTwoAccounts ? '0.16em' : '0.2em',
+                      textTransform: 'uppercase',
+                      color: palette.mutedColor,
+                      marginBottom: isTwoAccounts ? '0.25rem' : '0.35rem',
+                    }}
+                  >
+                    Terima Kasih Atas Doa Restu Anda &bull;{' '}
+                    <strong style={{ color: palette.accentColor }}>IRVITE.ID</strong>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Acrylic Base Stand Visual Effect */}
             <div
@@ -1321,6 +1386,44 @@ export function QrisStandeeDisplay({
             >
               {subheadline}
             </p>
+
+            {showBankAccounts && giftAccounts.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.45rem',
+                  width: '90%',
+                  maxWidth: '400px',
+                  marginTop: '0.25rem',
+                }}
+              >
+                {giftAccounts.slice(0, 2).map((acc, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      background: palette.cardBg,
+                      border: `1px solid ${palette.borderInner}`,
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <span>
+                      <strong style={{ color: palette.accentColor }}>{acc.bankName}</strong>{' '}
+                      &bull; {acc.accountNumber}
+                    </span>
+                    <span style={{ color: palette.mutedColor, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                      a.n. {acc.accountHolder}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

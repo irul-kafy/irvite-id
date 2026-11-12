@@ -76,3 +76,4 @@ test('Wishes BFF DELETE forwards delete to upstream and returns 200', async () =
 });
 
 (Module.prototype as any).require = origRequire;
+

@@ -70,5 +70,16 @@ test('Admin Dashboard QRIS Standee Display Specifications', async (t) => {
     assert.match(pageSource, /id="hub-qris-standee-card"/);
     assert.match(pageSource, /<QrisStandeeDisplay/);
   });
+
+  await t.test('QrisStandeeDisplay implements anti-overflow sizing and safe border clearances for 2 bank accounts', () => {
+    const componentSource = readFileSync(
+      path.join(__dirname, './[eventId]/components/qris-standee-display.tsx'),
+      'utf8',
+    );
+    assert.match(componentSource, /isTwoAccounts/);
+    assert.match(componentSource, /previewQrSize/);
+    assert.match(componentSource, /printQrSizeMm/);
+    assert.match(componentSource, /WebkitLineClamp:\s*2/);
+  });
 });
 
