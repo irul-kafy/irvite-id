@@ -902,7 +902,7 @@ export function RoyalVelvetRenderer({
           {/* Form Kirim Doa Restu */}
           <form
             onSubmit={handleWishSubmit}
-            className={`${styles.baroqueCard} mb-8`}
+            className={`${styles.baroqueCard} ${styles.wishesFormCard}`}
           >
             <div className={styles.formFieldGroup}>
               <div className="flex justify-between items-baseline mb-1">

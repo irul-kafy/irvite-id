@@ -117,17 +117,17 @@
 }
 
 .qr-container.opaline-nocturne {
-  --qr-bg: rgba(255, 252, 242, 0.94);
+  --qr-bg: rgba(18, 43, 40, 0.92);
   --qr-border: rgba(113, 147, 143, 0.45);
-  --qr-shadow: 0 16px 36px rgba(33, 73, 73, 0.1);
-  --qr-text: #254347;
-  --qr-heading: #163336;
-  --qr-badge-bg: rgba(39, 78, 85, 0.12);
-  --qr-badge-text: #476c70;
+  --qr-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --qr-text: #e6ecd8;
+  --qr-heading: #f0f7f5;
+  --qr-badge-bg: rgba(71, 108, 112, 0.3);
+  --qr-badge-text: #96c8bf;
   --qr-badge-border: rgba(113, 147, 143, 0.35);
   --qr-box-bg: #ffffff;
-  --qr-box-border: rgba(113, 147, 143, 0.35);
-  --qr-inst-text: #536766;
+  --qr-box-border: rgba(113, 147, 143, 0.45);
+  --qr-inst-text: #c2dcd5;
 }
 
 .qr-container.auto {

@@ -550,7 +550,8 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 11px 20px;
+  margin-top: 14px;
+  padding: 12px 20px;
   border-radius: 999px;
   background: linear-gradient(135deg, #F4DFB0 0%, #C69C53 52%, #9D793B 100%);
   color: var(--text-dark);
@@ -913,21 +914,33 @@
   }
 }
 
+@container (max-width: 640px) {
+  .rsvpGridContainer {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .rsvpSectionSlot {
   background: rgba(35, 13, 19, 0.88);
   border: 1px solid var(--border-gold);
   border-radius: 20px;
   padding: 24px 20px;
   box-shadow: var(--shadow-royal);
+  width: 100%;
+}
+
+.wishesFormCard {
+  margin-bottom: 32px;
 }
 
 .wishesFeed {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 380px;
+  gap: 14px;
+  max-height: 420px;
   overflow-y: auto;
   padding-right: 4px;
+  margin-top: 12px;
 }
 
 .wishEntry {

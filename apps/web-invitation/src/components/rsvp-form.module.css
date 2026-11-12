@@ -149,23 +149,23 @@
 
 /* Opaline Nocturne (Botanical Sage & Forest Green) */
 .opalineNocturne {
-  --rsvp-card-bg: rgba(255, 252, 242, 0.94);
+  --rsvp-card-bg: rgba(18, 43, 40, 0.92);
   --rsvp-card-border: rgba(113, 147, 143, 0.45);
-  --rsvp-card-shadow: 0 16px 36px rgba(33, 73, 73, 0.12);
-  --rsvp-text: #254347;
-  --rsvp-heading: #163336;
-  --rsvp-choice-bg: rgba(255, 255, 255, 0.75);
-  --rsvp-choice-border: rgba(71, 108, 112, 0.35);
-  --rsvp-choice-text: #254347;
-  --rsvp-choice-active-bg: rgba(39, 78, 85, 0.12);
-  --rsvp-choice-active-border: #476c70;
-  --rsvp-choice-active-text: #163336;
-  --rsvp-select-bg: rgba(255, 255, 255, 0.85);
-  --rsvp-select-border: rgba(71, 108, 112, 0.4);
-  --rsvp-select-text: #163336;
-  --rsvp-btn-bg: #476c70;
-  --rsvp-btn-text: #fff9ed;
-  --rsvp-btn-shadow: 0 6px 18px rgba(33, 73, 73, 0.25);
+  --rsvp-card-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --rsvp-text: #e6ecd8;
+  --rsvp-heading: #f0f7f5;
+  --rsvp-choice-bg: rgba(10, 28, 26, 0.75);
+  --rsvp-choice-border: rgba(113, 147, 143, 0.35);
+  --rsvp-choice-text: #c2dcd5;
+  --rsvp-choice-active-bg: rgba(71, 108, 112, 0.35);
+  --rsvp-choice-active-border: #71938f;
+  --rsvp-choice-active-text: #f7faf8;
+  --rsvp-select-bg: rgba(10, 28, 26, 0.85);
+  --rsvp-select-border: rgba(113, 147, 143, 0.4);
+  --rsvp-select-text: #f0f7f5;
+  --rsvp-btn-bg: linear-gradient(135deg, #476c70 0%, #2f5357 100%);
+  --rsvp-btn-text: #ffffff;
+  --rsvp-btn-shadow: 0 6px 20px rgba(33, 73, 73, 0.35);
 }
 
 /* Auto Theme Variables */

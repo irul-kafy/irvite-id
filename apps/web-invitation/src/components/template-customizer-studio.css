@@ -410,6 +410,9 @@
 .irv-studio-device-frame.is-device-mobile [class*="giftSection"],
 .irv-studio-device-frame.is-device-mobile [class*="gift"],
 .irv-studio-device-frame.is-device-mobile [class*="rsvpQrGrid"],
+.irv-studio-device-frame.is-device-mobile [class*="rsvpGridContainer"],
+.irv-studio-device-frame.is-device-mobile [class*="rsvpGrid"],
+.irv-studio-device-frame.is-device-mobile [class*="gt-rsvp-qr-grid"],
 .irv-studio-device-frame.is-device-mobile [class*="story"] {
   grid-template-columns: 1fr !important;
   gap: 24px !important;

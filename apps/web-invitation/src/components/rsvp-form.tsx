@@ -23,6 +23,10 @@ export interface RsvpFormProps {
   variant?: RsvpVariant;
 }
 
+function cx(...classes: (string | undefined | null | false)[]): string {
+  return Array.from(new Set(classes.filter(Boolean))).join(' ');
+}
+
 export function RsvpForm({
   uniqueCode,
   maxPax,
@@ -57,13 +61,13 @@ export function RsvpForm({
     themeClass = styles.auto || '';
   }
 
-  const cardClasses = [styles.card, themeClass, className].filter(Boolean).join(' ');
+  const cardClasses = cx(styles.card, 'card', themeClass, className);
 
   if (!rsvp.canRespond) {
     return (
       <div className={cardClasses} role="status">
-        <h3 className={styles.heading}>RSVP sudah ditutup</h3>
-        <p className={styles.description}>
+        <h3 className={cx(styles.heading, 'heading')}>RSVP sudah ditutup</h3>
+        <p className={cx(styles.description, 'description')}>
           {rsvp.response === 'YES'
             ? `Anda telah mengkonfirmasi kehadiran untuk ${rsvp.pax} orang.`
             : rsvp.response === 'NO'
@@ -122,56 +126,56 @@ export function RsvpForm({
 
   return (
     <div className={cardClasses}>
-      <h3 className={styles.heading}>Konfirmasi Kehadiran</h3>
+      <h3 className={cx(styles.heading, 'heading')}>Konfirmasi Kehadiran</h3>
       
       {errorMsg && (
-        <div className={`${styles.notice} ${styles.error}`} role="alert">
+        <div className={cx(styles.notice, styles.error, 'notice', 'error')} role="alert">
           {errorMsg}
         </div>
       )}
 
       {rsvp.response !== 'PENDING' && (
-        <div className={`${styles.notice} ${styles.success}`} role="status">
+        <div className={cx(styles.notice, styles.success, 'notice', 'success')} role="status">
           Berhasil! RSVP Anda telah disimpan.
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className={styles.form} aria-label="Form konfirmasi kehadiran" aria-busy={isSubmitting}>
-        <div className={styles.choices} role="group" aria-label="Pilihan kehadiran">
-          <label className={styles.choice}>
+      <form onSubmit={handleSubmit} className={cx(styles.form, 'form')} aria-label="Form konfirmasi kehadiran" aria-busy={isSubmitting}>
+        <div className={cx(styles.choices, 'choices')} role="group" aria-label="Pilihan kehadiran">
+          <label className={cx(styles.choice, 'choice')}>
             <input
               type="radio"
               name="response"
               value="YES"
               checked={selectedResponse === 'YES'}
               onChange={() => setSelectedResponse('YES')}
-              className={styles.radio}
+              className={cx(styles.radio, 'radio')}
               disabled={isSubmitting}
             />
-            <span className={styles.choiceText}>
+            <span className={cx(styles.choiceText, 'choiceText')}>
               Ya, saya hadir
             </span>
           </label>
           
-          <label className={styles.choice}>
+          <label className={cx(styles.choice, 'choice')}>
             <input
               type="radio"
               name="response"
               value="NO"
               checked={selectedResponse === 'NO'}
               onChange={() => setSelectedResponse('NO')}
-              className={styles.radio}
+              className={cx(styles.radio, 'radio')}
               disabled={isSubmitting}
             />
-            <span className={styles.choiceText}>
+            <span className={cx(styles.choiceText, 'choiceText')}>
               Maaf, tidak bisa
             </span>
           </label>
         </div>
 
         {selectedResponse === 'YES' && maxPax > 1 && (
-          <div className={styles.field}>
-            <label htmlFor="pax" className={styles.label}>
+          <div className={cx(styles.field, 'field')}>
+            <label htmlFor="pax" className={cx(styles.label, 'label')}>
               Jumlah Kehadiran (Maksimal {maxPax})
             </label>
             <select
@@ -179,7 +183,7 @@ export function RsvpForm({
               value={pax}
               onChange={(e) => setPax(Number(e.target.value))}
               disabled={isSubmitting}
-              className={styles.select}
+              className={cx(styles.select, 'select')}
             >
               {Array.from({ length: maxPax }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
@@ -193,7 +197,7 @@ export function RsvpForm({
         <button
           type="submit"
           disabled={!selectedResponse || isSubmitting || (selectedResponse === rsvp.response && pax === rsvp.pax)}
-          className={styles.submit}
+          className={cx(styles.submit, 'submit')}
         >
           {isSubmitting ? 'Menyimpan...' : 'Simpan RSVP'}
         </button>
