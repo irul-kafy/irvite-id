@@ -1,4 +1,4 @@
-﻿import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class StaffQueryDto {
@@ -22,4 +22,8 @@ export class StaffQueryDto {
   @IsOptional()
   @IsIn(['all', 'active', 'inactive'])
   status?: 'all' | 'active' | 'inactive' = 'all';
+
+  @IsOptional()
+  @IsIn(['ALL', 'ADMIN', 'STAFF'])
+  role?: 'ALL' | 'ADMIN' | 'STAFF' = 'ALL';
 }

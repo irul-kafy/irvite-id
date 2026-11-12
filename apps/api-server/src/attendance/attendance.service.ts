@@ -1,3 +1,5 @@
+import * as crypto from 'crypto';
+import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
 import {
   Injectable,
@@ -407,6 +409,94 @@ export class AttendanceService {
         tableNumber: invitation.guest.tableNumber ?? null,
       },
     };
+  }
+
+  async walkInCheckIn(
+    eventId: string,
+    userId: string,
+    _role: Role,
+    dto: WalkInCheckInDto,
+  ) {
+    await this.authorizeEvent(eventId, userId);
+
+    const cleanName = (dto.name || '').trim();
+    if (!cleanName) {
+      throw new BadRequestException('Nama tamu dadakan tidak boleh kosong');
+    }
+    const pax = Math.max(1, dto.pax || 1);
+    const category = (dto.category && dto.category.trim()) || 'ON_THE_SPOT';
+    const tableNumber = dto.tableNumber ? dto.tableNumber.trim() : null;
+
+    return this.db.$transaction(async (tx) => {
+      const guest = await tx.guest.create({
+        data: {
+          eventId,
+          name: cleanName,
+          category,
+          maxPax: pax,
+          tableNumber,
+        },
+      });
+
+      const uniqueCode = crypto.randomBytes(16).toString('base64url');
+      const invitation = await tx.invitation.create({
+        data: {
+          eventId,
+          guestId: guest.id,
+          uniqueCode,
+          status: 'RSVP_YES',
+          rsvpPax: pax,
+        },
+      });
+
+      const now = new Date();
+      await tx.attendance.create({
+        data: {
+          invitationId: invitation.id,
+          eventId,
+          scannedById: userId,
+          scannedPax: pax,
+          scannedAt: now,
+          status: 'VALID',
+        },
+      });
+
+      this.dispatchGoogleSheetSync(
+        eventId,
+        {
+          id: guest.id,
+          name: guest.name,
+          category: guest.category || 'ON_THE_SPOT',
+          maxPax: guest.maxPax,
+        },
+        pax,
+        pax,
+        pax,
+        0,
+        'COMPLETE',
+        userId,
+      ).catch(() => {});
+
+      return {
+        result: 'CHECKED_IN' as const,
+        status: 'COMPLETE' as const,
+        scannedPax: pax,
+        maxPax: pax,
+        remainingPax: 0,
+        deltaPax: pax,
+        guest: {
+          id: guest.id,
+          name: guest.name,
+          category: guest.category,
+          tableNumber: guest.tableNumber,
+          maxPax: guest.maxPax,
+        },
+        attendance: {
+          scannedPax: pax,
+          scannedAt: now.toISOString(),
+        },
+      };
+    });
   }
 
   async undoCheckIn(

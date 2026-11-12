@@ -346,6 +346,45 @@ test("BFF POST body forwards only email and password (strips unintended fields)"
   mock.reset();
 });
 
+// 13b. POST body forwards role: ADMIN when role is ADMIN
+test("BFF POST body forwards role ADMIN when role is ADMIN", async () => {
+  let capturedBody = "";
+  mock.method(global, "fetch", async (_url: string, opts: any) => {
+    capturedBody = opts.body;
+    return new Response(
+      JSON.stringify({
+        id: "new-admin-id",
+        email: "wo@organizer.com",
+        role: "ADMIN",
+        isActive: true,
+      }),
+      { status: 201 },
+    );
+  });
+
+  const req = new Request("http://localhost/api/staff", {
+    method: "POST",
+    headers: {
+      origin: "http://localhost:3001",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      email: "wo@organizer.com",
+      password: "securepassword1234",
+      role: "ADMIN",
+    }),
+  });
+  const res = await StaffPost(req);
+  assert.strictEqual(res.status, 201);
+  const parsed = JSON.parse(capturedBody);
+  assert.deepStrictEqual(parsed, {
+    email: "wo@organizer.com",
+    password: "securepassword1234",
+    role: "ADMIN",
+  });
+  mock.reset();
+});
+
 // 14. PATCH staff forwards only: email, isActive
 test("BFF PATCH /staff/:id forwards only email and isActive", async () => {
   let capturedBody = "";

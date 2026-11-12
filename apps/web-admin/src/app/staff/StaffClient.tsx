@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -7,6 +7,7 @@ import "./staff.css";
 interface StaffItem {
   id: string;
   email: string;
+  role?: string;
   isActive: boolean;
   assignedEventCount: number;
   createdAt: string;
@@ -47,6 +48,7 @@ export default function StaffClient() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "ADMIN" | "STAFF">("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notification, setNotification] = useState<{
@@ -59,6 +61,7 @@ export default function StaffClient() {
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
+  const [createRole, setCreateRole] = useState<"STAFF" | "ADMIN">("STAFF");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -130,6 +133,7 @@ export default function StaffClient() {
       params.set("limit", "20");
       if (search.trim()) params.set("search", search.trim());
       if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("role", roleFilter);
 
       const res = await fetch(`/api/staff?${params.toString()}`);
 
@@ -155,7 +159,7 @@ export default function StaffClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, router]);
+  }, [page, search, statusFilter, roleFilter, router]);
 
   // Initial and param change fetch (async IIFE without synchronous setState in effect)
   useEffect(() => {
@@ -169,6 +173,7 @@ export default function StaffClient() {
         params.set("limit", "20");
         if (search.trim()) params.set("search", search.trim());
         if (statusFilter !== "all") params.set("status", statusFilter);
+        params.set("role", roleFilter);
 
         const res = await fetch(`/api/staff?${params.toString()}`);
 
@@ -205,7 +210,7 @@ export default function StaffClient() {
     return () => {
       ignore = true;
     };
-  }, [isSuperAdmin, page, search, statusFilter, router]);
+  }, [isSuperAdmin, page, search, statusFilter, roleFilter, router]);
 
   // Handle edit email
   const handleEditEmail = async (e: React.FormEvent) => {
@@ -308,6 +313,7 @@ export default function StaffClient() {
         body: JSON.stringify({
           email: createEmail.trim(),
           password: createPassword,
+          role: createRole,
         }),
       });
 
@@ -321,7 +327,7 @@ export default function StaffClient() {
       }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        setCreateError(errData.message || "Gagal menambahkan staff.");
+        setCreateError(errData.message || "Gagal menambahkan akun.");
         return;
       }
 
@@ -329,10 +335,11 @@ export default function StaffClient() {
       setCreateEmail("");
       setCreatePassword("");
       setCreateConfirmPassword("");
+      setCreateRole("STAFF");
       setShowCreateModal(false);
       setNotification({
         type: "success",
-        message: "Akun operator staff berhasil dibuat.",
+        message: `Akun ${createRole === "ADMIN" ? "Admin (WO)" : "Operator Staff"} berhasil dibuat.`,
       });
       refreshStaffList();
     } catch {
@@ -503,10 +510,9 @@ export default function StaffClient() {
       {/* Header */}
       <div className="staff-page-header">
         <div>
-          <h1>Manajemen Staff Operator</h1>
+          <h1>Manajemen Pengguna (Admin & Staff)</h1>
           <p>
-            Kelola akun operator scanner check-in untuk seluruh acara di
-            platform
+            Kelola akun pengelola acara (Admin/WO) dan operator scanner check-in di platform
           </p>
         </div>
         <div>
@@ -516,12 +522,13 @@ export default function StaffClient() {
               setCreateEmail("");
               setCreatePassword("");
               setCreateConfirmPassword("");
+              setCreateRole("STAFF");
               setCreateError("");
               setShowCreateModal(true);
             }}
             id="btn-add-staff"
           >
-            + Tambah Staff Baru
+            + Tambah Akun Baru
           </button>
         </div>
       </div>
@@ -567,26 +574,50 @@ export default function StaffClient() {
           />
         </div>
 
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <label
-            htmlFor="status-filter"
-            style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}
-          >
-            Status:
-          </label>
-          <select
-            id="status-filter"
-            className="staff-filter-select"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as "all" | "active" | "inactive");
-              setPage(1);
-            }}
-          >
-            <option value="all">Semua Status</option>
-            <option value="active">Hanya Aktif</option>
-            <option value="inactive">Hanya Nonaktif</option>
-          </select>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <label
+              htmlFor="role-filter"
+              style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}
+            >
+              Peran:
+            </label>
+            <select
+              id="role-filter"
+              className="staff-filter-select"
+              value={roleFilter}
+              onChange={(e) => {
+                setRoleFilter(e.target.value as "ALL" | "ADMIN" | "STAFF");
+                setPage(1);
+              }}
+            >
+              <option value="ALL">Semua Peran</option>
+              <option value="ADMIN">👑 Admin (WO)</option>
+              <option value="STAFF">🎫 Staff Scanner</option>
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <label
+              htmlFor="status-filter"
+              style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}
+            >
+              Status:
+            </label>
+            <select
+              id="status-filter"
+              className="staff-filter-select"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as "all" | "active" | "inactive");
+                setPage(1);
+              }}
+            >
+              <option value="all">Semua Status</option>
+              <option value="active">Hanya Aktif</option>
+              <option value="inactive">Hanya Nonaktif</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -596,7 +627,8 @@ export default function StaffClient() {
           <table className="staff-table">
             <thead>
               <tr>
-                <th>Email Operator</th>
+                <th>Email Pengguna</th>
+                <th>Peran</th>
                 <th>Status</th>
                 <th>Penugasan Acara</th>
                 <th>Terdaftar Sejak</th>
@@ -607,35 +639,42 @@ export default function StaffClient() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     style={{
                       textAlign: "center",
                       padding: "3rem",
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Memuat data operator staff...
+                    Memuat data akun...
                   </td>
                 </tr>
               ) : staffList.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     style={{
                       textAlign: "center",
                       padding: "3rem",
                       color: "var(--text-secondary)",
                     }}
                   >
-                    {search || statusFilter !== "all"
-                      ? "Tidak ada staff yang sesuai dengan filter pencarian."
-                      : "Belum ada akun staff operator yang terdaftar."}
+                    {search || statusFilter !== "all" || roleFilter !== "ALL"
+                      ? "Tidak ada akun yang sesuai dengan filter pencarian."
+                      : "Belum ada akun pengelola atau staff yang terdaftar."}
                   </td>
                 </tr>
               ) : (
                 staffList.map((staff) => (
                   <tr key={staff.id} id={`staff-row-${staff.id}`}>
                     <td style={{ fontWeight: 600 }}>{staff.email}</td>
+                    <td>
+                      <span
+                        className={`staff-role-badge ${staff.role === 'ADMIN' ? 'role-admin' : 'role-staff'}`}
+                      >
+                        {staff.role === 'ADMIN' ? '👑 Admin (WO)' : '🎫 Staff Scanner'}
+                      </span>
+                    </td>
                     <td>
                       <span
                         className={`staff-status-badge ${staff.isActive ? "active" : "inactive"}`}
@@ -754,7 +793,7 @@ export default function StaffClient() {
         >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Tambah Akun Staff Operator</h3>
+              <h3>Tambah Akun Pengguna</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 disabled={createLoading}
@@ -775,12 +814,32 @@ export default function StaffClient() {
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="create-email">Alamat Email Staff</label>
+                  <label htmlFor="create-role">Peran Akun (Role)</label>
+                  <select
+                    id="create-role"
+                    className="staff-filter-select"
+                    style={{ width: "100%", padding: "0.625rem" }}
+                    value={createRole}
+                    onChange={(e) => setCreateRole(e.target.value as "STAFF" | "ADMIN")}
+                    disabled={createLoading}
+                  >
+                    <option value="STAFF">🎫 Staff (Operator Scanner Check-In)</option>
+                    <option value="ADMIN">👑 Admin (Pengelola Acara / Wedding Organizer)</option>
+                  </select>
+                  <div className="form-hint">
+                    {createRole === "ADMIN"
+                      ? "Admin dapat membuat & mengelola acara, mengimpor/mengedit daftar tamu, dan melihat laporan."
+                      : "Staff hanya dapat memindai tiket / QR check-in pada acara yang ditugaskan."}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="create-email">Alamat Email</label>
                   <input
                     id="create-email"
                     type="email"
                     required
-                    placeholder="operator@irvite.id"
+                    placeholder={createRole === "ADMIN" ? "admin@organizer.com" : "operator@irvite.id"}
                     value={createEmail}
                     onChange={(e) => setCreateEmail(e.target.value)}
                     disabled={createLoading}
@@ -834,7 +893,7 @@ export default function StaffClient() {
                   className="btn btn-primary"
                   disabled={createLoading}
                 >
-                  {createLoading ? "Menyimpan..." : "Simpan Staff"}
+                  {createLoading ? "Menyimpan..." : "Simpan Akun"}
                 </button>
               </div>
             </form>

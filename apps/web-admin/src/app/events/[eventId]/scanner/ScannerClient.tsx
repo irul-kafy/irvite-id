@@ -39,31 +39,66 @@ export interface LiveGuestItem {
   rsvpPax: number | null;
 }
 
-function triggerScanFeedback() {
-  // 1. Haptic vibration feedback on mobile
+function checkIsVip(category?: string | null, tableNumber?: string | null): boolean {
+  if (category && /vip|vvip|khusus|kehormatan|utama/i.test(category)) return true;
+  if (tableNumber && /vip|vvip|utama/i.test(tableNumber)) return true;
+  return false;
+}
+
+function triggerScanFeedback(isVip: boolean = false) {
+  // 1. Haptic vibration feedback on mobile (longer pattern for VIP)
   try {
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      navigator.vibrate(60);
+      if (isVip) {
+        navigator.vibrate([80, 50, 120]);
+      } else {
+        navigator.vibrate(60);
+      }
     }
   } catch {}
 
-  // 2. Audio feedback chime (C6 note crisp beep)
+  // 2. Audio feedback chime (VIP luxury double chime vs normal C6 crisp beep)
   try {
     const AudioCtx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (AudioCtx) {
       const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.09);
+      if (isVip) {
+        // Melodic fanfare: C6 (1046.5Hz) then E6 (1318.5Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(1046.5, ctx.currentTime);
+        gain1.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.18);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1318.5, ctx.currentTime + 0.1);
+        gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(ctx.currentTime + 0.1);
+        osc2.stop(ctx.currentTime + 0.38);
+      } else {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1046.5, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.09);
+      }
     }
   } catch {}
 }
@@ -254,6 +289,94 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [loadingGuests, setLoadingGuests] = useState(false);
   const [directCheckingInId, setDirectCheckingInId] = useState<string | null>(null);
 
+  // Walk-In Guest (Tamu Dadakan / On-The-Spot) State
+  const [showWalkInModal, setShowWalkInModal] = useState<boolean>(false);
+  const [walkInName, setWalkInName] = useState<string>('');
+  const [walkInPax, setWalkInPax] = useState<number>(1);
+  const [walkInCategory, setWalkInCategory] = useState<string>('ON_THE_SPOT');
+  const [walkInTableNumber, setWalkInTableNumber] = useState<string>('');
+  const [walkInLoading, setWalkInLoading] = useState<boolean>(false);
+  const [walkInError, setWalkInError] = useState<string>('');
+
+  const handleWalkInSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setWalkInError('');
+    const cleanName = walkInName.trim();
+    if (!cleanName) {
+      setWalkInError('Nama tamu dadakan wajib diisi.');
+      return;
+    }
+
+    try {
+      setWalkInLoading(true);
+      const res = await fetch(`/api/events/${eventId}/attendance/walk-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: cleanName,
+          pax: walkInPax,
+          category: walkInCategory,
+          tableNumber: walkInTableNumber.trim() || undefined,
+        }),
+      });
+
+      if (res.status === 401) {
+        router.push('/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setWalkInError(err.message || 'Gagal mendaftarkan tamu dadakan.');
+        return;
+      }
+
+      const data = await res.json();
+      const isVip = checkIsVip(data.guest.category, data.guest.tableNumber);
+      triggerScanFeedback(isVip);
+      void fetchLiveGuests();
+
+      setShowWalkInModal(false);
+      setWalkInName('');
+      setWalkInPax(1);
+      setWalkInCategory('ON_THE_SPOT');
+      setWalkInTableNumber('');
+
+      setResolveData({
+        result: 'READY',
+        status: 'COMPLETE',
+        scannedPax: data.scannedPax,
+        remainingPax: 0,
+        guest: {
+          name: data.guest.name,
+          maxPax: data.guest.maxPax,
+          category: data.guest.category,
+          tableNumber: data.guest.tableNumber,
+        },
+        event: eventBanner,
+        attendance: {
+          scannedPax: data.attendance.scannedPax,
+          scannedAt: data.attendance.scannedAt,
+        },
+      });
+
+      setLastCheckInResult({
+        deltaPax: data.deltaPax || data.scannedPax,
+        scannedPax: data.scannedPax,
+        remainingPax: 0,
+        maxPax: data.guest.maxPax,
+        status: 'COMPLETE',
+        scannedAt: data.attendance.scannedAt,
+      });
+
+      setScanState('CHECKED_IN');
+    } catch {
+      setWalkInError('Terjadi kesalahan koneksi jaringan.');
+    } finally {
+      setWalkInLoading(false);
+    }
+  };
+
   const fetchLiveGuests = useCallback(async () => {
     try {
       setLoadingGuests(true);
@@ -336,7 +459,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       });
 
       if (res.ok) {
-        triggerScanFeedback();
+        const isVip = checkIsVip(guest.category, guest.tableNumber);
+        triggerScanFeedback(isVip);
         void fetchLiveGuests();
         setShowQuickCheckIn(false);
         void handleRawInput(guest.code);
@@ -760,6 +884,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           : null,
       );
       setScanState('CHECKED_IN');
+      const isVip = checkIsVip(resolveData?.guest.category, resolveData?.guest.tableNumber);
+      triggerScanFeedback(isVip);
       void fetchLiveGuests();
     } catch {
       if (!mountedRef.current) return;
@@ -936,6 +1062,11 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           </p>
           <h2 className="scan-guest__name">{guest.name}</h2>
           <div className="scan-guest__tags">
+            {checkIsVip(guest.category, guest.tableNumber) && (
+              <span className="scan-tag scan-tag--vip">
+                👑 TAMU KEHORMATAN (VIP)
+              </span>
+            )}
             {guest.tableNumber && (
               <span className="scan-tag scan-tag--table" style={{ background: '#047857', color: '#ecfdf5', fontWeight: 700 }}>
                 📍 Meja: {guest.tableNumber}
@@ -1015,16 +1146,46 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     if (scanState === 'CHECKED_IN' && resolveData.attendance) {
       const result = lastCheckInResult;
       const isComplete = result?.status === 'COMPLETE' || result?.remainingPax === 0;
+      const isVip = checkIsVip(guest.category, guest.tableNumber);
+
       return (
-        <div className="scan-result scan-result--success" id="scanner-success-card">
-          <div className="scan-result__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+        <div
+          className={`scan-result scan-result--success ${isVip ? 'scan-result--vip' : ''}`}
+          id="scanner-success-card"
+        >
+          {isVip && (
+            <div className="vip-banner-card" aria-label="Status Tamu Kehormatan">
+              <span className="vip-crown-icon">👑</span>
+              <span className="vip-badge-title">TAMU KEHORMATAN (VIP)</span>
+              <span className="vip-badge-subtitle">Perlakukan dengan standar pelayanan tamu kehormatan</span>
+            </div>
+          )}
+
+          <div
+            className={`scan-result__icon ${isVip ? 'scan-result__icon--vip' : ''}`}
+            aria-hidden="true"
+          >
+            {isVip ? (
+              <span style={{ fontSize: '26px' }}>⭐</span>
+            ) : (
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
           </div>
           <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
           <p className="scan-result__name">{guest.name}</p>
-          {guest.tableNumber && (
+
+          {isVip && (
+            <div className="vip-usher-guidance">
+              <span>🌟</span>
+              <span>
+                <strong>Panduan Usher/Petugas:</strong> Antarkan tamu kehormatan langsung ke Meja {guest.tableNumber || 'VIP / Meja Utama'}.
+              </span>
+            </div>
+          )}
+
+          {guest.tableNumber && !isVip && (
             <div
               style={{
                 display: 'inline-flex',
@@ -1285,33 +1446,64 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         </div>
       </div>
 
-      {/* Quick Check-In by Guest Name Trigger Button */}
-      <button
-        type="button"
-        id="btn-quick-checkin-modal"
-        className="scanner-quick-checkin-btn"
-        onClick={() => {
-          setShowQuickCheckIn(true);
-          void fetchLiveGuests();
-        }}
-        aria-label="Cari nama tamu untuk quick check-in"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width="16"
-          height="16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+      {/* Scanner Quick Actions (Search Guest / Walk-In OTS) */}
+      <div className="scanner-action-bar">
+        <button
+          type="button"
+          id="btn-quick-checkin-modal"
+          className="scanner-quick-checkin-btn"
+          onClick={() => {
+            setShowQuickCheckIn(true);
+            void fetchLiveGuests();
+          }}
+          aria-label="Cari nama tamu untuk quick check-in"
         >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <span>🔍 Cari Nama Tamu (Quick Check-In)</span>
-      </button>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <span>Cari Tamu</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-walkin-modal"
+          className="scanner-walkin-btn"
+          onClick={() => {
+            setShowWalkInModal(true);
+            setWalkInError('');
+          }}
+          aria-label="Tambah tamu dadakan on-the-spot"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <line x1="19" y1="8" x2="19" y2="14" />
+            <line x1="22" y1="11" x2="16" y2="11" />
+          </svg>
+          <span>+ Tamu Dadakan</span>
+        </button>
+      </div>
 
       {/* Manual Input Fallback */}
       <div className="scanner-manual-input">
@@ -1496,6 +1688,22 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               </button>
             </div>
 
+            {/* Walk-in Shortcut Banner */}
+            <div style={{ padding: '0.5rem 1.25rem', background: 'rgba(5, 150, 105, 0.15)', borderBottom: '1px solid rgba(5, 150, 105, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.78rem', color: '#6ee7b7' }}>Tamu tidak ada di daftar undangan?</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQuickCheckIn(false);
+                  setShowWalkInModal(true);
+                  setWalkInError('');
+                }}
+                style={{ background: '#059669', border: 'none', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                + Input Tamu Dadakan
+              </button>
+            </div>
+
             {/* Search Input Bar */}
             <div className="quick-checkin-search-bar">
               <span className="quick-checkin-search-icon" aria-hidden="true">🔍</span>
@@ -1638,6 +1846,120 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
                 })
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Registrasi & Check-In Tamu Dadakan (Walk-In) */}
+      {showWalkInModal && (
+        <div
+          className="quick-checkin-backdrop"
+          onClick={() => !walkInLoading && setShowWalkInModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Registrasi Tamu Dadakan (On-The-Spot)"
+        >
+          <div
+            className="quick-checkin-dialog"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '480px' }}
+          >
+            {/* Header */}
+            <div className="quick-checkin-header">
+              <div>
+                <h3>
+                  <span>➕</span> Registrasi Tamu Dadakan (OTS)
+                </h3>
+                <p>Tambah tamu langsung dari meja penerima tamu &amp; presensikan seketika</p>
+              </div>
+              <button
+                type="button"
+                className="quick-checkin-close-btn"
+                onClick={() => setShowWalkInModal(false)}
+                disabled={walkInLoading}
+                aria-label="Tutup formulir"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleWalkInSubmit} className="walkin-form">
+              {walkInError && (
+                <div style={{ padding: '0.65rem 0.85rem', borderRadius: '8px', background: 'rgba(220, 38, 38, 0.2)', border: '1px solid rgba(220, 38, 38, 0.4)', color: '#fca5a5', fontSize: '0.8125rem' }}>
+                  {walkInError}
+                </div>
+              )}
+
+              <div className="walkin-form-group">
+                <label className="walkin-form-label" htmlFor="walkin-name">Nama Tamu Dadakan *</label>
+                <input
+                  id="walkin-name"
+                  type="text"
+                  required
+                  className="walkin-form-input"
+                  placeholder="Contoh: Bpk. H. Ahmad & Rekan"
+                  value={walkInName}
+                  onChange={(e) => setWalkInName(e.target.value)}
+                  disabled={walkInLoading}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="walkin-form-group">
+                  <label className="walkin-form-label" htmlFor="walkin-pax">Jumlah Pax *</label>
+                  <input
+                    id="walkin-pax"
+                    type="number"
+                    min={1}
+                    max={50}
+                    required
+                    className="walkin-form-input"
+                    value={walkInPax}
+                    onChange={(e) => setWalkInPax(Math.max(1, parseInt(e.target.value) || 1))}
+                    disabled={walkInLoading}
+                  />
+                </div>
+
+                <div className="walkin-form-group">
+                  <label className="walkin-form-label" htmlFor="walkin-category">Kategori Tamu</label>
+                  <select
+                    id="walkin-category"
+                    className="walkin-form-select"
+                    value={walkInCategory}
+                    onChange={(e) => setWalkInCategory(e.target.value)}
+                    disabled={walkInLoading}
+                  >
+                    <option value="ON_THE_SPOT">⚡ On-The-Spot (Dadakan)</option>
+                    <option value="VIP">👑 VIP (Kehormatan)</option>
+                    <option value="VVIP">🌟 VVIP (Tamu Utama)</option>
+                    <option value="FAMILY">👨‍👩‍👧‍👦 Keluarga</option>
+                    <option value="REGULAR">🎫 Reguler</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="walkin-form-group">
+                <label className="walkin-form-label" htmlFor="walkin-table">Nomor / Nama Meja (Opsional)</label>
+                <input
+                  id="walkin-table"
+                  type="text"
+                  className="walkin-form-input"
+                  placeholder="Contoh: Meja 12 atau VIP-01"
+                  value={walkInTableNumber}
+                  onChange={(e) => setWalkInTableNumber(e.target.value)}
+                  disabled={walkInLoading}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="walkin-submit-btn"
+                disabled={walkInLoading || !walkInName.trim()}
+              >
+                {walkInLoading ? 'Mendaftarkan & Check-In...' : '⚡ Daftarkan & Langsung Check-In'}
+              </button>
+            </form>
           </div>
         </div>
       )}

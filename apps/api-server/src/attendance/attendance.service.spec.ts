@@ -1194,4 +1194,88 @@ describe('AttendanceService', () => {
       ).rejects.toThrow('belum memiliki riwayat');
     });
   });
+
+  describe('walkInCheckIn', () => {
+    it('creates guest, invitation, and attendance for walk-in guest', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.STAFF,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'admin-owner',
+        staffEvents: [{ userId: 'u1' }],
+      });
+
+      const fakeGuest = {
+        id: 'g-walkin-1',
+        eventId: 'e1',
+        name: 'Tamu Dadakan Bpk. Joko',
+        category: 'ON_THE_SPOT',
+        maxPax: 2,
+        tableNumber: '10',
+      };
+      const fakeInvitation = {
+        id: 'inv-walkin-1',
+        eventId: 'e1',
+        guestId: fakeGuest.id,
+        uniqueCode: 'walkin-code',
+      };
+      const fakeAttendance = {
+        id: 'att-walkin-1',
+        invitationId: fakeInvitation.id,
+        eventId: 'e1',
+        scannedById: 'u1',
+        scannedPax: 2,
+        scannedAt: new Date(),
+      };
+
+      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
+        return callback({
+          guest: { create: jest.fn().mockResolvedValue(fakeGuest) },
+          invitation: { create: jest.fn().mockResolvedValue(fakeInvitation) },
+          attendance: { create: jest.fn().mockResolvedValue(fakeAttendance) },
+        });
+      });
+
+      const res = await service.walkInCheckIn('e1', 'u1', Role.STAFF, {
+        name: '  Tamu Dadakan Bpk. Joko  ',
+        pax: 2,
+        category: 'ON_THE_SPOT',
+        tableNumber: '10',
+      });
+
+      expect(res.result).toBe('CHECKED_IN');
+      expect(res.status).toBe('COMPLETE');
+      expect(res.scannedPax).toBe(2);
+      expect(res.guest.name).toBe('Tamu Dadakan Bpk. Joko');
+      expect(res.guest.category).toBe('ON_THE_SPOT');
+      expect(res.guest.tableNumber).toBe('10');
+    });
+
+    it('throws BadRequestException if name is empty', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.STAFF,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'admin-owner',
+        staffEvents: [{ userId: 'u1' }],
+      });
+
+      await expect(
+        service.walkInCheckIn('e1', 'u1', Role.STAFF, {
+          name: '   ',
+          pax: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });

@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -44,11 +44,16 @@ export class StaffService {
   }
 
   async findAll(query: StaffQueryDto) {
-    const { page = 1, limit = 20, search, status = 'all' } = query;
+    const { page = 1, limit = 20, search, status = 'all', role } = query;
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      role: Role.STAFF,
+      role:
+        role === 'ALL'
+          ? { in: [Role.STAFF, Role.ADMIN] }
+          : role === 'ADMIN'
+            ? Role.ADMIN
+            : Role.STAFF,
     };
 
     if (status === 'active') {
@@ -71,6 +76,7 @@ export class StaffService {
         select: {
           id: true,
           email: true,
+          role: true,
           isActive: true,
           createdAt: true,
           updatedAt: true,
@@ -88,6 +94,7 @@ export class StaffService {
     const data = users.map((u) => ({
       id: u.id,
       email: u.email,
+      role: u.role,
       isActive: u.isActive,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
@@ -125,7 +132,7 @@ export class StaffService {
         data: {
           email: normalizedEmail,
           passwordHash,
-          role: Role.STAFF,
+          role: dto.role === Role.ADMIN ? Role.ADMIN : Role.STAFF,
           isActive: true,
         },
         select: this.selectSafeStaff(),

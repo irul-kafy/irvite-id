@@ -15,6 +15,7 @@ import { AttendanceService } from './attendance.service';
 import { ResolveAttendanceDto } from './dto/resolve-attendance.dto';
 import { CheckInDto } from './dto/check-in.dto';
 import { UndoCheckInDto } from './dto/undo-check-in.dto';
+import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 import { GoogleSheetConfigDto } from './dto/google-sheet-config.dto';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -157,6 +158,22 @@ export class AttendanceController {
       user.role,
       dto.code,
       dto.pax,
+    );
+  }
+
+  @Post('walk-in')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  walkInCheckIn(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: WalkInCheckInDto,
+  ) {
+    return this.attendanceService.walkInCheckIn(
+      eventId,
+      user.id,
+      user.role,
+      dto,
     );
   }
 

@@ -169,6 +169,25 @@ describe('StaffService', () => {
       const result = await service.findAll({});
       expect((result.data[0] as any).passwordHash).toBeUndefined();
     });
+
+    it('6b. role filter: ALL queries both STAFF and ADMIN, ADMIN queries Role.ADMIN', async () => {
+      prisma.user.findMany.mockResolvedValue([]);
+      prisma.user.count.mockResolvedValue(0);
+
+      await service.findAll({ role: 'ALL' });
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { role: { in: [Role.STAFF, Role.ADMIN] } },
+        }),
+      );
+
+      await service.findAll({ role: 'ADMIN' });
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { role: Role.ADMIN },
+        }),
+      );
+    });
   });
 
   describe('create', () => {
@@ -209,6 +228,36 @@ describe('StaffService', () => {
       const createdHash = prisma.user.create.mock.calls[0][0].data.passwordHash;
       const verify = await argon2.verify(createdHash, 'securepassword1234');
       expect(verify).toBe(true);
+    });
+
+    it('9b. create assigns Role.ADMIN when role: Role.ADMIN is supplied', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(null);
+      prisma.user.create.mockImplementationOnce((args) =>
+        Promise.resolve({
+          id: 'new-admin-id',
+          email: args.data.email,
+          role: args.data.role,
+          isActive: args.data.isActive,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+      const result = await service.create({
+        email: 'organizer@wedding.com',
+        password: 'securepassword1234',
+        role: Role.ADMIN,
+      });
+
+      expect(result.role).toBe(Role.ADMIN);
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'organizer@wedding.com',
+            role: Role.ADMIN,
+          }),
+        }),
+      );
     });
 
     it('10. duplicate email -> 409 ConflictException', async () => {

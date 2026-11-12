@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isValidAdminOrigin } from '@/utils/origin';
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const forwardParams = new URLSearchParams();
 
-    ["page", "limit", "search", "status"].forEach((key) => {
+    ["page", "limit", "search", "status", "role"].forEach((key) => {
       const val = searchParams.get(key);
       if (val !== null && val.trim() !== "") {
         forwardParams.set(key, val.trim());
@@ -93,16 +93,21 @@ export async function POST(request: Request) {
     const body = await request.json();
     const internalUrl = process.env.INTERNAL_API_URL || "http://localhost:3000";
 
+    const payload: { email: string; password: string; role?: string } = {
+      email: body.email,
+      password: body.password,
+    };
+    if (body.role === 'ADMIN') {
+      payload.role = 'ADMIN';
+    }
+
     const res = await fetch(`${internalUrl}/staff`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        email: body.email,
-        password: body.password,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (res.status === 401) {
