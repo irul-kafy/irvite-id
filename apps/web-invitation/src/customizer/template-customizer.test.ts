@@ -292,4 +292,77 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
     );
     assert.match(titleMatch[1], /overflow:\s*visible/i, 'Drawer title must have overflow: visible');
   });
+
+  await t.test('giftAccounts supports customizable 1 or 2 accounts and enforces max 2 items', () => {
+    const fixture = getDemoFixture('ROYAL_VELVET')!;
+    const state = extractInitialCustomizationState(fixture);
+
+    // Scenario 1: Exactly 1 account
+    state.giftAccounts = [
+      {
+        bankName: 'BCA',
+        accountNumber: '1234567890',
+        accountHolder: 'Citra Kirana',
+      },
+    ];
+
+    const customizedSingle = applyClientCustomizationToFixture(fixture, state);
+    const accountsSingle = (customizedSingle.event.content as any).giftAccounts;
+    assert.equal(accountsSingle.length, 1);
+    assert.equal(accountsSingle[0].bankName, 'BCA');
+    assert.equal(accountsSingle[0].accountNumber, '1234567890');
+
+    const draftSingle = buildDraftSubmissionPayload({
+      themeCode: 'ROYAL_VELVET',
+      clientName: 'Citra',
+      clientWhatsapp: '08123456789',
+      state,
+    });
+    assert.equal((draftSingle.content as any).giftAccounts.length, 1);
+
+    // Scenario 2: 2 accounts
+    state.giftAccounts = [
+      {
+        bankName: 'BCA',
+        accountNumber: '1234567890',
+        accountHolder: 'Citra Kirana',
+      },
+      {
+        bankName: 'Bank Mandiri',
+        accountNumber: '0987654321',
+        accountHolder: 'Galih Perkasa',
+      },
+    ];
+
+    const customizedDouble = applyClientCustomizationToFixture(fixture, state);
+    const accountsDouble = (customizedDouble.event.content as any).giftAccounts;
+    assert.equal(accountsDouble.length, 2);
+    assert.equal(accountsDouble[1].bankName, 'Bank Mandiri');
+
+    const draftDouble = buildDraftSubmissionPayload({
+      themeCode: 'ROYAL_VELVET',
+      clientName: 'Citra',
+      clientWhatsapp: '08123456789',
+      state,
+    });
+    assert.equal((draftDouble.content as any).giftAccounts.length, 2);
+
+    // Scenario 3: Enforce max 2 items if more are supplied
+    state.giftAccounts = [
+      { bankName: 'BCA', accountNumber: '111', accountHolder: 'A' },
+      { bankName: 'Mandiri', accountNumber: '222', accountHolder: 'B' },
+      { bankName: 'BRI', accountNumber: '333', accountHolder: 'C' },
+    ];
+
+    const customizedCapped = applyClientCustomizationToFixture(fixture, state);
+    assert.equal((customizedCapped.event.content as any).giftAccounts.length, 2);
+
+    const draftCapped = buildDraftSubmissionPayload({
+      themeCode: 'ROYAL_VELVET',
+      clientName: 'Citra',
+      clientWhatsapp: '08123456789',
+      state,
+    });
+    assert.equal((draftCapped.content as any).giftAccounts.length, 2);
+  });
 });

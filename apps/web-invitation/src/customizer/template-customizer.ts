@@ -684,6 +684,7 @@ export function applyClientCustomizationToFixture(
           g.accountNumber.trim() !== '' ||
           g.accountHolder.trim() !== '',
       )
+      .slice(0, 2)
       .map((g) => ({
         bankName: g.bankName.trim() || 'Bank Transfer',
         accountNumber: g.accountNumber.trim() || '-',
@@ -873,6 +874,7 @@ export function buildDraftSubmissionPayload(params: {
         g.accountNumber.trim() !== '' &&
         g.accountHolder.trim() !== '',
     )
+    .slice(0, 2)
     .map((g) => ({
       bankName: g.bankName.trim(),
       accountNumber: g.accountNumber.trim(),

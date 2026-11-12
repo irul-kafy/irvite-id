@@ -860,7 +860,14 @@ export function RoyalVelvetRenderer({
             </div>
 
             {content.giftAccounts.length > 0 && (
-              <div className={styles.coupleGrid}>
+              <div
+                className={styles.coupleGrid}
+                style={
+                  content.giftAccounts.length === 1
+                    ? { maxWidth: '440px', margin: '0 auto' }
+                    : undefined
+                }
+              >
                 {content.giftAccounts.map((acc, idx) => (
                   <article key={idx} className={`${styles.baroqueCard} text-left flex flex-col justify-between`}>
                     <div>

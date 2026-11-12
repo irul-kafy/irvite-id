@@ -1093,7 +1093,14 @@ export function SwargaDewataRenderer({
             <p className={styles.sectionSubtitle}>{content.giftMessage}</p>
           </div>
 
-          <div className={styles.pradaDanaGrid}>
+          <div
+            className={styles.pradaDanaGrid}
+            style={
+              content.giftAccounts.length === 1
+                ? { maxWidth: '480px', margin: '0 auto' }
+                : undefined
+            }
+          >
             {content.giftAccounts.map((acc, idx) => (
               <div
                 key={`${acc.bankName}-${idx}`}

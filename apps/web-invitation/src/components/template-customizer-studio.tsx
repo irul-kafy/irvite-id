@@ -224,6 +224,30 @@ export function TemplateCustomizerStudio({
     [],
   );
 
+  const addGiftAccount = useCallback(() => {
+    setState((prev) => {
+      if (prev.giftAccounts.length >= 2) return prev;
+      return {
+        ...prev,
+        giftAccounts: [
+          ...prev.giftAccounts,
+          {
+            bankName: '',
+            accountNumber: '',
+            accountHolder: '',
+          },
+        ],
+      };
+    });
+  }, []);
+
+  const removeGiftAccount = useCallback((index: number) => {
+    setState((prev) => ({
+      ...prev,
+      giftAccounts: prev.giftAccounts.filter((_, idx) => idx !== index),
+    }));
+  }, []);
+
   const updateStory = useCallback(
     (index: number, patch: Partial<StoryFormState>) => {
       setState((prev) => {
@@ -1261,67 +1285,164 @@ export function TemplateCustomizerStudio({
               </div>
 
               <div className="irv-studio-card-group">
-                <h3 className="irv-studio-card-group__title">
-                  <span>Amplop Digital / Tanda Kasih (Opsional)</span>
-                </h3>
-                {state.giftAccounts.map((acc, idx) => (
-                  <div
-                    key={idx}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <h3 className="irv-studio-card-group__title" style={{ margin: 0 }}>
+                    <span>Nomor Rekening Bank (Bisa 1 atau 2 Rekening)</span>
+                  </h3>
+                  <span
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      paddingBottom: '10px',
-                      borderBottom:
-                        idx < state.giftAccounts.length - 1
-                          ? '1px dashed #e2ddd3'
-                          : 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: state.giftAccounts.length >= 2 ? '#b45309' : '#475569',
+                      background: state.giftAccounts.length >= 2 ? '#fef3c7' : '#f1f5f9',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
                     }}
                   >
-                    <div className="irv-studio-field-row">
-                      <div className="irv-studio-field">
-                        <label className="irv-studio-label">Nama Bank</label>
-                        <input
-                          type="text"
-                          className="irv-studio-input"
-                          value={acc.bankName}
-                          onChange={(e) =>
-                            updateGiftAccount(idx, { bankName: e.target.value })
-                          }
-                          placeholder="BCA / Mandiri"
-                        />
+                    {state.giftAccounts.length} / 2 Rekening
+                  </span>
+                </div>
+
+                {state.giftAccounts.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '14px',
+                      borderRadius: '8px',
+                      background: '#fdfbf7',
+                      border: '1px dashed #d6cbba',
+                      fontSize: '12px',
+                      color: '#665b4c',
+                      textAlign: 'center',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Belum ada nomor rekening bank yang ditambahkan. Anda dapat menambahkan 1 atau 2 rekening bank transfer, atau cukup menggunakan Barcode QRIS di bawah.
+                  </div>
+                ) : (
+                  state.giftAccounts.map((acc, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                        padding: '12px',
+                        background: '#fdfbf7',
+                        borderRadius: '8px',
+                        border: '1px solid #e8e2d5',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: '#8c6527',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          Rekening #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeGiftAccount(idx)}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#b91c1c',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            padding: '3px 8px',
+                            cursor: 'pointer',
+                          }}
+                          aria-label={`Hapus rekening ${idx + 1}`}
+                        >
+                          Hapus Rekening
+                        </button>
+                      </div>
+
+                      <div className="irv-studio-field-row">
+                        <div className="irv-studio-field">
+                          <label className="irv-studio-label">Nama Bank</label>
+                          <input
+                            type="text"
+                            className="irv-studio-input"
+                            value={acc.bankName}
+                            onChange={(e) =>
+                              updateGiftAccount(idx, { bankName: e.target.value })
+                            }
+                            placeholder="Contoh: BCA / Mandiri / BRI"
+                          />
+                        </div>
+                        <div className="irv-studio-field">
+                          <label className="irv-studio-label">No. Rekening</label>
+                          <input
+                            type="text"
+                            className="irv-studio-input"
+                            value={acc.accountNumber}
+                            onChange={(e) =>
+                              updateGiftAccount(idx, {
+                                accountNumber: e.target.value,
+                              })
+                            }
+                            placeholder="1234567890"
+                          />
+                        </div>
                       </div>
                       <div className="irv-studio-field">
-                        <label className="irv-studio-label">No. Rekening</label>
+                        <label className="irv-studio-label">Atas Nama (Pemilik)</label>
                         <input
                           type="text"
                           className="irv-studio-input"
-                          value={acc.accountNumber}
+                          value={acc.accountHolder}
                           onChange={(e) =>
                             updateGiftAccount(idx, {
-                              accountNumber: e.target.value,
+                              accountHolder: e.target.value,
                             })
                           }
-                          placeholder="1234567890"
+                          placeholder="Nama Lengkap Pemilik Rekening"
                         />
                       </div>
                     </div>
-                    <div className="irv-studio-field">
-                      <label className="irv-studio-label">Atas Nama</label>
-                      <input
-                        type="text"
-                        className="irv-studio-input"
-                        value={acc.accountHolder}
-                        onChange={(e) =>
-                          updateGiftAccount(idx, {
-                            accountHolder: e.target.value,
-                          })
-                        }
-                        placeholder="Nama Pemilik Rekening"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
+
+                {state.giftAccounts.length < 2 && (
+                  <button
+                    type="button"
+                    onClick={addGiftAccount}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#1b4332',
+                      background: '#f0fdf4',
+                      border: '1px dashed #86efac',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>+ Tambah Rekening {state.giftAccounts.length === 0 ? 'Pertama' : 'Kedua'} (Maks. 2)</span>
+                  </button>
+                )}
 
                 {/* Barcode QRIS Upload */}
                 <div
