@@ -97,6 +97,7 @@ export interface InvitationData {
     title?: string;
     message?: string;
     accounts: GiftAccount[];
+    qrisUrl?: string;
   };
   features: Record<Feature, boolean>;
   tokens?: ThemeTokens;

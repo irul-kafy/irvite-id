@@ -189,6 +189,8 @@ export function adaptOpalineNocturneData(
 
   const bgMusicDesc = mediaBySlot['bg-music']?.[0] || payload.media?.find((m) => m.slot === 'bg-music');
   const bgMusicUrl = resolveMediaUrl(bgMusicDesc?.src, isPreview);
+  const qrisDesc = mediaBySlot['qris']?.[0] || payload.media?.find((m) => m.slot === 'qris');
+  const qrisUrl = resolveMediaUrl(qrisDesc?.src, isPreview);
 
   const firstCeremonyStart =
     rawCeremonies.length > 0 &&
@@ -278,6 +280,8 @@ export function adaptOpalineNocturneData(
       title: 'Tanda Kasih',
       description: 'Doa restu Anda adalah hadiah terindah bagi pernikahan kami.',
       accounts,
+      qrisUrl,
+      coupleName: `${partnerOneName} & ${partnerTwoName}`,
     },
     music: bgMusicUrl ? { src: bgMusicUrl, title: 'Nocturne Melody' } : undefined,
   };

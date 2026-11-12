@@ -5,6 +5,7 @@ import type { RendererProps } from '../registry';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { AddToCalendarButton } from '../../components/calendar';
+import { QrisGiftCard } from '../../components/qris';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -849,7 +850,7 @@ export function RoyalVelvetRenderer({
       {/* =========================================================================
            SECTION 7: TANDA KASIH DIGITAL / REKENING BANK
            ========================================================================= */}
-      {content.giftAccounts.length > 0 && (
+      {(content.giftAccounts.length > 0 || Boolean(media.qrisUrl)) && (
         <section id="sec-gift" className={styles.irviteSection}>
           <div className={styles.containerShell} style={{ maxWidth: '680px', textAlign: 'center' }}>
             <div className={`${styles.revealItem} ${styles.isShown}`}>
@@ -858,41 +859,49 @@ export function RoyalVelvetRenderer({
               <p className={styles.sectionSubtitle}>{content.giftMessage}</p>
             </div>
 
-            <div className={styles.coupleGrid}>
-              {content.giftAccounts.map((acc, idx) => (
-                <article key={idx} className={`${styles.baroqueCard} text-left flex flex-col justify-between`}>
-                  <div>
-                    <span className="font-serif inline-block px-3 py-1 rounded-lg bg-[#E5C88E]/15 border border-[#E5C88E]/30 text-[#F4DFB0] font-bold text-lg mb-3">
-                      {acc.bankName}
-                    </span>
-                    <p className="text-xs uppercase tracking-wider text-[#D2C2B0] mb-1">
-                      Nomor Rekening
-                    </p>
-                    <p className="font-mono text-2xl font-bold text-white tracking-wider mb-2">
-                      {acc.accountNumber}
-                    </p>
-                    <p className="text-sm text-[#E5C88E] mb-5">
-                      a.n. {acc.accountHolder}
-                    </p>
-                  </div>
+            {content.giftAccounts.length > 0 && (
+              <div className={styles.coupleGrid}>
+                {content.giftAccounts.map((acc, idx) => (
+                  <article key={idx} className={`${styles.baroqueCard} text-left flex flex-col justify-between`}>
+                    <div>
+                      <span className="font-serif inline-block px-3 py-1 rounded-lg bg-[#E5C88E]/15 border border-[#E5C88E]/30 text-[#F4DFB0] font-bold text-lg mb-3">
+                        {acc.bankName}
+                      </span>
+                      <p className="text-xs uppercase tracking-wider text-[#D2C2B0] mb-1">
+                        Nomor Rekening
+                      </p>
+                      <p className="font-mono text-2xl font-bold text-white tracking-wider mb-2">
+                        {acc.accountNumber}
+                      </p>
+                      <p className="text-sm text-[#E5C88E] mb-5">
+                        a.n. {acc.accountHolder}
+                      </p>
+                    </div>
 
-                  <button
-                    type="button"
-                    className={styles.btnRoyalOutline}
-                    onClick={() =>
-                      handleCopyAccount(acc.accountNumber, idx, acc.bankName)
-                    }
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <span>
-                      {copyStatus[idx] ? 'Nomor Tersalin ✓' : 'Salin Nomor Rekening'}
-                    </span>
-                  </button>
-                </article>
-              ))}
-            </div>
+                    <button
+                      type="button"
+                      className={styles.btnRoyalOutline}
+                      onClick={() =>
+                        handleCopyAccount(acc.accountNumber, idx, acc.bankName)
+                      }
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>
+                        {copyStatus[idx] ? 'Nomor Tersalin ✓' : 'Salin Nomor Rekening'}
+                      </span>
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            <QrisGiftCard
+              qrisUrl={media.qrisUrl}
+              coupleName={`${content.partnerOneName} & ${content.partnerTwoName}`}
+              theme="royal-velvet"
+            />
           </div>
         </section>
       )}

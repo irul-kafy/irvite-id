@@ -6,6 +6,7 @@ import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { AddToCalendarButton } from '../../components/calendar';
+import { QrisGiftCard } from '../../components/qris';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
@@ -90,6 +91,7 @@ export default function SekarKedatonRenderer({
   const rsvpVisible = showRsvpAndQr && shouldRenderSereneRsvp(mode, data.guest, data.rsvp);
   void rsvpVisible;
   const audioSrc = mediaSrc(media.bgMusic?.src, isPreview);
+  const qrisSrc = mediaSrc(media.qris?.src, isPreview);
   const heroSrc = mediaSrc(media.hero?.src, isPreview);
   const brideSrc = mediaSrc(media.bride?.src, isPreview);
   const groomSrc = mediaSrc(media.groom?.src, isPreview);
@@ -402,7 +404,7 @@ export default function SekarKedatonRenderer({
             </section>
           )}
 
-          {Boolean(content.giftAccounts?.length) && (
+          {(Boolean(content.giftAccounts?.length) || Boolean(qrisSrc)) && (
             <section id="gift" className={`${s.section} ${s.gift}`}>
               <div className={s.giftIntro} data-reveal="left">
                 <Gunungan />
@@ -422,6 +424,11 @@ export default function SekarKedatonRenderer({
                     </button>
                   </article>
                 ))}
+                <QrisGiftCard
+                  qrisUrl={qrisSrc}
+                  coupleName={`${nameOne} & ${nameTwo}`}
+                  theme="sekar-kedaton"
+                />
               </div>
             </section>
           )}
@@ -489,7 +496,7 @@ export default function SekarKedatonRenderer({
             <a href="#couple">Mempelai</a>
             {ceremonies.length > 0 && <a href="#events">Acara</a>}
             {gallery.length > 0 && <a href="#gallery">Galeri</a>}
-            {Boolean(content.giftAccounts?.length) && <a href="#gift">Gift</a>}
+            {(Boolean(content.giftAccounts?.length) || Boolean(qrisSrc)) && <a href="#gift">Gift</a>}
             {showRsvpAndQr && <a href="#rsvp">RSVP &amp; QR</a>}
             <a href="#wishes">Doa</a>
           </nav>

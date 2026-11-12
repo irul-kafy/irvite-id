@@ -228,3 +228,4 @@ export function downloadIcsFile(filename: string, icsContent: string): void {
     window.URL.revokeObjectURL(objectUrl);
   }, 100);
 }
+

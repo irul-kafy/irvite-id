@@ -95,6 +95,7 @@ export interface InvitationData {
     title: string;
     description: string;
     accounts: GiftAccount[];
+    qrisUrl?: string;
     address?: { recipient: string; address: string };
   };
   music?: { src: string; title: string };

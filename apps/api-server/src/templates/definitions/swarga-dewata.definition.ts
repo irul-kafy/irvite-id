@@ -226,6 +226,15 @@ export const SWARGA_DEWATA_DEFINITION: TemplateDefinition = {
       maxSizeBytes: 5 * 1024 * 1024,
     },
     {
+      key: 'qris',
+      label: 'Barcode QRIS Amplop Digital (Opsional)',
+      mediaType: 'PHOTO',
+      required: false,
+      multiple: false,
+      maxItems: 1,
+      maxSizeBytes: 5 * 1024 * 1024,
+    },
+    {
       key: 'bg-music',
       label: 'Musik Latar Belakang (Gamelan / Rindik Bali)',
       mediaType: 'AUDIO',

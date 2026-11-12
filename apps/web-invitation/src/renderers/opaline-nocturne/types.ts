@@ -107,6 +107,8 @@ export interface InvitationData {
     description: string;
     accounts: GiftAccount[];
     address?: { recipient: string; address: string };
+    qrisUrl?: string;
+    coupleName?: string;
   };
   music?: { src: string; title: string };
   features?: Partial<Record<Feature, boolean>>;

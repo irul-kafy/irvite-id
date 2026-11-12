@@ -48,5 +48,6 @@ export interface RoyalVelvetMedia {
   storyPhotoUrl: string;
   galleryPhotos: string[];
   bgMusicUrl: string | null;
+  qrisUrl?: string | null;
 }
 

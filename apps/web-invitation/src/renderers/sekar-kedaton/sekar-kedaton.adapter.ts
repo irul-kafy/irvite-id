@@ -37,6 +37,7 @@ export interface SekarKedatonMedia {
   groom?: PublicMediaDescriptor;
   gallery: PublicMediaDescriptor[];
   bgMusic?: PublicMediaDescriptor;
+  qris?: PublicMediaDescriptor;
 }
 
 export function adaptSekarKedatonContent(rawContent: unknown, eventTitle?: string): SekarKedatonContent {
@@ -173,6 +174,7 @@ export function adaptSekarKedatonMedia(
 
   const gallery = resolveSlot('gallery').filter((m) => m.type === 'PHOTO').slice(0, 6);
   const bgMusic = resolveSlot('bg-music').find((m) => m.type === 'AUDIO');
+  const qris = resolveSlot('qris').find((m) => m.type === 'PHOTO');
 
-  return { hero, bride, groom, gallery, bgMusic };
+  return { hero, bride, groom, gallery, bgMusic, qris };
 }

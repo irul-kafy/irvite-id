@@ -1,0 +1,355 @@
+.qrisCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.75rem 1.5rem;
+  border-radius: 18px;
+  max-width: 420px;
+  width: 100%;
+  margin: 1.5rem auto 0;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.badgeRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.qrisLogoMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.38rem;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #e11d48, #be123c);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.heading {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.coupleLabel {
+  margin: 0 0 1.15rem;
+  font-size: 0.84rem;
+  opacity: 0.88;
+}
+
+.qrFrame {
+  position: relative;
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  width: min(230px, 72vw);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-in;
+  border: 2px solid rgba(212, 167, 83, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qrFrame:hover {
+  transform: scale(1.02);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+}
+
+.qrImage {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  display: block;
+  border-radius: 6px;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 1.15rem;
+  width: 100%;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  padding: 0.58rem 1rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.supportNote {
+  margin: 0.9rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  opacity: 0.78;
+  max-width: 34ch;
+}
+
+/* =========================================================================
+   ZOOM LIGHTBOX MODAL
+   ========================================================================= */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(8, 8, 12, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  animation: qrisFadeIn 0.2s ease-out;
+}
+
+@keyframes qrisFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  position: relative;
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 20px;
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 1.25rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.modalTitle {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalSub {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.modalImageWrap {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.modalImage {
+  width: 100% !important;
+  max-height: 320px !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block;
+  margin: 0 auto;
+}
+
+.modalDownloadBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* =========================================================================
+   THEME VARIANTS
+   ========================================================================= */
+
+/* 1. ROYAL VELVET */
+.themeRoyalVelvet {
+  background: linear-gradient(160deg, rgba(44, 13, 22, 0.92), rgba(24, 7, 12, 0.95));
+  border: 1px solid rgba(229, 200, 142, 0.42);
+  color: #f4dfb0;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+}
+.themeRoyalVelvet .badgeRow {
+  background: rgba(229, 200, 142, 0.14);
+  border: 1px solid rgba(229, 200, 142, 0.35);
+  color: #f4dfb0;
+}
+.themeRoyalVelvet .actionBtn {
+  background: rgba(229, 200, 142, 0.16);
+  border-color: rgba(229, 200, 142, 0.45);
+  color: #f4dfb0;
+}
+.themeRoyalVelvet .actionBtn:hover {
+  background: linear-gradient(135deg, #e5c88e, #d4a753);
+  color: #1a080c;
+}
+
+/* 2. SEKAR KEDATON */
+.themeSekarKedaton {
+  background: linear-gradient(160deg, rgba(247, 238, 222, 0.96), rgba(238, 224, 199, 0.96));
+  border: 1px solid rgba(169, 122, 70, 0.42);
+  color: #183932;
+  box-shadow: 0 14px 32px rgba(24, 57, 50, 0.14);
+}
+.themeSekarKedaton .badgeRow {
+  background: rgba(24, 57, 50, 0.08);
+  border: 1px solid rgba(24, 57, 50, 0.25);
+  color: #183932;
+}
+.themeSekarKedaton .actionBtn {
+  background: #183932;
+  border-color: #183932;
+  color: #f6ecda;
+}
+.themeSekarKedaton .actionBtn:hover {
+  background: #235046;
+}
+
+/* 3. SWARGA DEWATA */
+.themeSwargaDewata {
+  background: linear-gradient(160deg, rgba(46, 20, 16, 0.94), rgba(28, 12, 10, 0.96));
+  border: 1px solid rgba(218, 174, 102, 0.45);
+  color: #f6e3ba;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+}
+.themeSwargaDewata .badgeRow {
+  background: rgba(218, 174, 102, 0.15);
+  border: 1px solid rgba(218, 174, 102, 0.35);
+  color: #f6e3ba;
+}
+.themeSwargaDewata .actionBtn {
+  background: rgba(218, 174, 102, 0.16);
+  border-color: rgba(218, 174, 102, 0.45);
+  color: #f6e3ba;
+}
+.themeSwargaDewata .actionBtn:hover {
+  background: linear-gradient(135deg, #e2b86b, #c5923e);
+  color: #1f0d09;
+}
+
+/* 4. RANAH CINTA */
+.themeRanahCinta {
+  background: linear-gradient(160deg, rgba(64, 16, 22, 0.94), rgba(38, 9, 13, 0.96));
+  border: 1px solid rgba(219, 178, 106, 0.45);
+  color: #f7e6c4;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+}
+.themeRanahCinta .badgeRow {
+  background: rgba(219, 178, 106, 0.15);
+  border: 1px solid rgba(219, 178, 106, 0.38);
+  color: #f7e6c4;
+}
+.themeRanahCinta .actionBtn {
+  background: rgba(219, 178, 106, 0.16);
+  border-color: rgba(219, 178, 106, 0.45);
+  color: #f7e6c4;
+}
+.themeRanahCinta .actionBtn:hover {
+  background: #dbb26a;
+  color: #2b0a0e;
+}
+
+/* 5. OPALINE NOCTURNE */
+.themeOpalineNocturne {
+  background: rgba(24, 53, 55, 0.92);
+  border: 1px solid rgba(228, 214, 180, 0.42);
+  color: #e6ecd8;
+  box-shadow: 0 16px 36px rgba(14, 34, 32, 0.38);
+}
+.themeOpalineNocturne .badgeRow {
+  background: rgba(228, 214, 180, 0.14);
+  border: 1px solid rgba(228, 214, 180, 0.35);
+  color: #e6ecd8;
+}
+.themeOpalineNocturne .actionBtn {
+  background: rgba(228, 214, 180, 0.16);
+  border-color: rgba(228, 214, 180, 0.42);
+  color: #e6ecd8;
+}
+.themeOpalineNocturne .actionBtn:hover {
+  background: #e4d6b4;
+  color: #183537;
+}
+
+/* 6. AETHERIA */
+.themeAetheria {
+  background: linear-gradient(135deg, rgba(101, 65, 82, 0.45), rgba(56, 41, 64, 0.55));
+  border: 1px solid rgba(239, 191, 163, 0.38);
+  color: #f4e4d8;
+  box-shadow: 0 14px 34px rgba(19, 13, 39, 0.4);
+}
+.themeAetheria .badgeRow {
+  background: rgba(239, 191, 163, 0.15);
+  border: 1px solid rgba(239, 191, 163, 0.35);
+  color: #efbfa3;
+}
+.themeAetheria .actionBtn {
+  background: rgba(239, 191, 163, 0.16);
+  border-color: rgba(239, 191, 163, 0.42);
+  color: #f4e4d8;
+}
+.themeAetheria .actionBtn:hover {
+  background: #efbfa3;
+  color: #281b37;
+}
+

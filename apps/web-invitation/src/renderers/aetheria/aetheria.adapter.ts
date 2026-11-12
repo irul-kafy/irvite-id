@@ -200,6 +200,10 @@ export function adaptAetheriaData(
   const bgMusicDesc = mediaBySlot['bg-music']?.[0] || payload.media?.find((m) => m.slot === 'bg-music');
   const bgMusicUrl = resolveMediaUrl(bgMusicDesc?.src, isPreview);
 
+  const qrisDesc: PublicMediaDescriptor | undefined =
+    mediaBySlot['qris']?.[0] || payload.media?.find((m) => m.slot === 'qris');
+  const qrisUrl = resolveMediaUrl(qrisDesc?.src, isPreview);
+
   const firstCeremonyStart =
     rawCeremonies.length > 0 &&
     typeof (rawCeremonies[0] as Record<string, unknown>)?.startDateTime === 'string' &&
@@ -282,6 +286,7 @@ export function adaptAetheriaData(
       title: 'Sebuah tanda kasih',
       description: 'Kehadiran dan doa Anda adalah hadiah terindah. Jika berkenan berbagi tanda kasih, kami menerimanya dengan penuh syukur.',
       accounts,
+      qrisUrl,
     },
     music: bgMusicUrl ? { src: bgMusicUrl, title: 'Aetheria Melody' } : undefined,
   };

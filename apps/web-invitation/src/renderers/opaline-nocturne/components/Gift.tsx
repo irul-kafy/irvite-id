@@ -6,6 +6,7 @@ import type {
   InvitationTemplateProps,
 } from "../types";
 import { Heading, Section } from "./Shared";
+import { QrisGiftCard } from "../../../components/qris";
 import s from "../InvitationTemplate.module.css";
 import { Fan } from "./Decor";
 export function Gift({
@@ -69,6 +70,11 @@ export function Gift({
       <p className={s.formStatus} role="status">
         {status}
       </p>
+      <QrisGiftCard
+        qrisUrl={config.qrisUrl}
+        coupleName={config.coupleName}
+        theme="opaline-nocturne"
+      />
       {config.address && (
         <div className={s.giftAddress} data-reveal>
           <span className={s.eyebrow}>Kirim tanda kasih</span>

@@ -172,6 +172,7 @@ export function adaptRanahCintaData(
     findMedia('COUPLE_2') ||
     `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
   const bgMusic = findMedia('BG-MUSIC') || findMedia('BACKGROUND_MUSIC');
+  const qrisUrl = findMedia('QRIS') || undefined;
 
   const firstCeremonyStart =
     rawCeremonies.length > 0 &&
@@ -239,6 +240,7 @@ export function adaptRanahCintaData(
         (typeof content.giftMessage === 'string' && content.giftMessage.trim()) ||
         'Kehadiran dan doa restu Anda adalah hadiah terindah bagi kami. Apabila Anda ingin berbagi tanda kasih, kami menerimanya dengan penuh rasa syukur.',
       accounts,
+      qrisUrl,
     },
     features: {
       countdown: true,
@@ -248,7 +250,7 @@ export function adaptRanahCintaData(
       gallery: false,
       rsvp: true,
       wishes: false,
-      gift: accounts.length > 0 || Boolean(content.giftMessage),
+      gift: accounts.length > 0 || Boolean(content.giftMessage) || Boolean(qrisUrl),
       music: Boolean(bgMusic),
     },
     musicUrl: bgMusic,

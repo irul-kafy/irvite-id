@@ -7,6 +7,7 @@ import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { AddToCalendarButton } from '../../components/calendar';
+import { QrisGiftCard } from '../../components/qris';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -1138,6 +1139,12 @@ export function SwargaDewataRenderer({
               </div>
             ))}
           </div>
+
+          <QrisGiftCard
+            qrisUrl={media.qrisUrl}
+            coupleName={`${content.partnerOneName} & ${content.partnerTwoName}`}
+            theme="swarga-dewata"
+          />
         </section>
 
         <div className={styles.tridatuRibbon} />

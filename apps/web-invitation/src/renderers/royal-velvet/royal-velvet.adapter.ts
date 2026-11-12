@@ -385,6 +385,7 @@ export function adaptRoyalVelvetMedia(
     .filter((m) => m.type === 'PHOTO')
     .slice(0, 6);
   const bgMusicDesc = resolveSlot('bg-music').find((m) => m.type === 'AUDIO');
+  const qrisDesc = resolveSlot('qris').find((m) => m.type === 'PHOTO');
 
   const heroPhotoUrl =
     normalizeMediaUrl(heroDesc?.src, isPreview) || DEFAULT_HERO_PHOTO;
@@ -404,6 +405,7 @@ export function adaptRoyalVelvetMedia(
 
   const bgMusicUrl =
     normalizeMediaUrl(bgMusicDesc?.src, isPreview) || DEFAULT_BG_MUSIC;
+  const qrisUrl = normalizeMediaUrl(qrisDesc?.src, isPreview) || null;
 
   return {
     heroPhotoUrl,
@@ -413,6 +415,7 @@ export function adaptRoyalVelvetMedia(
     galleryPhotos:
       galleryPhotos.length > 0 ? galleryPhotos : DEFAULT_GALLERY_PHOTOS,
     bgMusicUrl,
+    qrisUrl,
   };
 }
 

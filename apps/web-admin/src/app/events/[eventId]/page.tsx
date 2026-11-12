@@ -26,6 +26,7 @@ import { getPublicAvailabilityState } from '@/utils/event-availability';
 import { TemplateContentEditor } from './components/template-content-editor';
 import { MediaManager } from './components/media-manager';
 import { EventPreviewTab } from './components/event-preview-tab';
+import { QrisStandeeDisplay } from './components/qris-standee-display';
 
 interface EventData {
   id: string;
@@ -173,8 +174,11 @@ export default function EventDetailPage({
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
-  const activeTab: 'overview' | 'content' | 'media' | 'preview' =
-    tabParam === 'content' || tabParam === 'media' || tabParam === 'preview'
+  const activeTab: 'overview' | 'content' | 'media' | 'qris' | 'preview' =
+    tabParam === 'content' ||
+    tabParam === 'media' ||
+    tabParam === 'qris' ||
+    tabParam === 'preview'
       ? tabParam
       : 'overview';
 
@@ -348,7 +352,9 @@ export default function EventDetailPage({
     }
   };
 
-  const handleTabChange = (tab: 'overview' | 'content' | 'media' | 'preview') => {
+  const handleTabChange = (
+    tab: 'overview' | 'content' | 'media' | 'qris' | 'preview',
+  ) => {
     router.replace(`/events/${eventId}?tab=${tab}`, { scroll: false });
   };
 
@@ -552,6 +558,16 @@ export default function EventDetailPage({
           id="tab-media-btn"
         >
           Media Template
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'qris'}
+          className={`btn btn-sm ${activeTab === 'qris' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => handleTabChange('qris')}
+          id="tab-qris-btn"
+        >
+          Pajangan QRIS Meja 🪪
         </button>
         <button
           type="button"
@@ -889,6 +905,32 @@ export default function EventDetailPage({
               </div>
             </div>
 
+            {/* Module: QRIS Acrylic Standee Display */}
+            <div
+              className="action-card"
+              onClick={() => handleTabChange('qris')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTabChange('qris'); }}
+              id="hub-qris-standee-card"
+            >
+              <div className="action-card__icon-wrap" style={{ background: 'rgba(217, 119, 6, 0.14)', color: '#b45309' }}>
+                <span style={{ fontSize: '1.25rem' }}>🪪</span>
+              </div>
+              <div>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Pajangan QRIS Meja (Standee)
+                  <span className="badge badge--warning" style={{ fontSize: '0.6875rem' }}>AKRILIK &amp; DIGITAL</span>
+                </div>
+                <div className="action-card__desc">
+                  Unggah barcode QRIS mempelai untuk Amplop Digital sekaligus cetak desain pajangan akrilik meja penerima tamu (A5 / A6 / 5R).
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Atur &amp; Cetak QRIS &rarr;
+              </div>
+            </div>
+
             {/* Module: Preview */}
             <div
               className="action-card"
@@ -955,6 +997,17 @@ export default function EventDetailPage({
         <MediaManager
           eventId={event.id}
           templateId={event.templateId}
+        />
+      )}
+
+      {/* TAB 3B: QRIS STANDEE DISPLAY */}
+      {activeTab === 'qris' && (
+        <QrisStandeeDisplay
+          eventId={event.id}
+          eventTitle={event.title}
+          eventDate={event.eventDate}
+          content={event.content}
+          templateName={templateName}
         />
       )}
 

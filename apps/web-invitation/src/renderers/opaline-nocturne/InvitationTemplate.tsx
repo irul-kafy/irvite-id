@@ -137,7 +137,7 @@ export default function InvitationTemplate({
             />
           )}
           {feature("gift") &&
-            (data.gifts.accounts.length > 0 || data.gifts.address) && (
+            (data.gifts.accounts.length > 0 || data.gifts.address || Boolean(data.gifts.qrisUrl)) && (
               <Gift config={data.gifts} onCopy={callbacks?.onCopyGift} />
             )}
           {(feature("rsvp") || feature("guestQr")) && (
@@ -195,7 +195,7 @@ export default function InvitationTemplate({
               </a>
             )}
             {feature("gift") &&
-              (data.gifts.accounts.length > 0 || data.gifts.address) && (
+              (data.gifts.accounts.length > 0 || data.gifts.address || Boolean(data.gifts.qrisUrl)) && (
                 <a href="#gift">
                   ♧<span>Gift</span>
                 </a>

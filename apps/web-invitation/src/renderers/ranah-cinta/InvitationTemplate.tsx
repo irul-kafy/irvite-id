@@ -4,6 +4,7 @@
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { InvitationTemplateProps, ImageAsset } from './types';
 import { AddToCalendarButton } from '../../components/calendar';
+import { QrisGiftCard } from '../../components/qris';
 import s from './InvitationTemplate.module.css';
 
 function safeUrl(src?: string) {
@@ -731,7 +732,7 @@ export default function InvitationTemplate({
         )}
 
         {/* Section 6: Gift */}
-        {data.features.gift && (data.gifts.accounts.length > 0 || data.gifts.message) && (
+        {data.features.gift && (data.gifts.accounts.length > 0 || data.gifts.message || data.gifts.qrisUrl) && (
           <section className={`${s.section} ${s.giftSection}`} id="gift">
             <div className={s.giftIntro} data-reveal="left">
               <span className={s.chapter}>
@@ -772,6 +773,11 @@ export default function InvitationTemplate({
                   </button>
                 </div>
               ))}
+              <QrisGiftCard
+                qrisUrl={data.gifts.qrisUrl}
+                coupleName={`${data.couple.bride.shortName} & ${data.couple.groom.shortName}`}
+                theme="ranah-cinta"
+              />
             </div>
             <MinangDivider />
           </section>

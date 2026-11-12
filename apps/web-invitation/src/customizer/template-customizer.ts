@@ -33,7 +33,7 @@ export type CustomPhotoSlotKey =
   | 'closing';
 
 export interface CustomPhotoItem {
-  slot: CustomPhotoSlotKey;
+  slot: CustomPhotoSlotKey | 'qris';
   previewUrl: string; // blob:... or /templates/...
   dataUrl?: string; // compressed data:image/jpeg;base64,... for admin submission
   fileName?: string;
@@ -379,6 +379,7 @@ export interface ClientCustomizationState {
   groomPhoto?: CustomPhotoItem | null;
   storyPhoto?: CustomPhotoItem | null;
   closingPhoto: CustomPhotoItem | null;
+  qrisPhoto?: CustomPhotoItem | null;
   galleryPhotos: CustomPhotoItem[];
 }
 
@@ -598,6 +599,7 @@ export function extractInitialCustomizationState(
     groomPhoto: null,
     storyPhoto: null,
     closingPhoto: null,
+    qrisPhoto: null,
     galleryPhotos: [],
   };
 }
@@ -783,6 +785,21 @@ export function applyClientCustomizationToFixture(
     ];
   }
 
+  if (state.qrisPhoto?.previewUrl) {
+    const qrisDescriptor: PublicMediaDescriptor = {
+      id: 'custom-qris-photo',
+      type: 'PHOTO',
+      slot: 'qris',
+      order: 0,
+      src: state.qrisPhoto.previewUrl,
+    };
+    baseMediaBySlot['qris'] = [qrisDescriptor];
+    updatedMediaList = [
+      qrisDescriptor,
+      ...updatedMediaList.filter((m) => m.slot !== 'qris'),
+    ];
+  }
+
   if (state.galleryPhotos.length > 0) {
     const customGalleryDescriptors: PublicMediaDescriptor[] =
       state.galleryPhotos.map((item, idx) => ({
@@ -958,6 +975,13 @@ export function buildDraftSubmissionPayload(params: {
           });
         }
       });
+  }
+  if (state.qrisPhoto?.dataUrl) {
+    photos.push({
+      slot: 'qris',
+      dataUrl: state.qrisPhoto.dataUrl,
+      order: 0,
+    });
   }
 
   const firstCeremony = state.ceremonies[0];

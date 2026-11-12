@@ -263,7 +263,7 @@ export function TemplateCustomizerStudio({
   }, []);
 
   const handleSinglePhotoUpload = async (
-    slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story',
+    slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story' | 'qris',
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
@@ -287,7 +287,11 @@ export function TemplateCustomizerStudio({
           ? 'closingPhoto'
           : slot === 'bride'
             ? 'bridePhoto'
-            : slot === 'groom' ? 'groomPhoto' : 'storyPhoto';
+            : slot === 'groom'
+              ? 'groomPhoto'
+              : slot === 'qris'
+                ? 'qrisPhoto'
+                : 'storyPhoto';
 
     setState((prev) => ({
       ...prev,
@@ -1318,6 +1322,103 @@ export function TemplateCustomizerStudio({
                     </div>
                   </div>
                 ))}
+
+                {/* Barcode QRIS Upload */}
+                <div
+                  style={{
+                    marginTop: '8px',
+                    paddingTop: '12px',
+                    borderTop: '1px dashed #e2ddd3',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <label className="irv-studio-label">
+                    <span>Barcode QRIS Amplop Digital (Opsional)</span>
+                    <span className="irv-studio-label-hint">
+                      Scan Semua Bank &amp; e-Wallet
+                    </span>
+                  </label>
+
+                  {state.qrisPhoto ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        border: '1px solid #d4c4a8',
+                        background: '#fdfbf7',
+                      }}
+                    >
+                      <img
+                        src={state.qrisPhoto.previewUrl}
+                        alt="Pratinjau QRIS"
+                        style={{
+                          width: '64px',
+                          height: '64px',
+                          objectFit: 'contain',
+                          background: '#fff',
+                          borderRadius: '6px',
+                          border: '1px solid #e5e0d5',
+                          padding: '4px',
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            color: '#2c251d',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {state.qrisPhoto.fileName || 'Barcode QRIS Terpasang'}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#7a6f62', marginTop: '2px' }}>
+                          Tampil di seksi Amplop Digital &amp; siap untuk Pajangan Meja
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateField('qrisPhoto', null)}
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: '#b91c1c',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          borderRadius: '6px',
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <label className="irv-studio-upload-zone">
+                    <span className="irv-studio-upload-btn">
+                      {state.qrisPhoto
+                        ? '🔄 Ganti Gambar Barcode QRIS'
+                        : '📲 Unggah Gambar Barcode QRIS'}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#7a6f62' }}>
+                      Tamu dapat langsung scan atau mengunduh QRIS dari undangan
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleSinglePhotoUpload('qris', e)}
+                    />
+                  </label>
+                </div>
               </div>
             </>
           )}

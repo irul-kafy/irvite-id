@@ -108,3 +108,4 @@ test('Calendar Utilities Contract Tests', async (t) => {
     assert.equal(ics.includes('STATUS:CONFIRMED'), true);
   });
 });
+

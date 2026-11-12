@@ -239,31 +239,30 @@
   color: #fff;
 }
 
-/* 6. AETHERIA (Ethereal Cosmic Peach & Violet) */
+/* 6. AETHERIA (Futuristic Modern Glass) */
 .themeAetheria .triggerBtn {
-  background: rgba(239, 191, 163, 0.12);
-  color: #f4e4d8;
-  border: 1px solid rgba(239, 191, 163, 0.35);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e7ff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 .themeAetheria .triggerBtn:hover {
-  background: rgba(239, 191, 163, 0.25);
-  color: #ffffff;
-  border-color: #efbfa3;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(239, 191, 163, 0.25);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
 }
 .themeAetheria .dropdown {
-  background: rgba(38, 24, 46, 0.96);
-  border: 1px solid rgba(239, 191, 163, 0.35);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .themeAetheria .menuItem {
-  color: #f4e4d8;
+  color: #e0e7ff;
 }
 .themeAetheria .menuItem:hover {
-  background: rgba(239, 191, 163, 0.2);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 /* 7. DEFAULT / FALLBACK */
@@ -295,3 +294,4 @@
     padding: 0.55rem 0.95rem;
   }
 }
+
