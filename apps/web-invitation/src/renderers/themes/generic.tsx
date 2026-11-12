@@ -15,7 +15,7 @@ import {
 } from '../mode-gating';
 import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import MediaGallery from '../../components/media-gallery';
-import { RsvpForm } from '../../components/rsvp-form';
+import { RsvpForm, type RsvpVariant } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { cleanInvitationEventTitle } from '../adapter-utils';
@@ -28,6 +28,7 @@ interface RsvpSectionProps {
   isPreview: boolean;
   maxPax: number;
   initialRsvp: PublicInvitationResponse['rsvp'];
+  variant?: RsvpVariant;
 }
 
 interface GiftEntry {
@@ -51,7 +52,7 @@ function formatEventDate(eventDate: string): string {
 
 // ── Preview-safe RSVP ──────────────────────────────────────────────────────────
 
-export function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp }: RsvpSectionProps) {
+export function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp, variant = 'light' }: RsvpSectionProps) {
   if (isPreview) {
     return (
       <div className="gt-rsvp gt-rsvp--preview" aria-label="RSVP preview placeholder">
@@ -65,7 +66,7 @@ export function RsvpSection({ uniqueCode, isPreview, maxPax, initialRsvp }: Rsvp
       </div>
     );
   }
-  return <RsvpForm uniqueCode={uniqueCode} maxPax={maxPax} initialRsvp={initialRsvp} />;
+  return <RsvpForm uniqueCode={uniqueCode} maxPax={maxPax} initialRsvp={initialRsvp} variant={variant} />;
 }
 
 // ── QR Placeholder ─────────────────────────────────────────────────────────────
@@ -610,6 +611,25 @@ export default function GenericTheme({
 
   const { primaryColor, secondaryColor, backgroundColor, textColor } = config.theme;
 
+  const isDarkColor = (color?: string) => {
+    if (!color) return false;
+    const clean = color.replace('#', '');
+    if (clean.length === 3) {
+      const r = parseInt(clean[0] + clean[0], 16);
+      const g = parseInt(clean[1] + clean[1], 16);
+      const b = parseInt(clean[2] + clean[2], 16);
+      return 0.299 * r + 0.587 * g + 0.114 * b < 140;
+    }
+    if (clean.length === 6) {
+      const r = parseInt(clean.substring(0, 2), 16);
+      const g = parseInt(clean.substring(2, 4), 16);
+      const b = parseInt(clean.substring(4, 6), 16);
+      return 0.299 * r + 0.587 * g + 0.114 * b < 140;
+    }
+    return false;
+  };
+  const themeVariant: RsvpVariant = isDarkColor(backgroundColor) ? 'dark' : 'light';
+
   // Extract audio and hero photo from media list / slots
   const audioMedia = media?.find((m) => m.type === 'AUDIO');
   const heroSlotPhoto = mediaBySlot?.hero?.[0] || media?.find((m) => m.slot === 'hero' || m.type === 'THUMBNAIL');
@@ -862,6 +882,7 @@ export default function GenericTheme({
                           canRespond: false,
                         }
                       }
+                      variant={themeVariant}
                     />
                   </div>
                   <div className="gt-rsvp-qr-col">
@@ -869,7 +890,8 @@ export default function GenericTheme({
                       canonicalUrl={resolvedQrUrl}
                       guestName={guest?.name || 'Tamu Undangan'}
                       maxPax={guest?.maxPax ?? 2}
-                    tableNumber={data.guest?.tableNumber}
+                      tableNumber={data.guest?.tableNumber}
+                      variant={themeVariant}
                     />
                   </div>
                 </div>
@@ -886,6 +908,7 @@ export default function GenericTheme({
               initialWishes={data.wishes?.items}
               title={data.wishes?.title}
               description={data.wishes?.description}
+              variant={themeVariant}
             />
           </Reveal>
 

@@ -8,11 +8,20 @@ interface QRDisplayProps {
   guestName?: string;
   maxPax?: number;
   tableNumber?: string | null;
+  className?: string;
+  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'ranah-cinta' | 'sekar-kedaton' | 'royal-velvet' | 'opaline-nocturne' | 'auto';
 }
 
-export default function QRDisplay({ canonicalUrl, guestName, maxPax, tableNumber }: QRDisplayProps) {
+export default function QRDisplay({
+  canonicalUrl,
+  guestName,
+  maxPax,
+  tableNumber,
+  className = '',
+  variant = 'light',
+}: QRDisplayProps) {
   return (
-    <div className="qr-container" id="guest-qr">
+    <div className={`qr-container ${variant} ${className}`} id="guest-qr">
       <span className="qr-badge">TIKET REGISTRASI TAMU</span>
       <h3 className="qr-heading">Kode QR Kehadiran</h3>
       {guestName && (

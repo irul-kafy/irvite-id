@@ -14,15 +14,15 @@
 
 /* Light Theme Variables (Luxury Warm Champagne & Ivory) */
 .light {
-  --w-bg: rgba(253, 250, 245, 0.95);
-  --w-card-bg: rgba(254, 252, 248, 0.98);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(200, 165, 105, 0.36);
-  --w-card-shadow: 0 16px 40px -4px rgba(150, 120, 80, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.95) inset;
+  --w-card-shadow: none;
   --w-text-title: #1f1b16;
   --w-text-body: #4b4238;
   --w-text-muted: #8d8376;
   --w-eyebrow: #b8860b;
-  --w-input-bg: #f8f5ee;
+  --w-input-bg: rgba(255, 255, 255, 0.75);
   --w-input-border: rgba(200, 165, 105, 0.38);
   --w-input-text: #1f1b16;
   --w-input-focus: #b8860b;
@@ -30,9 +30,9 @@
   --w-btn-bg: linear-gradient(135deg, #2e261e 0%, #1a1612 100%);
   --w-btn-text: #faf7f2;
   --w-btn-shadow: 0 8px 22px -3px rgba(26, 22, 18, 0.35);
-  --w-feed-bg: rgba(254, 252, 248, 0.96);
+  --w-feed-bg: transparent;
   --w-feed-border: rgba(200, 165, 105, 0.28);
-  --w-feed-shadow: 0 6px 18px -2px rgba(150, 120, 80, 0.08);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   --w-avatar-border: #d97706;
   --w-avatar-text: #78350f;
@@ -45,10 +45,10 @@
 
 /* Dark Theme Variables (Neutral Slate/Obsidian) */
 .dark {
-  --w-bg: rgba(18, 18, 20, 0.95);
-  --w-card-bg: rgba(24, 24, 28, 0.88);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(229, 200, 142, 0.3);
-  --w-card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(229, 200, 142, 0.15) inset;
+  --w-card-shadow: none;
   --w-text-title: #f7f3eb;
   --w-text-body: #e2d9cc;
   --w-text-muted: #a39585;
@@ -61,9 +61,9 @@
   --w-btn-bg: linear-gradient(135deg, #e5c88e 0%, #d4af37 50%, #b8860b 100%);
   --w-btn-text: #1a1202;
   --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.35);
-  --w-feed-bg: rgba(26, 26, 32, 0.85);
+  --w-feed-bg: transparent;
   --w-feed-border: rgba(229, 200, 142, 0.25);
-  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 200, 142, 0.25) 0%, rgba(184, 134, 11, 0.4) 100%);
   --w-avatar-border: #e5c88e;
   --w-avatar-text: #f7f3eb;
@@ -74,12 +74,12 @@
   --w-scrollbar: rgba(229, 200, 142, 0.35);
 }
 
-/* Balinese (Swarga Dewata) Theme Variables - Warm Obsidian Stone, Deep Teakwood & Prada Gold */
+/* Swarga Dewata (Balinese) Theme Variables */
 .balinese {
-  --w-bg: rgba(18, 9, 8, 0.95);
-  --w-card-bg: rgba(22, 12, 10, 0.92);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(229, 184, 75, 0.4);
-  --w-card-shadow: 0 16px 44px -4px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(229, 184, 75, 0.15) inset;
+  --w-card-shadow: none;
   --w-text-title: #fdf8ea;
   --w-text-body: #ecd9bc;
   --w-text-muted: #b09e88;
@@ -92,9 +92,9 @@
   --w-btn-bg: linear-gradient(135deg, #f4dfb0 0%, #e5b84b 50%, #b8860b 100%);
   --w-btn-text: #180d05;
   --w-btn-shadow: 0 8px 24px -2px rgba(229, 184, 75, 0.35);
-  --w-feed-bg: rgba(26, 14, 12, 0.9);
-  --w-feed-border: rgba(229, 184, 75, 0.3);
-  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.5);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(229, 184, 75, 0.25);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, rgba(229, 184, 75, 0.35) 0%, rgba(184, 66, 40, 0.35) 100%);
   --w-avatar-border: #e5b84b;
   --w-avatar-text: #fdf8ea;
@@ -105,17 +105,17 @@
   --w-scrollbar: rgba(229, 184, 75, 0.4);
 }
 
-/* Aetheria (Woodland Twilight) Theme Variables */
+/* Aetheria (Woodland Twilight) Theme Variables - Clean Floating Canvas */
 .aetheria {
-  --w-bg: rgba(20, 16, 26, 0.95);
-  --w-card-bg: rgba(28, 22, 36, 0.88);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(239, 191, 163, 0.35);
-  --w-card-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(239, 191, 163, 0.15) inset;
+  --w-card-shadow: none;
   --w-text-title: #f4e4d8;
   --w-text-body: #c6b6ce;
   --w-text-muted: #95849d;
   --w-eyebrow: #efbfa3;
-  --w-input-bg: rgba(255, 255, 255, 0.06);
+  --w-input-bg: rgba(255, 255, 255, 0.05);
   --w-input-border: rgba(239, 191, 163, 0.3);
   --w-input-text: #f4e4d8;
   --w-input-focus: #efbfa3;
@@ -123,9 +123,9 @@
   --w-btn-bg: linear-gradient(135deg, #efbfa3 0%, #d89b7d 100%);
   --w-btn-text: #2a1733;
   --w-btn-shadow: 0 8px 24px -2px rgba(239, 191, 163, 0.35);
-  --w-feed-bg: rgba(32, 25, 42, 0.85);
-  --w-feed-border: rgba(239, 191, 163, 0.25);
-  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.4);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(239, 191, 163, 0.22);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, rgba(239, 191, 163, 0.3) 0%, rgba(189, 226, 211, 0.3) 100%);
   --w-avatar-border: #efbfa3;
   --w-avatar-text: #f4e4d8;
@@ -138,10 +138,10 @@
 
 /* Ranah Cinta (Minang Palace) Theme Variables - Deep Royal Emerald Velvet & Gold Filigree */
 .ranahCinta {
-  --w-bg: rgba(8, 26, 20, 0.95);
-  --w-card-bg: rgba(13, 36, 29, 0.92);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(212, 175, 55, 0.45);
-  --w-card-shadow: 0 18px 48px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.18) inset;
+  --w-card-shadow: none;
   --w-text-title: #fbf6ee;
   --w-text-body: #d4e3dc;
   --w-text-muted: #8ca89d;
@@ -154,9 +154,9 @@
   --w-btn-bg: linear-gradient(135deg, #f7e6a7 0%, #d4af37 50%, #997836 100%);
   --w-btn-text: #081a14;
   --w-btn-shadow: 0 8px 24px -2px rgba(212, 175, 55, 0.38);
-  --w-feed-bg: rgba(16, 46, 36, 0.88);
-  --w-feed-border: rgba(212, 175, 55, 0.32);
-  --w-feed-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.45);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(212, 175, 55, 0.28);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.4) 0%, rgba(92, 24, 34, 0.5) 100%);
   --w-avatar-border: #d4af37;
   --w-avatar-text: #fbf6ee;
@@ -169,15 +169,15 @@
 
 /* Sekar Kedaton (Javanese Royal Kraton) Theme Variables - Warm Daluwang Parchment, Antique Copper & Royal Jade */
 .sekarKedaton {
-  --w-bg: rgba(245, 237, 222, 0.95);
-  --w-card-bg: rgba(250, 244, 230, 0.96);
+  --w-bg: transparent;
+  --w-card-bg: transparent;
   --w-card-border: rgba(158, 96, 61, 0.38);
-  --w-card-shadow: 0 14px 38px -4px rgba(43, 66, 56, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.85) inset;
+  --w-card-shadow: none;
   --w-text-title: #183e37;
   --w-text-body: #2b4238;
   --w-text-muted: #67715f;
   --w-eyebrow: #9e603d;
-  --w-input-bg: #f5eedf;
+  --w-input-bg: rgba(255, 255, 255, 0.6);
   --w-input-border: rgba(158, 96, 61, 0.32);
   --w-input-text: #183e37;
   --w-input-focus: #183e37;
@@ -185,9 +185,9 @@
   --w-btn-bg: linear-gradient(135deg, #183e37 0%, #28574b 100%);
   --w-btn-text: #f1e5ce;
   --w-btn-shadow: 0 8px 22px -3px rgba(24, 62, 55, 0.32);
-  --w-feed-bg: rgba(253, 249, 238, 0.94);
-  --w-feed-border: rgba(158, 96, 61, 0.28);
-  --w-feed-shadow: 0 6px 18px -2px rgba(43, 66, 56, 0.08);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(158, 96, 61, 0.25);
+  --w-feed-shadow: none;
   --w-avatar-bg: linear-gradient(135deg, #e8ddc7 0%, #d8caa9 100%);
   --w-avatar-border: #9e603d;
   --w-avatar-text: #183e37;
@@ -196,6 +196,68 @@
   --w-badge-border: rgba(158, 96, 61, 0.3);
   --w-quote-watermark: rgba(158, 96, 61, 0.12);
   --w-scrollbar: rgba(158, 96, 61, 0.3);
+}
+
+/* Royal Velvet Theme Variables */
+.royalVelvet {
+  --w-bg: transparent;
+  --w-card-bg: transparent;
+  --w-card-border: rgba(229, 200, 142, 0.35);
+  --w-card-shadow: none;
+  --w-text-title: #f9f4ec;
+  --w-text-body: #d2c2b0;
+  --w-text-muted: #a69888;
+  --w-eyebrow: #e5c88e;
+  --w-input-bg: rgba(255, 255, 255, 0.06);
+  --w-input-border: rgba(229, 200, 142, 0.32);
+  --w-input-text: #f9f4ec;
+  --w-input-focus: #f4dfb0;
+  --w-input-glow: rgba(229, 200, 142, 0.22);
+  --w-btn-bg: linear-gradient(135deg, #f4dfb0 0%, #e5c88e 50%, #b8860b 100%);
+  --w-btn-text: #14080b;
+  --w-btn-shadow: 0 8px 24px -2px rgba(229, 200, 142, 0.35);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(229, 200, 142, 0.25);
+  --w-feed-shadow: none;
+  --w-avatar-bg: linear-gradient(135deg, rgba(229, 200, 142, 0.35) 0%, rgba(138, 38, 55, 0.4) 100%);
+  --w-avatar-border: #e5c88e;
+  --w-avatar-text: #f9f4ec;
+  --w-badge-bg: rgba(229, 200, 142, 0.16);
+  --w-badge-text: #e5c88e;
+  --w-badge-border: rgba(229, 200, 142, 0.4);
+  --w-quote-watermark: rgba(229, 200, 142, 0.12);
+  --w-scrollbar: rgba(229, 200, 142, 0.35);
+}
+
+/* Opaline Nocturne Theme Variables */
+.opalineNocturne {
+  --w-bg: transparent;
+  --w-card-bg: transparent;
+  --w-card-border: rgba(113, 147, 143, 0.4);
+  --w-card-shadow: none;
+  --w-text-title: #163336;
+  --w-text-body: #254347;
+  --w-text-muted: #536766;
+  --w-eyebrow: #476c70;
+  --w-input-bg: rgba(255, 255, 255, 0.75);
+  --w-input-border: rgba(71, 108, 112, 0.35);
+  --w-input-text: #163336;
+  --w-input-focus: #476c70;
+  --w-input-glow: rgba(71, 108, 112, 0.2);
+  --w-btn-bg: #476c70;
+  --w-btn-text: #fff9ed;
+  --w-btn-shadow: 0 6px 18px rgba(33, 73, 73, 0.25);
+  --w-feed-bg: transparent;
+  --w-feed-border: rgba(113, 147, 143, 0.35);
+  --w-feed-shadow: none;
+  --w-avatar-bg: linear-gradient(135deg, #e6ecd8 0%, #c9d6b2 100%);
+  --w-avatar-border: #71938f;
+  --w-avatar-text: #163336;
+  --w-badge-bg: rgba(39, 78, 85, 0.1);
+  --w-badge-text: #476c70;
+  --w-badge-border: rgba(113, 147, 143, 0.35);
+  --w-quote-watermark: rgba(113, 147, 143, 0.15);
+  --w-scrollbar: rgba(71, 108, 112, 0.35);
 }
 
 /* Header & Typography */
@@ -258,13 +320,11 @@
 
 /* Form Card */
 .formCard {
-  background: var(--w-card-bg);
+  background: var(--w-card-bg, transparent);
   border: 1px solid var(--w-card-border);
   border-radius: 1.25rem;
   padding: 1.85rem 1.65rem;
-  box-shadow: var(--w-card-shadow);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--w-card-shadow, none);
   margin-bottom: 2.25rem;
   position: relative;
   overflow: hidden;
@@ -472,13 +532,11 @@
 }
 
 .feedCard {
-  background: var(--w-feed-bg);
+  background: var(--w-feed-bg, transparent);
   border: 1px solid var(--w-feed-border);
   border-radius: 1rem;
   padding: 1.25rem 1.35rem;
-  box-shadow: var(--w-feed-shadow);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--w-feed-shadow, none);
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -565,7 +623,7 @@
   text-align: center;
   padding: 3rem 1.5rem;
   color: var(--w-text-muted);
-  background: var(--w-feed-bg);
+  background: transparent;
   border: 1px dashed var(--w-feed-border);
   border-radius: 1rem;
 }

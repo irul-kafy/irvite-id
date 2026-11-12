@@ -1458,10 +1458,10 @@
 
 .hostSlot {
   margin-top: 28px;
-  padding: 28px;
-  background: rgba(8, 24, 18, 0.7);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  width: 100%;
 }
 
 .hostSlot button {

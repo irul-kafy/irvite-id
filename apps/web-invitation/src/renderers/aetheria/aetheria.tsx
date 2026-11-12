@@ -53,6 +53,7 @@ export default function AetheriaRenderer({
       uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
+      variant="aetheria"
     />
   ) : null;
 
@@ -66,7 +67,8 @@ export default function AetheriaRenderer({
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
-                    tableNumber={data.guest?.tableNumber}
+      tableNumber={data.guest?.tableNumber}
+      variant="aetheria"
     />
   ) : null;
 
@@ -79,6 +81,7 @@ export default function AetheriaRenderer({
       title={data.wishes?.title}
       description={data.wishes?.description}
       variant="aetheria"
+      hideHeader
     />
   );
 

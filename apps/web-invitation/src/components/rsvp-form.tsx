@@ -1,16 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { PublicInvitationResponse } from '../types/public-invitation';
 import styles from './rsvp-form.module.css';
 
-interface RsvpFormProps {
+export type RsvpVariant =
+  | 'light'
+  | 'dark'
+  | 'balinese'
+  | 'aetheria'
+  | 'ranah-cinta'
+  | 'sekar-kedaton'
+  | 'royal-velvet'
+  | 'opaline-nocturne'
+  | 'auto';
+
+export interface RsvpFormProps {
   uniqueCode: string;
   maxPax: number;
   initialRsvp: PublicInvitationResponse['rsvp'];
+  className?: string;
+  variant?: RsvpVariant;
 }
 
-export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
+export function RsvpForm({
+  uniqueCode,
+  maxPax,
+  initialRsvp,
+  className,
+  variant = 'light',
+}: RsvpFormProps) {
   const [rsvp, setRsvp] = useState(initialRsvp);
   const [selectedResponse, setSelectedResponse] = useState<'YES' | 'NO' | null>(
     initialRsvp.response === 'PENDING' ? null : initialRsvp.response
@@ -19,9 +38,30 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  let themeClass = '';
+  if (variant === 'dark') {
+    themeClass = styles.dark || '';
+  } else if (variant === 'balinese') {
+    themeClass = styles.balinese || '';
+  } else if (variant === 'aetheria') {
+    themeClass = styles.aetheria || '';
+  } else if (variant === 'ranah-cinta') {
+    themeClass = styles.ranahCinta || '';
+  } else if (variant === 'sekar-kedaton') {
+    themeClass = styles.sekarKedaton || '';
+  } else if (variant === 'royal-velvet') {
+    themeClass = styles.royalVelvet || '';
+  } else if (variant === 'opaline-nocturne') {
+    themeClass = styles.opalineNocturne || '';
+  } else if (variant === 'auto') {
+    themeClass = styles.auto || '';
+  }
+
+  const cardClasses = [styles.card, themeClass, className].filter(Boolean).join(' ');
+
   if (!rsvp.canRespond) {
     return (
-      <div className={styles.card} role="status">
+      <div className={cardClasses} role="status">
         <h3 className={styles.heading}>RSVP sudah ditutup</h3>
         <p className={styles.description}>
           {rsvp.response === 'YES'
@@ -81,7 +121,7 @@ export function RsvpForm({ uniqueCode, maxPax, initialRsvp }: RsvpFormProps) {
   };
 
   return (
-    <div className={styles.card}>
+    <div className={cardClasses}>
       <h3 className={styles.heading}>Konfirmasi Kehadiran</h3>
       
       {errorMsg && (

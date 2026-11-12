@@ -1042,6 +1042,7 @@ export function SwargaDewataRenderer({
                       pax: 1,
                     }
                   }
+                  variant="balinese"
                 />
               </div>
               <div className={styles.rsvpSectionSlot}>
@@ -1056,6 +1057,7 @@ export function SwargaDewataRenderer({
                   guestName={guestDisplayName}
                   maxPax={data?.guest?.maxPax || 2}
                   tableNumber={data?.guest?.tableNumber}
+                  variant="balinese"
                 />
               </div>
             </div>

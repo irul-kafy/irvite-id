@@ -12,7 +12,8 @@ export interface WishesSectionProps {
   title?: string;
   description?: string;
   className?: string;
-  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'ranah-cinta' | 'sekar-kedaton' | 'auto';
+  variant?: 'light' | 'dark' | 'balinese' | 'aetheria' | 'ranah-cinta' | 'sekar-kedaton' | 'royal-velvet' | 'opaline-nocturne' | 'auto';
+  hideHeader?: boolean;
 }
 
 function formatWishDate(dateStr?: string): string {
@@ -49,6 +50,7 @@ export function WishesSection({
   description = 'Tuliskan doa tulus dan harapan terbaik Anda untuk mengiringi hari bahagia kedua mempelai.',
   className,
   variant = 'light',
+  hideHeader = false,
 }: WishesSectionProps) {
   const [items, setItems] = useState<PublicWishItem[]>(initialWishes);
   const [name, setName] = useState(defaultName);
@@ -136,24 +138,30 @@ export function WishesSection({
     themeClass = styles.ranahCinta;
   } else if (variant === 'sekar-kedaton') {
     themeClass = styles.sekarKedaton;
+  } else if (variant === 'royal-velvet') {
+    themeClass = styles.royalVelvet;
+  } else if (variant === 'opaline-nocturne') {
+    themeClass = styles.opalineNocturne;
   }
 
   return (
     <section className={`${styles.section} ${themeClass} ${className || ''}`} id="wishes">
-      <div className={styles.header}>
-        <div className={styles.ornament} aria-hidden="true">
-          <span>✧</span>
-          <span>✦</span>
-          <span>✧</span>
+      {!hideHeader && (
+        <div className={styles.header}>
+          <div className={styles.ornament} aria-hidden="true">
+            <span>✧</span>
+            <span>✦</span>
+            <span>✧</span>
+          </div>
+          <span className={styles.eyebrow}>Doa &amp; Restu</span>
+          <h2 className={styles.title}>{title}</h2>
+          <p className={styles.description}>{description}</p>
+          <div className={styles.counterBadge}>
+            <span>💌</span>
+            <span>{items.length} Doa Restu Masuk</span>
+          </div>
         </div>
-        <span className={styles.eyebrow}>Doa &amp; Restu</span>
-        <h2 className={styles.title}>{title}</h2>
-        <p className={styles.description}>{description}</p>
-        <div className={styles.counterBadge}>
-          <span>💌</span>
-          <span>{items.length} Doa Restu Masuk</span>
-        </div>
-      </div>
+      )}
 
       <div className={styles.formCard}>
         <form onSubmit={handleSubmit}>

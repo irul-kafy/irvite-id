@@ -103,6 +103,7 @@ export default function OpalineNocturneRenderer({
       uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
+      variant="opaline-nocturne"
     />
   ) : null;
 
@@ -116,7 +117,8 @@ export default function OpalineNocturneRenderer({
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
-                    tableNumber={data.guest?.tableNumber}
+      tableNumber={data.guest?.tableNumber}
+      variant="opaline-nocturne"
     />
   ) : null;
 

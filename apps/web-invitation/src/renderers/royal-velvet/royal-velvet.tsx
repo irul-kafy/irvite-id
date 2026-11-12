@@ -1008,6 +1008,7 @@ export function RoyalVelvetRenderer({
                       pax: 1,
                     }
                   }
+                  variant="royal-velvet"
                 />
               </div>
               <div className={styles.rsvpSectionSlot}>
@@ -1020,6 +1021,7 @@ export function RoyalVelvetRenderer({
                   guestName={guestName}
                   maxPax={data?.guest?.maxPax || 2}
                   tableNumber={data?.guest?.tableNumber}
+                  variant="royal-velvet"
                 />
               </div>
             </div>

@@ -1,3 +1,4 @@
+import React from 'react';
 import styles from './invitation-state.module.css';
 
 export default function NotFound() {

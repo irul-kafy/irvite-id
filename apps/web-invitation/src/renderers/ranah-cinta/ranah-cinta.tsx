@@ -46,6 +46,7 @@ export default function RanahCintaRenderer({
       uniqueCode={uniqueCode || 'simulasi-tamu'}
       maxPax={data.guest?.maxPax || 2}
       initialRsvp={data.rsvp || { canRespond: true, response: 'PENDING', pax: 1 }}
+      variant="ranah-cinta"
     />
   ) : null;
 
@@ -59,7 +60,8 @@ export default function RanahCintaRenderer({
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
       maxPax={data.guest?.maxPax || 2}
-                    tableNumber={data.guest?.tableNumber}
+      tableNumber={data.guest?.tableNumber}
+      variant="ranah-cinta"
     />
   ) : null;
 
@@ -72,6 +74,7 @@ export default function RanahCintaRenderer({
       title={data.wishes?.title}
       description={data.wishes?.description}
       variant="ranah-cinta"
+      hideHeader
     />
   );
 
