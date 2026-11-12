@@ -34,12 +34,12 @@ test('QR Ticket Offline E-Pass Download Contract Tests', async (t) => {
       'QRDisplay must use qr-download-btn CSS class'
     );
     assert.ok(
-      qrDisplayContent.includes('Simpan Tiket ke Galeri HP'),
-      'QRDisplay must present clear Indonesian action text for saving to mobile gallery'
+      qrDisplayContent.includes('Download Tiket QR'),
+      'QRDisplay must present clear Indonesian action text for downloading ticket'
     );
     assert.ok(
       qrDisplayContent.includes('qr-offline-tip'),
-      'QRDisplay must explain offline benefit when ballroom signal is low'
+      'QRDisplay must render offline tip'
     );
   });
 
@@ -54,7 +54,7 @@ test('QR Ticket Offline E-Pass Download Contract Tests', async (t) => {
     );
   });
 
-  await t.test('4. Ticket generation produces high-resolution card with branding and fallback sharing', () => {
+  await t.test('4. Ticket generation produces high-resolution card with direct file download', () => {
     assert.ok(
       qrDisplayContent.includes('width = 900') && qrDisplayContent.includes('height = 1350'),
       'Generated card must be high-resolution (900x1350 px) for crisp mobile display'
@@ -64,8 +64,8 @@ test('QR Ticket Offline E-Pass Download Contract Tests', async (t) => {
       'Generated card must include official IRVITE digital guest pass branding'
     );
     assert.ok(
-      qrDisplayContent.includes('navigator.share') && qrDisplayContent.includes('navigator.canShare'),
-      'Generated card must attempt native mobile sharing (Save to Photos) when available'
+      qrDisplayContent.includes('link.download = fileName'),
+      'Generated card must trigger direct file download'
     );
     assert.ok(
       qrDisplayContent.includes('URL.revokeObjectURL'),
@@ -115,3 +115,4 @@ test('QR Ticket Offline E-Pass Download Contract Tests', async (t) => {
     }
   });
 });
+

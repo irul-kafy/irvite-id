@@ -243,16 +243,16 @@ export default function QRDisplay({
       ctx.font = '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.fillText('SCAN KODE DI MEJA REGISTRASI TAMU', width / 2, qrBoxY + qrBoxSize + 40);
 
-      // 8. Offline Usage Notice
+      // 8. Instructions
       const noteY = 1005;
       ctx.fillStyle = '#f8fafc';
       ctx.font = '700 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('Simpan gambar tiket ini di galeri foto HP Anda', width / 2, noteY);
+      ctx.fillText('Tiket Registrasi Resmi Tamu Undangan', width / 2, noteY);
 
       ctx.fillStyle = '#94a3b8';
       ctx.font = '400 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText('Dapat digunakan tanpa koneksi internet saat tiba di gedung/ballroom.', width / 2, noteY + 30);
-      ctx.fillText('Tunjukkan kepada panitia registrasi untuk penukaran suvenir & nomor meja.', width / 2, noteY + 54);
+      ctx.fillText('Tunjukkan kartu QR ini kepada panitia saat tiba di lokasi acara.', width / 2, noteY + 30);
+      ctx.fillText('Dapat dibuka secara langsung dari perangkat tanpa koneksi internet.', width / 2, noteY + 54);
 
       // 9. Footer Divider & Watermark
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
@@ -270,8 +270,8 @@ export default function QRDisplay({
       ctx.font = '400 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.fillText('Terverifikasi resmi melalui platform undangan digital pernikahan IRVITE.ID', width / 2, 1208);
 
-      // 10. Generate Blob & Trigger Download / Native Share
-      canvas.toBlob(async (blob) => {
+      // 10. Generate Blob & Trigger Direct Download
+      canvas.toBlob((blob) => {
         if (!blob) {
           setDownloading(false);
           return;
@@ -283,31 +283,7 @@ export default function QRDisplay({
           .replace(/^-|-$/g, '')
           .substring(0, 35);
         const fileName = `Tiket-${safeName || 'Undangan'}.png`;
-        const file = new File([blob], fileName, { type: 'image/png' });
 
-        // If Web Share API is available (iOS / Android Photos save)
-        if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: `Tiket Undangan - ${guestName || 'Tamu'}`,
-              text: `Tiket QR Kehadiran Resmi untuk ${guestName || 'Tamu'} (${eventTitle || 'Pernikahan'})`,
-            });
-            setDownloadSuccess(true);
-            setDownloading(false);
-            setTimeout(() => setDownloadSuccess(false), 4500);
-            return;
-          } catch (err: unknown) {
-            const e = err as Error;
-            if (e.name === 'AbortError') {
-              // User cancelled native share sheet
-              setDownloading(false);
-              return;
-            }
-          }
-        }
-
-        // Direct Download Fallback
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objectUrl;
@@ -315,7 +291,7 @@ export default function QRDisplay({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(objectUrl);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
 
         setDownloadSuccess(true);
         setDownloading(false);
@@ -392,7 +368,7 @@ export default function QRDisplay({
         Tunjukkan QR ini kepada petugas saat registrasi.
       </p>
 
-      {/* 1-Click Download Button to save E-Pass into Mobile Gallery */}
+      {/* 1-Click Download Button to download E-Pass */}
       <div className="qr-actions">
         <button
           type="button"
@@ -400,17 +376,17 @@ export default function QRDisplay({
           className={`qr-download-btn${downloadSuccess ? ' qr-download-btn--success' : ''}`}
           onClick={handleDownloadTicket}
           disabled={downloading}
-          aria-label="Simpan kartu tiket QR ke galeri foto HP untuk akses offline"
+          aria-label="Download kartu tiket QR untuk akses registrasi cepat"
         >
           {downloading ? (
             <>
               <span className="qr-download-spinner" aria-hidden="true" />
-              <span>Menyiapkan Tiket...</span>
+              <span>Mengunduh Tiket...</span>
             </>
           ) : downloadSuccess ? (
             <>
               <span>✓</span>
-              <span>Tiket Berhasil Disimpan!</span>
+              <span>Tiket Berhasil Diunduh!</span>
             </>
           ) : (
             <>
@@ -429,13 +405,13 @@ export default function QRDisplay({
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              <span>Simpan Tiket ke Galeri HP</span>
+              <span>Download Tiket QR</span>
             </>
           )}
         </button>
 
         <p className="qr-offline-tip">
-          <span>💡</span> Simpan tiket sekarang agar tetap bisa registrasi saat tiba di gedung/ballroom yang minim sinyal internet.
+          <span>💡</span> Download tiket agar registrasi di lokasi lebih cepat dan praktis.
         </p>
       </div>
     </div>
