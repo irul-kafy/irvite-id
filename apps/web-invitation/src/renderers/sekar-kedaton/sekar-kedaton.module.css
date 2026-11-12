@@ -2219,33 +2219,48 @@
   }
 
   .coupleLayout {
-    gap: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    align-items: center;
   }
 
-  .partnerPortrait {
-    max-width: 165px;
-    margin-bottom: 16px;
+  .coupleLayout article {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
   }
 
-  .portraitArch {
-    border-radius: 85px 85px 8px 8px;
+  .coupleLayout article:first-of-type {
+    order: 1;
   }
 
-  .portraitBadge {
-    font-size: 10px;
-    padding: 2px 12px;
-    bottom: -8px;
-  }
-
-  .partnerFullName {
-    font-size: 13px !important;
+  .coupleLayout article:last-of-type {
+    order: 2;
   }
 
   .couplePhoto {
-    height: 360px;
-    width: 90%;
+    order: 3;
+    height: 380px;
+    width: 100%;
     max-width: 260px;
     margin: 16px auto 0;
+    border-radius: 130px 130px 4px 4px;
+  }
+
+  .partnerPortrait {
+    max-width: 220px;
+    margin: 0 auto 18px;
+  }
+
+  .portraitArch {
+    border-radius: 110px 110px 8px 8px;
+  }
+
+  .portraitBadge {
+    font-size: 11px;
+    padding: 3px 14px;
+    bottom: -9px;
   }
 
   .partnerLabel {
@@ -2530,13 +2545,42 @@
   }
 
   .coupleLayout {
-    grid-template-columns: 1fr;
-    gap: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    align-items: center;
+  }
+
+  .coupleLayout article {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .coupleLayout article:first-of-type {
+    order: 1;
+  }
+
+  .coupleLayout article:last-of-type {
+    order: 2;
   }
 
   .couplePhoto {
-    max-width: 240px;
-    margin: 0 auto;
+    order: 3;
+    height: 380px;
+    width: 100%;
+    max-width: 260px;
+    margin: 16px auto 0;
+    border-radius: 130px 130px 4px 4px;
+  }
+
+  .partnerPortrait {
+    max-width: 220px;
+    margin: 0 auto 18px;
+  }
+
+  .portraitArch {
+    border-radius: 110px 110px 8px 8px;
   }
 
   .eventGrid {

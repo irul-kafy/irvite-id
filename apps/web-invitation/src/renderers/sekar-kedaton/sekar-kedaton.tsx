@@ -278,7 +278,7 @@ export default function SekarKedatonRenderer({
                         src={brideSrc}
                         alt={`Mempelai Wanita - ${nameOne}`}
                         loading="lazy"
-                        style={isBrideHeroCrop ? { objectPosition: '72% 25%', transform: 'scale(1.2)' } : undefined}
+                        style={isBrideHeroCrop ? { objectPosition: '78% 20%', transform: 'scale(1.6)' } : undefined}
                       />
                     </div>
                     <span className={s.portraitBadge}>01</span>
@@ -306,7 +306,7 @@ export default function SekarKedatonRenderer({
                         src={groomSrc}
                         alt={`Mempelai Pria - ${nameTwo}`}
                         loading="lazy"
-                        style={isGroomHeroCrop ? { objectPosition: '32% 25%', transform: 'scale(1.2)' } : undefined}
+                        style={isGroomHeroCrop ? { objectPosition: '24% 20%', transform: 'scale(1.6)' } : undefined}
                       />
                     </div>
                     <span className={s.portraitBadge}>02</span>
