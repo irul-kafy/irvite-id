@@ -29,10 +29,6 @@ export class StaffEventsService {
       throw new NotFoundException('Event not found');
     }
 
-    if (currentUser.role === Role.ADMIN && event.userId !== currentUser.id) {
-      throw new NotFoundException('Event not found'); // Hide existence to prevent IDOR
-    }
-
     if (
       currentUser.role !== Role.SUPER_ADMIN &&
       currentUser.role !== Role.ADMIN

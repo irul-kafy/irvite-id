@@ -131,7 +131,7 @@ export class EventsService {
     const skip = (page - 1) * limit;
 
     const whereScope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN ? {} : { userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? {} : { userId };
     if (query.filter === 'active')
       whereScope.status = { in: ['DRAFT', 'PUBLISHED'] };
     if (query.filter === 'archived') whereScope.status = 'ARCHIVED';
@@ -177,7 +177,7 @@ export class EventsService {
 
   async summary(userId: string, role: Role) {
     const scope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN ? {} : { userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? {} : { userId };
     const upcoming = {
       ...scope,
       status: { not: 'ARCHIVED' },
@@ -246,7 +246,8 @@ export class EventsService {
   }
 
   async findOne(id: string, userId: string, role: Role) {
-    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+    const whereScope =
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -291,7 +292,8 @@ export class EventsService {
     role: Role,
     updateEventDto: UpdateEventDto,
   ) {
-    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+    const whereScope =
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -775,7 +777,9 @@ export class EventsService {
     query: WishListQueryDto,
   ) {
     const whereScope =
-      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id: eventId }
+        : { id: eventId, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -857,7 +861,9 @@ export class EventsService {
     role: Role,
   ) {
     const whereScope =
-      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id: eventId }
+        : { id: eventId, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -894,7 +900,8 @@ export class EventsService {
     };
   }
   async archive(id: string, userId: string, role: Role) {
-    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+    const whereScope =
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -918,7 +925,8 @@ export class EventsService {
   }
 
   async restore(id: string, userId: string, role: Role) {
-    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
+    const whereScope =
+      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,

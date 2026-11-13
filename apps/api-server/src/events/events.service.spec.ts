@@ -109,7 +109,7 @@ describe('EventsService', () => {
   });
 
   describe('findOne', () => {
-    it('should scope query for ADMIN', async () => {
+    it('should NOT scope query for ADMIN or SUPER_ADMIN', async () => {
       (prisma.event.findFirst as jest.Mock).mockResolvedValue({
         id: 'event-1',
       });
@@ -118,7 +118,7 @@ describe('EventsService', () => {
 
       expect(prisma.event.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'event-1', userId: 'admin-1' },
+          where: { id: 'event-1' },
         }),
       );
     });

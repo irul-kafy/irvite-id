@@ -25,7 +25,7 @@ export class GuestsService {
     role: Role,
   ): Promise<void> {
     const where: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 
@@ -52,7 +52,7 @@ export class GuestsService {
     }
 
     const whereScope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 

@@ -15,18 +15,9 @@ export class ScannerService {
     };
     const orderBy = [{ eventDate: 'asc' as const }, { id: 'asc' as const }];
 
-    if (role === Role.SUPER_ADMIN) {
+    if (role === Role.SUPER_ADMIN || role === Role.ADMIN) {
       const data = await this.prisma.event.findMany({
         where: { status: 'PUBLISHED' },
-        select,
-        orderBy,
-      });
-      return { data };
-    }
-
-    if (role === Role.ADMIN) {
-      const data = await this.prisma.event.findMany({
-        where: { userId, status: 'PUBLISHED' },
         select,
         orderBy,
       });

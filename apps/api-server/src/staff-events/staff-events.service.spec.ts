@@ -54,7 +54,7 @@ describe('StaffEventsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should reject ADMIN if not owner (IDOR protection)', async () => {
+    it('should allow ADMIN to manage assignments for any event', async () => {
       (prisma.event.findUnique as jest.Mock).mockResolvedValue({
         userId: 'other',
       });
@@ -63,7 +63,7 @@ describe('StaffEventsService', () => {
           id: 'u1',
           role: Role.ADMIN,
         }),
-      ).rejects.toThrow(NotFoundException);
+      ).resolves.toBeUndefined();
     });
 
     it('should allow ADMIN owner', async () => {

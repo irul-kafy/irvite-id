@@ -59,9 +59,7 @@ export class AttendanceService {
     }
 
     let authorized = false;
-    if (user.role === Role.SUPER_ADMIN) {
-      authorized = true;
-    } else if (user.role === Role.ADMIN && event.userId === userId) {
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN) {
       authorized = true;
     } else if (user.role === Role.STAFF && event.staffEvents.length > 0) {
       authorized = true;
@@ -95,7 +93,7 @@ export class AttendanceService {
     }
 
     const whereScope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 
@@ -138,7 +136,7 @@ export class AttendanceService {
       throw new NotFoundException('Event not found');
     }
 
-    if (role === Role.ADMIN && event.userId !== currentUserId) {
+    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN) {
       throw new ForbiddenException(
         'You are not authorized to export reports for this event',
       );
@@ -901,7 +899,7 @@ export class AttendanceService {
       throw new NotFoundException('Event not found');
     }
 
-    if (user.role === Role.SUPER_ADMIN) {
+    if (user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN) {
       const event = await this.db.event.findUnique({
         where: { id: eventId },
         select: { id: true, title: true, content: true },

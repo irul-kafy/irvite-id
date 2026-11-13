@@ -59,14 +59,14 @@ describe('MediaService', () => {
     jest.clearAllMocks();
   });
 
-  it('ADMIN owned Event allowed', async () => {
+  it('ADMIN Event allowed', async () => {
     (prisma.event.findFirst as jest.Mock).mockResolvedValue({ id: 'evt1' });
     await expect(
       service.findAll('evt1', {}, 'usr1', Role.ADMIN),
     ).resolves.toBeDefined();
     expect(prisma.event.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'evt1', userId: 'usr1' },
+        where: { id: 'evt1' },
       }),
     );
   });

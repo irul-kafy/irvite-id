@@ -81,7 +81,7 @@ export class GuestsImportService {
     }
 
     const where: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 

@@ -44,7 +44,7 @@ export class MediaService {
     role: Role,
   ) {
     const where: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 

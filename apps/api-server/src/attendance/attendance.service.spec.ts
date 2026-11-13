@@ -84,7 +84,7 @@ describe('AttendanceService', () => {
       expect(event).toBeDefined();
     });
 
-    it('ADMIN other event -> 404', async () => {
+    it('ADMIN other event -> authorized', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'u1',
         isActive: true,
@@ -94,6 +94,17 @@ describe('AttendanceService', () => {
         id: 'e1',
         userId: 'other',
         status: 'PUBLISHED',
+      });
+
+      const event = await (service as any).authorizeEvent('e1', 'u1');
+      expect(event).toBeDefined();
+    });
+
+    it('inactive user -> 404', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: false,
+        role: Role.ADMIN,
       });
 
       await expect((service as any).authorizeEvent('e1', 'u1')).rejects.toThrow(

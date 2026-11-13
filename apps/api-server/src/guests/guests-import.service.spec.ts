@@ -71,13 +71,13 @@ describe('GuestsImportService', () => {
       });
     });
 
-    it('allows ADMIN if event is owned', async () => {
+    it('allows ADMIN if event exists', async () => {
       mockPrisma.event.findFirst.mockResolvedValue({ id: 'ev-1' });
       await expect(
         service.assertEventAccessible('ev-1', 'owner-1', Role.ADMIN),
       ).resolves.toBeUndefined();
       expect(mockPrisma.event.findFirst).toHaveBeenCalledWith({
-        where: { id: 'ev-1', userId: 'owner-1' },
+        where: { id: 'ev-1' },
         select: { id: true },
       });
     });

@@ -42,7 +42,7 @@ describe('ScannerService', () => {
     );
   });
 
-  it('ADMIN should see only owned published events', async () => {
+  it('ADMIN should see all published events', async () => {
     jest
       .spyOn(prisma.event, 'findMany')
       .mockResolvedValueOnce([{ id: '2' }] as any);
@@ -50,7 +50,7 @@ describe('ScannerService', () => {
     expect(result.data).toHaveLength(1);
     expect(prisma.event.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 'admin1', status: 'PUBLISHED' },
+        where: { status: 'PUBLISHED' },
       }),
     );
   });

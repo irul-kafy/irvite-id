@@ -39,7 +39,7 @@ describe('GuestsService', () => {
   });
 
   describe('Authorization', () => {
-    it('throws NotFoundException if ADMIN tries to access inaccessible Event', async () => {
+    it('throws NotFoundException if Event does not exist', async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
       await expect(
@@ -47,7 +47,7 @@ describe('GuestsService', () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(mockPrisma.event.findFirst).toHaveBeenCalledWith({
-        where: { id: 'event-id', userId: 'user-id' },
+        where: { id: 'event-id' },
         select: { id: true },
       });
     });
