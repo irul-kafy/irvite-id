@@ -178,7 +178,7 @@ export class StaffService {
       },
     });
 
-    if (!user || user.role !== Role.STAFF) {
+    if (!user || (user.role !== Role.STAFF && user.role !== Role.ADMIN)) {
       throw new NotFoundException('Staff not found');
     }
 
@@ -212,7 +212,7 @@ export class StaffService {
       select: { id: true, role: true, email: true },
     });
 
-    if (!user || user.role !== Role.STAFF) {
+    if (!user || (user.role !== Role.STAFF && user.role !== Role.ADMIN)) {
       throw new NotFoundException('Staff not found');
     }
 
@@ -260,7 +260,7 @@ export class StaffService {
       select: { id: true, role: true },
     });
 
-    if (!user || user.role !== Role.STAFF) {
+    if (!user || (user.role !== Role.STAFF && user.role !== Role.ADMIN)) {
       throw new NotFoundException('Staff not found');
     }
 

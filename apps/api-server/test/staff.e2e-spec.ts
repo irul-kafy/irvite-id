@@ -405,11 +405,30 @@ describe('StaffController (e2e)', () => {
         .expect(200);
     });
 
-    it('GET /staff/:id targeting ADMIN -> 404 opaque', async () => {
-      await request(app.getHttpServer())
+    it('GET /staff/:id targeting ADMIN -> 200 returns managed admin details', async () => {
+      const res = await request(app.getHttpServer())
         .get(`/staff/${adminId}`)
         .set('Authorization', `Bearer ${superToken}`)
-        .expect(404);
+        .expect(200);
+
+      expect(res.body.id).toBe(adminId);
+      expect(res.body.role).toBe(Role.ADMIN);
+    });
+
+    it('PATCH /staff/:id deactivates and reactivates ADMIN -> 200', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/staff/${adminId}`)
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ isActive: false })
+        .expect(200);
+
+      expect(res.body.isActive).toBe(false);
+
+      await request(app.getHttpServer())
+        .patch(`/staff/${adminId}`)
+        .set('Authorization', `Bearer ${superToken}`)
+        .send({ isActive: true })
+        .expect(200);
     });
 
     it('GET /staff/:id targeting SUPER_ADMIN -> 404 opaque', async () => {

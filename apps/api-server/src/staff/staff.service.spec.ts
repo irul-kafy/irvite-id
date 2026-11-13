@@ -331,16 +331,21 @@ describe('StaffService', () => {
       expect((result as any).passwordHash).toBeUndefined();
     });
 
-    it('12. findOne ADMIN -> opaque 404 NotFoundException', async () => {
+    it('12. findOne ADMIN returns safe details with assignedEvents', async () => {
+      const now = new Date();
       prisma.user.findUnique.mockResolvedValueOnce({
         id: 'admin-123',
         email: 'admin@test.com',
         role: Role.ADMIN,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        staffEvents: [],
       });
 
-      await expect(service.findOne('admin-123')).rejects.toThrow(
-        NotFoundException,
-      );
+      const result = await service.findOne('admin-123');
+      expect(result.id).toBe('admin-123');
+      expect(result.role).toBe(Role.ADMIN);
     });
 
     it('13. findOne SUPER_ADMIN -> opaque 404 NotFoundException', async () => {
@@ -465,16 +470,36 @@ describe('StaffService', () => {
       expect(result.isActive).toBe(true);
     });
 
-    it('update rejects targeting non-STAFF with opaque 404', async () => {
+    it('update rejects targeting non-STAFF/ADMIN (e.g. SUPER_ADMIN) with opaque 404', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce({
+        id: 'super-1',
+        role: Role.SUPER_ADMIN,
+        email: 'super@test.com',
+      });
+
+      await expect(
+        service.update('super-1', { isActive: false }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('update allows targeting ADMIN (WO) to toggle isActive', async () => {
       prisma.user.findUnique.mockResolvedValueOnce({
         id: 'admin-1',
         role: Role.ADMIN,
         email: 'admin@test.com',
       });
+      prisma.user.update.mockResolvedValueOnce({
+        id: 'admin-1',
+        role: Role.ADMIN,
+        email: 'admin@test.com',
+        isActive: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-      await expect(
-        service.update('admin-1', { isActive: false }),
-      ).rejects.toThrow(NotFoundException);
+      const result = await service.update('admin-1', { isActive: false });
+      expect(result.isActive).toBe(false);
+      expect(result.role).toBe(Role.ADMIN);
     });
   });
 
@@ -502,7 +527,7 @@ describe('StaffService', () => {
       expect(valid).toBe(true);
     });
 
-    it('password reset rejects targeting non-STAFF with opaque 404', async () => {
+    it('password reset rejects targeting SUPER_ADMIN with opaque 404', async () => {
       prisma.user.findUnique.mockResolvedValueOnce({
         id: 'super-1',
         role: Role.SUPER_ADMIN,
@@ -513,6 +538,25 @@ describe('StaffService', () => {
           password: 'newpassword1234',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('password reset allows targeting ADMIN (WO)', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce({
+        id: 'admin-1',
+        role: Role.ADMIN,
+      });
+      prisma.user.update.mockResolvedValueOnce({});
+
+      await service.resetPassword('admin-1', {
+        password: 'brandnewpassword1234',
+      });
+
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'admin-1' },
+          data: { passwordHash: expect.any(String) },
+        }),
+      );
     });
   });
 });

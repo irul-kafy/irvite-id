@@ -371,21 +371,23 @@ export default function StaffClient() {
         return;
       }
       if (!res.ok) {
-        throw new Error("Gagal memperbarui status staff.");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Gagal memperbarui status akun.");
       }
 
+      const roleLabel = targetToggleStaff.role === "ADMIN" ? "Admin (WO)" : "Staff";
       setNotification({
         type: "success",
         message: nextStatus
-          ? `Staff ${targetToggleStaff.email} telah diaktifkan kembali.`
-          : `Staff ${targetToggleStaff.email} telah dinonaktifkan. Akses scanner ditutup seketika.`,
+          ? `${roleLabel} ${targetToggleStaff.email} telah diaktifkan kembali.`
+          : `${roleLabel} ${targetToggleStaff.email} telah dinonaktifkan. Akses login dan sistem ditutup seketika.`,
       });
       setTargetToggleStaff(null);
       refreshStaffList();
-    } catch {
+    } catch (err: any) {
       setNotification({
         type: "danger",
-        message: "Gagal mengubah status staff.",
+        message: err?.message || "Gagal mengubah status staff.",
       });
     } finally {
       setToggleLoading(false);
@@ -988,8 +990,8 @@ export default function StaffClient() {
             <div className="modal-header">
               <h3>
                 {targetToggleStaff.isActive
-                  ? "Nonaktifkan Staff"
-                  : "Aktifkan Kembali Staff"}
+                  ? `Nonaktifkan ${targetToggleStaff.role === "ADMIN" ? "Admin (WO)" : "Staff"}`
+                  : `Aktifkan Kembali ${targetToggleStaff.role === "ADMIN" ? "Admin (WO)" : "Staff"}`}
               </h3>
               <button
                 onClick={() => setTargetToggleStaff(null)}
@@ -1010,19 +1012,20 @@ export default function StaffClient() {
               </p>
               {targetToggleStaff.isActive ? (
                 <div className="alert-box danger">
-                  <strong>Nonaktifkan staff ini?</strong>
+                  <strong>Nonaktifkan {targetToggleStaff.role === "ADMIN" ? "Admin (WO)" : "staff"} ini?</strong>
                   <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem" }}>
-                    Staff akan segera kehilangan akses scanner check-in ke
-                    seluruh acara yang ditugaskan. Riwayat kehadiran masa lalu
-                    dan penugasan acara tetap aman tersimpan.
+                    {targetToggleStaff.role === "ADMIN"
+                      ? "Admin (WO) akan segera kehilangan akses dashboard dan pengelolaan acara. Data acara dan riwayat tetap aman tersimpan."
+                      : "Staff akan segera kehilangan akses scanner check-in ke seluruh acara yang ditugaskan. Riwayat kehadiran masa lalu dan penugasan acara tetap aman tersimpan."}
                   </p>
                 </div>
               ) : (
                 <div className="alert-box info">
-                  <strong>Aktifkan kembali staff ini?</strong>
+                  <strong>Aktifkan kembali {targetToggleStaff.role === "ADMIN" ? "Admin (WO)" : "staff"} ini?</strong>
                   <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.8125rem" }}>
-                    Staff akan kembali dapat masuk dan melakukan pemindaian
-                    kehadiran pada acara-acara yang telah ditugaskan.
+                    {targetToggleStaff.role === "ADMIN"
+                      ? "Admin (WO) akan kembali dapat masuk dan mengelola acara di platform."
+                      : "Staff akan kembali dapat masuk dan melakukan pemindaian kehadiran pada acara-acara yang telah ditugaskan."}
                   </p>
                 </div>
               )}
