@@ -62,10 +62,10 @@ describe('create-super-admin (provisioning logic)', () => {
     expect(mockPrisma.user.create).not.toHaveBeenCalled();
   });
 
-  it('password shorter than 12 characters is rejected', async () => {
+  it('password shorter than 8 characters is rejected', async () => {
     await expect(
       provisionSuperAdmin('admin@example.com', 'short', 'short', mockPrisma),
-    ).rejects.toThrow('Password must be at least 12 characters long.');
+    ).rejects.toThrow('Password must be at least 8 characters long.');
     expect(mockPrisma.user.create).not.toHaveBeenCalled();
   });
 

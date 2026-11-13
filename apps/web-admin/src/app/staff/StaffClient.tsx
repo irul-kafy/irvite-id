@@ -294,8 +294,8 @@ export default function StaffClient() {
       setCreateError("Format email tidak valid.");
       return;
     }
-    if (createPassword.length < 12) {
-      setCreateError("Password minimal 12 karakter.");
+    if (createPassword.length < 8) {
+      setCreateError("Password minimal 8 karakter.");
       return;
     }
     if (createPassword !== createConfirmPassword) {
@@ -398,8 +398,8 @@ export default function StaffClient() {
     if (!targetResetStaff) return;
     setResetError("");
 
-    if (newPassword.length < 12) {
-      setResetError("Password baru minimal 12 karakter.");
+    if (newPassword.length < 8) {
+      setResetError("Password baru minimal 8 karakter.");
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -848,19 +848,19 @@ export default function StaffClient() {
 
                 <div className="form-group">
                   <label htmlFor="create-password">
-                    Password Akun (Minimal 12 Karakter)
+                    Password Akun (Minimal 8 Karakter)
                   </label>
                   <input
                     id="create-password"
                     type="password"
                     required
-                    placeholder="••••••••••••"
+                    placeholder="••••••••"
                     value={createPassword}
                     onChange={(e) => setCreatePassword(e.target.value)}
                     disabled={createLoading}
                   />
                   <div className="form-hint">
-                    Gunakan kombinasi huruf dan angka minimal 12 karakter.
+                    Gunakan kombinasi huruf dan angka minimal 8 karakter.
                   </div>
                 </div>
 
@@ -872,7 +872,7 @@ export default function StaffClient() {
                     id="create-confirm-password"
                     type="password"
                     required
-                    placeholder="••••••••••••"
+                    placeholder="••••••••"
                     value={createConfirmPassword}
                     onChange={(e) => setCreateConfirmPassword(e.target.value)}
                     disabled={createLoading}
@@ -1123,13 +1123,13 @@ export default function StaffClient() {
 
                 <div className="form-group">
                   <label htmlFor="new-password">
-                    Password Baru (Minimal 12 Karakter)
+                    Password Baru (Minimal 8 Karakter)
                   </label>
                   <input
                     id="new-password"
                     type="password"
                     required
-                    placeholder="••••••••••••"
+                    placeholder="••••••••"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={resetLoading}
@@ -1144,7 +1144,7 @@ export default function StaffClient() {
                     id="confirm-new-password"
                     type="password"
                     required
-                    placeholder="••••••••••••"
+                    placeholder="••••••••"
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     disabled={resetLoading}

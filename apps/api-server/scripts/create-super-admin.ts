@@ -16,8 +16,8 @@ export async function provisionSuperAdmin(
     throw new Error('Invalid email format.');
   }
 
-  if (passwordRaw.length < 12) {
-    throw new Error('Password must be at least 12 characters long.');
+  if (passwordRaw.length < 8) {
+    throw new Error('Password must be at least 8 characters long.');
   }
 
   if (passwordRaw !== passwordConfirm) {
@@ -99,7 +99,7 @@ async function main() {
   console.log('--- SUPER_ADMIN Provisioning Tool ---');
   
   const email = await askQuestion('Enter SUPER_ADMIN email: ');
-  const password = await askHiddenQuestion('Enter password (min 12 chars): ');
+  const password = await askHiddenQuestion('Enter password (min 8 chars): ');
   const passwordConfirm = await askHiddenQuestion('Confirm password: ');
 
   const prisma = new PrismaClient();

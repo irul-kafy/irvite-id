@@ -11,7 +11,7 @@ export class CreateStaffDto {
   email: string;
 
   @IsString()
-  @MinLength(12)
+  @MinLength(8)
   @IsNotEmpty()
   password: string;
 

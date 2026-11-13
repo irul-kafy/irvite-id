@@ -247,7 +247,7 @@ describe('StaffController (e2e)', () => {
         .expect(409);
     });
 
-    it('POST /staff with password < 12 chars -> 400', async () => {
+    it('POST /staff with password < 8 chars -> 400', async () => {
       await request(app.getHttpServer())
         .post('/staff')
         .set('Authorization', `Bearer ${superToken}`)
