@@ -116,6 +116,34 @@ async function ensureSchemaObjects(prisma) {
       }
     }
   }
+
+  // Proactively clean up any orphaned records left by direct event deletions
+  try {
+    const orphanedOrders = await prisma.$executeRawUnsafe(
+      'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+    );
+    console.log(`  ✔ Cleaned up orphaned orders (rows affected: ${orphanedOrders})`);
+  } catch (err) {
+    console.warn('  ⚠ Notice on cleaning orphaned orders:', err.message);
+  }
+
+  try {
+    const orphanedWishes = await prisma.$executeRawUnsafe(
+      'DELETE FROM `wishes` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+    );
+    console.log(`  ✔ Cleaned up orphaned wishes (rows affected: ${orphanedWishes})`);
+  } catch (err) {
+    console.warn('  ⚠ Notice on cleaning orphaned wishes:', err.message);
+  }
+
+  try {
+    const orphanedOps = await prisma.$executeRawUnsafe(
+      'DELETE FROM `offline_sync_ops` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+    );
+    console.log(`  ✔ Cleaned up orphaned offline_sync_ops (rows affected: ${orphanedOps})`);
+  } catch (err) {
+    console.warn('  ⚠ Notice on cleaning orphaned offline_sync_ops:', err.message);
+  }
 }
 
 async function verifySchemaQueries(prisma) {
@@ -177,7 +205,6 @@ async function main() {
     await prisma.$connect();
     await ensureSchemaObjects(prisma);
     await verifySchemaQueries(prisma);
-    await purgeAllEvents(prisma);
   } finally {
     await prisma.$disconnect();
   }

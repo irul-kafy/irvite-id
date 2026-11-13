@@ -92,38 +92,99 @@ export class OrdersService {
       ];
     }
 
-    const [total, orders, counts] = await Promise.all([
-      this.prisma.order.count({ where }),
-      this.prisma.order.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          event: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              eventDate: true,
-              activeUntil: true,
-              status: true,
-              template: {
-                select: {
-                  id: true,
-                  name: true,
-                  themeCode: true,
+    // Proactively clean up any orphaned order records whose event no longer exists
+    try {
+      await this.prisma.$executeRawUnsafe(
+        'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+      );
+    } catch {
+      // Non-fatal if table not created or database dialect differs
+    }
+
+    let total = 0;
+    let orders: any[] = [];
+    let counts: any[] = [];
+
+    try {
+      [total, orders, counts] = await Promise.all([
+        this.prisma.order.count({ where }),
+        this.prisma.order.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            event: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                eventDate: true,
+                activeUntil: true,
+                status: true,
+                template: {
+                  select: {
+                    id: true,
+                    name: true,
+                    themeCode: true,
+                  },
                 },
               },
             },
           },
-        },
-      }),
-      this.prisma.order.groupBy({
-        by: ['status'],
-        _count: { _all: true },
-      }),
-    ]);
+        }),
+        this.prisma.order
+          .groupBy({
+            by: ['status'],
+            _count: { _all: true },
+          })
+          .catch(() => []),
+      ]);
+    } catch (queryErr) {
+      console.warn('[OrdersService.listOrders] Recovering from query error:', queryErr);
+      try {
+        await this.prisma.$executeRawUnsafe(
+          'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+        );
+        total = await this.prisma.order.count({ where });
+        orders = await this.prisma.order.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            event: {
+              select: {
+                id: true,
+                title: true,
+                slug: true,
+                eventDate: true,
+                activeUntil: true,
+                status: true,
+                template: {
+                  select: {
+                    id: true,
+                    name: true,
+                    themeCode: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+        counts = await this.prisma.order
+          .groupBy({
+            by: ['status'],
+            _count: { _all: true },
+          })
+          .catch(() => []);
+      } catch (retryErr) {
+        console.error('[OrdersService.listOrders] Recovery failed:', retryErr);
+        total = 0;
+        orders = [];
+        counts = [];
+      }
+    }
 
     const statusCounts: Record<string, number> = {
       TOTAL: 0,
@@ -136,13 +197,25 @@ export class OrdersService {
       CANCELLED: 0,
     };
 
-    counts.forEach((c) => {
-      statusCounts[c.status] = c._count._all;
-      statusCounts.TOTAL += c._count._all;
-    });
+    if (Array.isArray(counts)) {
+      counts.forEach((c) => {
+        if (c && c.status && c._count) {
+          const cnt =
+            typeof c._count._all === 'number'
+              ? c._count._all
+              : typeof c._count === 'number'
+                ? c._count
+                : 1;
+          statusCounts[c.status] = cnt;
+          statusCounts.TOTAL += cnt;
+        }
+      });
+    }
+
+    const sanitizedOrders = (orders || []).filter((o) => Boolean(o && o.event));
 
     return {
-      data: orders,
+      data: sanitizedOrders,
       meta: {
         total,
         page,

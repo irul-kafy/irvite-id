@@ -28,6 +28,10 @@ describe('EventsService - Permanent Event Delete & Lifecycle Safety', () => {
     guest: { deleteMany: jest.fn() },
     media: { deleteMany: jest.fn() },
     staffEvent: { deleteMany: jest.fn() },
+    order: { deleteMany: jest.fn() },
+    wish: { deleteMany: jest.fn() },
+    offlineSyncOp: { deleteMany: jest.fn() },
+    activityLog: { deleteMany: jest.fn() },
     event: { delete: jest.fn() },
   };
 
@@ -40,6 +44,10 @@ describe('EventsService - Permanent Event Delete & Lifecycle Safety', () => {
     mockTx.guest.deleteMany.mockResolvedValue({ count: 5 });
     mockTx.media.deleteMany.mockResolvedValue({ count: 3 });
     mockTx.staffEvent.deleteMany.mockResolvedValue({ count: 1 });
+    mockTx.order.deleteMany.mockResolvedValue({ count: 1 });
+    mockTx.wish.deleteMany.mockResolvedValue({ count: 1 });
+    mockTx.offlineSyncOp.deleteMany.mockResolvedValue({ count: 1 });
+    mockTx.activityLog.deleteMany.mockResolvedValue({ count: 1 });
     mockTx.event.delete.mockResolvedValue({ id: 'archived-event-1' });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -232,6 +240,22 @@ describe('EventsService - Permanent Event Delete & Lifecycle Safety', () => {
         order.push('staff_events');
         return Promise.resolve({ count: 1 });
       });
+      mockTx.order.deleteMany.mockImplementation(() => {
+        order.push('orders');
+        return Promise.resolve({ count: 1 });
+      });
+      mockTx.wish.deleteMany.mockImplementation(() => {
+        order.push('wishes');
+        return Promise.resolve({ count: 1 });
+      });
+      mockTx.offlineSyncOp.deleteMany.mockImplementation(() => {
+        order.push('offline_sync_ops');
+        return Promise.resolve({ count: 1 });
+      });
+      mockTx.activityLog.deleteMany.mockImplementation(() => {
+        order.push('activity_logs');
+        return Promise.resolve({ count: 1 });
+      });
       mockTx.event.delete.mockImplementation(() => {
         order.push('event');
         return Promise.resolve({ id: 'ev-1' });
@@ -253,6 +277,10 @@ describe('EventsService - Permanent Event Delete & Lifecycle Safety', () => {
         'guests',
         'medias',
         'staff_events',
+        'orders',
+        'wishes',
+        'offline_sync_ops',
+        'activity_logs',
         'event',
       ]);
     });

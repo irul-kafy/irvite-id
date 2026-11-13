@@ -1014,7 +1014,27 @@ export class EventsService {
         where: { eventId: id },
       });
 
-      // 7. event
+      // 7. orders (prevent orphaned orders when events are deleted)
+      const orders = await tx.order.deleteMany({
+        where: { eventId: id },
+      }).catch(() => ({ count: 0 }));
+
+      // 8. wishes
+      const wishes = await tx.wish.deleteMany({
+        where: { eventId: id },
+      }).catch(() => ({ count: 0 }));
+
+      // 9. offline_sync_ops
+      const offlineOps = await tx.offlineSyncOp.deleteMany({
+        where: { eventId: id },
+      }).catch(() => ({ count: 0 }));
+
+      // 10. activity_logs
+      const activityLogs = await tx.activityLog.deleteMany({
+        where: { eventId: id },
+      }).catch(() => ({ count: 0 }));
+
+      // 11. event
       await tx.event.delete({
         where: { id },
       });
@@ -1026,6 +1046,10 @@ export class EventsService {
         guests: guests.count,
         medias: medias.count,
         staffEvents: staffEvents.count,
+        orders: orders?.count ?? 0,
+        wishes: wishes?.count ?? 0,
+        offlineSyncOps: offlineOps?.count ?? 0,
+        activityLogs: activityLogs?.count ?? 0,
         events: 1,
       };
     });

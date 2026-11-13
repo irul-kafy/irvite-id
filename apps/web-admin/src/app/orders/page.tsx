@@ -327,8 +327,32 @@ export default function OrdersPage() {
         {loading ? (
           <TableSkeleton rows={5} columns={7} label="Memuat daftar pesanan..." />
         ) : error ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
-            {error}
+          <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
+            <div style={{ color: '#dc2626', fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.95rem' }}>
+              {error === 'Internal server error' || error === 'Internal Server Error'
+                ? 'Terjadi kendala saat memuat data pesanan dari server.'
+                : error}
+            </div>
+            <button
+              type="button"
+              onClick={fetchOrders}
+              className="btn-sm-action"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 16px',
+                borderRadius: '8px',
+                background: '#fdfaf5',
+                color: '#9c7333',
+                border: '1px solid #e0c89e',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              🔄 Coba Muat Ulang Pesanan
+            </button>
           </div>
         ) : orders.length === 0 ? (
           <EmptyState
