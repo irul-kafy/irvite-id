@@ -13,7 +13,8 @@ export async function GET() {
       signal: AbortSignal.timeout(25000),
     });
     if (!response.ok) {
-      const result = NextResponse.json({ message: 'Ringkasan belum dapat dimuat.' }, { status: response.status, headers });
+      const data = await response.json().catch(() => ({}));
+      const result = NextResponse.json({ message: data.message || 'Ringkasan belum dapat dimuat.' }, { status: response.status, headers });
       if (response.status === 401) result.cookies.delete('auth_token');
       return result;
     }

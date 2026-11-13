@@ -199,7 +199,10 @@ export default function DashboardPage() {
           return;
         }
         if (response.status === 403) { router.replace('/events'); return; }
-        if (!response.ok) throw new Error('Ringkasan gagal dimuat. Coba lagi.');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Ringkasan gagal dimuat. Coba lagi.');
+        }
         const summary = await response.json();
         if (isMounted) {
           setEvents(summary.nextEvents);
@@ -211,8 +214,8 @@ export default function DashboardPage() {
           setUpcomingEventsCount(summary.upcomingEvents);
           setRsvpStats(summary.rsvp);
         }
-      } catch {
-        if (isMounted) setError('Ringkasan belum tersedia. Periksa koneksi lalu coba lagi; angka tidak ditampilkan agar tidak menyesatkan.');
+      } catch (err) {
+        if (isMounted) setError(err instanceof Error && err.message ? err.message : 'Ringkasan belum tersedia. Periksa koneksi lalu coba lagi; angka tidak ditampilkan agar tidak menyesatkan.');
       } finally {
         if (isMounted) {
           setLoading(false);

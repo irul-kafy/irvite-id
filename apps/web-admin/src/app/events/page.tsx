@@ -109,7 +109,7 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [lastPage, setLastPage] = useState(1);
@@ -130,17 +130,18 @@ export default function EventsPage() {
         }
 
         if (adminRes.status === 403) {
+          setIsAdmin(false);
           const staffRes = await fetch('/api/scanner/events', { signal: controller.signal, cache: 'no-store' });
           if (!staffRes.ok) throw new Error('Gagal memuat event untuk pemindaian');
           const data = await staffRes.json();
           if (controller.signal.aborted) return;
           setEvents(data.data || []);
-          setIsAdmin(false);
           return;
         }
 
         if (!adminRes.ok) {
-          throw new Error('Gagal memuat daftar event');
+          const errorData = await adminRes.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Gagal memuat daftar event');
         }
 
         const data = await adminRes.json();
@@ -149,8 +150,10 @@ export default function EventsPage() {
         setTotal(data.meta?.total ?? 0);
         setLastPage(Math.max(1, data.meta?.lastPage ?? 1));
         setIsAdmin(true);
-      } catch {
-        if (!controller.signal.aborted) setError('Gagal memuat data event. Silakan muat ulang halaman.');
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error && err.message ? err.message : 'Gagal memuat data event. Silakan muat ulang halaman.');
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }

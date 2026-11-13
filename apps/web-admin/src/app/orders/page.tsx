@@ -122,8 +122,17 @@ export default function OrdersPage() {
       if (searchQuery.trim()) query.set('search', searchQuery.trim());
 
       const res = await fetch(`/api/orders?${query.toString()}`);
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      if (res.status === 403) {
+        setError('Akses ditolak: Akun Anda tidak memiliki izin untuk melihat daftar pesanan.');
+        return;
+      }
       if (!res.ok) {
-        throw new Error('Gagal mengambil daftar pesanan');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Gagal mengambil daftar pesanan');
       }
       const data = await res.json();
       setOrders(data.data || []);
