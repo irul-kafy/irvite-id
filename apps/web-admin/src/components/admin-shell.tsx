@@ -51,6 +51,15 @@ function IconStaff({ className }: { className?: string }) {
   );
 }
 
+function IconOrders({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 4h12l1 13H3L4 4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/>
+      <path d="M7 6V4a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function IconLogout({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -169,6 +178,12 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: 'Events',
     href: '/events',
     icon: IconEvents,
+  },
+  {
+    id: 'orders',
+    label: 'Pesanan',
+    href: '/orders',
+    icon: IconOrders,
   },
   {
     id: 'templates',
@@ -301,6 +316,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const navItems = NAV_ITEMS.filter((item) => {
     if (userRole === 'STAFF') {
       return item.id === 'events';
+    }
+    if (item.id === 'orders') {
+      return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
     }
     if (item.id === 'system-check') {
       return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';

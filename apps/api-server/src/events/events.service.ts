@@ -1,4 +1,5 @@
 import { EVENT_STATUS } from './event-status';
+import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
 import {
   Injectable,
   NotFoundException,
@@ -49,11 +50,22 @@ export class EventsService {
       slug: true,
       description: true,
       eventDate: true,
+      activeUntil: true,
       locationDetails: true,
       content: true,
       status: true,
       createdAt: true,
       updatedAt: true,
+      order: {
+        select: {
+          id: true,
+          referenceCode: true,
+          packageCode: true,
+          priceAmount: true,
+          status: true,
+          paidAt: true,
+        },
+      },
     };
   }
 
@@ -85,10 +97,18 @@ export class EventsService {
     const { content, ...eventData } = createEventDto;
     const validatedContent = validateEventContent(content, themeCode);
 
+    const eventDateParsed = new Date(eventData.eventDate);
+    const activeUntilParsed =
+      eventData.activeUntil && !isNaN(Date.parse(eventData.activeUntil))
+        ? new Date(eventData.activeUntil)
+        : new Date(eventDateParsed.getTime() + 180 * 24 * 60 * 60 * 1000);
+
     try {
       const newEvent = await this.prisma.event.create({
         data: {
           ...eventData,
+          eventDate: eventDateParsed,
+          activeUntil: activeUntilParsed,
           content: validatedContent as Prisma.InputJsonValue,
           userId, // Ownership forced from JWT context
         },
@@ -347,6 +367,12 @@ export class EventsService {
     const dataToUpdate: Prisma.EventUpdateInput = {
       ...safeUpdateData,
     };
+    if (safeUpdateData.activeUntil) {
+      dataToUpdate.activeUntil = new Date(safeUpdateData.activeUntil);
+    }
+    if (safeUpdateData.eventDate) {
+      dataToUpdate.eventDate = new Date(safeUpdateData.eventDate);
+    }
 
     const existingContentObj =
       existingEvent.content &&
@@ -484,6 +510,7 @@ export class EventsService {
         title: true,
         description: true,
         eventDate: true,
+        activeUntil: true,
         locationDetails: true,
         content: true,
         status: true,
@@ -510,10 +537,9 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    // Must not be expired (eventDate + 30 days)
+    // Must not be expired
     const now = new Date();
-    const expiryAtMs = event.eventDate.getTime() + 30 * 24 * 60 * 60 * 1000;
-    if (now.getTime() >= expiryAtMs) {
+    if (isPublicInvitationExpired(event.eventDate, now, event.activeUntil)) {
       throw new NotFoundException('Event not found');
     }
 
@@ -1306,6 +1332,10 @@ export class EventsService {
       [firstVenue, firstAddress].filter(Boolean).join(', ') ||
       'Lokasi Acara Klien';
 
+    const activeUntil = new Date(
+      parsedDate.getTime() + 180 * 24 * 60 * 60 * 1000,
+    );
+
     const newEvent = await this.prisma.event.create({
       data: {
         userId: adminUser.id,
@@ -1314,12 +1344,32 @@ export class EventsService {
         slug,
         description: descriptionLines.join('\n'),
         eventDate: parsedDate,
+        activeUntil,
         locationDetails: resolvedLocation.slice(0, 255),
         content: validatedContent as Prisma.InputJsonValue,
         status: EVENT_STATUS.DRAFT,
       },
       select: this.selectSafeEvent(),
     });
+
+    try {
+      await this.prisma.order.create({
+        data: {
+          eventId: newEvent.id,
+          referenceCode,
+          clientName: clientNameClean,
+          clientWhatsapp: clientWaClean,
+          packageCode: 'GOLD',
+          priceAmount: 199000,
+          status: 'DRAFT',
+          notes: clientNotesClean || null,
+        },
+      });
+    } catch (orderErr) {
+      this.logger.warn(
+        `Failed to create order record for public draft ${newEvent.id}: ${orderErr instanceof Error ? orderErr.message : String(orderErr)}`,
+      );
+    }
 
     // Save optional compressed client preview photos into event media slots
     let savedPhotosCount = 0;

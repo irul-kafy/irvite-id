@@ -27,6 +27,7 @@ export class PublicInvitationAccessService {
           select: {
             status: true,
             eventDate: true,
+            activeUntil: true,
           },
         },
         guest: {
@@ -46,8 +47,14 @@ export class PublicInvitationAccessService {
       throw new NotFoundException('Invitation not found'); // Opaque rejection
     }
 
-    // 3. Must not be expired (Event Date + 30 Days)
-    if (isPublicInvitationExpired(invitation.event.eventDate)) {
+    // 3. Must not be expired
+    if (
+      isPublicInvitationExpired(
+        invitation.event.eventDate,
+        new Date(),
+        invitation.event.activeUntil,
+      )
+    ) {
       throw new NotFoundException('Invitation not found'); // Opaque rejection
     }
 

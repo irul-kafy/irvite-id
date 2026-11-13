@@ -9,9 +9,15 @@ type EventData = {
   title: string;
   slug?: string;
   eventDate: string;
+  activeUntil?: string | null;
   locationDetails: string;
   status?: string;
   templateId?: string;
+  order?: {
+    referenceCode?: string;
+    packageCode?: string;
+    status?: string;
+  } | null;
 };
 
 function IconPlus() {
@@ -349,6 +355,24 @@ export default function EventsPage() {
                           })}
                         </span>
                       </div>
+                      {event.activeUntil && (() => {
+                        const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
+                        if (diffDays <= 0) {
+                          return (
+                            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
+                              ⛔ Kedaluwarsa
+                            </span>
+                          );
+                        }
+                        if (diffDays <= 7) {
+                          return (
+                            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
+                              ⚠️ Berakhir dlm {diffDays} hr
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
 
                     {/* Location */}
@@ -509,6 +533,28 @@ export default function EventsPage() {
                       })}
                     </span>
                   </div>
+                  {event.activeUntil && (() => {
+                    const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
+                    if (diffDays <= 0) {
+                      return (
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
+                            ⛔ Kedaluwarsa
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (diffDays <= 7) {
+                      return (
+                        <div>
+                          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
+                            ⚠️ Berakhir dlm {diffDays} hr
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   {event.locationDetails && (
                     <div className="flex-center gap-2">
                       <IconLocation />

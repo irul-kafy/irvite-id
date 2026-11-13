@@ -28,6 +28,16 @@ enum AttendanceStatus {
   DUPLICATE
 }
 
+enum OrderStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PAID
+  IN_PROGRESS
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
 enum MediaType {
   PHOTO
   VIDEO
@@ -96,6 +106,7 @@ model Event {
   locationDetails String?  @map("location_details")
   content         Json?
   status          String   @default("DRAFT")
+  activeUntil     DateTime? @map("active_until")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -108,6 +119,7 @@ model Event {
   staffEvents    StaffEvent[]
   wishes         Wish[]
   offlineSyncOps OfflineSyncOp[]
+  order          Order?
 
   @@index([userId])
   @@map("events")
@@ -247,4 +259,26 @@ model OfflineSyncOp {
   @@index([eventId])
   @@index([eventId, createdAt])
   @@map("offline_sync_ops")
+}
+
+model Order {
+  id                  String      @id @default(uuid())
+  eventId             String      @unique @map("event_id")
+  referenceCode       String      @unique @map("reference_code")
+  clientName          String      @map("client_name")
+  clientWhatsapp      String      @map("client_whatsapp")
+  packageCode         String      @default("GOLD") @map("package_code")
+  priceAmount         Int         @default(199000) @map("price_amount")
+  status              OrderStatus @default(DRAFT)
+  paidAt              DateTime?   @map("paid_at")
+  paymentProofMediaId String?     @map("payment_proof_media_id")
+  notes               String?     @db.Text
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([referenceCode])
+  @@map("orders")
 }

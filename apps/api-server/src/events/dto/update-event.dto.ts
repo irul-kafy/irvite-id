@@ -30,6 +30,10 @@ export class UpdateEventDto {
   eventDate?: string;
 
   @IsOptional()
+  @IsDateString()
+  activeUntil?: string;
+
+  @IsOptional()
   @IsString()
   locationDetails?: string;
 

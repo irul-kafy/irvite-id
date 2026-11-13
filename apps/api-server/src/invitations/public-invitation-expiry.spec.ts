@@ -22,4 +22,20 @@ describe('isPublicInvitationExpired', () => {
 
     expect(isPublicInvitationExpired(eventDate, now)).toBe(true);
   });
+
+  describe('with explicit activeUntil', () => {
+    it('uses activeUntil instead of eventDate + 30 days', () => {
+      const eventDate = new Date('2026-08-01T00:00:00.000Z');
+      // activeUntil extended to 6 months later
+      const activeUntil = new Date('2027-02-01T00:00:00.000Z');
+
+      // 60 days after eventDate would be expired by default, but activeUntil gives 6 months
+      const testNow = new Date('2026-10-01T00:00:00.000Z');
+      expect(isPublicInvitationExpired(eventDate, testNow, activeUntil)).toBe(false);
+
+      // After activeUntil, it is expired
+      const afterExpiry = new Date('2027-02-01T00:00:00.001Z');
+      expect(isPublicInvitationExpired(eventDate, afterExpiry, activeUntil)).toBe(true);
+    });
+  });
 });

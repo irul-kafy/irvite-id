@@ -27,6 +27,10 @@ export class CreateEventDto {
   eventDate: string;
 
   @IsOptional()
+  @IsDateString()
+  activeUntil?: string;
+
+  @IsOptional()
   @IsString()
   locationDetails?: string;
 
