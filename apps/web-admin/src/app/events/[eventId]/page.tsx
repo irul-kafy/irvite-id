@@ -21,6 +21,7 @@ function IconTrash() {
 }
 
 import { useState, useEffect, use } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublicAvailabilityState } from '@/utils/event-availability';
 import { buildWhatsAppShareUrl } from '@/utils/whatsapp-share';
@@ -1384,8 +1385,11 @@ export default function EventDetailPage({
         />
       )}
       {/* Destructive Confirmation Modal for Permanent Event Deletion */}
-      {showDeleteModal && (
+      {showDeleteModal && typeof document !== 'undefined' && createPortal(
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="permanent-delete-modal-title"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1393,7 +1397,7 @@ export default function EventDetailPage({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999,
+            zIndex: 99999,
             backdropFilter: 'blur(4px)',
             padding: '1rem',
           }}
@@ -1546,7 +1550,8 @@ export default function EventDetailPage({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

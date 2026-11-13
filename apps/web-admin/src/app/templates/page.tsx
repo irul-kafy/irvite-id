@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
   FIXED_CATALOG_TEMPLATES,
@@ -853,7 +854,7 @@ export default function TemplateCatalogPage() {
       </main>
 
       {/* Confirmation Modal: Permanently Delete Template */}
-      {templateToDelete && (
+      {templateToDelete && typeof document !== 'undefined' && createPortal(
         <div
           id="permanent-delete-modal-backdrop"
           style={{
@@ -1047,7 +1048,8 @@ export default function TemplateCatalogPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

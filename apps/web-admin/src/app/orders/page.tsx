@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { EmptyState } from '@/components/empty-state';
@@ -454,7 +455,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Status Update Modal ── */}
-      {updatingOrder && (
+      {updatingOrder && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -538,7 +539,8 @@ export default function OrdersPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
