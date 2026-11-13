@@ -8,7 +8,8 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "tsc -p tsconfig.build.json",
-    "vercel-build": "npx prisma@5.22.0 generate --schema=../../packages/database/prisma/schema.prisma && node scripts/migrate-deploy-safe.cjs && tsc -p tsconfig.build.json",
+    "vercel-build": "npx prisma@5.22.0 generate --schema=../../packages/database/prisma/schema.prisma && tsc -p tsconfig.build.json",
+    "db:migrate": "node scripts/migrate-deploy-safe.cjs",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
