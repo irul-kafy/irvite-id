@@ -31,7 +31,7 @@ export function getCanonicalPublicInvitationUrl(uniqueCode: string): string {
     const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
     const isProd = process.env.NODE_ENV === 'production' || isVercel;
     if (isProd) {
-      baseUrl = 'https://irvite-id.vercel.app';
+      baseUrl = 'https://irvite.id';
     } else {
       throw new Error('PUBLIC_INVITATION_URL is not configured');
     }
@@ -75,7 +75,7 @@ export function getCanonicalPublicEventUrl(slug: string): string {
     const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
     const isProd = process.env.NODE_ENV === 'production' || isVercel;
     if (isProd) {
-      baseUrl = 'https://irvite-id.vercel.app';
+      baseUrl = 'https://irvite.id';
     } else {
       throw new Error('Public invitation origin is not configured');
     }
@@ -173,7 +173,7 @@ export function getCanonicalTemplateDemoUrl(demoPath: string | null | undefined)
   if (!origin) {
     const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
     if (isVercel || (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'))) {
-      origin = 'https://irvite-id.vercel.app';
+      origin = 'https://irvite.id';
     } else {
       return null;
     }
@@ -195,7 +195,7 @@ export function getCanonicalClientPortalUrl(eventId: string, clientKey: string):
     const isVercel = Boolean(process.env.VERCEL && process.env.VERCEL !== 'undefined' && process.env.VERCEL !== '0');
     const isProd = process.env.NODE_ENV === 'production' || isVercel;
     if (isProd) {
-      baseUrl = 'https://irvite-id.vercel.app';
+      baseUrl = 'https://irvite.id';
     } else {
       baseUrl = 'http://localhost:3002';
     }

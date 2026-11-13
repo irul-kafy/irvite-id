@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     template: '%s | IRVITE Admin',
   },
   description: 'Internal operational hub for IRVITE Digital Invitation Platform',
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 export default function RootLayout({

@@ -78,16 +78,29 @@ export async function generateMetadata({
   const { eventId, clientKey } = parseToken(token, key);
   const data = await fetchPortalData(eventId, clientKey);
 
+  const baseRobots = {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  };
+
   if (!data?.event) {
     return {
       title: 'Portal Kelola Tamu - IRVITE',
       description: 'Kelola daftar tamu dan bagikan undangan WhatsApp dengan mudah.',
+      robots: baseRobots,
     };
   }
 
   return {
     title: `Portal Tamu: ${data.event.title} - IRVITE`,
     description: `Kelola daftar tamu dan bagikan undangan WhatsApp untuk ${data.event.title}.`,
+    robots: baseRobots,
   };
 }
 

@@ -152,6 +152,10 @@ export function buildInvitationMetadata(
     return {
       title: 'Undangan Pernikahan Digital | IRVITE',
       description: 'Undangan pernikahan digital eksklusif dan mewah dari IRVITE.',
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
@@ -218,6 +222,16 @@ export function buildInvitationMetadata(
     metadataBase: new URL(baseUrl),
     alternates: {
       canonical: canonicalUrl,
+    },
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+      },
     },
     openGraph: {
       title: pageTitle,

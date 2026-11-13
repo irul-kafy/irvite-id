@@ -14,6 +14,7 @@ export function parseQRData(input: string, trustedOrigin: string): string | null
     // Validate origin: matches trustedOrigin OR recognized Irvite platforms (production, local dev, preview)
     const isAllowedOrigin =
       url.origin === trustedOrigin ||
+      url.origin === 'https://irvite.id' ||
       url.origin === 'https://irvite-id.vercel.app' ||
       url.hostname === 'localhost' ||
       url.hostname === '127.0.0.1' ||

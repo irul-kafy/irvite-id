@@ -1,8 +1,8 @@
 export function getPublicInvitationBaseUrl(): string {
-  let envUrl = process.env.PUBLIC_INVITATION_URL;
+  let envUrl = process.env.PUBLIC_INVITATION_URL || process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
   if (!envUrl || !envUrl.trim()) {
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-      envUrl = 'https://irvite-id.vercel.app';
+      envUrl = 'https://irvite.id';
     } else {
       envUrl = 'http://localhost:3002';
     }
@@ -12,7 +12,7 @@ export function getPublicInvitationBaseUrl(): string {
     const url = new URL(envUrl);
     return url.origin;
   } catch {
-    return 'https://irvite-id.vercel.app';
+    return 'https://irvite.id';
   }
 }
 
@@ -29,10 +29,10 @@ export function getCanonicalEventUrl(
 }
 
 export function getCanonicalInvitationUrl(uniqueCode: string): string | null {
-  let envUrl = process.env.PUBLIC_INVITATION_URL;
+  let envUrl = process.env.PUBLIC_INVITATION_URL || process.env.NEXT_PUBLIC_INVITATION_ORIGIN;
   if (!envUrl || !envUrl.trim()) {
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-      envUrl = 'https://irvite-id.vercel.app';
+      envUrl = 'https://irvite.id';
     } else {
       envUrl = 'http://localhost:3002';
     }
