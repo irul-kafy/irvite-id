@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 async function handleExpireCron(request: Request) {
   try {
@@ -13,7 +14,7 @@ async function handleExpireCron(request: Request) {
       return NextResponse.json({ message: 'Unauthorized: Invalid cron secret' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/orders/cron/expire-events`, {
       method: 'POST',
       headers: {

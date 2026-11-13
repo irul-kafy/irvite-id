@@ -40,7 +40,7 @@ export default function SystemCheckPage() {
     setRunning(true);
     setError('');
     try {
-      const response = await fetch('/api/system-check', { cache: 'no-store', signal: AbortSignal.timeout(15000) });
+      const response = await fetch('/api/system-check', { cache: 'no-store', signal: AbortSignal.timeout(25000) });
       if (response.status === 401) { router.replace('/login'); return; }
       if (response.status === 403) { router.replace('/dashboard'); return; }
       if (!response.ok) throw new Error('Pemeriksaan belum berhasil. Periksa koneksi server lalu coba lagi.');

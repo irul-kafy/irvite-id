@@ -247,10 +247,18 @@ export default function DashboardPage() {
   };
 
   if (error) return (
-    <section role="alert" className="dash-page-header">
-      <div><h1>Dashboard</h1><p>{error}</p>
-        <button onClick={() => setRefresh((value) => value + 1)}>Coba lagi</button>
-        <Link href="/events"> Buka daftar acara</Link>
+    <section role="alert" className="dash-page-header" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '1rem' }}>
+      <div>
+        <h1 className="dash-page-header__title">Dashboard</h1>
+        <p className="dash-page-header__subtitle" style={{ marginBottom: '1rem' }}>{error}</p>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button type="button" className="btn btn-primary" onClick={() => setRefresh((value) => value + 1)}>
+            Coba lagi
+          </button>
+          <Link href="/events" className="btn btn-secondary">
+            Buka daftar acara
+          </Link>
+        </div>
       </div>
     </section>
   );

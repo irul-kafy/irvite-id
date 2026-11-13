@@ -148,7 +148,10 @@ export class EventsService {
     ]);
 
     return {
-      data,
+      data: data.map((event) => ({
+        ...event,
+        content: this.stripMediaFallback(event.content),
+      })),
       meta: {
         total,
         page,
@@ -156,6 +159,20 @@ export class EventsService {
         lastPage: Math.ceil(total / limit),
       },
     };
+  }
+
+  private stripMediaFallback(content: Prisma.JsonValue): Prisma.JsonValue {
+    if (
+      content &&
+      typeof content === 'object' &&
+      !Array.isArray(content) &&
+      '_mediaFallback' in content
+    ) {
+      const rest = { ...(content as Record<string, unknown>) };
+      delete rest._mediaFallback;
+      return rest as Prisma.JsonValue;
+    }
+    return content;
   }
 
   async summary(userId: string, role: Role) {
@@ -222,6 +239,7 @@ export class EventsService {
       templateHighlights,
       nextEvents: nextEvents.map(({ _count, ...event }) => ({
         ...event,
+        content: this.stripMediaFallback(event.content),
         guestCount: _count.guests,
       })),
     };

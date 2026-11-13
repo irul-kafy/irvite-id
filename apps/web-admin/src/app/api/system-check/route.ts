@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const me = await fetch(base + '/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store', signal: AbortSignal.timeout(5000),
+      cache: 'no-store', signal: AbortSignal.timeout(20000),
     });
     if (me.status === 401) {
       const response = json({ message: 'Unauthorized' }, 401);
@@ -24,8 +24,8 @@ export async function GET() {
     if (user.role !== 'SUPER_ADMIN') return json({ message: 'Forbidden' }, 403);
 
     const [health, database] = await Promise.allSettled([
-      fetch(base + '/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) }),
-      fetch(base + '/health/db', { cache: 'no-store', signal: AbortSignal.timeout(5000) })
+      fetch(base + '/health', { cache: 'no-store', signal: AbortSignal.timeout(20000) }),
+      fetch(base + '/health/db', { cache: 'no-store', signal: AbortSignal.timeout(20000) })
         .then(async (response) => response.ok && (await response.json()).status === 'ok'),
     ]);
     const apiOk = health.status === 'fulfilled' && health.value.ok;
