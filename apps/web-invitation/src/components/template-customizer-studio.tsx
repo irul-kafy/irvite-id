@@ -18,6 +18,10 @@ import {
   countSupportedUploadedPhotos,
 } from '../customizer/template-customizer';
 import './template-customizer-studio.css';
+import {
+  ImageCropperModal,
+  type ImageCropperResult,
+} from './image-cropper-modal';
 
 interface TemplateCustomizerStudioProps {
   themeCode: string;
@@ -37,6 +41,14 @@ type StudioTab =
   | 'words'
   | 'patent';
 type ViewportDevice = 'desktop' | 'tablet' | 'mobile';
+
+type ActiveCropperState = {
+  slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story' | 'qris';
+  slotTitle: string;
+  imageSrc: string;
+  imageName: string;
+  rawFile?: File;
+};
 
 const MAX_IMAGE_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB per photo
 
@@ -121,6 +133,9 @@ export function TemplateCustomizerStudio({
     whatsappUrl: string;
     savedToServer: boolean;
   } | null>(null);
+
+  // Active Interactive Cropper & Framing Modal State
+  const [activeCropper, setActiveCropper] = useState<ActiveCropperState | null>(null);
 
   // Check URL query ?customize=1 on client mount
   useEffect(() => {
@@ -302,7 +317,82 @@ export function TemplateCustomizerStudio({
     }
 
     const blobUrl = URL.createObjectURL(file);
-    const dataUrl = await compressImageToDataUrl(file).catch(() => undefined);
+
+    let slotTitle = 'Sesuaikan Foto';
+    if (slot === 'qris') {
+      slotTitle = 'Barcode Pembayaran QRIS';
+    } else {
+      const foundCfg = photoSlotsConfig.find((c) => c.slot === slot);
+      if (foundCfg) {
+        slotTitle = foundCfg.title;
+        if (slot === 'bride' && state.partnerOneName) slotTitle += ` (${state.partnerOneName})`;
+        if (slot === 'groom' && state.partnerTwoName) slotTitle += ` (${state.partnerTwoName})`;
+      }
+    }
+
+    // Segera buka modal cropper interaktif agar pengguna dapat zoom & posisikan foto
+    setActiveCropper({
+      slot,
+      slotTitle,
+      imageSrc: blobUrl,
+      imageName: file.name,
+      rawFile: file,
+    });
+
+    e.target.value = '';
+  };
+
+  const handleOpenCropperForExisting = (
+    slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story' | 'qris',
+    slotTitle: string,
+    photoItem: { previewUrl: string; fileName?: string; dataUrl?: string },
+  ) => {
+    setActiveCropper({
+      slot,
+      slotTitle,
+      imageSrc: photoItem.previewUrl,
+      imageName: photoItem.fileName || `${slot}.jpg`,
+    });
+  };
+
+  const handleCropperConfirm = useCallback(
+    (result: ImageCropperResult) => {
+      if (!activeCropper) return;
+
+      const { slot } = activeCropper;
+      const previewUrl = URL.createObjectURL(result.blob);
+      const stateKey =
+        slot === 'hero'
+          ? 'heroPhoto'
+          : slot === 'closing'
+            ? 'closingPhoto'
+            : slot === 'bride'
+              ? 'bridePhoto'
+              : slot === 'groom'
+                ? 'groomPhoto'
+                : slot === 'qris'
+                  ? 'qrisPhoto'
+                  : 'storyPhoto';
+
+      setState((prev) => ({
+        ...prev,
+        [stateKey]: {
+          slot,
+          previewUrl,
+          dataUrl: result.dataUrl,
+          fileName: result.fileName,
+          order: 0,
+        },
+      }));
+
+      setActiveCropper(null);
+    },
+    [activeCropper],
+  );
+
+  const handleCropperUseOriginal = useCallback(async () => {
+    if (!activeCropper) return;
+    const { slot, rawFile, imageSrc, imageName } = activeCropper;
 
     const stateKey =
       slot === 'hero'
@@ -317,18 +407,26 @@ export function TemplateCustomizerStudio({
                 ? 'qrisPhoto'
                 : 'storyPhoto';
 
-    setState((prev) => ({
-      ...prev,
-      [stateKey]: {
-        slot,
-        previewUrl: blobUrl,
-        dataUrl,
-        fileName: file.name,
-        order: 0,
-      },
-    }));
-    e.target.value = '';
-  };
+    if (rawFile) {
+      const dataUrl = await compressImageToDataUrl(rawFile).catch(() => undefined);
+      setState((prev) => ({
+        ...prev,
+        [stateKey]: {
+          slot,
+          previewUrl: imageSrc,
+          dataUrl,
+          fileName: imageName,
+          order: 0,
+        },
+      }));
+    }
+
+    setActiveCropper(null);
+  }, [activeCropper]);
+
+  const handleCropperCancel = useCallback(() => {
+    setActiveCropper(null);
+  }, []);
 
   const handleGalleryPhotoUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -1200,6 +1298,22 @@ export function TemplateCustomizerStudio({
                       {currentPhoto && (
                         <button
                           type="button"
+                          className="irv-studio-crop-trigger-btn"
+                          onClick={() =>
+                            handleOpenCropperForExisting(
+                              singleSlot,
+                              dynamicTitle,
+                              currentPhoto,
+                            )
+                          }
+                          title="Atur ulang posisi, zoom in/out, atau rotasi foto"
+                        >
+                          ✂️ Atur Posisi / Zoom
+                        </button>
+                      )}
+                      {currentPhoto && (
+                        <button
+                          type="button"
                           className="irv-studio-remove-btn"
                           onClick={() => updateField(stateKey, null)}
                         >
@@ -1510,22 +1624,38 @@ export function TemplateCustomizerStudio({
                           Tampil di seksi Amplop Digital &amp; siap untuk Pajangan Meja
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => updateField('qrisPhoto', null)}
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          color: '#b91c1c',
-                          background: '#fef2f2',
-                          border: '1px solid #fecaca',
-                          borderRadius: '6px',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Hapus
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="irv-studio-crop-trigger-btn"
+                          onClick={() =>
+                            handleOpenCropperForExisting(
+                              'qris',
+                              'Barcode Pembayaran QRIS',
+                              state.qrisPhoto!,
+                            )
+                          }
+                          title="Atur ulang posisi dan zoom barcode QRIS"
+                        >
+                          ✂️ Atur Posisi / Zoom
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateField('qrisPhoto', null)}
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#b91c1c',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            padding: '5px 10px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
@@ -1810,6 +1940,20 @@ export function TemplateCustomizerStudio({
             )}
           </div>
         </div>
+      )}
+
+      {/* Interactive Photo Cropper & Framing Modal */}
+      {activeCropper && (
+        <ImageCropperModal
+          isOpen={true}
+          imageSrc={activeCropper.imageSrc}
+          imageName={activeCropper.imageName}
+          slotTitle={activeCropper.slotTitle}
+          slotType={activeCropper.slot}
+          onConfirm={handleCropperConfirm}
+          onUseOriginal={handleCropperUseOriginal}
+          onCancel={handleCropperCancel}
+        />
       )}
     </div>
   );

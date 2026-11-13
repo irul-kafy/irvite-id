@@ -724,6 +724,27 @@
   cursor: pointer;
 }
 
+.irv-studio-crop-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #fdfaf5;
+  color: #9c7333;
+  border: 1px solid #e0c89e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.irv-studio-crop-trigger-btn:hover {
+  background: #f5eedf;
+  border-color: #c4a06a;
+  color: #785319;
+}
+
 .irv-studio-gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

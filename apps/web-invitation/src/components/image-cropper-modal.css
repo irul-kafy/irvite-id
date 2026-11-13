@@ -1,0 +1,463 @@
+/* ── Irvite Interactive Image Cropper Modal ── */
+
+.irv-crop-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 12, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: irv-crop-fade-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes irv-crop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.irv-crop-modal {
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(196, 160, 106, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: inherit;
+  color: #1f2937;
+  animation: irv-crop-scale-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes irv-crop-scale-up {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Header ── */
+.irv-crop-header {
+  padding: 1rem 1.25rem 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafaf9;
+}
+
+.irv-crop-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.irv-crop-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9c7333;
+  background: rgba(196, 160, 106, 0.16);
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 0.25rem;
+}
+
+.irv-crop-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.irv-crop-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.irv-crop-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.15rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.irv-crop-close-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* ── Ratio Selector Chips ── */
+.irv-crop-ratios {
+  padding: 0.65rem 1.25rem;
+  background: #fdfcfb;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.irv-crop-ratios__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.irv-crop-ratios__chips {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.irv-crop-ratio-chip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.irv-crop-ratio-chip:hover {
+  border-color: #c4a06a;
+  color: #1e293b;
+}
+
+.irv-crop-ratio-chip.is-active {
+  background: #111814;
+  border-color: #111814;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(17, 24, 20, 0.25);
+}
+
+/* ── Interactive Viewport Canvas ── */
+.irv-crop-viewport {
+  background: #0f172a;
+  padding: 1.25rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 330px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  overflow: hidden;
+  position: relative;
+}
+
+.irv-crop-window {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.72), 0 0 0 2px #c4a06a, 0 12px 32px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.irv-crop-window:active {
+  cursor: grabbing;
+}
+
+.irv-crop-image-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  pointer-events: none;
+  transition: transform 0.05s ease-out;
+}
+
+.irv-crop-target-image {
+  max-width: none;
+  max-height: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+/* ── Rule of Thirds Photography Grid ── */
+.irv-crop-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.irv-crop-window:hover .irv-crop-grid {
+  opacity: 0.8;
+}
+
+.irv-crop-grid__h1,
+.irv-crop-grid__h2 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.6);
+}
+
+.irv-crop-grid__h1 {
+  top: 33.333%;
+}
+.irv-crop-grid__h2 {
+  top: 66.666%;
+}
+
+.irv-crop-grid__v1,
+.irv-crop-grid__v2 {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-left: 1px dashed rgba(255, 255, 255, 0.6);
+}
+
+.irv-crop-grid__v1 {
+  left: 33.333%;
+}
+.irv-crop-grid__v2 {
+  left: 66.666%;
+}
+
+.irv-crop-gesture-hint {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: #f1f5f9;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0.85;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Toolbar: Zoom & Rotate ── */
+.irv-crop-toolbar {
+  padding: 0.75rem 1.25rem;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.irv-crop-zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 220px;
+}
+
+.irv-crop-toolbar-icon {
+  font-size: 0.85rem;
+}
+
+.irv-crop-zoom-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.irv-crop-zoom-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.irv-crop-slider {
+  flex: 1;
+  accent-color: #c4a06a;
+  cursor: pointer;
+  height: 6px;
+}
+
+.irv-crop-zoom-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  min-width: 38px;
+  text-align: right;
+}
+
+.irv-crop-action-tools {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.irv-crop-tool-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.irv-crop-tool-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ── Footer Actions ── */
+.irv-crop-footer {
+  padding: 0.85rem 1.25rem;
+  background: #fafaf9;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.irv-crop-footer__right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.irv-crop-btn {
+  padding: 0.55rem 1.15rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.irv-crop-btn--secondary {
+  background: transparent;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+}
+
+.irv-crop-btn--secondary:hover {
+  border-color: #94a3b8;
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.irv-crop-btn--cancel {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.irv-crop-btn--cancel:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.irv-crop-btn--apply {
+  background: #111814;
+  border: 1px solid #111814;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(17, 24, 20, 0.25);
+  font-weight: 700;
+}
+
+.irv-crop-btn--apply:hover {
+  background: #1f2923;
+  box-shadow: 0 4px 12px rgba(17, 24, 20, 0.35);
+}
+
+.irv-crop-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Responsive adjustments for mobile ── */
+@media (max-width: 640px) {
+  .irv-crop-modal {
+    max-height: 94dvh;
+    overflow-y: auto;
+  }
+
+  .irv-crop-viewport {
+    min-height: 260px;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .irv-crop-window {
+    max-width: calc(100vw - 32px);
+  }
+
+  .irv-crop-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .irv-crop-footer__left,
+  .irv-crop-footer__right {
+    display: flex;
+    justify-content: stretch;
+  }
+
+  .irv-crop-footer__left button,
+  .irv-crop-footer__right button {
+    flex: 1;
+    text-align: center;
+  }
+}
+
