@@ -92,7 +92,7 @@ export function NotificationBell() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleClickOutside = (e: MouseEvent) => {
+    const handlePointerOutside = (e: Event) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
@@ -104,11 +104,11 @@ export function NotificationBell() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handlePointerOutside);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('pointerdown', handlePointerOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -179,7 +179,13 @@ export function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="admin-bell__dropdown" role="dialog" aria-label="Pusat Notifikasi">
+        <>
+          <div
+            className="admin-bell__backdrop"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="admin-bell__dropdown" role="dialog" aria-label="Pusat Notifikasi">
           <div className="admin-bell__header">
             <div className="admin-bell__title-row">
               <h3 className="admin-bell__title">Notifikasi</h3>
@@ -257,6 +263,7 @@ export function NotificationBell() {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

@@ -44,12 +44,13 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
     if (!event || event.status === 'ARCHIVED') continue;
 
     const eventDate = event.eventDate ? new Date(event.eventDate) : null;
-    const isDraft = event.status === 'DRAFT' || (typeof event.title === 'string' && /Draf Klien/i.test(event.title));
+    const isDraft = event.status === 'DRAFT';
     const contentObj = (event.content && typeof event.content === 'object' ? event.content : {}) as Record<string, unknown>;
     const contentIntegrations = (contentObj.integrations && typeof contentObj.integrations === 'object' ? contentObj.integrations : {}) as Record<string, unknown>;
 
-    // 1. Draf Klien Baru dari Studio Simulasi
+    // 1. Draf Baru (Hanya jika status masih DRAFT)
     if (isDraft) {
+      const isClientDraft = typeof event.title === 'string' && /Draf Klien/i.test(event.title);
       const cleanTitle = event.title
         ? event.title.replace(/\(Draf Klien #[^)]+\)/, '').trim() || event.title
         : 'Undangan Baru';
@@ -57,10 +58,12 @@ export function buildAdminNotifications(events: EventItemSummary[]): AdminNotifi
         id: `draft-${event.id}`,
         category: 'CLIENT_DRAFT',
         level: 'SUCCESS',
-        title: `Draf Klien Masuk: ${cleanTitle}`,
-        message: 'Klien telah mengirimkan kustomisasi undangan dari Studio Simulasi. Silakan tinjau dan publish.',
+        title: isClientDraft ? `Draf Klien Masuk: ${cleanTitle}` : `Draf Belum Terbit: ${cleanTitle}`,
+        message: isClientDraft
+          ? 'Klien telah mengirimkan kustomisasi undangan dari Studio Simulasi. Silakan tinjau dan publish.'
+          : 'Acara masih berstatus DRAF. Silakan tinjau dan publish agar dapat digunakan.',
         actionUrl: `/events/${event.id}`,
-        tag: 'Draf Klien',
+        tag: isClientDraft ? 'Draf Klien' : 'Draf Acara',
         tagColor: 'gold',
         createdAt: event.createdAt || new Date().toISOString(),
       });

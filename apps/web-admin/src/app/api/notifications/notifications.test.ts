@@ -49,6 +49,23 @@ describe('Admin Notifications Engine', () => {
     assert.equal(notifications[0].tag, 'Draf Klien');
   });
 
+  it('does not create CLIENT_DRAFT notifications for events that are already PUBLISHED', () => {
+    const events = [
+      {
+        id: 'evt-pub',
+        title: 'Pernikahan Amila & Raiswa (Draf Klien #EM-7A5A70)',
+        slug: 'amila-raiswa',
+        status: 'PUBLISHED',
+        eventDate: '2027-06-20T01:00:00.000Z',
+        createdAt: '2026-11-04T10:00:00.000Z',
+      },
+    ];
+
+    const notifications = buildAdminNotifications(events);
+    const draftNotif = notifications.find((n: any) => n.id === 'draft-evt-pub');
+    assert.equal(draftNotif, undefined, 'Published events should not create draft notifications');
+  });
+
   it('generates urgent notifications for events happening today (H-0)', () => {
     const today = new Date();
     const events = [
