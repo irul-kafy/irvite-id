@@ -134,6 +134,38 @@ async function verifySchemaQueries(prisma) {
   console.log('[migrate-deploy-safe] ✔ All Prisma tables and columns verified successfully.');
 }
 
+async function purgeAllEvents(prisma) {
+  try {
+    const events = await prisma.event.findMany({ select: { id: true, title: true } });
+    if (!events || events.length === 0) {
+      console.log('[migrate-deploy-safe] No events found in database to purge (already 0 events).');
+      return;
+    }
+    console.log(`[migrate-deploy-safe] ⚠️ Purging all ${events.length} test events from database as requested...`);
+    for (const ev of events) {
+      const id = ev.id;
+      await prisma.$transaction(async (tx) => {
+        await tx.attendanceCheckIn.deleteMany({ where: { attendance: { eventId: id } } }).catch(() => {});
+        await tx.attendance.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.invitation.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.guest.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.media.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.staffEvent.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.wish.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.offlineSyncOp.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.activityLog.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.order.deleteMany({ where: { eventId: id } }).catch(() => {});
+        await tx.event.delete({ where: { id } }).catch(() => {});
+      });
+      console.log(`[migrate-deploy-safe] ✔ Successfully deleted event "${ev.title}" (${id})`);
+    }
+    const remaining = await prisma.event.count();
+    console.log(`[migrate-deploy-safe] ✔ Event purge complete. Remaining events in database: ${remaining}`);
+  } catch (err) {
+    console.warn('[migrate-deploy-safe] Non-fatal warning during event purge:', err.message);
+  }
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     console.warn('[migrate-deploy-safe] DATABASE_URL is not set; skipping database migration.');
@@ -145,6 +177,7 @@ async function main() {
     await prisma.$connect();
     await ensureSchemaObjects(prisma);
     await verifySchemaQueries(prisma);
+    await purgeAllEvents(prisma);
   } finally {
     await prisma.$disconnect();
   }
