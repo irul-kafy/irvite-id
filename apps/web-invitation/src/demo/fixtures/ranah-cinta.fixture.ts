@@ -82,21 +82,21 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
     {
       id: 'demo-hero',
       slot: 'hero',
-      src: '/templates/ranah-cinta/couple-hero.jpg',
+      src: '/templates/ranah-cinta/couple-hero.webp',
       type: 'PHOTO',
       order: 0,
     },
     {
       id: 'demo-bride',
       slot: 'bride',
-      src: '/templates/ranah-cinta/couple-hero.jpg',
+      src: '/templates/ranah-cinta/couple-hero.webp',
       type: 'PHOTO',
       order: 1,
     },
     {
       id: 'demo-groom',
       slot: 'groom',
-      src: '/templates/ranah-cinta/couple-hero.jpg',
+      src: '/templates/ranah-cinta/couple-hero.webp',
       type: 'PHOTO',
       order: 2,
     },
@@ -106,7 +106,7 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
       {
         id: 'demo-hero',
         slot: 'hero',
-        src: '/templates/ranah-cinta/couple-hero.jpg',
+        src: '/templates/ranah-cinta/couple-hero.webp',
         type: 'PHOTO',
         order: 0,
       },
@@ -115,7 +115,7 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
       {
         id: 'demo-bride',
         slot: 'bride',
-        src: '/templates/ranah-cinta/couple-hero.jpg',
+        src: '/templates/ranah-cinta/couple-hero.webp',
         type: 'PHOTO',
         order: 1,
       },
@@ -124,7 +124,7 @@ export const RANAH_CINTA_DEMO_FIXTURE: RendererData = {
       {
         id: 'demo-groom',
         slot: 'groom',
-        src: '/templates/ranah-cinta/couple-hero.jpg',
+        src: '/templates/ranah-cinta/couple-hero.webp',
         type: 'PHOTO',
         order: 2,
       },

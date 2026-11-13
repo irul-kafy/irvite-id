@@ -27,7 +27,7 @@
     radial-gradient(ellipse at 50% 0%, rgba(20, 60, 48, 0.85), transparent 65%),
     radial-gradient(ellipse at 85% 40%, rgba(35, 80, 65, 0.45), transparent 60%),
     radial-gradient(ellipse at 15% 75%, rgba(92, 24, 34, 0.3), transparent 60%),
-    url('/templates/ranah-cinta/ranah-landscape.png');
+    url('/templates/ranah-cinta/ranah-landscape.webp');
   background-attachment: fixed;
   background-position: center center;
   background-size: cover;
@@ -305,7 +305,7 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, rgba(255, 214, 122, 0.3), transparent 65%),
-    url('/templates/ranah-cinta/ranah-landscape.png') center/cover;
+    url('/templates/ranah-cinta/ranah-landscape.webp') center/cover;
 }
 
 .gateDoor {
@@ -313,7 +313,7 @@
   top: 0;
   bottom: 0;
   width: 50%;
-  background-image: url('/templates/ranah-cinta/carved-gate.png');
+  background-image: url('/templates/ranah-cinta/carved-gate.webp');
   background-size: 200% 100%;
   transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
   backface-visibility: hidden;
@@ -820,7 +820,7 @@
   display: grid;
   place-items: center;
   background: radial-gradient(circle at center, rgba(16, 46, 36, 0.95), rgba(7, 20, 15, 0.98)),
-    url('/templates/ranah-cinta/carved-gate.png') center/cover;
+    url('/templates/ranah-cinta/carved-gate.webp') center/cover;
   position: relative;
 }
 
@@ -995,7 +995,7 @@
   border-radius: 50% 50% 8px 8px;
   border: 2px solid var(--gold);
   background: linear-gradient(135deg, rgba(16, 46, 36, 0.9), rgba(9, 26, 20, 0.95)),
-    url('/templates/ranah-cinta/carved-gate.png') center/cover;
+    url('/templates/ranah-cinta/carved-gate.webp') center/cover;
   display: grid;
   place-items: center;
   box-shadow: 0 16px 40px rgba(3, 12, 9, 0.7);

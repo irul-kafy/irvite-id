@@ -161,16 +161,16 @@ export function adaptRanahCintaData(
     return item ? resolveMediaUrl(item.src, isPreview) : undefined;
   };
 
-  const coverMedia = findMedia('COVER') || `${DEFAULT_ASSET_BASE}/ranah-landscape.png`;
-  const heroMedia = findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+  const coverMedia = findMedia('COVER') || `${DEFAULT_ASSET_BASE}/ranah-landscape.webp`;
+  const heroMedia = findMedia('HERO') || `${DEFAULT_ASSET_BASE}/couple-hero.webp`;
   const couple1Media =
     findMedia('BRIDE') ||
     findMedia('COUPLE_1') ||
-    `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+    `${DEFAULT_ASSET_BASE}/couple-hero.webp`;
   const couple2Media =
     findMedia('GROOM') ||
     findMedia('COUPLE_2') ||
-    `${DEFAULT_ASSET_BASE}/couple-hero.jpg`;
+    `${DEFAULT_ASSET_BASE}/couple-hero.webp`;
   const bgMusic = findMedia('BG-MUSIC') || findMedia('BACKGROUND_MUSIC');
   const qrisUrl = findMedia('QRIS') || undefined;
 
@@ -229,7 +229,7 @@ export function adaptRanahCintaData(
     media: {
       cover: { src: coverMedia, alt: 'Ranah Cinta Cover' },
       hero: { src: heroMedia, alt: 'Hero Minang Couple' },
-      closing: { src: `${DEFAULT_ASSET_BASE}/ranah-landscape.png`, alt: 'Closing Landscape' },
+      closing: { src: `${DEFAULT_ASSET_BASE}/ranah-landscape.webp`, alt: 'Closing Landscape' },
     },
     events,
     story,

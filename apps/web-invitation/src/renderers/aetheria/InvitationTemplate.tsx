@@ -5,7 +5,7 @@ import type { InvitationTemplateProps, ImageAsset, GiftAccount } from './types';
 import { AddToCalendarButton } from '../../components/calendar';
 import { QrisGiftCard } from '../../components/qris';
 import s from './InvitationTemplate.module.css';
-const crystalIsland = '/templates/aetheria/images/crystal-island.png';
+const crystalIsland = '/templates/aetheria/images/crystal-island.webp';
 
 function safeUrl(src?: string) {
   if (!src) return undefined;

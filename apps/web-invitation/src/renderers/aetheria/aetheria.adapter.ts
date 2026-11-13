@@ -177,7 +177,7 @@ export function adaptAetheriaData(
     { src: `${DEFAULT_ASSET_BASE}/images/bride-night.webp`, alt: 'Seindah cahaya pertama' },
     { src: `${DEFAULT_ASSET_BASE}/images/couple-evening.webp`, alt: 'Dalam pelukan yang sama' },
     { src: `${DEFAULT_ASSET_BASE}/images/closing.webp`, alt: 'Langkah menuju selamanya' },
-    { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.png`, alt: 'Dunia kecil milik kita' },
+    { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.webp`, alt: 'Dunia kecil milik kita' },
   ];
 
   const gallery = galleryDescList.length > 0
@@ -264,11 +264,11 @@ export function adaptAetheriaData(
       },
     },
     media: {
-      cover: { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.png`, alt: 'Kerajaan melayang di langit Aetheria' },
+      cover: { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.webp`, alt: 'Kerajaan melayang di langit Aetheria' },
       hero: { src: heroUrl, alt: 'Foto Mempelai' },
       closing: { src: closingUrl, alt: 'Foto Penutup' },
       story: { src: storyUrl, alt: 'Foto Kisah' },
-      background: { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.png`, alt: 'Latar Aetheria' },
+      background: { src: `${DEFAULT_ASSET_BASE}/images/aetheria-world.webp`, alt: 'Latar Aetheria' },
     },
     story,
     events,

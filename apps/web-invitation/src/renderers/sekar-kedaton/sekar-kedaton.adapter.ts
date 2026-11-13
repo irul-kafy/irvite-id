@@ -152,7 +152,7 @@ export function adaptSekarKedatonMedia(
         type: 'PHOTO',
         slot: 'bride',
         order: 0,
-        src: '/templates/sekar-kedaton/bride-jawa-demo.png',
+        src: '/templates/sekar-kedaton/bride-jawa-demo.webp',
       };
     }
   }
@@ -167,7 +167,7 @@ export function adaptSekarKedatonMedia(
         type: 'PHOTO',
         slot: 'groom',
         order: 0,
-        src: '/templates/sekar-kedaton/groom-jawa-demo.png',
+        src: '/templates/sekar-kedaton/groom-jawa-demo.webp',
       };
     }
   }
