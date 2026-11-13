@@ -20,7 +20,7 @@ export async function GET() {
     }
     if (!me.ok) return json({ message: 'Authentication service unavailable' }, 503);
     const user = await me.json();
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) return json({ message: 'Forbidden' }, 403);
+    if (user.role !== 'SUPER_ADMIN') return json({ message: 'Forbidden' }, 403);
 
     const [health, database] = await Promise.allSettled([
       fetch(base + '/health', { cache: 'no-store', signal: AbortSignal.timeout(5000) }),

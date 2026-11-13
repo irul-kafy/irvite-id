@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 
 const emptySubscribe = () => () => {};
 import Link from 'next/link';
+import { TableSkeleton } from '@/components/table-skeleton';
 import { buildExportUrl } from '../../utils/export-url-builder';
 import { buildWhatsAppShareUrl } from '@/utils/whatsapp-share';
 
@@ -1295,34 +1296,7 @@ export default function GuestListPage({
 
       {/* Loading Skeleton */}
       {loading && !error && (
-        <div
-          style={{
-            background: 'var(--admin-surface, #ffffff)',
-            borderRadius: 'var(--radius-lg, 12px)',
-            border: '1px solid var(--admin-border)',
-            padding: '2.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '1rem',
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              border: '3px solid var(--admin-border)',
-              borderTopColor: 'var(--admin-accent)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }}
-          />
-          <span style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-            Memuat daftar tamu...
-          </span>
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-        </div>
+        <TableSkeleton rows={5} columns={6} label="Memuat daftar tamu..." />
       )}
 
       {/* Empty State */}

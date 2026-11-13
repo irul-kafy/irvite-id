@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { TableSkeleton } from '@/components/table-skeleton';
+import { EmptyState } from '@/components/empty-state';
 
 export interface OrderItem {
   id: string;
@@ -136,6 +138,17 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, [selectedStatus]);
+
+  useEffect(() => {
+    if (!updatingOrder) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !submitting) {
+        setUpdatingOrder(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [updatingOrder, submitting]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,17 +315,21 @@ export default function OrdersPage() {
       {/* ── Table Container ── */}
       <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-            Memuat daftar pesanan...
-          </div>
+          <TableSkeleton rows={5} columns={7} label="Memuat daftar pesanan..." />
         ) : error ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
             {error}
           </div>
         ) : orders.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-            Tidak ada pesanan yang sesuai filter.
-          </div>
+          <EmptyState
+            icon="📦"
+            title="Tidak Ada Pesanan Ditemukan"
+            description={
+              searchQuery.trim()
+                ? `Tidak ada pesanan yang sesuai dengan kata kunci "${searchQuery}". Coba kata kunci lain atau bersihkan pencarian.`
+                : 'Belum ada pesanan yang tercatat pada filter status ini.'
+            }
+          />
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
@@ -429,9 +446,17 @@ export default function OrdersPage() {
 
       {/* ── Status Update Modal ── */}
       {updatingOrder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '1rem' }}>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-modal-title"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '1rem' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) setUpdatingOrder(null);
+          }}
+        >
           <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '1.125rem', fontWeight: 700 }}>
+            <h3 id="order-modal-title" style={{ margin: '0 0 1rem', fontSize: '1.125rem', fontWeight: 700 }}>
               Ubah Status Pesanan ({updatingOrder.referenceCode})
             </h3>
             <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>

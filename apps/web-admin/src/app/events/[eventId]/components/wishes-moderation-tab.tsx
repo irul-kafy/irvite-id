@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { TableSkeleton } from '@/components/table-skeleton';
 
 interface WishItem {
   id: string;
@@ -249,19 +250,7 @@ export function WishesModerationTab({ eventId }: WishesModerationTabProps) {
 
       {/* Content List */}
       {loading ? (
-        <div
-          style={{
-            background: 'var(--admin-card-bg, #ffffff)',
-            border: '1px solid var(--admin-border, #e2e8f0)',
-            borderRadius: '12px',
-            padding: '3rem',
-            textAlign: 'center',
-            color: 'var(--admin-text-muted, #64748b)',
-          }}
-        >
-          <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>⏳</div>
-          <div style={{ fontSize: '0.875rem' }}>Memuat doa &amp; ucapan tamu...</div>
-        </div>
+        <TableSkeleton rows={4} columns={3} label="Memuat doa & ucapan tamu..." />
       ) : wishes.length === 0 ? (
         <div
           style={{

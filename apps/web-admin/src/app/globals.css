@@ -18,6 +18,7 @@
   --admin-accent-hover: #B28B55;
   --admin-accent-soft: rgba(196, 160, 106, 0.12);
   --admin-accent-border: rgba(196, 160, 106, 0.35);
+  --admin-accent-text: #8C6224;
 
   /* Surfaces & Background */
   --admin-bg: #f4f8f5;
@@ -104,6 +105,7 @@ html.dark,
   --admin-accent-hover: #D0AE77;
   --admin-accent-soft: rgba(196, 160, 106, 0.18);
   --admin-accent-border: rgba(196, 160, 106, 0.4);
+  --admin-accent-text: #E0C18E;
 
   --admin-bg: #121212;
   --admin-surface: #1B1B19;

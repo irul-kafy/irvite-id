@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { TableSkeleton } from '@/components/table-skeleton';
+import { EmptyState } from '@/components/empty-state';
 
 export interface ActivityLogItem {
   id: string;
@@ -155,17 +157,21 @@ export default function ActivityLogsPage() {
 
       <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-            Memuat log aktivitas...
-          </div>
+          <TableSkeleton rows={5} columns={5} label="Memuat log aktivitas..." />
         ) : error ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#dc2626' }}>
             {error}
           </div>
         ) : logs.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-            Belum ada log aktivitas yang tercatat.
-          </div>
+          <EmptyState
+            icon="📜"
+            title="Belum Ada Log Aktivitas"
+            description={
+              search.trim()
+                ? 'Tidak ada log aktivitas yang cocok dengan filter atau kata kunci pencarian Anda.'
+                : 'Setiap aksi penting di sistem (tamu, check-in, pesanan, dsb.) akan otomatis tercatat di sini.'
+            }
+          />
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>

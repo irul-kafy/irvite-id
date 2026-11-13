@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { PortalGuest, PortalEvent } from './client-portal-view';
 import {
   buildAutoSenderWhatsAppUrl,
@@ -41,6 +41,27 @@ export function WhatsAppAutoSenderModal({
   const [templateVariant, setTemplateVariant] = useState<number>(0);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [sessionSentCount, setSessionSentCount] = useState<number>(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
+  // Keyboard accessibility: Close modal on ESC key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Anti-spam cooldown timer
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownSeconds]);
 
   // Categories available in guest list
   const categories = useMemo(() => {
@@ -105,7 +126,7 @@ export function WhatsAppAutoSenderModal({
 
   // Action: Kirim ke WhatsApp & Otomatis Maju ke Tamu Berikutnya
   const handleSendAndNext = () => {
-    if (!currentGuest || !currentGuest.invitation?.uniqueCode) return;
+    if (!currentGuest || !currentGuest.invitation?.uniqueCode || cooldownSeconds > 0) return;
     const invitationUrl = getInvitationUrl(currentGuest.invitation.uniqueCode);
 
     const waUrl = buildAutoSenderWhatsAppUrl(
@@ -123,6 +144,10 @@ export function WhatsAppAutoSenderModal({
 
     // Mark as sent
     void markAsSentInBackend(currentGuest.id);
+
+    // Track session count and initiate safety cooldown
+    setSessionSentCount((prev) => prev + 1);
+    setCooldownSeconds(5);
 
     // Auto-advance to next guest
     if (safeIndex < targetGuests.length - 1) {
@@ -559,11 +584,12 @@ export function WhatsAppAutoSenderModal({
                   marginTop: '0.25rem',
                 }}
               >
-                {/* Primary: 1-Click Send to WhatsApp */}
+                {/* Primary: 1-Click Send to WhatsApp with Safety Cooldown */}
                 <button
                   type="button"
                   className="btn-portal-wa-auto"
                   onClick={handleSendAndNext}
+                  disabled={cooldownSeconds > 0}
                   style={{
                     width: '100%',
                     padding: '0.85rem',
@@ -573,13 +599,33 @@ export function WhatsAppAutoSenderModal({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.5rem',
+                    opacity: cooldownSeconds > 0 ? 0.75 : 1,
+                    cursor: cooldownSeconds > 0 ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  <span>🟢</span>
+                  <span>{cooldownSeconds > 0 ? '⏱️' : '🟢'}</span>
                   <span>
-                    Buka WhatsApp &amp; Lanjut Tamu Berikutnya (1-Klik)
+                    {cooldownSeconds > 0
+                      ? `Jeda Aman Meta (${cooldownSeconds}d)`
+                      : 'Buka WhatsApp & Lanjut Tamu Berikutnya (1-Klik)'}
                   </span>
                 </button>
+
+                {sessionSentCount > 0 && (
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: sessionSentCount >= 50 ? '#dc2626' : '#64748b',
+                      textAlign: 'center',
+                      fontWeight: sessionSentCount >= 50 ? 600 : 400,
+                    }}
+                  >
+                    Terkirim sesi ini: {sessionSentCount} tamu
+                    {sessionSentCount >= 50
+                      ? ' ⚠️ (Batas 50 pesan disarankan. Rehat 30 menit agar nomor tetap aman)'
+                      : ''}
+                  </div>
+                )}
 
                 {/* Secondary Actions: Copy Message & Copy Link */}
                 <div

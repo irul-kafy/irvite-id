@@ -26,7 +26,7 @@ export default function SystemCheckPage() {
         if (response.status === 401) { router.replace('/login'); return; }
         if (!response.ok) throw new Error('Sesi belum dapat diverifikasi. Periksa koneksi API lalu muat ulang.');
         const { user } = await response.json();
-        if (!['ADMIN', 'SUPER_ADMIN'].includes(user?.role)) {
+        if (user?.role !== 'SUPER_ADMIN') {
           router.replace('/dashboard');
           return;
         }

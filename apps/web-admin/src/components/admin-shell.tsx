@@ -336,7 +336,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
     }
     if (item.id === 'system-check') {
-      return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
+      return userRole === 'SUPER_ADMIN';
     }
     if (item.id === 'staff') {
       return userRole === 'SUPER_ADMIN';

@@ -14,7 +14,7 @@ const originalRequire = (Module.prototype as any).require;
 const { GET } = require('./route');
 (Module.prototype as any).require = originalRequire;
 
-test('system checks require a verified admin and inspect database response body', async (t) => {
+test('system checks require a verified super admin and inspect database response body', async (t) => {
   t.after(() => mock.restoreAll());
   token = undefined;
   assert.equal((await GET()).status, 401);
@@ -22,9 +22,15 @@ test('system checks require a verified admin and inspect database response body'
   const fetchMock = mock.method(globalThis, 'fetch', async () => Response.json({ role: 'STAFF' }));
   assert.equal((await GET()).status, 403);
   assert.equal(fetchMock.mock.callCount(), 1);
+
+  // ADMIN is now forbidden (only SUPER_ADMIN is allowed)
+  fetchMock.mock.mockImplementation(async () => Response.json({ role: 'ADMIN' }));
+  assert.equal((await GET()).status, 403);
+
+  // SUPER_ADMIN is allowed
   fetchMock.mock.mockImplementation(async (url: string | URL | Request) => {
     const endpoint = String(url);
-    if (endpoint.endsWith('/auth/me')) return Response.json({ role: 'ADMIN' });
+    if (endpoint.endsWith('/auth/me')) return Response.json({ role: 'SUPER_ADMIN' });
     if (endpoint.endsWith('/health/db')) return Response.json({ status: 'error' });
     return new Response('API is running');
   });
