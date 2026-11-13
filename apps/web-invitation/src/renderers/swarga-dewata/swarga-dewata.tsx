@@ -8,6 +8,7 @@ import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { AddToCalendarButton } from '../../components/calendar';
 import { QrisGiftCard } from '../../components/qris';
+import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -135,12 +136,6 @@ export function SwargaDewataRenderer({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [copiedAccountIdx, setCopiedAccountIdx] = useState<number | null>(null);
-  const [countdown, setCountdown] = useState({
-    days: '00',
-    hours: '00',
-    minutes: '00',
-    seconds: '00',
-  });
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const synthRef = useRef<BalineseRindikSynth | null>(null);
@@ -155,37 +150,6 @@ export function SwargaDewataRenderer({
       ),
     [primaryCeremony?.startDateTime, data?.event?.eventDate, content.timeZone],
   );
-
-  // Live Countdown Timer
-  useEffect(() => {
-    const rawTarget =
-      primaryCeremony?.startDateTime ||
-      data?.event?.eventDate ||
-      '2026-10-18T08:00:00+08:00';
-    const targetTime = new Date(rawTarget).getTime();
-    const validTarget = Number.isNaN(targetTime)
-      ? new Date('2026-10-18T08:00:00+08:00').getTime()
-      : targetTime;
-
-    const tick = () => {
-      const diff = Math.max(0, validTarget - Date.now());
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const m = Math.floor((diff / 1000 / 60) % 60);
-      const s = Math.floor((diff / 1000) % 60);
-
-      setCountdown({
-        days: String(d).padStart(2, '0'),
-        hours: String(h).padStart(2, '0'),
-        minutes: String(m).padStart(2, '0'),
-        seconds: String(s).padStart(2, '0'),
-      });
-    };
-
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, [primaryCeremony?.startDateTime, data?.event?.eventDate]);
 
   // Cleanup audio on unmount
   useEffect(() => {
@@ -592,31 +556,14 @@ export function SwargaDewataRenderer({
             </div>
 
             {/* Dewasa Ayu Countdown */}
-            <div
+            <CountdownSection
+              datetime={primaryCeremony?.startDateTime || data?.event?.eventDate || '2026-10-18T08:00:00+08:00'}
+              labels={['Rahina (Hari)', 'Dauh (Jam)', 'Menit', 'Detik']}
               className={styles.countdownGrid}
-              aria-label="Hitung Mundur Hari Bahagia"
-            >
-              <div className={`${styles.pradaCard} ${styles.countdownBox}`}>
-                <span className={styles.countdownValue}>{countdown.days}</span>
-                <span className={styles.countdownLabel}>Rahina (Hari)</span>
-              </div>
-              <div className={`${styles.pradaCard} ${styles.countdownBox}`}>
-                <span className={styles.countdownValue}>{countdown.hours}</span>
-                <span className={styles.countdownLabel}>Dauh (Jam)</span>
-              </div>
-              <div className={`${styles.pradaCard} ${styles.countdownBox}`}>
-                <span className={styles.countdownValue}>
-                  {countdown.minutes}
-                </span>
-                <span className={styles.countdownLabel}>Menit</span>
-              </div>
-              <div className={`${styles.pradaCard} ${styles.countdownBox}`}>
-                <span className={styles.countdownValue}>
-                  {countdown.seconds}
-                </span>
-                <span className={styles.countdownLabel}>Detik</span>
-              </div>
-            </div>
+              itemClassName={`${styles.pradaCard} ${styles.countdownBox}`}
+              numberClassName={styles.countdownValue}
+              labelClassName={styles.countdownLabel}
+            />
 
             {/* Sacred Rgveda Sloka Box */}
             <div className={styles.slokaBox}>

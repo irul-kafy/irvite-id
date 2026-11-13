@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import type { InvitationTemplateProps, ImageAsset, GiftAccount } from './types';
 import { AddToCalendarButton } from '../../components/calendar';
 import { QrisGiftCard } from '../../components/qris';
+import { CountdownSection, RsvpSection } from '../shared/sections';
 import s from './InvitationTemplate.module.css';
 const crystalIsland = '/templates/aetheria/images/crystal-island.webp';
 
@@ -30,12 +31,7 @@ function Magic({islands = false}: {islands?: boolean}) {
     {islands && <><img className={s.island} src={crystalIsland} alt=""/><img className={`${s.island} ${s.islandSmall}`} src={crystalIsland} alt=""/></>}
   </div>;
 }
-function Countdown({datetime}: {datetime: string}) {
-  const [seconds,setSeconds]=useState<number | null>(null);
-  useEffect(()=>{const tick=()=>setSeconds(Math.max(0,Math.floor((Date.parse(datetime)-Date.now())/1000)));tick();const id=window.setInterval(tick,1000);return()=>clearInterval(id);},[datetime]);
-  const values = seconds === null ? [null,null,null,null] : [Math.floor(seconds/86400),Math.floor(seconds/3600)%24,Math.floor(seconds/60)%60,seconds%60];
-  return <div className={s.countdown} role="timer" aria-label="Hitung mundur menuju acara">{values.map((value,i)=><div key={i}><strong>{value===null?'—':String(value).padStart(2,'0')}</strong><span>{['Hari','Jam','Menit','Detik'][i]}</span></div>)}</div>;
-}
+
 export default function InvitationTemplate({data,guest={kind:'general'},theme,rsvpSlot,qrSlot,wishesSlot,callbacks}: InvitationTemplateProps) {
   const [opened,setOpened]=useState(false);
   const [coverGone,setCoverGone]=useState(false);
@@ -90,7 +86,7 @@ export default function InvitationTemplate({data,guest={kind:'general'},theme,rs
       <section id="beginning" className={`${s.section} ${s.intro}`}>
         <span className={s.orbit} aria-hidden="true"/>
         <div className={s.introPhoto} data-reveal="unveil"><Photo image={data.media.hero}/><span>OUR OWN LITTLE UNIVERSE</span></div>
-        <div className={s.introCopy} data-reveal="rise"><Mark>The first page of forever</Mark><h2>Segala jalan<br/>membawa kami<br/><em>ke sini.</em></h2><p>{data.event.openingText}</p>{enabled('countdown')&&<Countdown datetime={data.event.datetime}/>}</div>
+        <div className={s.introCopy} data-reveal="rise"><Mark>The first page of forever</Mark><h2>Segala jalan<br/>membawa kami<br/><em>ke sini.</em></h2><p>{data.event.openingText}</p>{enabled('countdown')&&<CountdownSection datetime={data.event.datetime} className={s.countdown}/>}</div>
       </section>
       {enabled('couple')&&<section id="couple" className={`${s.section} ${s.couple}`}>
         <Magic/><header className={s.sectionHead} data-reveal="rise"><Mark>02 / Two souls, one universe</Mark><h2>Dua jiwa.<br/><em>Satu semesta.</em></h2></header>
@@ -103,7 +99,21 @@ export default function InvitationTemplate({data,guest={kind:'general'},theme,rs
       {enabled('gallery')&&<section id="gallery" className={`${s.section} ${s.gallerySection}`}><header className={s.galleryHead} data-reveal="rise"><div><Mark>05 / Fragments of forever</Mark><h2>Yang ingin<br/><em>kami simpan.</em></h2></div><p>Sekumpulan detik kecil,<br/>berarti untuk selamanya.</p></header><div className={s.gallery}>{data.gallery.map((image,i)=><figure key={i} data-reveal={i%3===0?'unveil':'rise'}><button aria-label={`Perbesar foto ${i+1}: ${image.alt}`} onClick={()=>setLightbox(i)}><Photo image={image}/><span aria-hidden="true">↗</span></button><figcaption><span>{String(i+1).padStart(2,'0')}</span>{image.alt}</figcaption></figure>)}</div></section>}
       {enabled('gift')&&<section id="gift" className={`${s.section} ${s.gift}`}><div className={s.giftIntro} data-reveal="left"><span className={s.gem} aria-hidden="true">◇</span><Mark>A little kindness, a lasting light</Mark><h2>{data.gifts.title}</h2><p>{data.gifts.description}</p></div><div data-reveal="right">{data.gifts.accounts.map(account=><article className={s.bank} key={account.id}><span className={s.bankIcon} aria-hidden="true">✧</span><Mark>{account.provider}</Mark><strong>{account.number}</strong><p>a.n. {account.owner}</p><button className={s.textLink} onClick={()=>copy(account)}>Salin nomor rekening <span>↗</span></button></article>)}{data.gifts.qrisUrl&&<QrisGiftCard qrisUrl={data.gifts.qrisUrl} coupleName={`${data.couple.bride.shortName} & ${data.couple.groom.shortName}`} theme="aetheria"/>}{data.gifts.address&&<article className={s.bank}><h3>{data.gifts.address.recipient}</h3><p>{data.gifts.address.address}</p></article>}</div></section>}
       {enabled('wishes')&&<section id="wishes" className={`${s.section} ${s.wishes}`}><header className={s.sectionHead} data-reveal="rise"><Mark>Little lights for our journey</Mark><h2>{data.wishes.title}</h2><p>{data.wishes.description}</p></header>{wishesSlot?<div className={s.hostSlot}>{wishesSlot}</div>:<div className={s.wishList}>{data.wishes.items.map(wish=><blockquote key={wish.id} data-reveal="soft"><span aria-hidden="true">✦</span><p>{wish.message}</p><footer>{wish.name}<small>{wish.dateLabel}</small></footer></blockquote>)}</div>}</section>}
-      {enabled('rsvp')&&(rsvpSlot||qrSlot)&&<section id="rsvp" className={`${s.section} ${s.rsvp}`}><div className={s.rsvpIntro} data-reveal="left"><Mark>Your place in our story · RSVP &amp; Check-in</Mark><h2>{data.rsvp.title}</h2><p>{data.rsvp.description}</p></div><div className={s.rsvpQrGrid} data-reveal="right">{rsvpSlot&&<div className={s.rsvpCardSlot}>{rsvpSlot}</div>}{qrSlot&&<div className={s.qrCardSlot}>{qrSlot}</div>}</div></section>}
+      {enabled('rsvp')&&(rsvpSlot||qrSlot)&&<RsvpSection
+        className={`${s.section} ${s.rsvp}`}
+        gridClassName={s.rsvpQrGrid}
+        rsvpSlotClassName={s.rsvpCardSlot}
+        qrSlotClassName={s.qrCardSlot}
+        rsvpSlot={rsvpSlot}
+        qrSlot={qrSlot}
+        customHeading={
+          <div className={s.rsvpIntro} data-reveal="left">
+            <Mark>Your place in our story · RSVP &amp; Check-in</Mark>
+            <h2>{data.rsvp.title}</h2>
+            <p>{data.rsvp.description}</p>
+          </div>
+        }
+      />}
       <section className={`${s.section} ${s.closing}`}><Photo image={data.media.closing} className={s.closingPhoto}/><Magic/><div data-reveal="soft"><Mark>And so, our forever begins</Mark><h2>Di setiap dunia,<br/><em>selalu kamu.</em></h2><p>{data.event.closingMessage}</p><h3>{data.couple.bride.shortName} & {data.couple.groom.shortName}</h3><a href="#home" className={s.textLink}>Kembali ke awal ↑</a></div><footer>crafted with love <span>irvite</span></footer></section>
       <nav className={s.nav} aria-label="Navigasi undangan"><a href="#home" aria-label="Awal">✧</a>{nav.filter(([key])=>enabled(key)).map(([key,label])=><a href={`#${key}`} key={key}>{label}</a>)}</nav>
     </main>}

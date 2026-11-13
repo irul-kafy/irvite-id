@@ -7,6 +7,7 @@ import QRDisplay from '../../components/QRDisplay';
 import { WishesSection } from '../../components/wishes/WishesSection';
 import { AddToCalendarButton } from '../../components/calendar';
 import { QrisGiftCard } from '../../components/qris';
+import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
 import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
@@ -31,38 +32,6 @@ function webLink(src?: string) {
   } catch {
     return undefined;
   }
-}
-
-function Countdown({ epoch }: { epoch: number | null }) {
-  const [remaining, setRemaining] = useState<number | null>(null);
-  useEffect(() => {
-    if (epoch === null) {
-      const t = window.setTimeout(() => setRemaining(null), 0);
-      return () => clearTimeout(t);
-    }
-    const tick = () => setRemaining(Math.max(0, Math.floor((epoch - Date.now()) / 1000)));
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, [epoch]);
-
-  const values = remaining === null ? [null, null, null, null] : [
-    Math.floor(remaining / 86400),
-    Math.floor(remaining / 3600) % 24,
-    Math.floor(remaining / 60) % 60,
-    remaining % 60,
-  ];
-
-  return (
-    <div className={s.countdown} role="timer" aria-label="Hitung mundur acara">
-      {values.map((n, i) => (
-        <div key={i}>
-          <strong>{n === null ? '—' : String(n).padStart(2, '0')}</strong>
-          <span>{['Hari', 'Jam', 'Menit', 'Detik'][i]}</span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function SekarKedatonRenderer({
@@ -262,7 +231,7 @@ export default function SekarKedatonRenderer({
               <p className={s.eyebrow}>01 / Sebuah awal yang baik</p>
               <h2>Berakar dalam doa.<br /><em>Bertumbuh dalam cinta.</em></h2>
               {content.intro && <p>{content.intro}</p>}
-              <Countdown epoch={parseTargetEpoch(primaryDate, timezone)} />
+              <CountdownSection epoch={parseTargetEpoch(primaryDate, timezone)} className={s.countdown} />
             </div>
             <Florals />
           </section>

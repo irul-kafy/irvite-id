@@ -6,6 +6,7 @@ import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
 import { AddToCalendarButton } from '../../components/calendar';
 import { QrisGiftCard } from '../../components/qris';
+import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
@@ -160,43 +161,6 @@ export function RoyalVelvetRenderer({
 
   // Countdown Timer
   const primaryCeremonyDate = content.ceremonies[0]?.startDateTime || '2027-02-14T08:00:00+07:00';
-  const [timeLeft, setTimeLeft] = useState({
-    days: '00',
-    hours: '00',
-    minutes: '00',
-    seconds: '00',
-  });
-
-  useEffect(() => {
-    const target = new Date(primaryCeremonyDate).getTime();
-    if (isNaN(target)) return;
-
-    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-
-    const update = () => {
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0) {
-        setTimeLeft({ days: '00', hours: '00', minutes: '00', seconds: '00' });
-        return;
-      }
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-      setTimeLeft({
-        days: pad(d),
-        hours: pad(h),
-        minutes: pad(m),
-        seconds: pad(s),
-      });
-    };
-
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [primaryCeremonyDate]);
 
   // Lightbox Modal
   const [lightboxData, setLightboxData] = useState<{
@@ -723,24 +687,13 @@ export function RoyalVelvetRenderer({
           </div>
 
           {/* Countdown Timer (Hari, Jam, Menit, Detik) */}
-          <div className={styles.countdownGrid}>
-            <div className={styles.countdownBox}>
-              <span className={styles.countdownNum}>{timeLeft.days}</span>
-              <span className={styles.countdownUnit}>Hari</span>
-            </div>
-            <div className={styles.countdownBox}>
-              <span className={styles.countdownNum}>{timeLeft.hours}</span>
-              <span className={styles.countdownUnit}>Jam</span>
-            </div>
-            <div className={styles.countdownBox}>
-              <span className={styles.countdownNum}>{timeLeft.minutes}</span>
-              <span className={styles.countdownUnit}>Menit</span>
-            </div>
-            <div className={styles.countdownBox}>
-              <span className={styles.countdownNum}>{timeLeft.seconds}</span>
-              <span className={styles.countdownUnit}>Detik</span>
-            </div>
-          </div>
+          <CountdownSection
+            datetime={primaryCeremonyDate}
+            className={styles.countdownGrid}
+            itemClassName={styles.countdownBox}
+            numberClassName={styles.countdownNum}
+            labelClassName={styles.countdownUnit}
+          />
 
           {/* Kartu Sesi Acara (Akad & Resepsi) */}
           <div className={styles.coupleGrid}>
