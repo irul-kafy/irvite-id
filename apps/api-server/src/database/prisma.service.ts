@@ -86,6 +86,9 @@ export class PrismaService
       'ALTER TABLE `invitations` ADD COLUMN `first_opened_at` DATETIME(3) NULL',
       'ALTER TABLE `invitations` ADD COLUMN `last_opened_at` DATETIME(3) NULL',
       'ALTER TABLE `invitations` ADD COLUMN `open_count` INTEGER NOT NULL DEFAULT 0',
+      'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+      'DELETE FROM `wishes` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+      'DELETE FROM `offline_sync_ops` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
     ];
 
     for (const sql of statements) {
