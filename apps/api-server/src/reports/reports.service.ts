@@ -1,4 +1,4 @@
-﻿import { Injectable, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ExportQueryDto } from './dto/export-query.dto';
 import {
@@ -17,6 +17,10 @@ import {
   generateAttendanceReportXlsx,
   generateAttendanceReportCsv,
 } from './attendance-report-exporter';
+import {
+  generatePostEventHtmlReport,
+  PostEventData,
+} from './post-event-exporter';
 import { Prisma, InvitationStatus, AttendanceStatus } from 'database';
 
 export const MAX_EXPORT_LIMIT = 5000;
@@ -210,5 +214,152 @@ export class ReportsService {
     const contentType =
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     return { buffer, filename, contentType };
+  }
+
+  async generatePostEventReport(eventId: string) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        eventDate: true,
+        locationDetails: true,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException(`Event '${eventId}' not found`);
+    }
+
+    const [guests, attendances, wishes] = await Promise.all([
+      this.prisma.guest.findMany({
+        where: { eventId },
+        include: {
+          invitation: {
+            include: {
+              attendances: {
+                where: { status: AttendanceStatus.VALID },
+                include: { staff: { select: { email: true } } },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.attendance.findMany({
+        where: { eventId, status: AttendanceStatus.VALID },
+        include: {
+          invitation: {
+            include: {
+              guest: true,
+            },
+          },
+          staff: {
+            select: { email: true },
+          },
+        },
+        orderBy: { scannedAt: 'asc' },
+      }),
+      this.prisma.wish.findMany({
+        where: { eventId },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    const totalGuests = guests.length;
+    let totalExpectedPax = 0;
+    let totalAttendedGuests = 0;
+    let totalAttendedPax = 0;
+    let vipAttendedCount = 0;
+    let walkInCount = 0;
+
+    const vipAttendees: PostEventData['vipAttendees'] = [];
+    const walkInAttendees: PostEventData['walkInAttendees'] = [];
+    const hourlyMap = new Map<string, { count: number; pax: number }>();
+
+    for (const g of guests) {
+      totalExpectedPax += g.maxPax || 1;
+      const validAtt = g.invitation?.attendances?.[0];
+      if (validAtt) {
+        totalAttendedGuests++;
+        totalAttendedPax += validAtt.scannedPax;
+        const isVip = g.category.toUpperCase() === 'VIP' || g.category.toUpperCase() === 'VVIP';
+        if (isVip) {
+          vipAttendedCount++;
+          vipAttendees.push({
+            name: g.name,
+            category: g.category,
+            tableNumber: g.tableNumber,
+            scannedPax: validAtt.scannedPax,
+            scannedAt: validAtt.scannedAt,
+          });
+        }
+      }
+    }
+
+    for (const att of attendances) {
+      const guestName = att.invitation?.guest?.name || '';
+      const isWalkIn = guestName.toLowerCase().startsWith('walk-in') || att.invitation?.guest?.category === 'WALK_IN';
+      if (isWalkIn) {
+        walkInCount++;
+        walkInAttendees.push({
+          name: guestName,
+          scannedPax: att.scannedPax,
+          scannedAt: att.scannedAt,
+          scannedByName: att.staff?.email || 'Staf Pintu',
+        });
+      }
+
+      // Group hourly
+      const date = new Date(att.scannedAt);
+      const hour = String(date.getHours()).padStart(2, '0');
+      const nextHour = String((date.getHours() + 1) % 24).padStart(2, '0');
+      const slot = `${hour}:00 - ${nextHour}:00`;
+
+      const existing = hourlyMap.get(slot) || { count: 0, pax: 0 };
+      existing.count += 1;
+      existing.pax += att.scannedPax;
+      hourlyMap.set(slot, existing);
+    }
+
+    const hourlyDistribution = Array.from(hourlyMap.entries()).map(([hourSlot, val]) => ({
+      hourSlot,
+      count: val.count,
+      pax: val.pax,
+    }));
+
+    const attendanceRatePercent = totalGuests > 0 ? Math.round((totalAttendedGuests / totalGuests) * 100) : 0;
+
+    const data: PostEventData = {
+      event,
+      metrics: {
+        totalGuests,
+        totalExpectedPax,
+        totalAttendedGuests,
+        totalAttendedPax,
+        attendanceRatePercent,
+        vipAttendedCount,
+        walkInCount,
+      },
+      hourlyDistribution,
+      vipAttendees,
+      walkInAttendees,
+      wishes: wishes.map((w) => ({
+        name: w.name,
+        message: w.message,
+        createdAt: w.createdAt,
+      })),
+    };
+
+    const html = generatePostEventHtmlReport(data);
+    const dateStamp = getWibDateStamp();
+    const cleanSlug = sanitizeSlugForFilename(event.slug);
+    const filename = `laporan-pasca-acara-${cleanSlug}-${dateStamp}.html`;
+
+    return {
+      data,
+      html,
+      filename,
+    };
   }
 }

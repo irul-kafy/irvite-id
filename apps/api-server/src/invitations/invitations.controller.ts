@@ -47,6 +47,18 @@ export class InvitationsController {
     return this.invitationsService.findAll(eventId, user.id, user.role, query);
   }
 
+  @Get('events/:eventId/invitations/stats')
+  getStats(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.invitationsService.getInvitationStats(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
+
   @Get('events/:eventId/invitations/:invitationId')
   findOne(
     @Param('eventId', ParseUUIDPipe) eventId: string,

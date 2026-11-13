@@ -154,6 +154,9 @@ model Invitation {
   status        InvitationStatus @default(PENDING)
   rsvpPax       Int?             @map("rsvp_pax")
   customMessage String?          @map("custom_message")
+  firstOpenedAt DateTime?        @map("first_opened_at")
+  lastOpenedAt  DateTime?        @map("last_opened_at")
+  openCount     Int              @default(0) @map("open_count")
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
 

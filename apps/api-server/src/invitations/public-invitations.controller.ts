@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Header,
+  Headers,
   NotFoundException,
 } from '@nestjs/common';
 import { PublicRsvpDto } from './dto/public-rsvp.dto';
@@ -16,14 +17,20 @@ import { Public } from '../auth/decorators/public.decorator';
 
 @Controller(['api/v1/invitations/public', 'invitations/public'])
 export class PublicInvitationsController {
-  constructor(private readonly invitationsService: InvitationsService) {}
+  constructor(private readonly invitationsService: InvitationsService) { }
 
   @Public()
   @Throttle({ default: { limit: 60, ttl: seconds(60) } })
   @Get(':uniqueCode')
   @Header('Cache-Control', 'no-store')
-  async resolvePublic(@Param('uniqueCode') uniqueCode: string) {
-    const data = await this.invitationsService.resolvePublic(uniqueCode);
+  async resolvePublic(
+    @Param('uniqueCode') uniqueCode: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    const data = await this.invitationsService.resolvePublic(
+      uniqueCode,
+      userAgent,
+    );
     if (!data) {
       throw new NotFoundException('Invitation not found');
     }

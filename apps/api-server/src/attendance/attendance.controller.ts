@@ -129,6 +129,32 @@ export class AttendanceController {
     res.end(buffer);
   }
 
+  @Get('post-event-report')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Header('Cache-Control', 'no-store')
+  async postEventReport(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('format') format: string,
+    @Res() res: Response,
+  ) {
+    const result = await this.attendanceService.getPostEventReport(
+      eventId,
+      user.id,
+      user.role,
+    );
+
+    if (format === 'json') {
+      return res.json(result.data);
+    }
+
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': `inline; filename="${result.filename}"`,
+    });
+    return res.send(result.html);
+  }
+
   @Post('resolve')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')

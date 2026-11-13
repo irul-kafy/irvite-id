@@ -279,4 +279,95 @@ describe('InvitationsService', () => {
       expect(res.event.content).toBeNull();
     });
   });
+
+  describe('getInvitationStats', () => {
+    it('aggregates invitation funnel and open statistics accurately', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-1' });
+
+      mockPrisma.invitation.findMany.mockResolvedValue([
+        {
+          id: 'inv-1',
+          uniqueCode: 'code-1',
+          status: 'OPENED',
+          rsvpPax: null,
+          firstOpenedAt: new Date('2026-11-13T10:00:00Z'),
+          lastOpenedAt: new Date('2026-11-13T10:30:00Z'),
+          openCount: 3,
+          createdAt: new Date('2026-11-12T10:00:00Z'),
+          guest: {
+            id: 'g-1',
+            name: 'Andi',
+            phoneNumber: '08123456789',
+            category: 'VIP',
+          },
+        },
+        {
+          id: 'inv-2',
+          uniqueCode: 'code-2',
+          status: 'RSVP_YES',
+          rsvpPax: 2,
+          firstOpenedAt: new Date('2026-11-13T11:00:00Z'),
+          lastOpenedAt: new Date('2026-11-13T11:00:00Z'),
+          openCount: 1,
+          createdAt: new Date('2026-11-12T10:00:00Z'),
+          guest: {
+            id: 'g-2',
+            name: 'Budi',
+            phoneNumber: '08129876543',
+            category: 'FAMILY',
+          },
+        },
+        {
+          id: 'inv-3',
+          uniqueCode: 'code-3',
+          status: 'SENT',
+          rsvpPax: null,
+          firstOpenedAt: null,
+          lastOpenedAt: null,
+          openCount: 0,
+          createdAt: new Date('2026-11-12T10:00:00Z'),
+          guest: {
+            id: 'g-3',
+            name: 'Citra',
+            phoneNumber: '08131112223',
+            category: 'REGULAR',
+          },
+        },
+        {
+          id: 'inv-4',
+          uniqueCode: 'code-4',
+          status: 'PENDING',
+          rsvpPax: null,
+          firstOpenedAt: null,
+          lastOpenedAt: null,
+          openCount: 0,
+          createdAt: new Date('2026-11-12T10:00:00Z'),
+          guest: {
+            id: 'g-4',
+            name: 'Dewi',
+            phoneNumber: null,
+            category: 'REGULAR',
+          },
+        },
+      ]);
+
+      const result = await service.getInvitationStats(
+        'event-1',
+        'user-1',
+        Role.ADMIN,
+      );
+
+      expect(result.summary.totalInvitations).toBe(4);
+      expect(result.summary.totalEverOpened).toBe(2);
+      expect(result.summary.openRatePercent).toBe(50);
+      expect(result.summary.rsvpYesCount).toBe(1);
+      expect(result.summary.totalPaxConfirmed).toBe(2);
+      expect(result.summary.unopenedCount).toBe(2);
+      expect(result.unopenedGuests).toHaveLength(2);
+      expect(result.unopenedGuests[0].guestName).toBe('Citra');
+      expect(result.unopenedGuests[1].guestName).toBe('Dewi');
+      expect(result.recentlyOpened).toHaveLength(2);
+      expect(result.recentlyOpened[0].guestName).toBe('Budi'); // latest lastOpenedAt (11:00 vs 10:30)
+    });
+  });
 });

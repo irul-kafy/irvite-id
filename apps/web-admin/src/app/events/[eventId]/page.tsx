@@ -23,11 +23,53 @@ function IconTrash() {
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPublicAvailabilityState } from '@/utils/event-availability';
+import { buildWhatsAppShareUrl } from '@/utils/whatsapp-share';
 import { TemplateContentEditor } from './components/template-content-editor';
 import { MediaManager } from './components/media-manager';
 import { EventPreviewTab } from './components/event-preview-tab';
 import { QrisStandeeDisplay } from './components/qris-standee-display';
 import { WishesModerationTab } from './components/wishes-moderation-tab';
+
+interface InvitationStatsSummary {
+  totalInvitations: number;
+  totalEverOpened: number;
+  openRatePercent: number;
+  rsvpRatePercent: number;
+  pendingCount: number;
+  sentCount: number;
+  openedCount: number;
+  rsvpYesCount: number;
+  rsvpNoCount: number;
+  totalPaxConfirmed: number;
+  unopenedCount: number;
+}
+
+interface UnopenedGuestItem {
+  invitationId: string;
+  guestId: string;
+  guestName: string;
+  phoneNumber: string | null;
+  category: string | null;
+  uniqueCode: string;
+  status: string;
+  createdAt: string;
+  canonicalUrl?: string | null;
+}
+
+interface InvitationStatsData {
+  summary: InvitationStatsSummary;
+  unopenedGuests: UnopenedGuestItem[];
+  recentlyOpened: Array<{
+    invitationId: string;
+    guestName: string;
+    uniqueCode: string;
+    openCount: number;
+    firstOpenedAt: string | null;
+    lastOpenedAt: string | null;
+    status: string;
+    canonicalUrl?: string | null;
+  }>;
+}
 
 interface EventData {
   id: string;
@@ -174,6 +216,9 @@ export default function EventDetailPage({
   const [permanentDeleting, setPermanentDeleting] = useState(false);
   const [deleteModalError, setDeleteModalError] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [invitationStats, setInvitationStats] = useState<InvitationStatsData | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [copiedLinkCode, setCopiedLinkCode] = useState<string | null>(null);
 
   // Pure URL-derived activeTab without state cascade
   const tabParam = searchParams.get('tab');
@@ -212,6 +257,20 @@ export default function EventDetailPage({
           } catch {
             // Non-blocking
           }
+        }
+
+        // Fetch invitation funnel & open tracking statistics
+        try {
+          setLoadingStats(true);
+          const statsRes = await fetch(`/api/events/${eventId}/invitations/stats`);
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            setInvitationStats(statsData);
+          }
+        } catch {
+          // Non-blocking
+        } finally {
+          setLoadingStats(false);
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
@@ -744,6 +803,190 @@ export default function EventDetailPage({
             </div>
           </div>
 
+          {/* Card: Statistik Undangan & Corong Tamu (Dibuka vs Belum Dibuka) */}
+          <div className="card mb-6" id="card-invitation-stats">
+            <div className="card-header flex-between" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h2 className="card-header__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>📊 Statistik Undangan &amp; Aktivitas Tamu</span>
+                  {loadingStats && <span className="text-xs text-muted font-normal">(Memperbarui...)</span>}
+                </h2>
+                <p className="text-xs text-muted" style={{ margin: '0.25rem 0 0 0' }}>
+                  Pantau konversi pembukaan tautan undangan personal serta tindak lanjuti tamu yang belum membuka.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push(`/events/${event.id}/invitations`)}
+                className="btn btn-secondary btn-sm"
+              >
+                Kelola Distribusi &rarr;
+              </button>
+            </div>
+            <div className="card-body">
+              {invitationStats ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                    {/* Stat 1: Total Undangan */}
+                    <div style={{ padding: '1rem', background: 'var(--admin-bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--admin-border)' }}>
+                      <span className="text-xs text-muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                        Total Undangan
+                      </span>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+                        {invitationStats.summary.totalInvitations}
+                      </div>
+                      <span className="text-xs text-muted">
+                        {invitationStats.summary.pendingCount} Draf / {invitationStats.summary.sentCount} Terkirim
+                      </span>
+                    </div>
+
+                    {/* Stat 2: Undangan Dibuka */}
+                    <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      <span className="text-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, color: '#059669' }}>
+                        Sudah Dibuka
+                      </span>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.25rem' }}>
+                        {invitationStats.summary.totalEverOpened}
+                        <span style={{ fontSize: '0.875rem', fontWeight: 500, marginLeft: '0.375rem' }}>
+                          ({invitationStats.summary.openRatePercent}%)
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted">
+                        Tamu telah mengakses tautan
+                      </span>
+                    </div>
+
+                    {/* Stat 3: Belum Dibuka */}
+                    <div style={{ padding: '1rem', background: invitationStats.summary.unopenedCount > 0 ? 'rgba(239, 68, 68, 0.05)' : 'var(--admin-bg)', borderRadius: 'var(--radius-md)', border: `1px solid ${invitationStats.summary.unopenedCount > 0 ? 'rgba(239, 68, 68, 0.25)' : 'var(--admin-border)'}` }}>
+                      <span className="text-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, color: invitationStats.summary.unopenedCount > 0 ? '#dc2626' : 'var(--text-secondary)' }}>
+                        Belum Dibuka
+                      </span>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: invitationStats.summary.unopenedCount > 0 ? '#dc2626' : 'var(--text-primary)', marginTop: '0.25rem' }}>
+                        {invitationStats.summary.unopenedCount}
+                      </div>
+                      <span className="text-xs text-muted">
+                        Perlu pengingat / follow-up
+                      </span>
+                    </div>
+
+                    {/* Stat 4: RSVP Hadir */}
+                    <div style={{ padding: '1rem', background: 'rgba(99, 102, 241, 0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                      <span className="text-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, color: '#4f46e5' }}>
+                        Konfirmasi Hadir (RSVP)
+                      </span>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4f46e5', marginTop: '0.25rem' }}>
+                        {invitationStats.summary.rsvpYesCount} Tamu
+                      </div>
+                      <span className="text-xs text-muted">
+                        Total {invitationStats.summary.totalPaxConfirmed} Pax diestimasi hadir
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Section: Tamu Belum Membuka Undangan */}
+                  {invitationStats.unopenedGuests.length > 0 ? (
+                    <div style={{ borderTop: '1px solid var(--admin-border)', paddingTop: '1rem' }}>
+                      <div className="flex-between mb-3" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+                            Tamu yang Belum Membuka Undangan ({invitationStats.unopenedGuests.length})
+                          </h3>
+                          <p className="text-xs text-muted" style={{ margin: '0.25rem 0 0 0' }}>
+                            Kirimkan pengingat personal satu-klik via WhatsApp agar mereka segera membuka undangan.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div style={{ overflowX: 'auto', border: '1px solid var(--admin-border)', borderRadius: 'var(--radius-sm)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--admin-bg)', borderBottom: '1px solid var(--admin-border)', textAlign: 'left' }}>
+                              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nama Tamu</th>
+                              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nomor WhatsApp</th>
+                              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Kategori</th>
+                              <th style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'right' }}>Aksi Tindak Lanjut</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {invitationStats.unopenedGuests.map((guest) => {
+                              const waUrl = buildWhatsAppShareUrl(
+                                guest.guestName,
+                                event.title,
+                                guest.canonicalUrl || `https://irvite.id/i/${guest.uniqueCode}`,
+                                guest.phoneNumber
+                              );
+                              return (
+                                <tr key={guest.invitationId} style={{ borderBottom: '1px solid var(--admin-border)' }}>
+                                  <td style={{ padding: '0.5rem 0.75rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                                    {guest.guestName}
+                                  </td>
+                                  <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)' }}>
+                                    {guest.phoneNumber || <span className="text-muted">—</span>}
+                                  </td>
+                                  <td style={{ padding: '0.5rem 0.75rem' }}>
+                                    <span className="badge" style={{ fontSize: '0.6875rem' }}>
+                                      {guest.category || 'REGULAR'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right' }}>
+                                    <div style={{ display: 'inline-flex', gap: '0.375rem' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const link = guest.canonicalUrl || `https://irvite.id/i/${guest.uniqueCode}`;
+                                          navigator.clipboard?.writeText(link);
+                                          setCopiedLinkCode(guest.uniqueCode);
+                                          setTimeout(() => setCopiedLinkCode(null), 2000);
+                                        }}
+                                        className="btn btn-ghost btn-sm"
+                                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                                        title="Salin Tautan Undangan"
+                                      >
+                                        {copiedLinkCode === guest.uniqueCode ? '✓ Tersalin' : '📋 Salin'}
+                                      </button>
+                                      <a
+                                        href={waUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-secondary btn-sm"
+                                        style={{
+                                          fontSize: '0.75rem',
+                                          padding: '0.25rem 0.5rem',
+                                          color: '#15803d',
+                                          borderColor: 'rgba(22, 163, 74, 0.3)',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.25rem',
+                                          textDecoration: 'none',
+                                        }}
+                                      >
+                                        <span>💬 Kirim WA</span>
+                                      </a>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ borderTop: '1px solid var(--admin-border)', paddingTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                      {invitationStats.summary.totalInvitations > 0
+                        ? '🎉 Luar biasa! Semua tamu yang memiliki undangan personal telah membuka tautan mereka.'
+                        : 'Belum ada undangan personal yang dibuat untuk acara ini. Buat undangan di menu Tamu & Undangan.'}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                  {loadingStats ? 'Memuat statistik undangan...' : 'Statistik undangan belum tersedia.'}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Operational Modules Section */}
           <div className="mb-4">
             <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
@@ -1017,6 +1260,32 @@ export default function EventDetailPage({
                 Buka Moderasi &rarr;
               </div>
             </div>
+
+            {/* Module: Post-Event Official Report */}
+            <a
+              href={`/api/events/${event.id}/attendance/post-event-report`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="action-card"
+              id="hub-post-event-report-card"
+              style={{ textDecoration: 'none', color: 'inherit' }}
+            >
+              <div className="action-card__icon-wrap" style={{ background: 'rgba(59, 130, 246, 0.14)', color: '#2563eb' }}>
+                <span style={{ fontSize: '1.25rem' }}>📄</span>
+              </div>
+              <div>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Laporan Resmi Pasca-Acara
+                  <span className="badge badge--success" style={{ fontSize: '0.6875rem' }}>A4 SIAP CETAK</span>
+                </div>
+                <div className="action-card__desc">
+                  Unduh dan cetak rekapitulasi eksekutif kehadiran tamu berformat A4 (distribusi kedatangan per jam, tamu VIP, walk-in, dan buku doa tamu).
+                </div>
+              </div>
+              <div className="action-card__arrow">
+                Buka &amp; Cetak Laporan &rarr;
+              </div>
+            </a>
 
             {/* Module: Preview */}
             <div

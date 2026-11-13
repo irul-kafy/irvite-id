@@ -17,6 +17,9 @@ interface GuestInvitation {
   rsvpPax?: number | null;
   attendances?: AttendanceRecord[];
   canonicalUrl: string;
+  firstOpenedAt?: string | null;
+  lastOpenedAt?: string | null;
+  openCount?: number;
 }
 
 interface GuestItem {
@@ -805,22 +808,40 @@ export default function InvitationDistributionPage({
 
                       {/* Undangan */}
                       <td style={{ padding: '0.75rem 0.75rem', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '0.2rem 0.625rem',
-                            borderRadius: 'var(--radius-pill)',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            color: invLabel.color,
-                            background: inv
-                              ? 'var(--status-success-bg)'
-                              : 'var(--admin-bg)',
-                            border: `1px solid ${inv ? 'rgba(5, 150, 105, 0.2)' : 'var(--admin-border)'}`,
-                          }}
-                        >
-                          {invLabel.text}
-                        </span>
+                        <div>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.625rem',
+                              borderRadius: 'var(--radius-pill)',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: invLabel.color,
+                              background: inv
+                                ? 'var(--status-success-bg)'
+                                : 'var(--admin-bg)',
+                              border: `1px solid ${inv ? 'rgba(5, 150, 105, 0.2)' : 'var(--admin-border)'}`,
+                            }}
+                          >
+                            {invLabel.text}
+                          </span>
+                          {inv && (
+                            <div style={{ marginTop: '0.25rem', fontSize: '0.71875rem' }}>
+                              {inv.openCount && inv.openCount > 0 ? (
+                                <span
+                                  style={{ color: '#059669', fontWeight: 600 }}
+                                  title={`Dibuka ${inv.openCount}x. Terakhir dibuka: ${inv.lastOpenedAt ? new Date(inv.lastOpenedAt).toLocaleString('id-ID') : '-'}`}
+                                >
+                                  👁️ Dibuka {inv.openCount}x
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-tertiary)' }}>
+                                  Belum dibuka
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* RSVP */}

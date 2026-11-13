@@ -118,6 +118,35 @@ export class AttendanceService {
     return this.reportsService.exportAttendanceReport(eventId, event, query);
   }
 
+  async getPostEventReport(
+    eventId: string,
+    currentUserId: string,
+    role: Role,
+  ) {
+    if (role === Role.STAFF) {
+      throw new ForbiddenException(
+        'Staff is not authorized to export post-event reports',
+      );
+    }
+
+    const event = await this.db.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, userId: true },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    if (role === Role.ADMIN && event.userId !== currentUserId) {
+      throw new ForbiddenException(
+        'You are not authorized to export reports for this event',
+      );
+    }
+
+    return this.reportsService.generatePostEventReport(eventId);
+  }
+
   /**
    * Builds a safe, display-only event banner summary for the scanner bottom sheet.
    * Uses the event's template cover (previewImageUrl) and couple names from content.

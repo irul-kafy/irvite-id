@@ -5,6 +5,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
@@ -19,9 +20,12 @@ import { PublicInvitationAccessService } from './public-invitation-access.servic
 import { validateEventContent } from '../templates/definitions';
 import { mapRsvpStatus } from './public-invitation-rsvp';
 import { stripPublicDraftTag } from '../events/events.service';
+import { isBotUserAgent } from './crawler-detector';
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly publicAccessService: PublicInvitationAccessService,
@@ -275,12 +279,15 @@ export class InvitationsService {
       status: true,
       rsvpPax: true,
       customMessage: true,
+      firstOpenedAt: true,
+      lastOpenedAt: true,
+      openCount: true,
       createdAt: true,
       updatedAt: true,
     };
   }
 
-  async resolvePublic(uniqueCode: string) {
+  async resolvePublic(uniqueCode: string, userAgent?: string) {
     const context =
       await this.publicAccessService.getEligibleContext(uniqueCode);
 
@@ -288,6 +295,8 @@ export class InvitationsService {
       customMessage: string | null;
       status: InvitationStatus;
       rsvpPax: number | null;
+      firstOpenedAt?: Date | null;
+      openCount?: number;
       guest: {
         name: string;
         customGreeting: string | null;
@@ -319,6 +328,8 @@ export class InvitationsService {
           customMessage: true,
           status: true,
           rsvpPax: true,
+          firstOpenedAt: true,
+          openCount: true,
           guest: {
             select: {
               name: true,
@@ -405,6 +416,33 @@ export class InvitationsService {
 
     if (!invitation) {
       throw new NotFoundException('Invitation not found');
+    }
+
+    // Track invitation open (ignoring crawler/social preview bots)
+    if (!isBotUserAgent(userAgent)) {
+      try {
+        const updateData: Prisma.InvitationUpdateInput = {
+          openCount: { increment: 1 },
+          lastOpenedAt: new Date(),
+        };
+        if (!invitation.firstOpenedAt) {
+          updateData.firstOpenedAt = new Date();
+        }
+        if (
+          invitation.status === InvitationStatus.PENDING ||
+          invitation.status === InvitationStatus.SENT
+        ) {
+          updateData.status = InvitationStatus.OPENED;
+        }
+        await this.prisma.invitation.update({
+          where: { id: context.invitationId },
+          data: updateData,
+        });
+      } catch (trackErr) {
+        this.logger.warn(
+          `Failed to record open stats for invitation ${uniqueCode}: ${trackErr instanceof Error ? trackErr.message : String(trackErr)}`,
+        );
+      }
     }
 
     const medias = await this.prisma.media.findMany({
@@ -715,6 +753,141 @@ export class InvitationsService {
       created,
       alreadyExisting,
       failed,
+    };
+  }
+
+  async getInvitationStats(
+    eventId: string,
+    currentUserId: string,
+    role: Role,
+  ) {
+    await this.assertEventAccessible(eventId, currentUserId, role);
+
+    const invitations = await this.prisma.invitation.findMany({
+      where: { eventId },
+      select: {
+        id: true,
+        uniqueCode: true,
+        status: true,
+        rsvpPax: true,
+        firstOpenedAt: true,
+        lastOpenedAt: true,
+        openCount: true,
+        createdAt: true,
+        guest: {
+          select: {
+            id: true,
+            name: true,
+            phoneNumber: true,
+            category: true,
+          },
+        },
+      },
+    });
+
+    const totalInvitations = invitations.length;
+    let pendingCount = 0;
+    let sentCount = 0;
+    let openedCount = 0;
+    let rsvpYesCount = 0;
+    let rsvpNoCount = 0;
+    let totalPaxConfirmed = 0;
+
+    const unopenedGuests: Array<{
+      invitationId: string;
+      guestId: string;
+      guestName: string;
+      phoneNumber: string | null;
+      category: string | null;
+      uniqueCode: string;
+      status: InvitationStatus;
+      createdAt: Date;
+    }> = [];
+
+    const recentlyOpened: Array<{
+      invitationId: string;
+      guestName: string;
+      uniqueCode: string;
+      openCount: number;
+      firstOpenedAt: Date | null;
+      lastOpenedAt: Date | null;
+      status: InvitationStatus;
+    }> = [];
+
+    for (const inv of invitations) {
+      if (inv.status === InvitationStatus.PENDING) pendingCount++;
+      else if (inv.status === InvitationStatus.SENT) sentCount++;
+      else if (inv.status === InvitationStatus.OPENED) openedCount++;
+      else if (inv.status === InvitationStatus.RSVP_YES) {
+        rsvpYesCount++;
+        totalPaxConfirmed += inv.rsvpPax ?? 1;
+      } else if (inv.status === InvitationStatus.RSVP_NO) {
+        rsvpNoCount++;
+      }
+
+      const isOpened =
+        (inv.openCount && inv.openCount > 0) ||
+        inv.status === InvitationStatus.OPENED ||
+        inv.status === InvitationStatus.RSVP_YES ||
+        inv.status === InvitationStatus.RSVP_NO;
+
+      if (!isOpened) {
+        unopenedGuests.push({
+          invitationId: inv.id,
+          guestId: inv.guest.id,
+          guestName: inv.guest.name,
+          phoneNumber: inv.guest.phoneNumber,
+          category: inv.guest.category,
+          uniqueCode: inv.uniqueCode,
+          status: inv.status,
+          createdAt: inv.createdAt,
+        });
+      } else {
+        recentlyOpened.push({
+          invitationId: inv.id,
+          guestName: inv.guest.name,
+          uniqueCode: inv.uniqueCode,
+          openCount: inv.openCount ?? 0,
+          firstOpenedAt: inv.firstOpenedAt,
+          lastOpenedAt: inv.lastOpenedAt,
+          status: inv.status,
+        });
+      }
+    }
+
+    recentlyOpened.sort((a, b) => {
+      const timeA = a.lastOpenedAt?.getTime() ?? 0;
+      const timeB = b.lastOpenedAt?.getTime() ?? 0;
+      return timeB - timeA;
+    });
+
+    const totalEverOpened = totalInvitations - unopenedGuests.length;
+    const openRatePercent =
+      totalInvitations > 0
+        ? Math.round((totalEverOpened / totalInvitations) * 100)
+        : 0;
+
+    const rsvpRatePercent =
+      totalInvitations > 0
+        ? Math.round(((rsvpYesCount + rsvpNoCount) / totalInvitations) * 100)
+        : 0;
+
+    return {
+      summary: {
+        totalInvitations,
+        totalEverOpened,
+        openRatePercent,
+        rsvpRatePercent,
+        pendingCount,
+        sentCount,
+        openedCount,
+        rsvpYesCount,
+        rsvpNoCount,
+        totalPaxConfirmed,
+        unopenedCount: unopenedGuests.length,
+      },
+      unopenedGuests: unopenedGuests.slice(0, 50),
+      recentlyOpened: recentlyOpened.slice(0, 20),
     };
   }
 }

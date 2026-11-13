@@ -343,6 +343,9 @@ export class GuestsService {
           uniqueCode: true,
           status: true,
           rsvpPax: true,
+          firstOpenedAt: true,
+          lastOpenedAt: true,
+          openCount: true,
           attendances: {
             select: {
               scannedAt: true,
