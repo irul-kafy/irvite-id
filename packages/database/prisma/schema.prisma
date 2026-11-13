@@ -54,10 +54,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  events      Event[]
-  attendances Attendance[]        @relation("StaffScan")
-  checkIns    AttendanceCheckIn[] @relation("CheckInStaff")
-  staffEvents StaffEvent[]
+  events       Event[]
+  attendances  Attendance[]        @relation("StaffScan")
+  checkIns     AttendanceCheckIn[] @relation("CheckInStaff")
+  staffEvents  StaffEvent[]
+  activityLogs ActivityLog[]       @relation("UserActivityLogs")
 
   @@map("users")
 }
@@ -120,6 +121,7 @@ model Event {
   wishes         Wish[]
   offlineSyncOps OfflineSyncOp[]
   order          Order?
+  activityLogs   ActivityLog[]   @relation("EventActivityLogs")
 
   @@index([userId])
   @@map("events")
@@ -281,4 +283,25 @@ model Order {
   @@index([status])
   @@index([referenceCode])
   @@map("orders")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  actorUserId String?  @map("actor_user_id")
+  actorRole   Role?    @map("actor_role")
+  action      String   @db.VarChar(100)
+  entityType  String   @map("entity_type") @db.VarChar(60)
+  entityId    String   @map("entity_id") @db.VarChar(191)
+  eventId     String?  @map("event_id")
+  metadata    Json?
+  ip          String?  @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actorUser User?  @relation("UserActivityLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+  event     Event? @relation("EventActivityLogs", fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action])
+  @@map("activity_logs")
 }

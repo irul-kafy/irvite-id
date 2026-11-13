@@ -60,6 +60,15 @@ function IconOrders({ className }: { className?: string }) {
   );
 }
 
+function IconActivityLog({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h11A1.5 1.5 0 0 1 17 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 15.5v-11z" stroke="currentColor" strokeWidth="1.6"/>
+      <path d="M6 7h8M6 10h8M6 13h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function IconLogout({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -184,6 +193,12 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: 'Pesanan',
     href: '/orders',
     icon: IconOrders,
+  },
+  {
+    id: 'activity-logs',
+    label: 'Log Aktivitas',
+    href: '/activity-logs',
+    icon: IconActivityLog,
   },
   {
     id: 'templates',
@@ -317,7 +332,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     if (userRole === 'STAFF') {
       return item.id === 'events';
     }
-    if (item.id === 'orders') {
+    if (item.id === 'orders' || item.id === 'activity-logs') {
       return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
     }
     if (item.id === 'system-check') {

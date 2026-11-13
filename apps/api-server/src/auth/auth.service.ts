@@ -1,14 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../database/prisma.service';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
+    @Optional() private readonly activityLogs?: ActivityLogsService,
   ) {}
 
   async login(loginDto: LoginDto) {
@@ -20,11 +22,13 @@ export class AuthService {
       where: { email: normalizedEmail },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    if (!user.isActive) {
+    if (!user || !user.isActive) {
+      this.activityLogs?.record({
+        action: 'AUTH_LOGIN_FAILED',
+        entityType: 'User',
+        entityId: normalizedEmail,
+        metadata: { attemptedEmail: normalizedEmail },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -33,8 +37,25 @@ export class AuthService {
       loginDto.password,
     );
     if (!isPasswordValid) {
+      this.activityLogs?.record({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'AUTH_LOGIN_FAILED',
+        entityType: 'User',
+        entityId: user.id,
+        metadata: { attemptedEmail: normalizedEmail },
+      });
       throw new UnauthorizedException('Invalid email or password');
     }
+
+    this.activityLogs?.record({
+      actorUserId: user.id,
+      actorRole: user.role,
+      action: 'AUTH_LOGIN_SUCCESS',
+      entityType: 'User',
+      entityId: user.id,
+      metadata: { email: user.email },
+    });
 
     const payload = {
       sub: user.id,

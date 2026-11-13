@@ -3,10 +3,12 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { OrderStatus, Prisma } from 'database';
 import { PrismaService } from '../database/prisma.service';
+import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -61,7 +63,10 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly activityLogs?: ActivityLogsService,
+  ) {}
 
   /**
    * List orders with optional status filter, search, and pagination.
@@ -210,7 +215,7 @@ export class OrdersService {
       });
     }
 
-    return this.prisma.order.create({
+    const createdOrder = await this.prisma.order.create({
       data: {
         eventId: event.id,
         referenceCode,
@@ -234,6 +239,20 @@ export class OrdersService {
         },
       },
     });
+
+    this.activityLogs?.record({
+      action: 'ORDER_CREATE',
+      entityType: 'Order',
+      entityId: createdOrder.id,
+      eventId: event.id,
+      metadata: {
+        referenceCode: createdOrder.referenceCode,
+        packageCode: createdOrder.packageCode,
+        priceAmount: createdOrder.priceAmount,
+      },
+    });
+
+    return createdOrder;
   }
 
   /**
@@ -329,7 +348,7 @@ export class OrdersService {
       });
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: order.id },
       data: updateData,
       include: {
@@ -345,6 +364,20 @@ export class OrdersService {
         },
       },
     });
+
+    this.activityLogs?.record({
+      action: 'ORDER_UPDATE',
+      entityType: 'Order',
+      entityId: updated.id,
+      eventId: order.eventId,
+      metadata: {
+        previousStatus: order.status,
+        newStatus: dto.status || order.status,
+        referenceCode: order.referenceCode,
+      },
+    });
+
+    return updated;
   }
 
   /**
@@ -402,6 +435,16 @@ export class OrdersService {
       },
       data: {
         status: 'ARCHIVED',
+      },
+    });
+
+    this.activityLogs?.record({
+      action: 'CRON_EXPIRE_EVENTS',
+      entityType: 'Event',
+      entityId: 'SYSTEM',
+      metadata: {
+        archivedCount: ids.length,
+        eventIds: ids,
       },
     });
 
