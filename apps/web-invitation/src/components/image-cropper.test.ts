@@ -120,5 +120,24 @@ test('Interactive Image Cropper & Framing Modal Contract Tests', async (t) => {
       'Must style crop trigger button in CSS'
     );
   });
+
+  await t.test('6. Non-destructive cropping preserves original uncropped photo and allows 1-click revert', () => {
+    assert.ok(
+      studioCode.includes('originalPreviewUrl'),
+      'Must persist originalPreviewUrl for lossless re-cropping'
+    );
+    assert.ok(
+      studioCode.includes('handleRevertToOriginal'),
+      'Must provide handleRevertToOriginal to revert cropped photo back to uncropped original'
+    );
+    assert.ok(
+      studioCode.includes('irv-studio-revert-btn'),
+      'Must render revert button in studio UI'
+    );
+    assert.ok(
+      studioCss.includes('.irv-studio-revert-btn'),
+      'Must style revert button in CSS'
+    );
+  });
 });
 

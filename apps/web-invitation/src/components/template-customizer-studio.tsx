@@ -48,6 +48,8 @@ type ActiveCropperState = {
   imageSrc: string;
   imageName: string;
   rawFile?: File;
+  originalPreviewUrl?: string;
+  originalDataUrl?: string;
 };
 
 const MAX_IMAGE_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB per photo
@@ -317,6 +319,7 @@ export function TemplateCustomizerStudio({
     }
 
     const blobUrl = URL.createObjectURL(file);
+    const rawDataUrl = await compressImageToDataUrl(file).catch(() => undefined);
 
     let slotTitle = 'Sesuaikan Foto';
     if (slot === 'qris') {
@@ -337,6 +340,8 @@ export function TemplateCustomizerStudio({
       imageSrc: blobUrl,
       imageName: file.name,
       rawFile: file,
+      originalPreviewUrl: blobUrl,
+      originalDataUrl: rawDataUrl,
     });
 
     e.target.value = '';
@@ -345,13 +350,23 @@ export function TemplateCustomizerStudio({
   const handleOpenCropperForExisting = (
     slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story' | 'qris',
     slotTitle: string,
-    photoItem: { previewUrl: string; fileName?: string; dataUrl?: string },
+    photoItem: {
+      previewUrl: string;
+      fileName?: string;
+      dataUrl?: string;
+      originalPreviewUrl?: string;
+      originalDataUrl?: string;
+    },
   ) => {
+    // Selalu gunakan foto asli uncropped jika ada agar pengguna bebas zoom out kembali
+    const sourceImage = photoItem.originalPreviewUrl || photoItem.previewUrl;
     setActiveCropper({
       slot,
       slotTitle,
-      imageSrc: photoItem.previewUrl,
+      imageSrc: sourceImage,
       imageName: photoItem.fileName || `${slot}.jpg`,
+      originalPreviewUrl: photoItem.originalPreviewUrl || photoItem.previewUrl,
+      originalDataUrl: photoItem.originalDataUrl || photoItem.dataUrl,
     });
   };
 
@@ -359,7 +374,7 @@ export function TemplateCustomizerStudio({
     (result: ImageCropperResult) => {
       if (!activeCropper) return;
 
-      const { slot } = activeCropper;
+      const { slot, originalPreviewUrl, originalDataUrl } = activeCropper;
       const previewUrl = URL.createObjectURL(result.blob);
       const stateKey =
         slot === 'hero'
@@ -374,12 +389,21 @@ export function TemplateCustomizerStudio({
                   ? 'qrisPhoto'
                   : 'storyPhoto';
 
+      const existingItem = state[stateKey];
+      const resolvedOriginalPreview =
+        originalPreviewUrl || existingItem?.originalPreviewUrl || activeCropper.imageSrc;
+      const resolvedOriginalData =
+        originalDataUrl || existingItem?.originalDataUrl;
+
       setState((prev) => ({
         ...prev,
         [stateKey]: {
           slot,
           previewUrl,
           dataUrl: result.dataUrl,
+          originalPreviewUrl: resolvedOriginalPreview,
+          originalDataUrl: resolvedOriginalData,
+          isCropped: true,
           fileName: result.fileName,
           order: 0,
         },
@@ -387,12 +411,12 @@ export function TemplateCustomizerStudio({
 
       setActiveCropper(null);
     },
-    [activeCropper],
+    [activeCropper, state],
   );
 
   const handleCropperUseOriginal = useCallback(async () => {
     if (!activeCropper) return;
-    const { slot, rawFile, imageSrc, imageName } = activeCropper;
+    const { slot, rawFile, imageSrc, imageName, originalPreviewUrl, originalDataUrl } = activeCropper;
 
     const stateKey =
       slot === 'hero'
@@ -407,22 +431,63 @@ export function TemplateCustomizerStudio({
                 ? 'qrisPhoto'
                 : 'storyPhoto';
 
-    if (rawFile) {
-      const dataUrl = await compressImageToDataUrl(rawFile).catch(() => undefined);
-      setState((prev) => ({
-        ...prev,
-        [stateKey]: {
-          slot,
-          previewUrl: imageSrc,
-          dataUrl,
-          fileName: imageName,
-          order: 0,
-        },
-      }));
+    let resolvedDataUrl = originalDataUrl;
+    if (!resolvedDataUrl && rawFile) {
+      resolvedDataUrl = await compressImageToDataUrl(rawFile).catch(() => undefined);
     }
+
+    const resolvedPreviewUrl = originalPreviewUrl || imageSrc;
+
+    setState((prev) => ({
+      ...prev,
+      [stateKey]: {
+        slot,
+        previewUrl: resolvedPreviewUrl,
+        dataUrl: resolvedDataUrl || prev[stateKey]?.dataUrl,
+        originalPreviewUrl: resolvedPreviewUrl,
+        originalDataUrl: resolvedDataUrl || prev[stateKey]?.originalDataUrl,
+        isCropped: false,
+        fileName: imageName,
+        order: 0,
+      },
+    }));
 
     setActiveCropper(null);
   }, [activeCropper]);
+
+  const handleRevertToOriginal = useCallback(
+    (slot: 'hero' | 'closing' | 'bride' | 'groom' | 'story' | 'qris') => {
+      const stateKey =
+        slot === 'hero'
+          ? 'heroPhoto'
+          : slot === 'closing'
+            ? 'closingPhoto'
+            : slot === 'bride'
+              ? 'bridePhoto'
+              : slot === 'groom'
+                ? 'groomPhoto'
+                : slot === 'qris'
+                  ? 'qrisPhoto'
+                  : 'storyPhoto';
+
+      setState((prev) => {
+        const item = prev[stateKey];
+        if (!item) return prev;
+        const targetPreview = item.originalPreviewUrl || item.previewUrl;
+        const targetData = item.originalDataUrl || item.dataUrl;
+        return {
+          ...prev,
+          [stateKey]: {
+            ...item,
+            previewUrl: targetPreview,
+            dataUrl: targetData,
+            isCropped: false,
+          },
+        };
+      });
+    },
+    [],
+  );
 
   const handleCropperCancel = useCallback(() => {
     setActiveCropper(null);
@@ -1306,9 +1371,19 @@ export function TemplateCustomizerStudio({
                               currentPhoto,
                             )
                           }
-                          title="Atur ulang posisi, zoom in/out, atau rotasi foto"
+                          title="Atur ulang posisi, zoom in/out, atau rotasi foto dari file asli"
                         >
                           ✂️ Atur Posisi / Zoom
+                        </button>
+                      )}
+                      {currentPhoto && currentPhoto.isCropped && (
+                        <button
+                          type="button"
+                          className="irv-studio-revert-btn"
+                          onClick={() => handleRevertToOriginal(singleSlot)}
+                          title="Batalkan potongan dan kembali ke foto asli penuh"
+                        >
+                          ↺ Pakai Foto Asli
                         </button>
                       )}
                       {currentPhoto && (
@@ -1635,10 +1710,20 @@ export function TemplateCustomizerStudio({
                               state.qrisPhoto!,
                             )
                           }
-                          title="Atur ulang posisi dan zoom barcode QRIS"
+                          title="Atur ulang posisi dan zoom barcode QRIS dari file asli"
                         >
                           ✂️ Atur Posisi / Zoom
                         </button>
+                        {state.qrisPhoto.isCropped && (
+                          <button
+                            type="button"
+                            className="irv-studio-revert-btn"
+                            onClick={() => handleRevertToOriginal('qris')}
+                            title="Batalkan potongan dan kembali ke gambar barcode asli"
+                          >
+                            ↺ Pakai Gambar Asli
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => updateField('qrisPhoto', null)}

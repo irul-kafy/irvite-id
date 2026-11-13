@@ -36,6 +36,9 @@ export interface CustomPhotoItem {
   slot: CustomPhotoSlotKey | 'qris';
   previewUrl: string; // blob:... or /templates/...
   dataUrl?: string; // compressed data:image/jpeg;base64,... for admin submission
+  originalPreviewUrl?: string; // Original uncropped photo for lossless re-cropping
+  originalDataUrl?: string;
+  isCropped?: boolean;
   fileName?: string;
   order: number;
 }
