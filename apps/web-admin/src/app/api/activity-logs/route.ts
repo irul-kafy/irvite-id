@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 export async function GET(request?: Request) {
   try {
@@ -10,7 +11,7 @@ export async function GET(request?: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const query = new URLSearchParams();
     if (request) {
       const params = new URL(request.url).searchParams;

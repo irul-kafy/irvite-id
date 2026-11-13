@@ -44,6 +44,11 @@ test('getInternalApiBaseUrl', async (t) => {
     assert.strictEqual(getInternalApiBaseUrl(), 'https://custom-api.example.com');
   });
 
+  await t.test('strips accidental trailing /api/v1 from INTERNAL_API_URL', () => {
+    process.env.INTERNAL_API_URL = 'https://custom-api.example.com/api/v1/';
+    assert.strictEqual(getInternalApiBaseUrl(), 'https://custom-api.example.com');
+  });
+
   await t.test('falls back to irvite-api.vercel.app in production', () => {
     delete process.env.INTERNAL_API_URL;
     delete process.env.NEXT_PUBLIC_API_URL;

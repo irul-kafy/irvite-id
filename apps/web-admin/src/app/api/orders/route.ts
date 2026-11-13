@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { isValidAdminOrigin } from '@/utils/origin';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 export async function GET(request?: Request) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request?: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const query = new URLSearchParams();
     if (request) {
       const params = new URL(request.url).searchParams;
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
 
     const res = await fetch(`${internalUrl}/orders`, {
       method: 'POST',

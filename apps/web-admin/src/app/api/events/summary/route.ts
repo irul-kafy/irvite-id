@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 export async function GET() {
   const headers = { 'Cache-Control': 'no-store' };
   try {
     const token = (await cookies()).get('auth_token')?.value;
     if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401, headers });
-    const base = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const base = getInternalApiBaseUrl();
     const response = await fetch(`${base}/api/v1/events/summary`, {
       headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
       signal: AbortSignal.timeout(25000),

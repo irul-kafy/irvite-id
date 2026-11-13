@@ -12,10 +12,10 @@ function remapLegacyPreviewOrigin(baseUrl: string): string {
 
 export function getInternalApiBaseUrl(): string {
   if (process.env.INTERNAL_API_URL && process.env.INTERNAL_API_URL.trim()) {
-    return process.env.INTERNAL_API_URL.trim().replace(/\/+$/, '');
+    return process.env.INTERNAL_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
   }
   if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
-    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '');
+    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
   }
   if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
     return 'https://irvite-api.vercel.app';

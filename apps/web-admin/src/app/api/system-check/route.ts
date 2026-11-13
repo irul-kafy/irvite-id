@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { getInternalApiBaseUrl } from '@/utils/url';
 
 export async function GET() {
   const token = (await cookies()).get('auth_token')?.value;
@@ -7,7 +8,7 @@ export async function GET() {
     status, headers: { 'Cache-Control': 'no-store' },
   });
   if (!token) return json({ message: 'Unauthorized' }, 401);
-  const base = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  const base = getInternalApiBaseUrl();
   try {
     const me = await fetch(base + '/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
