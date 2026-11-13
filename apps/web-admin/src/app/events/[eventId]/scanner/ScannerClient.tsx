@@ -321,6 +321,10 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       const meta = await getOfflineSnapshotMeta(eventId);
       if (meta) {
         setOfflineMeta(meta);
+        setEventBanner((prev) => prev ?? {
+          title: meta.eventTitle,
+          eventDate: meta.eventDate,
+        });
       }
       const pending = await getPendingOps(eventId);
       setPendingOpsCount(pending.length);
@@ -399,6 +403,24 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
     window.addEventListener('offline', handleOffline);
 
     void refreshOfflineState();
+
+    // Fetch live event info to populate banner immediately when online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      void fetch(`/api/events/${eventId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((ev) => {
+          if (ev && mountedRef.current) {
+            setEventBanner((prev) => prev ?? {
+              title: ev.title || 'Acara',
+              eventDate: ev.date || ev.eventDate || null,
+              locationDetails: ev.location || ev.venue || null,
+              groomName: ev.groomName || null,
+              brideName: ev.brideName || null,
+            });
+          }
+        })
+        .catch(() => {});
+    }
 
     // Auto-sync interval every 25 seconds when online
     const interval = setInterval(() => {
@@ -1382,6 +1404,68 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       );
     }
 
+    if (scanState === 'ERROR') {
+      const isDraftError = errorMessage.includes('DRAFT') || errorMessage.includes('dipublikasikan');
+      return (
+        <div className="scan-result scan-result--error" id="scanner-error-card">
+          <div className="scan-result__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="30"
+              height="30"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <h2>{isDraftError ? 'Acara Belum Dipublikasikan' : 'Validasi QR Gagal'}</h2>
+          <p
+            style={{
+              color: 'var(--text-secondary, #4b5563)',
+              fontSize: '0.9375rem',
+              lineHeight: 1.55,
+              margin: '0.5rem auto 1.25rem',
+              maxWidth: '380px',
+              textAlign: 'center',
+            }}
+          >
+            {errorMessage}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', width: '100%', marginTop: '0.5rem' }}>
+            <button className="reset-btn" onClick={closeSheet} style={{ width: '100%' }}>
+              Scan Tamu Berikutnya
+            </button>
+            {isDraftError && (
+              <button
+                type="button"
+                onClick={() => router.push(`/events/${eventId}`)}
+                style={{
+                  width: '100%',
+                  background: 'var(--surface-secondary, #f3f4f6)',
+                  border: '1px solid var(--border-color, #d1d5db)',
+                  color: 'var(--text-primary, #1f2937)',
+                  borderRadius: '8px',
+                  padding: '0.625rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Buka Halaman Acara untuk Publish →
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (!resolveData) return null;
 
     const guest = resolveData.guest;
@@ -1648,68 +1732,6 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           <button className="reset-btn" onClick={closeSheet}>
             Scan Tamu Berikutnya
           </button>
-        </div>
-      );
-    }
-
-    if (scanState === 'ERROR') {
-      const isDraftError = errorMessage.includes('DRAFT') || errorMessage.includes('dipublikasikan');
-      return (
-        <div className="scan-result scan-result--error" id="scanner-error-card">
-          <div className="scan-result__icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="30"
-              height="30"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </div>
-          <h2>{isDraftError ? 'Acara Belum Dipublikasikan' : 'Validasi QR Gagal'}</h2>
-          <p
-            style={{
-              color: 'var(--text-secondary, #4b5563)',
-              fontSize: '0.9375rem',
-              lineHeight: 1.55,
-              margin: '0.5rem auto 1.25rem',
-              maxWidth: '380px',
-              textAlign: 'center',
-            }}
-          >
-            {errorMessage}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', width: '100%', marginTop: '0.5rem' }}>
-            <button className="reset-btn" onClick={closeSheet} style={{ width: '100%' }}>
-              Scan Tamu Berikutnya
-            </button>
-            {isDraftError && (
-              <button
-                type="button"
-                onClick={() => router.push(`/events/${eventId}`)}
-                style={{
-                  width: '100%',
-                  background: 'var(--surface-secondary, #f3f4f6)',
-                  border: '1px solid var(--border-color, #d1d5db)',
-                  color: 'var(--text-primary, #1f2937)',
-                  borderRadius: '8px',
-                  padding: '0.625rem 1rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Buka Halaman Acara untuk Publish →
-              </button>
-            )}
-          </div>
         </div>
       );
     }

@@ -73,4 +73,25 @@ test('isValidAdminOrigin', async (t) => {
     const req = new Request('https://irvite-admin.vercel.app/api/test');
     assert.strictEqual(isValidAdminOrigin(req), false);
   });
+
+  await t.test('returns true when origin is missing but sec-fetch-site is same-origin', () => {
+    const req = new Request('https://irvite-admin.vercel.app/api/test', {
+      headers: { 'sec-fetch-site': 'same-origin' },
+    });
+    assert.strictEqual(isValidAdminOrigin(req), true);
+  });
+
+  await t.test('returns true when origin is missing but referer is trusted admin origin', () => {
+    const req = new Request('https://irvite-admin.vercel.app/api/events/123/attendance/offline-snapshot', {
+      headers: { referer: 'https://irvite-admin.vercel.app/events/123/scanner' },
+    });
+    assert.strictEqual(isValidAdminOrigin(req), true);
+  });
+
+  await t.test('returns false when origin is missing and referer is untrusted domain', () => {
+    const req = new Request('https://irvite-admin.vercel.app/api/events/123/attendance/offline-snapshot', {
+      headers: { referer: 'https://evil-attacker.com/malicious' },
+    });
+    assert.strictEqual(isValidAdminOrigin(req), false);
+  });
 });

@@ -7,7 +7,24 @@
  * 4. Localhost and development loopback origins
  */
 export function isValidAdminOrigin(request: Request): boolean {
-  const origin = request.headers.get('origin');
+  // Same-origin browser fetch requests often omit Origin header on GET
+  const secFetchSite = request.headers.get('sec-fetch-site');
+  if (secFetchSite === 'same-origin') {
+    return true;
+  }
+
+  let origin = request.headers.get('origin');
+  if (!origin) {
+    const referer = request.headers.get('referer');
+    if (referer) {
+      try {
+        origin = new URL(referer).origin;
+      } catch {
+        origin = null;
+      }
+    }
+  }
+
   if (!origin) return false;
 
   const expectedOrigin = process.env.WEB_ADMIN_ORIGIN || 'http://localhost:3001';
