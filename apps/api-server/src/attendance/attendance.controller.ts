@@ -16,6 +16,7 @@ import { ResolveAttendanceDto } from './dto/resolve-attendance.dto';
 import { CheckInDto } from './dto/check-in.dto';
 import { UndoCheckInDto } from './dto/undo-check-in.dto';
 import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
+import { SyncAttendanceBatchDto } from './dto/sync-attendance.dto';
 import { GoogleSheetConfigDto } from './dto/google-sheet-config.dto';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -192,6 +193,36 @@ export class AttendanceController {
       dto.code,
       dto.invitationId,
       dto.guestId,
+    );
+  }
+
+  @Get('offline-snapshot')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  getOfflineSnapshot(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.attendanceService.getOfflineSnapshot(
+      eventId,
+      user.id,
+      user.role,
+    );
+  }
+
+  @Post('sync')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  syncAttendance(
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SyncAttendanceBatchDto,
+  ) {
+    return this.attendanceService.syncAttendance(
+      eventId,
+      user.id,
+      user.role,
+      dto,
     );
   }
 }

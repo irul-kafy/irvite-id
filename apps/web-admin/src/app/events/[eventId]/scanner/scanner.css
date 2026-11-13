@@ -1589,3 +1589,101 @@ html.dark .scan-tag--rsvp-pending {
     transition: none !important;
   }
 }
+
+/* ==============================================================
+   OFFLINE SCANNER PWA BAR & CONTROLS
+   ============================================================== */
+.scanner-offline-bar {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  font-size: 0.75rem;
+  box-sizing: border-box;
+}
+
+.scanner-offline-status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
+.scanner-offline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.scanner-offline-dot--online {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.scanner-offline-dot--offline {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.scanner-offline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.scanner-offline-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.scanner-offline-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.scanner-offline-btn--sync {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.scanner-offline-btn--sync:hover {
+  background: #0369a1;
+}
+
+.scanner-offline-toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid #38bdf8;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 90vw;
+  text-align: center;
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import AdminRootShell from '../components/admin-root-shell';
+import { PwaRegister } from '../components/PwaRegister';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <body>
         <AdminRootShell>
+          <PwaRegister />
           {children}
         </AdminRootShell>
       </body>

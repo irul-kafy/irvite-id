@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
 import { parseQRData } from '../../../../utils/qr-parser';
+import {
+  saveOfflineSnapshot,
+  getOfflineSnapshotMeta,
+  findGuestByCode,
+  searchOfflineGuests,
+  enqueueOfflineOp,
+  getPendingOps,
+  clearPendingOps,
+  updateLocalGuestStatus,
+  addLocalWalkInGuest,
+  OfflineEventMeta,
+} from '@/utils/offline-scanner-storage';
 import './scanner.css';
 
 interface ScannerClientProps {
@@ -289,6 +301,119 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const [loadingGuests, setLoadingGuests] = useState(false);
   const [directCheckingInId, setDirectCheckingInId] = useState<string | null>(null);
 
+  // Offline PWA State
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [offlineMeta, setOfflineMeta] = useState<OfflineEventMeta | null>(null);
+  const [pendingOpsCount, setPendingOpsCount] = useState<number>(0);
+  const [syncingOffline, setSyncingOffline] = useState<boolean>(false);
+  const [offlineDownloadLoading, setOfflineDownloadLoading] = useState<boolean>(false);
+  const [offlineToast, setOfflineToast] = useState<string>('');
+
+  const generateOpId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'op-' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }, []);
+
+  const refreshOfflineState = useCallback(async () => {
+    try {
+      const meta = await getOfflineSnapshotMeta(eventId);
+      if (meta) {
+        setOfflineMeta(meta);
+      }
+      const pending = await getPendingOps(eventId);
+      setPendingOpsCount(pending.length);
+    } catch {
+      // Fail open safely
+    }
+  }, [eventId]);
+
+  const triggerAutoSync = useCallback(async () => {
+    if (syncingOffline || (typeof navigator !== 'undefined' && !navigator.onLine)) return;
+    try {
+      const pending = await getPendingOps(eventId);
+      if (pending.length === 0) return;
+
+      setSyncingOffline(true);
+      const res = await fetch(`/api/events/${eventId}/attendance/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operations: pending }),
+      });
+
+      if (res.ok) {
+        const syncResult = await res.json();
+        await clearPendingOps(eventId, pending.map((p) => p.opId));
+        await refreshOfflineState();
+        void fetchLiveGuests();
+        const total = (syncResult.appliedCount || 0) + (syncResult.duplicateCount || 0);
+        setOfflineToast(`✓ Berhasil menyinkronkan ${total} data check-in offline ke server.`);
+        setTimeout(() => setOfflineToast(''), 4000);
+      }
+    } catch {
+      // Retry on next trigger
+    } finally {
+      setSyncingOffline(false);
+    }
+  }, [eventId, syncingOffline, refreshOfflineState]);
+
+  const downloadOfflineSnapshot = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      alert('Tidak dapat mengunduh data dalam kondisi offline. Harap sambungkan ke internet terlebih dahulu.');
+      return;
+    }
+    try {
+      setOfflineDownloadLoading(true);
+      const res = await fetch(`/api/events/${eventId}/attendance/offline-snapshot`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Gagal mengunduh data offline dari server.');
+        return;
+      }
+      const snapshot = await res.json();
+      await saveOfflineSnapshot(eventId, snapshot);
+      await refreshOfflineState();
+      setOfflineToast(`✓ Berhasil menyiapkan ${snapshot.totalGuests} data tamu untuk mode offline!`);
+      setTimeout(() => setOfflineToast(''), 4000);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert('Terjadi kesalahan saat menyimpan data offline: ' + errMsg);
+    } finally {
+      setOfflineDownloadLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      void triggerAutoSync();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    void refreshOfflineState();
+
+    // Auto-sync interval every 25 seconds when online
+    const interval = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        void triggerAutoSync();
+      }
+    }, 25000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, [eventId, triggerAutoSync, refreshOfflineState]);
+
   // Walk-In Guest (Tamu Dadakan / On-The-Spot) State
   const [showWalkInModal, setShowWalkInModal] = useState<boolean>(false);
   const [walkInName, setWalkInName] = useState<string>('');
@@ -371,7 +496,83 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
 
       setScanState('CHECKED_IN');
     } catch {
-      setWalkInError('Terjadi kesalahan koneksi jaringan.');
+      // Offline fallback for walk-in!
+      try {
+        const opId = generateOpId();
+        const tempGuestId = 'walkin_' + opId;
+        const now = new Date();
+        const isVip = checkIsVip(walkInCategory, walkInTableNumber);
+
+        await addLocalWalkInGuest(eventId, {
+          guestId: tempGuestId,
+          name: cleanName,
+          category: walkInCategory,
+          isVip,
+          tableNumber: walkInTableNumber.trim() || null,
+          maxPax: walkInPax,
+          invitationId: null,
+          uniqueCode: null,
+          status: 'CHECKED_IN',
+          scannedPax: walkInPax,
+          lastScannedAt: now.toISOString(),
+        });
+
+        await enqueueOfflineOp(eventId, {
+          opId,
+          type: 'WALK_IN',
+          walkInData: {
+            name: cleanName,
+            pax: walkInPax,
+            category: walkInCategory,
+            tableNumber: walkInTableNumber.trim() || undefined,
+          },
+          clientTimestamp: now.toISOString(),
+        });
+
+        await refreshOfflineState();
+        triggerScanFeedback(isVip);
+
+        setShowWalkInModal(false);
+        setWalkInName('');
+        setWalkInPax(1);
+        setWalkInCategory('ON_THE_SPOT');
+        setWalkInTableNumber('');
+
+        setResolveData({
+          result: 'READY',
+          status: 'COMPLETE',
+          scannedPax: walkInPax,
+          remainingPax: 0,
+          guest: {
+            name: cleanName,
+            maxPax: walkInPax,
+            category: walkInCategory,
+            tableNumber: walkInTableNumber.trim() || null,
+          },
+          event: eventBanner,
+          attendance: {
+            scannedPax: walkInPax,
+            scannedAt: now.toISOString(),
+          },
+        });
+
+        setLastCheckInResult({
+          deltaPax: walkInPax,
+          scannedPax: walkInPax,
+          remainingPax: 0,
+          maxPax: walkInPax,
+          status: 'COMPLETE',
+          scannedAt: now.toISOString(),
+        });
+
+        setScanState('CHECKED_IN');
+        setOfflineToast('⚠️ Tamu dadakan tersimpan offline di perangkat. Akan otomatis dikirim saat online.');
+        setTimeout(() => setOfflineToast(''), 5000);
+        return;
+      } catch (offlineErr: unknown) {
+        const msg = offlineErr instanceof Error ? offlineErr.message : String(offlineErr);
+        setWalkInError('Gagal menyimpan tamu dadakan di mode offline: ' + msg);
+      }
     } finally {
       setWalkInLoading(false);
     }
@@ -380,6 +581,25 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
   const fetchLiveGuests = useCallback(async () => {
     try {
       setLoadingGuests(true);
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        const localList = await searchOfflineGuests(eventId, searchQuery);
+        setLiveGuests(
+          localList.map((g) => ({
+            id: g.guestId,
+            name: g.name,
+            category: g.category,
+            maxPax: g.maxPax,
+            tableNumber: g.tableNumber,
+            code: g.uniqueCode,
+            status: g.status,
+            attendanceStatus: g.status,
+            attendanceScannedPax: g.scannedPax,
+            remainingPax: Math.max(0, g.maxPax - (g.scannedPax || 0)),
+          })) as any,
+        );
+        return;
+      }
+
       const res = await fetch(`/api/events/${eventId}/attendance/live`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
@@ -387,12 +607,31 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           setLiveGuests(data.guests);
         }
       }
-    } catch (err) {
-      console.warn('Gagal memuat live guests:', err);
+    } catch {
+      // Fallback to offline store on network error
+      try {
+        const localList = await searchOfflineGuests(eventId, searchQuery);
+        setLiveGuests(
+          localList.map((g) => ({
+            id: g.guestId,
+            name: g.name,
+            category: g.category,
+            maxPax: g.maxPax,
+            tableNumber: g.tableNumber,
+            code: g.uniqueCode,
+            status: g.status,
+            attendanceStatus: g.status,
+            attendanceScannedPax: g.scannedPax,
+            remainingPax: Math.max(0, g.maxPax - (g.scannedPax || 0)),
+          })) as any,
+        );
+      } catch {
+        // Ignore
+      }
     } finally {
       setLoadingGuests(false);
     }
-  }, [eventId]);
+  }, [eventId, searchQuery]);
 
   useEffect(() => {
     void fetchLiveGuests();
@@ -799,6 +1038,54 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       }
     } catch {
       if (!mountedRef.current) return;
+      // Offline fallback: search IndexedDB for guest by code
+      try {
+        const localGuest = await findGuestByCode(eventId, parsedCode);
+        if (localGuest) {
+          const maxPax = localGuest.maxPax || 1;
+          const alreadyScanned = localGuest.scannedPax || 0;
+          const remainingPax = Math.max(0, maxPax - alreadyScanned);
+          const status =
+            localGuest.status ||
+            (alreadyScanned === 0
+              ? 'NOT_CHECKED_IN'
+              : remainingPax === 0
+              ? 'COMPLETE'
+              : 'PARTIAL');
+
+          setResolveData({
+            result: 'READY',
+            status: status as any,
+            scannedPax: alreadyScanned,
+            remainingPax,
+            guest: {
+              name: localGuest.name,
+              maxPax,
+              category: localGuest.category,
+              tableNumber: localGuest.tableNumber,
+            },
+            event: eventBanner || {
+              title: offlineMeta?.eventTitle || 'Acara',
+              eventDate: offlineMeta?.eventDate || null,
+            },
+            attendance: {
+              scannedPax: alreadyScanned,
+              scannedAt: localGuest.lastScannedAt || new Date().toISOString(),
+            },
+          });
+
+          if (status === 'CHECKED_IN' || remainingPax === 0) {
+            setScanState('ALREADY_CHECKED_IN');
+          } else {
+            setSelectedPax(Math.min(1, remainingPax));
+            setScanState('PREVIEW');
+          }
+          return;
+        }
+      } catch (offlineErr) {
+        console.warn('Offline lookup failed:', offlineErr);
+      }
+
       setErrorMessage('Terjadi gangguan jaringan saat memverifikasi kode. Periksa koneksi internet perangkat Anda.');
       setScanState('ERROR');
     }
@@ -889,6 +1176,72 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       void fetchLiveGuests();
     } catch {
       if (!mountedRef.current) return;
+      // Offline fallback: save CHECK_IN op to IndexedDB
+      try {
+        const localGuest = await findGuestByCode(eventId, rawCode);
+        if (localGuest) {
+          const opId = generateOpId();
+          const now = new Date();
+          const newScannedPax = (localGuest.scannedPax || 0) + selectedPax;
+          const isComplete = newScannedPax >= localGuest.maxPax;
+
+          await enqueueOfflineOp(eventId, {
+            opId,
+            type: 'CHECK_IN',
+            code: rawCode,
+            pax: selectedPax,
+            clientTimestamp: now.toISOString(),
+          });
+
+          await updateLocalGuestStatus(
+            eventId,
+            localGuest.guestId,
+            isComplete ? 'CHECKED_IN' : 'PARTIAL',
+            newScannedPax,
+          );
+
+          await refreshOfflineState();
+          triggerScanFeedback(localGuest.isVip);
+
+          const maxPax = localGuest.maxPax;
+          const remaining = Math.max(0, maxPax - newScannedPax);
+          const checkInTime = now.toISOString();
+
+          setLastCheckInResult({
+            deltaPax: selectedPax,
+            scannedPax: newScannedPax,
+            remainingPax: remaining,
+            maxPax,
+            status: isComplete ? 'COMPLETE' : 'PARTIAL',
+            scannedAt: checkInTime,
+          });
+
+          setResolveData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  status: isComplete ? 'COMPLETE' : 'PARTIAL',
+                  scannedPax: newScannedPax,
+                  remainingPax: remaining,
+                  attendance: {
+                    scannedPax: newScannedPax,
+                    scannedAt: checkInTime,
+                  },
+                }
+              : null,
+          );
+
+          setScanState(isComplete ? 'ALREADY_CHECKED_IN' : 'CHECKED_IN');
+          setOfflineToast(
+            '⚠️ Check-in tersimpan di perangkat offline. Akan otomatis disinkronkan saat online.',
+          );
+          setTimeout(() => setOfflineToast(''), 5000);
+          return;
+        }
+      } catch (offlineErr) {
+        console.warn('Offline check-in error:', offlineErr);
+      }
+
       setErrorMessage('Terjadi gangguan jaringan saat mengirim data check-in.');
       setScanState('PREVIEW');
     }
@@ -1391,6 +1744,11 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           <span>{undoSuccessToast}</span>
         </div>
       )}
+      {offlineToast && (
+        <div className="scanner-offline-toast">
+          <span>{offlineToast}</span>
+        </div>
+      )}
       {/* Viewport Area */}
       <div
         className={`scanner-viewport-container${
@@ -1443,6 +1801,58 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
           {['ERROR', 'DENIED', 'NOT_FOUND'].includes(scanStatus) && (
             <p className="scanner-error">{errorMessage}</p>
           )}
+        </div>
+      </div>
+
+      {/* Offline Status & Sync Control Bar */}
+      <div className="scanner-offline-bar">
+        <div className="scanner-offline-status">
+          <span
+            className={`scanner-offline-dot ${
+              isOnline ? 'scanner-offline-dot--online' : 'scanner-offline-dot--offline'
+            }`}
+          />
+          <span>{isOnline ? 'Online' : 'Offline'}</span>
+          {offlineMeta && (
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 400, marginLeft: '0.25rem' }}>
+              • {offlineMeta.totalGuests} Tamu Siap
+            </span>
+          )}
+        </div>
+
+        <div className="scanner-offline-actions">
+          {pendingOpsCount > 0 && isOnline && (
+            <button
+              type="button"
+              className="scanner-offline-btn scanner-offline-btn--sync"
+              onClick={() => void triggerAutoSync()}
+              disabled={syncingOffline}
+              id="btn-sync-offline-ops"
+            >
+              {syncingOffline ? 'Mengirim...' : `🔄 Kirim ${pendingOpsCount} Data`}
+            </button>
+          )}
+
+          {pendingOpsCount > 0 && !isOnline && (
+            <span style={{ color: '#f59e0b', fontSize: '0.6875rem', fontWeight: 600 }}>
+              {pendingOpsCount} antrean tersimpan
+            </span>
+          )}
+
+          <button
+            type="button"
+            className="scanner-offline-btn"
+            onClick={() => void downloadOfflineSnapshot()}
+            disabled={offlineDownloadLoading || !isOnline}
+            title="Unduh seluruh data tamu untuk scan tanpa internet"
+            id="btn-download-offline-data"
+          >
+            {offlineDownloadLoading
+              ? 'Mengunduh...'
+              : offlineMeta
+              ? 'Perbarui Offline'
+              : '⬇ Siapkan Offline'}
+          </button>
         </div>
       </div>
 

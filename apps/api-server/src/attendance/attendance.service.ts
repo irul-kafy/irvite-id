@@ -1,5 +1,10 @@
 import * as crypto from 'crypto';
 import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
+import {
+  OfflineSnapshotResponse,
+  OfflineGuestSnapshotItem,
+} from './dto/offline-snapshot.dto';
+import { SyncAttendanceBatchDto } from './dto/sync-attendance.dto';
 import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
 import {
   Injectable,
@@ -1416,6 +1421,219 @@ export class AttendanceService {
         `Failed to sync check-in to Google Sheet for event ${eventId}: ${errMsg}`,
       );
     }
+  }
+
+  async getOfflineSnapshot(
+    eventId: string,
+    userId: string,
+    _role: Role,
+  ): Promise<OfflineSnapshotResponse> {
+    const event = await this.authorizeEvent(eventId, userId);
+
+    const guests = await this.db.guest.findMany({
+      where: { eventId },
+      include: {
+        invitation: {
+          include: {
+            attendances: {
+              include: {
+                checkIns: {
+                  orderBy: { scannedAt: 'desc' },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const snapshotItems: OfflineGuestSnapshotItem[] = guests.map((g) => {
+      const inv = g.invitation;
+      const att = inv?.attendances?.[0];
+      const scannedPax = att?.scannedPax || 0;
+      const maxPax = g.maxPax || 1;
+      let status: 'CHECKED_IN' | 'PARTIAL' | 'NOT_CHECKED_IN' = 'NOT_CHECKED_IN';
+      if (scannedPax >= maxPax) {
+        status = 'CHECKED_IN';
+      } else if (scannedPax > 0) {
+        status = 'PARTIAL';
+      }
+
+      const catUpper = (g.category || '').toUpperCase();
+      const isVip = catUpper.includes('VIP');
+
+      return {
+        guestId: g.id,
+        name: g.name,
+        category: g.category,
+        isVip,
+        tableNumber: g.tableNumber,
+        maxPax: g.maxPax,
+        invitationId: inv?.id || null,
+        uniqueCode: inv?.uniqueCode || null,
+        status,
+        scannedPax,
+        lastScannedAt: att?.scannedAt ? att.scannedAt.toISOString() : null,
+      };
+    });
+
+    const totalGuests = snapshotItems.length;
+    const totalCheckedInGuests = snapshotItems.filter(
+      (i) => i.status !== 'NOT_CHECKED_IN',
+    ).length;
+    const totalCheckedInPax = snapshotItems.reduce(
+      (acc, i) => acc + i.scannedPax,
+      0,
+    );
+
+    const generatedAt = new Date();
+    const eventDate = new Date(event.eventDate);
+    const expiresAt = new Date(eventDate.getTime() + 24 * 60 * 60 * 1000);
+
+    return {
+      eventId: event.id,
+      eventTitle: event.title,
+      eventDate: event.eventDate.toISOString(),
+      generatedAt: generatedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      totalGuests,
+      totalCheckedInGuests,
+      totalCheckedInPax,
+      guests: snapshotItems,
+    };
+  }
+
+  async syncAttendance(
+    eventId: string,
+    userId: string,
+    role: Role,
+    dto: SyncAttendanceBatchDto,
+  ) {
+    await this.authorizeEvent(eventId, userId);
+
+    const results: Array<{
+      opId: string;
+      status: 'APPLIED' | 'DUPLICATE' | 'FAILED';
+      type: string;
+      message?: string;
+      data?: any;
+    }> = [];
+
+    for (const op of dto.operations || []) {
+      // 1. Idempotency check via OfflineSyncOp
+      const existingOp = await this.db.offlineSyncOp.findUnique({
+        where: { id: op.opId },
+      });
+
+      if (existingOp) {
+        results.push({
+          opId: op.opId,
+          status: 'DUPLICATE',
+          type: op.type,
+          message: 'Operation already processed previously (idempotent)',
+        });
+        continue;
+      }
+
+      // 2. Process operation
+      try {
+        let opResultData: any = null;
+
+        if (op.type === 'CHECK_IN') {
+          if (!op.code) {
+            throw new BadRequestException('Code is required for CHECK_IN');
+          }
+          opResultData = await this.checkIn(
+            eventId,
+            userId,
+            role,
+            op.code,
+            op.pax || 1,
+          );
+        } else if (op.type === 'WALK_IN') {
+          if (!op.walkInData || !op.walkInData.name) {
+            throw new BadRequestException('Walk-in data is required');
+          }
+          opResultData = await this.walkInCheckIn(eventId, userId, role, {
+            name: op.walkInData.name,
+            pax: op.walkInData.pax || 1,
+            category: op.walkInData.category,
+            tableNumber: op.walkInData.tableNumber,
+          });
+        } else if (op.type === 'UNDO') {
+          opResultData = await this.undoCheckIn(
+            eventId,
+            userId,
+            role,
+            op.code,
+            op.invitationId,
+            op.guestId,
+          );
+        } else {
+          throw new BadRequestException(
+            `Unsupported operation type: ${op.type}`,
+          );
+        }
+
+        // Record successful sync op
+        await this.db.offlineSyncOp.create({
+          data: {
+            id: op.opId,
+            eventId,
+            opType: op.type,
+            status: 'APPLIED',
+            deviceId: op.deviceId || null,
+            scannedById: userId,
+            clientTimestamp: new Date(op.clientTimestamp || Date.now()),
+            details: JSON.stringify(opResultData || {}),
+          },
+        });
+
+        results.push({
+          opId: op.opId,
+          status: 'APPLIED',
+          type: op.type,
+          data: opResultData,
+        });
+      } catch (err: any) {
+        const errorMsg = err?.message || 'Sync operation failed';
+
+        // Record failed sync op so it's not repeatedly retried in an infinite loop
+        try {
+          await this.db.offlineSyncOp.create({
+            data: {
+              id: op.opId,
+              eventId,
+              opType: op.type,
+              status: 'FAILED',
+              deviceId: op.deviceId || null,
+              scannedById: userId,
+              clientTimestamp: new Date(op.clientTimestamp || Date.now()),
+              details: errorMsg,
+            },
+          });
+        } catch {
+          // Ignore error logging op
+        }
+
+        results.push({
+          opId: op.opId,
+          status: 'FAILED',
+          type: op.type,
+          message: errorMsg,
+        });
+      }
+    }
+
+    return {
+      eventId,
+      totalOperations: dto.operations?.length || 0,
+      appliedCount: results.filter((r) => r.status === 'APPLIED').length,
+      duplicateCount: results.filter((r) => r.status === 'DUPLICATE').length,
+      failedCount: results.filter((r) => r.status === 'FAILED').length,
+      results,
+    };
   }
 
   private generateAppsScriptTemplate(eventTitle: string): string {
