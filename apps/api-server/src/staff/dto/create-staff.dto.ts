@@ -1,4 +1,4 @@
-﻿import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { Role } from 'database';
 

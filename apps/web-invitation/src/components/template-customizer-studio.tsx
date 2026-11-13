@@ -474,13 +474,19 @@ export function TemplateCustomizerStudio({
               type="button"
               onClick={() => window.history.back()}
               className="irv-studio-bar__back"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+              title="Kembali"
+              aria-label="Kembali"
             >
               <span aria-hidden="true">←</span>
               <span className="irv-studio-bar__back-text">Kembali</span>
             </button>
           ) : (
-            <Link href="/templates" className="irv-studio-bar__back">
+            <Link
+              href="/templates"
+              className="irv-studio-bar__back"
+              title="Kembali ke Katalog Template"
+              aria-label="Kembali ke Katalog Template"
+            >
               <span aria-hidden="true">←</span>
               <span className="irv-studio-bar__back-text">Katalog</span>
             </Link>

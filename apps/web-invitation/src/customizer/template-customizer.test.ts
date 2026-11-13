@@ -365,4 +365,46 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
     });
     assert.equal((draftCapped.content as any).giftAccounts.length, 2);
   });
+
+  await t.test('Studio CSS responsive navbar contract prevents gaps and displays template title on mobile', () => {
+    const cssPath = path.resolve(__dirname, '../components/template-customizer-studio.css');
+    assert.ok(fs.existsSync(cssPath), 'template-customizer-studio.css must exist');
+    const css = fs.readFileSync(cssPath, 'utf8');
+
+    // 1. CSS variable ensures perfect synchronization between navbar, stage, and drawer
+    assert.ok(
+      css.includes('--irv-studio-bar-h: 60px'),
+      'Must define default desktop bar height 60px',
+    );
+    assert.ok(
+      css.includes('--irv-studio-bar-h: 56px'),
+      'Must define mobile bar height 56px under @media (max-width: 768px)',
+    );
+
+    // 2. Preview stage padding-top and device shell height must use the CSS variable
+    assert.ok(
+      css.includes('padding-top: var(--irv-studio-bar-h);'),
+      'Preview stage padding-top must use var(--irv-studio-bar-h) to prevent 4px gap',
+    );
+    assert.ok(
+      css.includes('height: calc(100vh - var(--irv-studio-bar-h));'),
+      'Device shell height must match bar height dynamically',
+    );
+
+    // 3. Studio shell and preview stage have dark backdrop to prevent white body leaks
+    assert.ok(
+      css.includes('background-color: #0b1410;'),
+      'Studio shell must have dark background #0b1410 to eliminate white flash',
+    );
+
+    // 4. Template title is preserved on mobile (not hidden) while sandbox pill is hidden
+    assert.ok(
+      !css.includes('.irv-studio-bar__title-group {\n    display: none;'),
+      'irv-studio-bar__title-group must NOT be hidden on mobile',
+    );
+    assert.ok(
+      css.includes('.irv-studio-bar__sandbox-pill'),
+      'irv-studio-bar__sandbox-pill must be hidden on mobile to prioritize title',
+    );
+  });
 });

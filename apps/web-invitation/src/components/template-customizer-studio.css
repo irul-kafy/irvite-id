@@ -3,9 +3,12 @@
    ========================================================================== */
 
 .irv-studio-shell {
+  --irv-studio-bar-h: 60px;
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  background-color: #0b1410;
 }
 
 /* ── Top Floating Sandbox Bar ── */
@@ -14,7 +17,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: var(--irv-studio-bar-h);
   z-index: 9990;
   background: rgba(15, 31, 24, 0.94);
   backdrop-filter: blur(14px);
@@ -221,14 +224,16 @@
 
 /* ── Preview Viewport Wrapper (Figma Canvas) ── */
 .irv-studio-preview-stage {
-  padding-top: 60px;
+  padding-top: var(--irv-studio-bar-h);
   transition: margin-right 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   height: 100vh;
+  height: 100dvh;
   box-sizing: border-box;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #0b1410;
 }
 
 .irv-studio-preview-stage.is-device-mobile,
@@ -269,7 +274,8 @@
 /* ── Device Shell & Fixed-Containing Frame ── */
 .irv-studio-device-shell.is-device-desktop {
   width: 100%;
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--irv-studio-bar-h));
+  height: calc(100dvh - var(--irv-studio-bar-h));
 }
 
 .irv-studio-device-shell.is-device-mobile {
@@ -428,7 +434,7 @@
 /* ── Interactive Side Drawer ── */
 .irv-studio-drawer {
   position: fixed;
-  top: 60px;
+  top: var(--irv-studio-bar-h);
   right: 0;
   left: auto;
   bottom: 0;
@@ -921,17 +927,36 @@
 }
 
 @media (max-width: 768px) {
+  .irv-studio-shell {
+    --irv-studio-bar-h: 56px;
+  }
   .irv-studio-bar {
-    height: 56px;
-    padding: 0 10px;
+    height: var(--irv-studio-bar-h);
+    padding: 0 12px;
     gap: 8px;
   }
   .irv-studio-bar__left {
-    flex-shrink: 0;
-    min-width: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
   .irv-studio-bar__title-group {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .irv-studio-bar__template-name {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
   }
   .irv-studio-bar__sandbox-pill,
   .irv-studio-viewport-switcher {
@@ -941,6 +966,7 @@
     padding: 6px 10px;
     font-size: 0.75rem;
     gap: 4px;
+    flex-shrink: 0;
   }
   .irv-studio-bar__actions {
     gap: 6px;
@@ -969,20 +995,40 @@
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 420px) {
   .irv-studio-bar {
-    padding: 0 6px;
-    gap: 4px;
+    padding: 0 8px;
+    gap: 6px;
   }
   .irv-studio-bar__back {
-    padding: 5px 8px;
+    padding: 6px 9px;
+    font-size: 0.8125rem;
   }
   .irv-studio-bar__back-text {
     display: none;
   }
+  .irv-studio-bar__template-name {
+    max-width: 115px;
+    font-size: 0.78rem;
+  }
   .irv-studio-btn {
-    padding: 5px 8px;
+    padding: 6px 8px;
     font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 340px) {
+  .irv-studio-bar {
+    padding: 0 4px;
+    gap: 4px;
+  }
+  .irv-studio-bar__template-name {
+    max-width: 85px;
+    font-size: 0.7rem;
+  }
+  .irv-studio-btn {
+    padding: 5px 6px;
+    font-size: 0.6875rem;
   }
 }
 
