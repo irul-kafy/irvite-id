@@ -1381,9 +1381,9 @@ export function TemplateCustomizerStudio({
                           type="button"
                           className="irv-studio-revert-btn"
                           onClick={() => handleRevertToOriginal(singleSlot)}
-                          title="Batalkan potongan dan kembali ke foto asli penuh"
+                          title="Hapus editan potongan dan kembali ke foto asli"
                         >
-                          ↺ Pakai Foto Asli
+                          ↺ Hapus Editan
                         </button>
                       )}
                       {currentPhoto && (
@@ -1719,9 +1719,9 @@ export function TemplateCustomizerStudio({
                             type="button"
                             className="irv-studio-revert-btn"
                             onClick={() => handleRevertToOriginal('qris')}
-                            title="Batalkan potongan dan kembali ke gambar barcode asli"
+                            title="Hapus editan potongan dan kembali ke gambar barcode asli"
                           >
-                            ↺ Pakai Gambar Asli
+                            ↺ Hapus Editan
                           </button>
                         )}
                         <button
