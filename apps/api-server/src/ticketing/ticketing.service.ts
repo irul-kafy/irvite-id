@@ -34,6 +34,9 @@ export interface TicketingEventView {
   startingPrice: number;
   isFree: boolean;
   status: string;
+  isFeaturedBanner?: boolean;
+  bannerHeadline?: string;
+  bannerSubheadline?: string;
   tiers: TicketTierView[];
 }
 
@@ -134,6 +137,9 @@ const DEFAULT_TICKETING_EVENTS: TicketingEventView[] = [
     startingPrice: 45000,
     isFree: false,
     status: 'PUBLISHED',
+    isFeaturedBanner: true,
+    bannerHeadline: 'Pameran Inovasi Keteknikan & Talkshow Inspiratif UI 2026',
+    bannerSubheadline: 'Tiket Presale Terbatas • Mulai Rp 45.000',
     tiers: [
       {
         id: 'tier-ui-reg',
@@ -214,6 +220,9 @@ const DEFAULT_TICKETING_EVENTS: TicketingEventView[] = [
     startingPrice: 45000,
     isFree: false,
     status: 'PUBLISHED',
+    isFeaturedBanner: true,
+    bannerHeadline: 'Pameran Inovasi Keteknikan & Talkshow Inspiratif UI 2026',
+    bannerSubheadline: 'Tiket Presale Terbatas • Mulai Rp 45.000',
     tiers: [
       {
         id: 'tier-himasik-balcony',

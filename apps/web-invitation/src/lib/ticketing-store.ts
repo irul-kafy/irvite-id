@@ -24,6 +24,10 @@ export interface PublicTicketingEvent {
   bannerTag: string;
   startingPrice: number;
   startingPriceLabel: string;
+  isFeaturedBanner?: boolean;
+  bannerImageUrl?: string;
+  bannerHeadline?: string;
+  bannerSubheadline?: string;
   tiers: PublicTicketTier[];
 }
 
@@ -90,6 +94,9 @@ export const INITIAL_EVENTS: PublicTicketingEvent[] = [
     bannerTag: 'HEADLINER STAGE • 12 LINEUP',
     startingPrice: 125000,
     startingPriceLabel: 'Rp 125.000',
+    isFeaturedBanner: true,
+    bannerHeadline: 'Penantian Berakhir! JAKARTA INDIE SOUNDWAVE FESTIVAL 2026 Hadir di Jakarta',
+    bannerSubheadline: 'Tiket Presale Terbatas • Mulai Rp 125.000',
     tiers: [
       {
         id: 'tier-01-presale',
@@ -140,6 +147,9 @@ export const INITIAL_EVENTS: PublicTicketingEvent[] = [
     bannerTag: 'CONFERENCE • SERTIFIKAT RESMI',
     startingPrice: 150000,
     startingPriceLabel: 'Rp 150.000',
+    isFeaturedBanner: true,
+    bannerHeadline: 'Konferensi AI & Engineering Terbesar di Indonesia Tahun Ini',
+    bannerSubheadline: 'Sertifikat Resmi & Akses Networking Eksklusif',
     tiers: [
       {
         id: 'tier-02-general',

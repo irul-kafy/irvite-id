@@ -332,6 +332,26 @@ export default function EventsPage() {
                     </td>
                     <td>
                       <span className="badge badge--success">PUBLISHED</span>
+                      {ev.isFeaturedBanner && (
+                        <div style={{ marginTop: '0.35rem' }}>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              background: '#fef3c7',
+                              color: '#92400e',
+                              border: '1px solid #fde68a',
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                            }}
+                          >
+                            ★ Banner Depan
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>

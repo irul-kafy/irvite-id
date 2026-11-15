@@ -76,6 +76,9 @@ function normalizeUpstreamEvent(raw: Record<string, unknown>): PublicTicketingEv
     bannerTag: String(raw.bannerTag || raw.bannerTitle || 'OFFICIAL EVENT • E-TICKET INSTAN'),
     startingPrice,
     startingPriceLabel: String(raw.startingPriceLabel || formatRupiah(startingPrice)),
+    isFeaturedBanner: Boolean(raw.isFeaturedBanner ?? raw.isFeatured ?? false),
+    bannerHeadline: typeof raw.bannerHeadline === 'string' ? raw.bannerHeadline : undefined,
+    bannerSubheadline: typeof raw.bannerSubheadline === 'string' ? raw.bannerSubheadline : undefined,
     tiers:
       tiers.length > 0
         ? tiers
