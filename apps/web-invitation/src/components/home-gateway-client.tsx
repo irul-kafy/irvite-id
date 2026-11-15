@@ -132,8 +132,9 @@ export function HomeGatewayClient() {
         }
         .irv-gw-shell {
           width: 100%;
-          max-width: 860px;
+          max-width: 1180px;
           margin: 0 auto;
+          padding: 0 clamp(0.75rem, 2.5vw, 2rem);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -144,18 +145,18 @@ export function HomeGatewayClient() {
           flex-direction: column;
           align-items: center;
           text-align: center;
-          margin-bottom: 2.25rem;
+          margin-bottom: 2.5rem;
         }
         .irv-gw-logo {
-          height: 64px;
+          height: 68px;
           width: auto;
           object-fit: contain;
-          margin-bottom: 1.1rem;
+          margin-bottom: 1.15rem;
           display: block;
         }
         .irv-gw-title {
           font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: clamp(1.75rem, 3.2vw, 2.35rem) !important;
+          font-size: clamp(1.85rem, 3.2vw, 2.55rem) !important;
           font-weight: 800 !important;
           color: #13281e !important;
           letter-spacing: -0.025em !important;
@@ -164,17 +165,17 @@ export function HomeGatewayClient() {
         }
         .irv-gw-subtitle {
           font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: clamp(0.92rem, 1.6vw, 1.02rem) !important;
+          font-size: clamp(0.95rem, 1.6vw, 1.06rem) !important;
           font-weight: 500 !important;
           color: #4a6658 !important;
-          max-width: 560px;
+          max-width: 640px;
           margin: 0 !important;
           line-height: 1.55 !important;
         }
         .irv-gw-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 1.2rem;
+          gap: 1.35rem;
           width: 100%;
         }
         @media (max-width: 680px) {
@@ -186,11 +187,11 @@ export function HomeGatewayClient() {
           background: #ffffff !important;
           border: 1.5px solid #d5e4dc !important;
           border-radius: 22px !important;
-          padding: 1.45rem 1.6rem !important;
+          padding: 1.65rem 1.85rem !important;
           display: flex !important;
           align-items: center !important;
           justify-content: space-between !important;
-          gap: 1.1rem !important;
+          gap: 1.25rem !important;
           text-decoration: none !important;
           color: #13281e !important;
           box-shadow: 0 10px 26px rgba(19, 40, 30, 0.045) !important;
