@@ -310,15 +310,36 @@ export default function EventsPage() {
                 Buat Event Undangan
               </button>
             ) : (
-              <button
-                id="events-create-ticket-btn"
-                className="btn btn-primary"
-                onClick={() => setIsCreateTicketModalOpen(true)}
-                type="button"
-              >
-                <IconPlus />
-                Buat Event Tiket / Konser
-              </button>
+              <>
+                <a
+                  href="/irvite-logo.png"
+                  download="logo-irvite-official.png"
+                  className="btn btn-secondary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    textDecoration: 'none',
+                  }}
+                  title="Download logo resmi IRVITE.ID (PNG transparan) untuk poster dan materi promosi acara"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Unduh Logo untuk Poster</span>
+                </a>
+                <button
+                  id="events-create-ticket-btn"
+                  className="btn btn-primary"
+                  onClick={() => setIsCreateTicketModalOpen(true)}
+                  type="button"
+                >
+                  <IconPlus />
+                  Buat Event Tiket / Konser
+                </button>
+              </>
             )}
           </div>
         )}

@@ -1569,6 +1569,78 @@ export default function ClientPartnershipPage() {
             })}
           </div>
         </section>
+
+        {/* MEDIA KIT & LOGO ASSET DOWNLOAD FOR EO DESIGNERS */}
+        <section
+          style={{
+            maxWidth: '820px',
+            margin: '1.75rem auto 0',
+            background: '#ffffff',
+            borderRadius: '14px',
+            padding: '1.15rem 1.35rem',
+            border: '1.5px solid #d5e4dc',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                background: '#edf5f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1b3b2b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#13281e' }}>
+                {currentLang === 'EN' ? 'Need IRVITE Logo for Event Poster & Promo?' : 'Butuh Logo IRVITE untuk Poster Acara?'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                {currentLang === 'EN' ? 'Download official high-resolution transparent PNG logo for your creative team.' : 'Unduh file logo resmi format PNG transparan HD untuk materi promosi tim Anda.'}
+              </div>
+            </div>
+          </div>
+
+          <a
+            href="/irvite-logo.png"
+            download="logo-irvite-official.png"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 1.05rem',
+              borderRadius: '8px',
+              border: '1.5px solid #1b3b2b',
+              background: '#edf5f0',
+              color: '#1b3b2b',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>{currentLang === 'EN' ? 'Download Official Logo (PNG)' : 'Unduh Logo Resmi (PNG)'}</span>
+          </a>
+        </section>
       </main>
     </div>
   );
