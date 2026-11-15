@@ -278,6 +278,21 @@ export default function ClientPartnershipPage() {
               style={{
                 padding: '0.58rem 1rem',
                 borderRadius: '10px',
+                background: '#edf4f0',
+                border: '1.5px solid #d5e4dc',
+                color: '#1b3b2b',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+              }}
+            >
+              E-Ticket Saya
+            </Link>
+            <Link
+              href="/tiket?auth=1"
+              style={{
+                padding: '0.58rem 1rem',
+                borderRadius: '10px',
                 background: '#1b3b2b',
                 color: '#ffffff',
                 fontSize: '0.82rem',
@@ -285,7 +300,7 @@ export default function ClientPartnershipPage() {
                 textDecoration: 'none',
               }}
             >
-              E-Ticket Pass Saya
+              Masuk / Daftar
             </Link>
           </div>
         </div>

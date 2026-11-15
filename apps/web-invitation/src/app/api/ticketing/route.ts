@@ -4,6 +4,7 @@ import {
   checkoutLocalOrder,
   correctLocalOrderEmail,
   findLocalOrderOrTicket,
+  findLocalOrdersByEmail,
   formatRupiah,
   listLocalEvents,
   PLATFORM_FEE_PER_TICKET,
@@ -100,8 +101,21 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category') || undefined;
   const search = searchParams.get('search') || undefined;
   const code = searchParams.get('code') || undefined;
+  const email = searchParams.get('email') || undefined;
 
   const apiBase = getInternalApiBaseUrl();
+
+  if (mode === 'my-tickets' && email) {
+    const orders = findLocalOrdersByEmail(email);
+    const tickets = orders.flatMap((o) => o.tickets);
+    return NextResponse.json({
+      email: email.trim().toLowerCase(),
+      orders,
+      tickets,
+      totalOrders: orders.length,
+      totalTickets: tickets.length,
+    });
+  }
 
   if (mode === 'lookup' && code) {
     const localFound = findLocalOrderOrTicket(code);

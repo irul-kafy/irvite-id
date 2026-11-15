@@ -13,8 +13,59 @@ import {
 } from '@/lib/ticketing-store';
 
 type ClientTab = 'catalog' | 'my-ticket' | 'mini-apps' | 'about' | 'wristband' | 'support';
+type AuthModalStep = 'welcome' | 'google' | 'email-login' | 'register';
+
+interface ClientAuthSession {
+  mode: 'google' | 'email' | 'guest';
+  name: string;
+  email: string;
+  whatsapp?: string;
+}
 
 const CATEGORIES = ['Semua', 'Konser Musik', 'Seminar & Edukasi', 'Workshop', 'Standup Comedy'] as const;
+
+function IconGoogleColor() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96Z"
+      />
+    </svg>
+  );
+}
+
+function IconEnvelope() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="16" rx="2.5" />
+      <path d="m22 6-10 7L2 6" />
+    </svg>
+  );
+}
+
+function IconGuestBadge() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="2" width="16" height="20" rx="2" />
+      <circle cx="12" cy="10" r="2.5" />
+      <path d="M8 16.5c.8-1.8 2.3-2.5 4-2.5s3.2.7 4 2.5" />
+      <line x1="9" y1="5.5" x2="15" y2="5.5" />
+    </svg>
+  );
+}
 
 function IconSparkleStar() {
   return (
@@ -189,6 +240,116 @@ export default function ClientTicketingPage() {
   const [wbTierLabel, setWbTierLabel] = useState<string>('VIP EMERALD ACCESS');
   const [wbQty, setWbQty] = useState<number>(500);
 
+  // Client Auth & Guest Session State ("Selamat Datang di IRVITE")
+  const [authUser, setAuthUser] = useState<ClientAuthSession | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
+  const [authStep, setAuthStep] = useState<AuthModalStep>('welcome');
+  const [pendingCheckoutEvent, setPendingCheckoutEvent] = useState<PublicTicketingEvent | null>(null);
+  const [authNameInput, setAuthNameInput] = useState<string>('');
+  const [authEmailInput, setAuthEmailInput] = useState<string>('');
+  const [authPasswordInput, setAuthPasswordInput] = useState<string>('');
+  const [authWhatsappInput, setAuthWhatsappInput] = useState<string>('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [accountTickets, setAccountTickets] = useState<IssuedTicketRecord[]>([]);
+
+  const fetchAccountTickets = useCallback(async (email: string) => {
+    if (!email.trim()) {
+      setAccountTickets([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/ticketing?mode=my-tickets&email=${encodeURIComponent(email.trim())}`, {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list: IssuedTicketRecord[] = Array.isArray(data?.tickets) ? data.tickets : [];
+        setAccountTickets(list);
+        if (list.length > 0) {
+          setActiveTicket(list[0]);
+          setTicketLookupInput(list[0].ticketCode);
+        }
+        if (Array.isArray(data?.orders) && data.orders.length > 0) {
+          setActiveOrder(data.orders[0]);
+        }
+      }
+    } catch {
+      // Ignore network error
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('irvite_client_auth_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved) as ClientAuthSession;
+          if (parsed && parsed.mode) {
+            setAuthUser(parsed);
+            if (parsed.mode !== 'guest' && parsed.email) {
+              setBuyerName(parsed.name || '');
+              setBuyerEmail(parsed.email || '');
+              if (parsed.whatsapp) setBuyerWhatsapp(parsed.whatsapp);
+              fetchAccountTickets(parsed.email);
+            }
+          }
+        }
+      } catch {
+        // Ignore storage read error
+      }
+    }
+  }, [fetchAccountTickets]);
+
+  function completeAuthSession(session: ClientAuthSession) {
+    setAuthUser(session);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('irvite_client_auth_v1', JSON.stringify(session));
+      } catch {
+        // Ignore storage error
+      }
+    }
+    if (session.mode !== 'guest') {
+      setBuyerName(session.name);
+      setBuyerEmail(session.email);
+      if (session.whatsapp) setBuyerWhatsapp(session.whatsapp);
+      fetchAccountTickets(session.email);
+    }
+    setAuthModalOpen(false);
+    setAuthError(null);
+    if (pendingCheckoutEvent) {
+      const evt = pendingCheckoutEvent;
+      setPendingCheckoutEvent(null);
+      launchCheckoutDialog(evt, session);
+    }
+  }
+
+  function handleLogout() {
+    setAuthUser(null);
+    setAccountTickets([]);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('irvite_client_auth_v1');
+      } catch {
+        // Ignore storage error
+      }
+    }
+  }
+
+  function launchCheckoutDialog(event: PublicTicketingEvent, sessionOverride?: ClientAuthSession | null) {
+    const currentSession = sessionOverride !== undefined ? sessionOverride : authUser;
+    if (currentSession && currentSession.mode !== 'guest') {
+      setBuyerName(currentSession.name);
+      setBuyerEmail(currentSession.email);
+      if (currentSession.whatsapp) setBuyerWhatsapp(currentSession.whatsapp);
+    }
+    setCheckoutEvent(event);
+    const firstAvailable = event.tiers.find((t) => t.remainingQuota > 0) || event.tiers[0];
+    setSelectedTierId(firstAvailable?.id || '');
+    setQuantity(1);
+    setCheckoutError(null);
+  }
+
   const fetchCatalog = useCallback(async (category: string, search: string) => {
     setLoading(true);
     try {
@@ -242,15 +403,22 @@ export default function ClientTicketingPage() {
       ) {
         setActiveTab(tabParam);
       }
+      if (sp.get('auth') === '1') {
+        setAuthStep('welcome');
+        setAuthModalOpen(true);
+      }
     }
   }, []);
 
   function openCheckoutModal(event: PublicTicketingEvent) {
-    setCheckoutEvent(event);
-    const firstAvailable = event.tiers.find((t) => t.remainingQuota > 0) || event.tiers[0];
-    setSelectedTierId(firstAvailable?.id || '');
-    setQuantity(1);
-    setCheckoutError(null);
+    if (!authUser) {
+      setPendingCheckoutEvent(event);
+      setAuthStep('welcome');
+      setAuthError(null);
+      setAuthModalOpen(true);
+      return;
+    }
+    launchCheckoutDialog(event);
   }
 
   const selectedTier: PublicTicketTier | undefined = useMemo(() => {
@@ -290,6 +458,11 @@ export default function ClientTicketingPage() {
         if (data.order.tickets?.[0]) {
           setActiveTicket(data.order.tickets[0]);
           setTicketLookupInput(data.order.tickets[0].ticketCode);
+        }
+        if (authUser && authUser.mode !== 'guest' && authUser.email) {
+          fetchAccountTickets(authUser.email);
+        } else if (buyerEmail.trim()) {
+          fetchAccountTickets(buyerEmail.trim());
         }
         setCheckoutEvent(null);
         setActiveTab('my-ticket');
@@ -568,12 +741,13 @@ export default function ClientTicketingPage() {
             </button>
           </form>
 
-          {/* Right: Katalog Event & E-Ticket Pass Saya Switcher */}
+          {/* Right: Katalog Event, E-Ticket Pass Saya & Masuk / Daftar (Google / Email / Tamu) */}
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               alignItems: 'center',
-              gap: '0.45rem',
+              gap: '0.5rem',
               flexShrink: 0,
             }}
           >
@@ -581,7 +755,7 @@ export default function ClientTicketingPage() {
               type="button"
               onClick={() => setActiveTab('catalog')}
               style={{
-                padding: '0.58rem 1rem',
+                padding: '0.58rem 0.95rem',
                 borderRadius: '10px',
                 border: activeTab === 'catalog' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
                 background: activeTab === 'catalog' ? '#1b3b2b' : '#ffffff',
@@ -597,7 +771,7 @@ export default function ClientTicketingPage() {
               type="button"
               onClick={() => setActiveTab('my-ticket')}
               style={{
-                padding: '0.58rem 1rem',
+                padding: '0.58rem 0.95rem',
                 borderRadius: '10px',
                 border: activeTab === 'my-ticket' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
                 background: activeTab === 'my-ticket' ? '#1b3b2b' : '#edf4f0',
@@ -607,8 +781,129 @@ export default function ClientTicketingPage() {
                 cursor: 'pointer',
               }}
             >
-              E-Ticket Pass Saya
+              E-Ticket Saya{accountTickets.length > 0 ? ` (${accountTickets.length})` : ''}
             </button>
+
+            {!authUser ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingCheckoutEvent(null);
+                  setAuthStep('welcome');
+                  setAuthError(null);
+                  setAuthModalOpen(true);
+                }}
+                style={{
+                  padding: '0.58rem 1.05rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #1b3b2b',
+                  background: '#ffffff',
+                  color: '#13281e',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <span style={{ display: 'inline-flex', transform: 'scale(0.75)' }}>
+                  <IconGoogleColor />
+                </span>
+                <span>Masuk / Daftar</span>
+              </button>
+            ) : authUser.mode === 'guest' ? (
+              <div
+                style={{
+                  display: ' inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.35rem 0.45rem 0.35rem 0.75rem',
+                  borderRadius: '10px',
+                  background: '#f8faf9',
+                  border: '1.5px solid #d5e4dc',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  color: '#1b3b2b',
+                }}
+              >
+                <span>Mode Tamu</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingCheckoutEvent(null);
+                    setAuthStep('welcome');
+                    setAuthError(null);
+                    setAuthModalOpen(true);
+                  }}
+                  style={{
+                    padding: '0.28rem 0.6rem',
+                    borderRadius: '7px',
+                    border: 'none',
+                    background: '#1b3b2b',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Masuk Akun
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.32rem 0.45rem 0.32rem 0.7rem',
+                  borderRadius: '10px',
+                  background: '#f2f8f5',
+                  border: '1.5px solid #bfd4c8',
+                }}
+              >
+                {authUser.mode === 'google' && (
+                  <span style={{ display: 'inline-flex', transform: 'scale(0.78)' }}>
+                    <IconGoogleColor />
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('my-ticket')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                  title={`Akun aktif: ${authUser.email}`}
+                >
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#13281e', lineHeight: 1.15 }}>
+                    {authUser.name}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#4d6a5b', lineHeight: 1.15 }}>
+                    {authUser.email}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  style={{
+                    padding: '0.28rem 0.55rem',
+                    borderRadius: '7px',
+                    border: '1px solid #c5d9ce',
+                    background: '#ffffff',
+                    color: '#9b1c1c',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Keluar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -1022,8 +1317,117 @@ export default function ClientTicketingPage() {
         {/* TAB 2: MY E-TICKET PASS (Full-Width Widescreen 2-Column Layout) */}
         {activeTab === 'my-ticket' && (
           <div className="irv-my-ticket-grid">
-            {/* Left / Primary Column: Lookup Bar + Official E-Ticket Pass */}
+            {/* Left / Primary Column: Account Tickets Sync + Lookup Bar + Official E-Ticket Pass */}
             <div>
+              {/* Account Sync Banner (Google / Email Account vs Guest Lookup) */}
+              {authUser && authUser.mode !== 'guest' ? (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '1.1rem 1.35rem',
+                    borderRadius: '18px',
+                    border: '1.5px solid #bfd4c8',
+                    marginBottom: '1rem',
+                    display: 'grid',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      {authUser.mode === 'google' ? <IconGoogleColor /> : <IconEnvelope />}
+                      <div>
+                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#13281e' }}>
+                          Tiket Terhubung Otomatis di Akun {authUser.name} ({authUser.email})
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#4d6a5b' }}>
+                          Ditemukan <strong>{accountTickets.length} E-Ticket</strong> resmi pada akun Anda tanpa perlu mengetik kode manual.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {accountTickets.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {accountTickets.map((t, idx) => {
+                        const isSelected = t.ticketCode === activeTicket.ticketCode;
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveTicket(t);
+                              setTicketLookupInput(t.ticketCode);
+                            }}
+                            style={{
+                              padding: '0.48rem 0.85rem',
+                              borderRadius: '10px',
+                              border: isSelected ? '2px solid #1b3b2b' : '1px solid #d5e4dc',
+                              background: isSelected ? '#1b3b2b' : '#f6faf8',
+                              color: isSelected ? '#ffffff' : '#13281e',
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Tiket #{idx + 1}: {t.ticketCode} ({t.holderName})
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    padding: '0.95rem 1.35rem',
+                    borderRadius: '18px',
+                    border: '1.5px solid #d5e4dc',
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#13281e' }}>
+                      {authUser?.mode === 'guest' ? 'Anda sedang menggunakan Mode Tamu' : 'Ingin semua E-Ticket tersimpan otomatis di akun Anda?'}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#4d6a5b' }}>
+                      Masuk dengan Google (Gmail) atau Email agar semua tiket yang Anda beli langsung muncul otomatis tanpa cari kode.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingCheckoutEvent(null);
+                      setAuthStep('welcome');
+                      setAuthError(null);
+                      setAuthModalOpen(true);
+                    }}
+                    style={{
+                      padding: '0.55rem 1rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #1b3b2b',
+                      background: '#ffffff',
+                      color: '#13281e',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', transform: 'scale(0.75)' }}>
+                      <IconGoogleColor />
+                    </span>
+                    <span>Masuk dengan Google / Email</span>
+                  </button>
+                </div>
+              )}
+
               {/* Search / Lookup Bar */}
               <form
                 onSubmit={handleLookupTicket}
@@ -2442,6 +2846,762 @@ export default function ClientTicketingPage() {
           </div>
         )}
       </main>
+
+      {/* "Selamat Datang di IRVITE" Auth & Guest Modal (Matching Reference Screenshot) */}
+      {authModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="irv-auth-modal-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.62)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+            zIndex: 10000,
+            overflowY: 'auto',
+          }}
+          onClick={() => {
+            setAuthModalOpen(false);
+            setPendingCheckoutEvent(null);
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '18px',
+              maxWidth: '465px',
+              width: '100%',
+              overflow: 'hidden',
+              boxShadow: '0 26px 65px rgba(0, 0, 0, 0.28)',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top-Right Close Button [ ✕ ] */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1.1rem 1.25rem 0' }}>
+              <button
+                type="button"
+                aria-label="Tutup"
+                onClick={() => {
+                  setAuthModalOpen(false);
+                  setPendingCheckoutEvent(null);
+                }}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Main Body */}
+            <div style={{ padding: '0.6rem 2.2rem 1.75rem' }}>
+              {authStep === 'welcome' && (
+                <>
+                  <h2
+                    id="irv-auth-modal-title"
+                    style={{
+                      margin: '0 0 0.45rem 0',
+                      fontSize: '1.65rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      textAlign: 'center',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    Selamat Datang di IRVITE
+                  </h2>
+                  <p
+                    style={{
+                      margin: '0 0 1.65rem 0',
+                      fontSize: '0.92rem',
+                      color: '#334155',
+                      textAlign: 'center',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Silahkan masuk atau daftar untuk melanjutkan
+                  </p>
+
+                  <div style={{ display: 'grid', gap: '0.85rem' }}>
+                    {/* 1. Lanjutkan dengan Google */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthStep('google');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '10px',
+                        border: '1px solid #dce3ea',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'grid',
+                        gridTemplateColumns: '28px 1fr 28px',
+                        alignItems: 'center',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <IconGoogleColor />
+                      </span>
+                      <span style={{ textAlign: 'center' }}>Lanjutkan dengan Google</span>
+                      <span />
+                    </button>
+
+                    {/* 2. Lanjutkan dengan Email */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthStep('email-login');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '10px',
+                        border: '1px solid #dce3ea',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'grid',
+                        gridTemplateColumns: '28px 1fr 28px',
+                        alignItems: 'center',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <IconEnvelope />
+                      </span>
+                      <span style={{ textAlign: 'center' }}>Lanjutkan dengan Email</span>
+                      <span />
+                    </button>
+
+                    {/* 3. Lanjutkan sebagai Tamu */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        completeAuthSession({
+                          mode: 'guest',
+                          name: 'Tamu IRVITE',
+                          email: '',
+                        });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.9rem 1.25rem',
+                        borderRadius: '10px',
+                        border: '1px solid #dce3ea',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'grid',
+                        gridTemplateColumns: '28px 1fr 28px',
+                        alignItems: 'center',
+                        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <IconGuestBadge />
+                      </span>
+                      <span style={{ textAlign: 'center' }}>Lanjutkan sebagai Tamu</span>
+                      <span />
+                    </button>
+                  </div>
+
+                  {/* Belum punya akun? Daftar */}
+                  <div
+                    style={{
+                      marginTop: '1.35rem',
+                      textAlign: 'center',
+                      fontSize: '0.95rem',
+                      color: '#0f172a',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Belum punya akun?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthError(null);
+                        setAuthStep('register');
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        color: '#1d4ed8',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Daftar
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* STEP 2: LANJUTKAN DENGAN GOOGLE (GMAIL) */}
+              {authStep === 'google' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.6rem' }}>
+                    <IconGoogleColor />
+                  </div>
+                  <h2
+                    id="irv-auth-modal-title"
+                    style={{
+                      margin: '0 0 0.3rem 0',
+                      fontSize: '1.35rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Pilih Akun Google (Gmail)
+                  </h2>
+                  <p style={{ margin: '0 0 1.15rem 0', fontSize: '0.84rem', color: '#475569', textAlign: 'center' }}>
+                    E-Ticket yang Anda beli akan langsung tersimpan otomatis di akun Gmail Anda.
+                  </p>
+
+                  {/* Quick One-Click Google Accounts */}
+                  <div style={{ display: 'grid', gap: '0.55rem', marginBottom: '1rem' }}>
+                    {[
+                      {
+                        name: 'Rizky Pratama',
+                        email: 'rizky.pratama@gmail.com',
+                        whatsapp: '081288997711',
+                        badge: '2 Tiket Aktif',
+                      },
+                      {
+                        name: 'Nadia Maharani',
+                        email: 'nadia.maharani@gmail.com',
+                        whatsapp: '081377889900',
+                        badge: 'Akun Google',
+                      },
+                    ].map((acc) => (
+                      <button
+                        key={acc.email}
+                        type="button"
+                        onClick={() =>
+                          completeAuthSession({
+                            mode: 'google',
+                            name: acc.name,
+                            email: acc.email,
+                            whatsapp: acc.whatsapp,
+                          })
+                        }
+                        style={{
+                          width: '100%',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '12px',
+                          border: '1.5px solid #dce3ea',
+                          background: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '999px',
+                              background: '#1b3b2b',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 800,
+                              fontSize: '0.9rem',
+                            }}
+                          >
+                            {acc.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{acc.name}</div>
+                            <div style={{ fontSize: '0.76rem', color: '#475569' }}>{acc.email}</div>
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '0.22rem 0.55rem',
+                            borderRadius: '999px',
+                            background: '#edf4f0',
+                            color: '#1b3b2b',
+                          }}
+                        >
+                          {acc.badge}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom Gmail Account Sign-In */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const email = authEmailInput.trim().toLowerCase();
+                      if (!email || !email.includes('@')) {
+                        setAuthError('Masukkan alamat email Google (@gmail.com) yang valid.');
+                        return;
+                      }
+                      const derivedName =
+                        authNameInput.trim() ||
+                        email
+                          .split('@')[0]
+                          .replace(/[._-]+/g, ' ')
+                          .replace(/\b\w/g, (c) => c.toUpperCase());
+                      completeAuthSession({
+                        mode: 'google',
+                        name: derivedName,
+                        email,
+                        whatsapp: authWhatsappInput.trim() || undefined,
+                      });
+                    }}
+                    style={{
+                      borderTop: '1px solid #e2e8f0',
+                      paddingTop: '0.9rem',
+                      display: 'grid',
+                      gap: '0.65rem',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                      Atau masuk dengan alamat Gmail Anda sendiri:
+                    </div>
+                    <input
+                      type="text"
+                      value={authNameInput}
+                      onChange={(e) => setAuthNameInput(e.target.value)}
+                      placeholder="Nama Lengkap Anda"
+                      style={{
+                        width: '100%',
+                        padding: '0.68rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.86rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <input
+                      type="email"
+                      required
+                      value={authEmailInput}
+                      onChange={(e) => setAuthEmailInput(e.target.value)}
+                      placeholder="nama.anda@gmail.com"
+                      style={{
+                        width: '100%',
+                        padding: '0.68rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.86rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    {authError && (
+                      <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 600 }}>{authError}</div>
+                    )}
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '0.78rem 1rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#1b3b2b',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Lanjutkan dengan Gmail Ini
+                    </button>
+                  </form>
+
+                  <div style={{ marginTop: '0.95rem', textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('welcome')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#475569',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ← Kembali ke Pilihan Masuk
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: LANJUTKAN DENGAN EMAIL */}
+              {authStep === 'email-login' && (
+                <div>
+                  <h2
+                    id="irv-auth-modal-title"
+                    style={{
+                      margin: '0 0 0.35rem 0',
+                      fontSize: '1.4rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Masuk dengan Email
+                  </h2>
+                  <p style={{ margin: '0 0 1.2rem 0', fontSize: '0.85rem', color: '#475569', textAlign: 'center' }}>
+                    Masuk ke akun IRVITE Anda untuk mengakses seluruh E-Ticket pesanan Anda.
+                  </p>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const email = authEmailInput.trim().toLowerCase();
+                      if (!email) {
+                        setAuthError('Silakan masukkan alamat email Anda.');
+                        return;
+                      }
+                      const derivedName =
+                        authNameInput.trim() ||
+                        (email.startsWith('rizky')
+                          ? 'Rizky Pratama'
+                          : email
+                              .split('@')[0]
+                              .replace(/[._-]+/g, ' ')
+                              .replace(/\b\w/g, (c) => c.toUpperCase()));
+                      completeAuthSession({
+                        mode: 'email',
+                        name: derivedName,
+                        email,
+                      });
+                    }}
+                    style={{ display: 'grid', gap: '0.75rem' }}
+                  >
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.25rem' }}>
+                        Alamat Email
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={authEmailInput}
+                        onChange={(e) => setAuthEmailInput(e.target.value)}
+                        placeholder="rizky.pratama@gmail.com"
+                        style={{
+                          width: '100%',
+                          padding: '0.72rem 0.9rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.88rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#334155', marginBottom: '0.25rem' }}>
+                        Kata Sandi
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={authPasswordInput}
+                        onChange={(e) => setAuthPasswordInput(e.target.value)}
+                        placeholder="••••••••"
+                        style={{
+                          width: '100%',
+                          padding: '0.72rem 0.9rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.88rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    {authError && (
+                      <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 600 }}>{authError}</div>
+                    )}
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '0.82rem 1rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#1b3b2b',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        marginTop: '0.25rem',
+                      }}
+                    >
+                      Masuk Sekarang
+                    </button>
+                  </form>
+
+                  <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.86rem', color: '#334155' }}>
+                    Belum punya akun?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('register')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        color: '#1d4ed8',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Daftar
+                    </button>
+                  </div>
+                  <div style={{ marginTop: '0.65rem', textAlign: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('welcome')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#475569',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ← Kembali ke Pilihan Masuk
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: DAFTAR AKUN BARU */}
+              {authStep === 'register' && (
+                <div>
+                  <h2
+                    id="irv-auth-modal-title"
+                    style={{
+                      margin: '0 0 0.35rem 0',
+                      fontSize: '1.4rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Daftar Akun IRVITE
+                  </h2>
+                  <p style={{ margin: '0 0 1.1rem 0', fontSize: '0.84rem', color: '#475569', textAlign: 'center' }}>
+                    Buat akun pembeli agar semua E-Ticket Anda tersimpan otomatis di satu tempat.
+                  </p>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const email = authEmailInput.trim().toLowerCase();
+                      const name = authNameInput.trim();
+                      if (!name || !email) {
+                        setAuthError('Mohon lengkapi nama dan alamat email Anda.');
+                        return;
+                      }
+                      completeAuthSession({
+                        mode: email.endsWith('@gmail.com') ? 'google' : 'email',
+                        name,
+                        email,
+                        whatsapp: authWhatsappInput.trim() || undefined,
+                      });
+                    }}
+                    style={{ display: 'grid', gap: '0.68rem' }}
+                  >
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '0.2rem' }}>
+                        Nama Lengkap Sesuai Identitas
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={authNameInput}
+                        onChange={(e) => setAuthNameInput(e.target.value)}
+                        placeholder="Contoh: Rizky Pratama"
+                        style={{
+                          width: '100%',
+                          padding: '0.68rem 0.85rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '0.2rem' }}>
+                        Alamat Email / Gmail
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={authEmailInput}
+                        onChange={(e) => setAuthEmailInput(e.target.value)}
+                        placeholder="nama.anda@gmail.com"
+                        style={{
+                          width: '100%',
+                          padding: '0.68rem 0.85rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '0.2rem' }}>
+                        Nomor WhatsApp
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={authWhatsappInput}
+                        onChange={(e) => setAuthWhatsappInput(e.target.value)}
+                        placeholder="0812xxxxxxxx"
+                        style={{
+                          width: '100%',
+                          padding: '0.68rem 0.85rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#334155', marginBottom: '0.2rem' }}>
+                        Buat Kata Sandi
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={authPasswordInput}
+                        onChange={(e) => setAuthPasswordInput(e.target.value)}
+                        placeholder="Minimal 6 karakter"
+                        style={{
+                          width: '100%',
+                          padding: '0.68rem 0.85rem',
+                          borderRadius: '10px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.86rem',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    {authError && (
+                      <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: 600 }}>{authError}</div>
+                    )}
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '0.8rem 1rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#1b3b2b',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: '0.9rem',
+                        cursor: 'pointer',
+                        marginTop: '0.2rem',
+                      }}
+                    >
+                      Daftar &amp; Lanjutkan
+                    </button>
+                  </form>
+
+                  <div style={{ marginTop: '0.9rem', textAlign: 'center', fontSize: '0.85rem', color: '#334155' }}>
+                    Sudah punya akun?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('welcome')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        color: '#1d4ed8',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Masuk
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Gray Footer Terms & Privacy Strip (Matching Reference Screenshot) */}
+            <div
+              style={{
+                background: '#f3f5f8',
+                padding: '1.05rem 1.75rem',
+                textAlign: 'center',
+                fontSize: '0.78rem',
+                color: '#334155',
+                lineHeight: 1.5,
+                borderTop: '1px solid #e2e8f0',
+              }}
+            >
+              Dengan menggunakan website ini, membeli tiket, atau membuat akun, Anda setuju dengan{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModalOpen(false);
+                  setActiveTab('about');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  color: '#1d4ed8',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Syarat Layanan &amp; Kebijakan Privasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Multi-Tier Checkout Modal */}
       {checkoutEvent && (

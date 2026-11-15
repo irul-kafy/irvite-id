@@ -353,6 +353,21 @@ export function findLocalOrderOrTicket(code: string) {
   return null;
 }
 
+export function findLocalOrdersByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return [];
+  const orders = getOrdersStore();
+  return orders.filter((order) => {
+    const orderEmail = order.buyerEmail.toLowerCase();
+    if (orderEmail === normalized) return true;
+    // Also match demo Rizky Pratama if signed in with rizky.pratama@gmail.com
+    if (normalized === 'rizky.pratama@gmail.com' && orderEmail === 'rizky.pratama@gmial.com') {
+      return true;
+    }
+    return order.tickets.some((t) => t.holderEmail.toLowerCase() === normalized);
+  });
+}
+
 export function checkoutLocalOrder(payload: {
   eventSlug: string;
   tierId: string;
