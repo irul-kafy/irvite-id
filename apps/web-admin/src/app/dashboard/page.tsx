@@ -402,9 +402,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="dash-page-header__right">
-          <Link href="/gateway" className="btn btn-secondary">
-            Home Gateway
-          </Link>
           <button className="btn btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>
             {loading ? 'Memuat…' : 'Perbarui statistik'}
           </button>
@@ -804,9 +801,14 @@ export default function DashboardPage() {
                       >
                         Ekspor ZIP Gelang (300 DPI)
                       </button>
-                      <Link href="/tiket" className="btn btn-secondary btn-sm">
-                        Buka Katalog /tiket
-                      </Link>
+                      <a
+                        href="https://irvite-id.vercel.app/tiket"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-secondary btn-sm"
+                      >
+                        Lihat Web Tiket Client ↗
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -1059,46 +1061,6 @@ export default function DashboardPage() {
                     </div>
                     <p className="dash-action-card__desc">
                       Pilih event aktif dan buka kamera scanner untuk check-in tamu.
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Action 5: Katalog Event & E-Ticketing */}
-                <Link
-                  id="dash-action-public-ticketing"
-                  href="/tiket"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconTicketPass />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Katalog Tiket Publik
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Buka halaman pembelian tiket konser, seminar, E-Ticket QR, &amp; Gate Scanner.
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Action 6: Home Gateway 2x2 */}
-                <Link
-                  id="dash-action-home-gateway"
-                  href="/gateway"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconSparkles />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Beranda Gateway 2x2
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Halaman utama Soft Sage terpadu: Beli Tiket, Undangan, Partnership, &amp; CS.
                     </p>
                   </div>
                 </Link>

@@ -22,15 +22,31 @@ export async function GET(request: NextRequest) {
 
   try {
     if (mode === 'summary') {
+      const localSummary = getLocalTicketingSummary();
       const upstream = await fetch(`${apiBase}/api/v1/ticketing/summary`, {
         cache: 'no-store',
         signal: AbortSignal.timeout(1800),
       });
       if (upstream.ok) {
         const json = await upstream.json();
-        return NextResponse.json(json.data ?? json);
+        const raw = json.data ?? json;
+        return NextResponse.json({
+          ...localSummary,
+          ...raw,
+          totalPublicEvents: Number(raw.totalPublicEvents ?? raw.totalTicketingEvents ?? localSummary.totalPublicEvents),
+          totalTicketsSold: Math.max(localSummary.totalTicketsSold, Number(raw.totalTicketsSold ?? 0)),
+          grossTicketRevenue: Math.max(localSummary.grossTicketRevenue, Number(raw.grossTicketRevenue ?? 0)),
+          grossTicketRevenueLabel:
+            raw.grossTicketRevenueLabel || localSummary.grossTicketRevenueLabel,
+          platformFeeRevenue: Math.max(
+            localSummary.platformFeeRevenue,
+            Number(raw.platformFeeRevenue ?? raw.platformServiceFeeRevenue ?? 0),
+          ),
+          platformFeeRevenueLabel:
+            raw.platformFeeRevenueLabel || localSummary.platformFeeRevenueLabel,
+        });
       }
-      return NextResponse.json(getLocalTicketingSummary());
+      return NextResponse.json(localSummary);
     }
 
     if (mode === 'lookup' && code) {
