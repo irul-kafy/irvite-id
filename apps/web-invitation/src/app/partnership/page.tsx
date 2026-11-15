@@ -183,7 +183,7 @@ export default function ClientPartnershipPage() {
               <img
                 src="/irvite-logo.png"
                 alt="IRVITE.ID"
-                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '22px', width: 'auto', objectFit: 'contain' }}
               />
             </Link>
             <Link

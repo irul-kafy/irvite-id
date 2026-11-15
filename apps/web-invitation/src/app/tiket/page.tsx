@@ -548,6 +548,12 @@ export default function ClientTicketingPage() {
           gap: 1.75rem;
           flex-shrink: 0;
         }
+        .irv-header-logo-img {
+          height: 22px;
+          width: auto;
+          object-fit: contain;
+          display: block;
+        }
         .irv-loket-search-wrap {
           flex: 1 1 380px;
           max-width: 780px;
@@ -651,6 +657,9 @@ export default function ClientTicketingPage() {
             width: auto;
             gap: 0.75rem;
           }
+          .irv-header-logo-img {
+            height: 18px;
+          }
           .irv-loket-kategori-btn,
           .irv-loket-right-group {
             display: none !important;
@@ -740,7 +749,7 @@ export default function ClientTicketingPage() {
               <img
                 src="/irvite-logo.png"
                 alt="IRVITE.ID"
-                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+                className="irv-header-logo-img"
               />
             </button>
 
