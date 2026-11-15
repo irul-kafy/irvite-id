@@ -18,6 +18,7 @@ export default function ClientPartnershipPage() {
 
   return (
     <div
+      className="irv-client-part-root"
       style={{
         minHeight: '100vh',
         backgroundColor: '#edf4f0',
@@ -26,6 +27,16 @@ export default function ClientPartnershipPage() {
         paddingBottom: '4rem',
       }}
     >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .irv-client-part-root,
+        .irv-client-part-root h1,
+        .irv-client-part-root h2,
+        .irv-client-part-root h3,
+        .irv-client-part-root p {
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        }
+      `}</style>
       {/* Top Client Navigation Bar */}
       <div
         style={{

@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent } from '@/lib/ticketing-store';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -177,10 +179,11 @@ export default function DashboardPage() {
     totalPublicEvents: 4,
     totalTicketsSold: 1634,
     grossTicketRevenue: 256800000,
-    grossTicketRevenueLabel: 'Rp 256.800.000',
+    grossTicketRevenueLabel: 'Rp 270.215.000',
     platformFeeRevenue: 4902000,
     platformFeeRevenueLabel: 'Rp 4.902.000',
   });
+  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>(PUBLIC_TICKETING_EVENTS);
   const [csLookupCode, setCsLookupCode] = useState('ORD-IRV-2026-8821');
   const [csNewEmail, setCsNewEmail] = useState('rizky.pratama@gmail.com');
   const [csLoading, setCsLoading] = useState(false);
@@ -286,6 +289,20 @@ export default function DashboardPage() {
       .then((data) => {
         if (isMounted && data && typeof data.totalTicketsSold === 'number') {
           setTicketingSummary(data);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/ticketing', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data) {
+          const list = Array.isArray(data.items)
+            ? data.items
+            : Array.isArray(data.events)
+              ? data.events
+              : [];
+          setTicketingEvents(list);
         }
       })
       .catch(() => {});
@@ -461,129 +478,214 @@ export default function DashboardPage() {
         >
           Tiket Seminar &amp; Konser
         </button>
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          style={{ marginLeft: 'auto' }}
-          onClick={() => setShowWaSopModal(true)}
-        >
-          Drawer Template WA EO (SOP 3 Babak)
-        </button>
+        {dashFilter !== 'wedding' && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => setShowWaSopModal(true)}
+          >
+            Drawer Template WA EO (SOP 3 Babak)
+          </button>
+        )}
       </div>
 
-      {/* ── Primary KPI Cards ── */}
+      {/* ── Primary KPI Cards (Selalu 5 Kolom Simetris Sesuai Filter) ── */}
       <section className="dash-kpis" aria-label="Ringkasan Indikator Utama">
-        {/* KPI 1: Total Event */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Total Event</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconCalendar />
+        {dashFilter === 'wedding' && (
+          <>
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Total Event</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconCalendar />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : totalEventsCount}</div>
+              <div className="dash-kpi__meta">Event terdaftar di sistem</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {loading ? '…' : totalEventsCount}
-          </div>
-          <div className="dash-kpi__meta">
-            Event terdaftar di sistem
-          </div>
-        </div>
 
-        {/* KPI 2: Event Aktif & Publikasi */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Event Publikasi</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconSparkles />
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Event Publikasi</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconSparkles />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : publishedEventsCount}</div>
+              <div className="dash-kpi__meta">Status PUBLISHED aktif</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {loading ? '…' : publishedEventsCount}
-          </div>
-          <div className="dash-kpi__meta">
-            Status PUBLISHED aktif
-          </div>
-        </div>
 
-        {/* KPI 3: Event Mendatang */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Event Mendatang</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconClock />
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Event Mendatang</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconClock />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : upcomingEventsCount}</div>
+              <div className="dash-kpi__meta">Jadwal belum terlewat</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {loading ? '…' : upcomingEventsCount}
-          </div>
-          <div className="dash-kpi__meta">
-            Jadwal belum terlewat
-          </div>
-        </div>
 
-        {/* KPI 4: Total Tamu */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Total Tamu</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconUsers />
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Total Tamu</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconUsers />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : totalGuestsCount}</div>
+              <div className="dash-kpi__meta">Unit undangan/keluarga, termasuk acara arsip</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {loading ? '…' : totalGuestsCount}
-          </div>
-          <div className="dash-kpi__meta">
-            Unit undangan/keluarga, termasuk acara arsip
-          </div>
-        </div>
 
-        {/* KPI 5: Template Aktif */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Katalog Template</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconTemplate />
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Katalog Template</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconTemplate />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : templatesCount}</div>
+              <div className="dash-kpi__meta">Ketentuan desain siap pakai</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {loading ? '…' : templatesCount}
-          </div>
-          <div className="dash-kpi__meta">
-            Ketentuan desain siap pakai
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* KPI 6: Tiket Terjual (Public Ticketing Integration) */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Tiket Terjual</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconTicketPass />
+        {dashFilter === 'tickets' && (
+          <>
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Event Tiket Aktif</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconCalendar />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{ticketingSummary.totalPublicEvents}</div>
+              <div className="dash-kpi__meta">Event publik aktif di /tiket</div>
             </div>
-          </div>
-          <div className="dash-kpi__value">
-            {ticketingSummary.totalTicketsSold.toLocaleString('id-ID')}
-          </div>
-          <div className="dash-kpi__meta">
-            {ticketingSummary.totalPublicEvents} event publik aktif di /tiket
-          </div>
-        </div>
 
-        {/* KPI 7: Pendapatan Tiket */}
-        <div className="dash-kpi">
-          <div className="dash-kpi__top">
-            <span className="dash-kpi__label">Pendapatan Tiket</span>
-            <div className="dash-kpi__icon-box" aria-hidden="true">
-              <IconRevenueWallet />
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Tiket Terjual</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconTicketPass />
+                </div>
+              </div>
+              <div className="dash-kpi__value">
+                {ticketingSummary.totalTicketsSold.toLocaleString('id-ID')}
+              </div>
+              <div className="dash-kpi__meta">Total e-ticket lunas terbit QR</div>
             </div>
-          </div>
-          <div className="dash-kpi__value" style={{ fontSize: '1.35rem' }}>
-            {ticketingSummary.grossTicketRevenueLabel}
-          </div>
-          <div className="dash-kpi__meta">
-            Fee Platform: {ticketingSummary.platformFeeRevenueLabel} (Rp 3rb/tkt)
-          </div>
-        </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Pendapatan Kotor</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconRevenueWallet />
+                </div>
+              </div>
+              <div className="dash-kpi__value" style={{ fontSize: '1.3rem' }}>
+                {ticketingSummary.grossTicketRevenueLabel}
+              </div>
+              <div className="dash-kpi__meta">Akumulasi penjualan seluruh tier</div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Fee Platform IRVITE</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconSparkles />
+                </div>
+              </div>
+              <div className="dash-kpi__value" style={{ fontSize: '1.3rem' }}>
+                {ticketingSummary.platformFeeRevenueLabel}
+              </div>
+              <div className="dash-kpi__meta">Flat Rp 3.000/tiket berbayar</div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Skema Settlement</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconClock />
+                </div>
+              </div>
+              <div className="dash-kpi__value" style={{ fontSize: '1.3rem' }}>
+                H+1 Otomatis
+              </div>
+              <div className="dash-kpi__meta">Pencairan langsung ke rekening EO</div>
+            </div>
+          </>
+        )}
+
+        {dashFilter === 'all' && (
+          <>
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Total Event Undangan</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconCalendar />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : totalEventsCount}</div>
+              <div className="dash-kpi__meta">
+                {loading ? '…' : `${publishedEventsCount} PUBLISHED • ${ totalGuestsCount } Tamu`}
+              </div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Event Mendatang</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconClock />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : upcomingEventsCount}</div>
+              <div className="dash-kpi__meta">Jadwal belum terlewat</div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Katalog Template</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconTemplate />
+                </div>
+              </div>
+              <div className="dash-kpi__value">{loading ? '…' : templatesCount}</div>
+              <div className="dash-kpi__meta">Ketentuan desain siap pakai</div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Tiket Terjual</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconTicketPass />
+                </div>
+              </div>
+              <div className="dash-kpi__value">
+                {ticketingSummary.totalTicketsSold.toLocaleString('id-ID')}
+              </div>
+              <div className="dash-kpi__meta">
+                {ticketingSummary.totalPublicEvents} event publik aktif di /tiket
+              </div>
+            </div>
+
+            <div className="dash-kpi">
+              <div className="dash-kpi__top">
+                <span className="dash-kpi__label">Pendapatan Tiket</span>
+                <div className="dash-kpi__icon-box" aria-hidden="true">
+                  <IconRevenueWallet />
+                </div>
+              </div>
+              <div className="dash-kpi__value" style={{ fontSize: '1.3rem' }}>
+                {ticketingSummary.grossTicketRevenueLabel}
+              </div>
+              <div className="dash-kpi__meta">
+                Fee Platform: {ticketingSummary.platformFeeRevenueLabel} (Rp 3rb/tkt)
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       {/* ── Buku Panduan Operasional Staf (Hanya tampil untuk akun peran STAFF) ── */}
@@ -724,818 +826,939 @@ export default function DashboardPage() {
 
       {/* ── Main Operational Layout ── */}
       <div className="dash-layout">
-        {/* Left Column: Upcoming Events & RSVP Summary */}
+        {/* Left Column */}
         <div className="dash-section">
-          {/* Section: Event Terdekat */}
-          <div className="dash-panel">
-            <div className="dash-panel__header">
-              <div className="dash-panel__title-group">
-                <h2 className="dash-panel__title">Event Terdekat</h2>
-                <span className="dash-panel__subtitle">
-                  Event mendatang yang memerlukan perhatian operasional.
-                </span>
-              </div>
-              <Link
-                href="/events"
-                className="btn btn-secondary btn-sm"
-                aria-label="Lihat semua event"
-              >
-                Semua Event
-              </Link>
-            </div>
-
-            <div className="dash-panel__body dash-panel__body--flush">
-              {wristbandExportNotice && (
-                <div
-                  style={{
-                    margin: '0.75rem 1.25rem 0',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '8px',
-                    background: '#ecfdf5',
-                    border: '1px solid #a7f3d0',
-                    color: '#065f46',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+          {/* Section 1 (Wedding): Event Undangan Terdekat — tampil saat 'all' atau 'wedding' */}
+          {dashFilter !== 'tickets' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <div className="dash-panel__title-group">
+                  <h2 className="dash-panel__title">Event Undangan Terdekat</h2>
+                  <span className="dash-panel__subtitle">
+                    Event undangan pernikahan mendatang yang memerlukan perhatian operasional.
+                  </span>
+                </div>
+                <Link
+                  href="/events"
+                  className="btn btn-secondary btn-sm"
+                  aria-label="Lihat semua event"
                 >
-                  <span>{wristbandExportNotice}</span>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setWristbandExportNotice(null)}
-                  >
-                    Tutup
-                  </button>
-                </div>
-              )}
+                  Semua Event
+                </Link>
+              </div>
 
-              {dashFilter !== 'wedding' && (
-                <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--admin-border, #e5e7eb)', background: 'var(--surface-subtle, #f9fafb)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <span className="badge badge--info">TIKET KONSER &amp; SEMINAR</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {ticketingSummary.totalPublicEvents} Event Publik Aktif • Fee Flat Rp 3.000/Tiket
-                        </span>
-                      </div>
-                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
-                        JAKARTA INDIE SOUNDWAVE FESTIVAL &amp; INDONESIA AI SUMMIT 2026
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        Terjual: <strong>{ticketingSummary.totalTicketsSold.toLocaleString('id-ID')} Tiket</strong> • Gross: <strong>{ticketingSummary.grossTicketRevenueLabel}</strong> • Payout Otomatis H+1
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() =>
-                          setWristbandExportNotice(
-                            'Paket ZIP Vektor QR Gelang 300 DPI (Tyvek & Lanyard) siap diunduh untuk produksi cetak.',
-                          )
-                        }
-                      >
-                        Ekspor ZIP Gelang (300 DPI)
-                      </button>
-                      <a
-                        href="https://irvite-id.vercel.app/tiket"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Lihat Web Tiket Client ↗
-                      </a>
-                    </div>
+              <div className="dash-panel__body dash-panel__body--flush">
+                {loading ? (
+                  <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    Memuat data event...
                   </div>
-                </div>
-              )}
-
-              {dashFilter === 'tickets' ? null : loading ? (
-                <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  Memuat data event...
-                </div>
-              ) : upcomingEvents.length === 0 ? (
-                /* Empty state */
-                <div className="dash-empty">
-                  <div className="dash-empty__icon" aria-hidden="true">
-                    <IconCalendar />
+                ) : upcomingEvents.length === 0 ? (
+                  <div className="dash-empty">
+                    <div className="dash-empty__icon" aria-hidden="true">
+                      <IconCalendar />
+                    </div>
+                    <div className="dash-empty__title">Belum Ada Event Undangan Terdekat</div>
+                    <p className="dash-empty__desc">
+                      Mulai buat undangan pernikahan pertama Anda menggunakan template siap pakai IRVITE.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-accent btn-sm"
+                      onClick={() => router.push('/events/create')}
+                    >
+                      <IconPlus />
+                      Buat Event
+                    </button>
                   </div>
-                  <div className="dash-empty__title">Belum Ada Event Terdekat</div>
-                  <p className="dash-empty__desc">
-                    Mulai buat undangan pernikahan pertama Anda menggunakan template siap pakai IRVITE.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn-accent btn-sm"
-                    onClick={() => router.push('/events/create')}
-                  >
-                    <IconPlus />
-                    Buat Event
-                  </button>
-                </div>
-              ) : (
-                /* List of upcoming events */
-                <div className="dash-events-list">
-                  {upcomingEvents.map((event) => (
-                    <div key={event.id} className="dash-event-row">
-                      <div className="dash-event-info">
-                        <div className="dash-event-headline">
-                          <span className="dash-event-title" title={event.title}>
-                            {event.title}
-                          </span>
-                          <span
-                            className={`badge ${
-                              event.status === 'PUBLISHED'
-                                ? 'badge--success'
-                                : event.status === 'COMPLETED'
-                                ? 'badge--info'
-                                : 'badge--neutral'
-                            }`}
-                          >
-                            {event.status}
-                          </span>
-                        </div>
-
-                        <div className="dash-event-meta">
-                          <span className="dash-event-meta-item">
-                            <IconCalendar />
-                            {formatDate(event.eventDate)}
-                          </span>
-
-                          {event.locationDetails && (
-                            <span className="dash-event-meta-item" title={event.locationDetails}>
-                              <IconMapPin />
-                              {event.locationDetails.length > 25
-                                ? `${event.locationDetails.slice(0, 25)}…`
-                                : event.locationDetails}
+                ) : (
+                  <div className="dash-events-list">
+                    {upcomingEvents.map((event) => (
+                      <div key={event.id} className="dash-event-row">
+                        <div className="dash-event-info">
+                          <div className="dash-event-headline">
+                            <span className="dash-event-title" title={event.title}>
+                              {event.title}
                             </span>
-                          )}
+                            <span
+                              className={`badge ${
+                                event.status === 'PUBLISHED'
+                                  ? 'badge--success'
+                                  : event.status === 'COMPLETED'
+                                  ? 'badge--info'
+                                  : 'badge--neutral'
+                              }`}
+                            >
+                              {event.status}
+                            </span>
+                          </div>
 
-                          <span className="dash-event-meta-item">
-                            <IconUsers />
-                            {event.guestCount !== undefined ? `${event.guestCount} Tamu` : '—'}
-                          </span>
+                          <div className="dash-event-meta">
+                            <span className="dash-event-meta-item">
+                              <IconCalendar />
+                              {formatDate(event.eventDate)}
+                            </span>
+
+                            {event.locationDetails && (
+                              <span className="dash-event-meta-item" title={event.locationDetails}>
+                                <IconMapPin />
+                                {event.locationDetails.length > 25
+                                  ? `${event.locationDetails.slice(0, 25)}…`
+                                  : event.locationDetails}
+                              </span>
+                            )}
+
+                            <span className="dash-event-meta-item">
+                              <IconUsers />
+                              {event.guestCount !== undefined ? `${event.guestCount} Tamu` : '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="dash-event-actions">
+                          <Link
+                            href={`/events/${event.id}/guests`}
+                            className="btn btn-secondary btn-sm"
+                            title="Kelola Tamu"
+                          >
+                            Kelola
+                          </Link>
+                          <Link
+                            href={`/events/${event.id}/edit`}
+                            className="btn btn-ghost btn-sm"
+                            title="Edit Detail Event"
+                          >
+                            Detail
+                          </Link>
                         </div>
                       </div>
-
-                      <div className="dash-event-actions">
-                        <Link
-                          href={`/events/${event.id}/guests`}
-                          className="btn btn-secondary btn-sm"
-                          title="Kelola Tamu"
-                        >
-                          Kelola
-                        </Link>
-                        <Link
-                          href={`/events/${event.id}/edit`}
-                          className="btn btn-ghost btn-sm"
-                          title="Edit Detail Event"
-                        >
-                          Detail
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Section: Ringkasan RSVP & Tamu */}
-          <div className="dash-rsvp-card">
-            <div className="dash-panel__title-group">
-              <h2 className="dash-panel__title">Ringkasan Respons Undangan (RSVP)</h2>
-              <span className="dash-panel__subtitle">
-                Agregat konfirmasi kehadiran tamu dari undangan aktif.
-              </span>
-            </div>
-
-            {rsvpStats.totalInvitations > 0 ? (
-              <>
-                {/* Proportional visualization bar */}
-                <div
-                  className="dash-rsvp-bar"
-                  role="progressbar"
-                  aria-label="Progress RSVP"
-                >
-                  <div
-                    className="dash-rsvp-bar__seg--yes"
-                    style={{
-                      width: `${(rsvpStats.attending / rsvpStats.totalInvitations) * 100}%`,
-                    }}
-                    title={`Hadir: ${rsvpStats.attending}`}
-                  />
-                  <div
-                    className="dash-rsvp-bar__seg--no"
-                    style={{
-                      width: `${(rsvpStats.declined / rsvpStats.totalInvitations) * 100}%`,
-                    }}
-                    title={`Tidak Hadir: ${rsvpStats.declined}`}
-                  />
-                  <div
-                    className="dash-rsvp-bar__seg--pending"
-                    style={{
-                      width: `${(rsvpStats.pending / rsvpStats.totalInvitations) * 100}%`,
-                    }}
-                    title={`Belum Respons: ${rsvpStats.pending}`}
-                  />
-                </div>
-
-                <div className="dash-rsvp-legend">
-                  <span className="dash-rsvp-legend-item">
-                    <span className="dash-rsvp-dot" style={{ background: '#059669' }} />
-                    Hadir: <strong>{rsvpStats.attending}</strong>
-                  </span>
-                  <span className="dash-rsvp-legend-item">
-                    <span className="dash-rsvp-dot" style={{ background: '#dc2626' }} />
-                    Tidak Hadir: <strong>{rsvpStats.declined}</strong>
-                  </span>
-                  <span className="dash-rsvp-legend-item">
-                    <span className="dash-rsvp-dot" style={{ background: "#7ca893" }} />
-                    Belum Merespons: <strong>{rsvpStats.pending}</strong>
-                  </span>
-                  <span className="dash-rsvp-legend-item" style={{ color: 'var(--text-tertiary)' }}>
-                    Total Undangan: <strong>{rsvpStats.totalInvitations}</strong>
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                <p>
-                  Belum ada data respons RSVP yang tercatat. Status kehadiran akan terbarui otomatis secara realtime saat tamu memberikan konfirmasi melalui website undangan pribadi mereka.
-                </p>
-                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--admin-accent)', fontSize: '0.75rem', fontWeight: 500 }}>
-                  <IconCheckCircle /> Presensi hari H diverifikasi melalui Scanner QR unik tamu.
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Quick Actions & Template Showcase */}
-        <div className="dash-section">
-          {/* Section: Aksi Cepat */}
-          <div className="dash-panel">
-            <div className="dash-panel__header">
-              <h2 className="dash-panel__title">Aksi Cepat</h2>
-            </div>
-            <div className="dash-panel__body">
-              <div className="dash-actions-grid">
-                {/* Action 1: Buat Event */}
-                <Link
-                  id="dash-action-create-event"
-                  href="/events/create"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconPlus />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Buat Event Baru
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Input data mempelai, tanggal akad/resepsi, dan venue acara.
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Action 2: Kelola Event */}
-                <Link
-                  id="dash-action-manage-events"
-                  href="/events"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconCalendar />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Kelola Event
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Akses daftar seluruh event, kelola daftar tamu, dan tautan undangan.
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Action 3: Lihat Template */}
-                <Link
-                  id="dash-action-view-templates"
-                  href="/templates"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconTemplate />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Katalog Template
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Eksplorasi koleksi desain undangan tetap siap pakai IRVITE.
-                    </p>
-                  </div>
-                </Link>
-
-                {/* Action 4: Buka Scanner */}
-                <Link
-                  id="dash-action-open-scanner"
-                  href="/events"
-                  className="dash-action-card"
-                >
-                  <div className="dash-action-card__icon" aria-hidden="true">
-                    <IconQr />
-                  </div>
-                  <div className="dash-action-card__content">
-                    <div className="dash-action-card__title">
-                      Scanner Presensi
-                      <IconArrowRight />
-                    </div>
-                    <p className="dash-action-card__desc">
-                      Pilih event aktif dan buka kamera scanner untuk check-in tamu.
-                    </p>
-                  </div>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Section: CS Fast-Resolution — Koreksi Typo Email 5 Detik */}
-          <div className="dash-panel">
-            <div className="dash-panel__header">
-              <div className="dash-panel__title-group">
-                <h2 className="dash-panel__title">CS Fast-Action: Koreksi Typo Email Pembeli (5 Detik)</h2>
-                <span className="dash-panel__subtitle">
-                  Perbaiki salah ketik email pembeli tiket dan kirim ulang E-Ticket secara instan.
-                </span>
-              </div>
-            </div>
-            <div className="dash-panel__body">
-              <form onSubmit={handleDashboardEmailCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div>
-                  <label htmlFor="dash-cs-code" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
-                    Kode Pesanan / Kode E-Ticket
-                  </label>
-                  <input
-                    id="dash-cs-code"
-                    className="form-input"
-                    value={csLookupCode}
-                    onChange={(e) => setCsLookupCode(e.target.value)}
-                    placeholder="ORD-IRV-2026-8821"
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-cs-email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
-                    Alamat Email Baru yang Valid
-                  </label>
-                  <input
-                    id="dash-cs-email"
-                    type="email"
-                    className="form-input"
-                    value={csNewEmail}
-                    onChange={(e) => setCsNewEmail(e.target.value)}
-                    placeholder="pembeli@gmail.com"
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={csLoading}>
-                  {csLoading ? 'Memproses & Mengirim Ulang...' : 'Koreksi Email & Kirim Ulang E-Ticket'}
-                </button>
-                {csFeedback && (
-                  <div
-                    style={{
-                      fontSize: '0.78rem',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: '8px',
-                      background: csFeedback.type === 'ok' ? '#ecfdf5' : '#fef2f2',
-                      color: csFeedback.type === 'ok' ? '#065f46' : '#991b1b',
-                      border: `1px solid ${csFeedback.type === 'ok' ? '#a7f3d0' : '#fecaca'}`,
-                    }}
-                  >
-                    {csFeedback.text}
+                    ))}
                   </div>
                 )}
-              </form>
-            </div>
-          </div>
-
-          {/* Section: Template Katalog Overview */}
-          <div className="dash-panel">
-            <div className="dash-panel__header">
-              <div className="dash-panel__title-group">
-                <h2 className="dash-panel__title">Template Undangan Siap Pakai</h2>
-                <span className="dash-panel__subtitle">
-                  Desain tetap berbasis kode dengan estetika terkurasi.
-                </span>
               </div>
             </div>
-            <div className="dash-panel__body">
-              <div className="dash-tpl-showcase">
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Setiap template di IRVITE memiliki tipografi dan layout dengan ketentuan baku untuk performa optimal di seluruh perangkat.
-                </p>
+          )}
 
-                <div className="dash-tpl-pill-list">
-                  {!loading && templateHighlights.length === 0 && <p>Belum ada template tersedia.</p>}
-                  {templateHighlights.map((tpl) => (
-                    <div key={tpl.id} className="dash-tpl-pill">
-                      <span className="dash-tpl-pill__name">{tpl.name}</span>
-                      <span className="dash-tpl-pill__tag">{tpl.themeCode}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <Link
-                  href="/templates"
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', marginTop: '0.25rem' }}
-                >
-                  Buka Katalog Lengkap <IconArrowRight />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modal: Pemilihan Jenis Event Saat Klik "+ Buat Event" */}
-      {showEventTypeModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 31, 23, 0.55)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.25rem',
-          }}
-          onClick={() => setShowEventTypeModal(false)}
-        >
-          <div
-            style={{
-              background: 'var(--surface-primary, #ffffff)',
-              borderRadius: '16px',
-              maxWidth: '460px',
-              width: '100%',
-              padding: '1.5rem',
-              border: '1px solid var(--admin-border, #e5e7eb)',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-                Pilih Jenis Event Baru
-              </h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setShowEventTypeModal(false)}
-              >
-                Tutup
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div
-                onClick={() => {
-                  setShowEventTypeModal(false);
-                  router.push('/events/create');
-                }}
-                style={{
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  border: '1px solid var(--admin-border, #d1d5db)',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: '0.25rem' }}>
-                  Undangan Pernikahan Digital
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Input data mempelai, tanggal akad &amp; resepsi, customizer tema eksklusif, dan amplop digital.
-                </div>
-              </div>
-
-              <div
-                onClick={() => {
-                  setShowEventTypeModal(false);
-                  setShowCreateTicketModal(true);
-                }}
-                style={{
-                  padding: '1rem',
-                  borderRadius: '12px',
-                  border: '2px solid #1b3b2b',
-                  background: 'rgba(27, 59, 43, 0.04)',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                  <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>
-                    Tiket Event / Seminar / Konser
+          {/* Section 2 (Ticketing): Daftar Event Tiket Publik — tampil saat 'all' atau 'tickets' */}
+          {dashFilter !== 'wedding' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <div className="dash-panel__title-group">
+                  <h2 className="dash-panel__title">Event Tiket Publik (Konser &amp; Seminar)</h2>
+                  <span className="dash-panel__subtitle">
+                    Daftar event aktif di katalog publik irvite-id.vercel.app/tiket • Fee Flat Rp 3.000/tiket
                   </span>
-                  <span className="badge badge--success">BARU</span>
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Atur tier tiket (Presale/Reguler/VIP), kuota &amp; harga, opsi cetak gelang fisik, dan Gate Scanner.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Drawer Template WhatsApp Kemitraan EO (SOP 3 Babak) */}
-      {showWaSopModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 31, 23, 0.55)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.25rem',
-          }}
-          onClick={() => setShowWaSopModal(false)}
-        >
-          <div
-            style={{
-              background: 'var(--surface-primary, #ffffff)',
-              borderRadius: '16px',
-              maxWidth: '580px',
-              width: '100%',
-              padding: '1.5rem',
-              border: '1px solid var(--admin-border, #e5e7eb)',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-                  Drawer WhatsApp Kemitraan EO (SOP 3 Babak)
-                </h2>
-                <p style={{ margin: '0.2rem 0 0', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                  Klik 1 tombol untuk menyalin skrip percakapan ramah ke WhatsApp calon Event Organizer.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setShowWaSopModal(false)}
-              >
-                Tutup
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {[
-                {
-                  id: 'b1',
-                  label: 'Babak 1: Pemanasan & Profil',
-                  text: 'Halo Kak! Salam hangat dari tim IRVITE.id. Boleh info nama acara, tanggal pelaksanaan, & estimasi kuota penontonnya Kak?',
-                },
-                {
-                  id: 'b2',
-                  label: 'Babak 2: Format Tiket & Gelang',
-                  text: 'Siap Kak! Di IRVITE fee flat Rp 3.000/tiket (acara gratis Rp 0). Mau pakai E-Ticket Digital di HP atau sekalian produksi Gelang Fisik Tyvek/Kain QR 300 DPI?',
-                },
-                {
-                  id: 'b3',
-                  label: 'Babak 3: Closing Data & Link Payout H+1',
-                  text: 'Mantap Kak, kami bantu setup hari ini! Mohon kirimkan poster 16:9, daftar tier tiket, serta nomor rekening resmi EO untuk pencairan dana otomatis H+1.',
-                },
-              ].map((step) => (
-                <div
-                  key={step.id}
-                  style={{
-                    padding: '0.85rem',
-                    borderRadius: '10px',
-                    border: '1px solid var(--admin-border, #e5e7eb)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8C6224', textTransform: 'uppercase' }}>
-                      {step.label}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                      &ldquo;{step.text}&rdquo;
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                        void navigator.clipboard.writeText(step.text);
-                      }
-                      setCopiedSopId(step.id);
-                      setTimeout(() => setCopiedSopId(null), 2000);
+                    onClick={() =>
+                      setWristbandExportNotice(
+                        'Paket ZIP Vektor QR Gelang 300 DPI (Tyvek & Lanyard) siap diunduh untuk produksi cetak.',
+                      )
+                    }
+                  >
+                    Ekspor ZIP Gelang (300 DPI)
+                  </button>
+                  <a
+                    href="https://irvite-id.vercel.app/tiket"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Lihat Web Tiket Client ↗
+                  </a>
+                </div>
+              </div>
+
+              <div className="dash-panel__body dash-panel__body--flush">
+                {wristbandExportNotice && (
+                  <div
+                    style={{
+                      margin: '0.75rem 1.25rem 0',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#065f46',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
                     }}
                   >
-                    {copiedSopId === step.id ? 'Tersalin' : 'Salin'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+                    <span>{wristbandExportNotice}</span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setWristbandExportNotice(null)}
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                )}
 
-      {/* Modal: Buat Event Tiket Publik Baru */}
-      {showCreateTicketModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 31, 23, 0.55)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 100,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1.25rem',
-          }}
-          onClick={() => setShowCreateTicketModal(false)}
-        >
+                <div className="dash-events-list">
+                  {ticketingEvents.map((ev) => {
+                    const sold = ev.tiers.reduce((acc, t) => acc + t.soldCount, 0);
+                    const quota = ev.tiers.reduce((acc, t) => acc + t.quota, 0);
+                    return (
+                      <div key={ev.id} className="dash-event-row">
+                        <div className="dash-event-info">
+                          <div className="dash-event-headline">
+                            <span className="dash-event-title" title={ev.title}>
+                              {ev.title}
+                            </span>
+                            <span className="badge badge--info">{ev.category}</span>
+                            <span className="badge badge--success">PUBLISHED</span>
+                          </div>
+                          <div className="dash-event-meta">
+                            <span className="dash-event-meta-item">
+                              <IconCalendar />
+                              {ev.eventDate}
+                            </span>
+                            <span className="dash-event-meta-item">
+                              <IconMapPin />
+                              {ev.venueName}, {ev.city}
+                            </span>
+                            <span className="dash-event-meta-item">
+                              <IconTicketPass />
+                              {sold.toLocaleString('id-ID')} / {quota.toLocaleString('id-ID')} Tiket Terjual
+                            </span>
+                          </div>
+                        </div>
+                        <div className="dash-event-actions">
+                          <Link href="/orders" className="btn btn-secondary btn-sm">
+                            Pesanan Tiket
+                          </Link>
+                          <a
+                            href="https://irvite-id.vercel.app/tiket"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-ghost btn-sm"
+                          >
+                            Buka ↗
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 3 (Wedding): Ringkasan RSVP & Tamu — hanya tampil saat 'all' atau 'wedding' */}
+          {dashFilter !== 'tickets' && (
+            <div className="dash-rsvp-card">
+              <div className="dash-panel__title-group">
+                <h2 className="dash-panel__title">Ringkasan Respons Undangan (RSVP)</h2>
+                <span className="dash-panel__subtitle">
+                  Agregat konfirmasi kehadiran tamu dari undangan aktif.
+                </span>
+              </div>
+
+              {rsvpStats.totalInvitations > 0 ? (
+                <>
+                  <div
+                    className="dash-rsvp-bar"
+                    role="progressbar"
+                    aria-label="Progress RSVP"
+                  >
+                    <div
+                      className="dash-rsvp-bar__seg--yes"
+                      style={{
+                        width: `${(rsvpStats.attending / rsvpStats.totalInvitations) * 100}%`,
+                      }}
+                      title={`Hadir: ${rsvpStats.attending}`}
+                    />
+                    <div
+                      className="dash-rsvp-bar__seg--no"
+                      style={{
+                        width: `${(rsvpStats.declined / rsvpStats.totalInvitations) * 100}%`,
+                      }}
+                      title={`Tidak Hadir: ${rsvpStats.declined}`}
+                    />
+                    <div
+                      className="dash-rsvp-bar__seg--pending"
+                      style={{
+                        width: `${(rsvpStats.pending / rsvpStats.totalInvitations) * 100}%`,
+                      }}
+                      title={`Belum Respons: ${rsvpStats.pending}`}
+                    />
+                  </div>
+
+                  <div className="dash-rsvp-legend">
+                    <span className="dash-rsvp-legend-item">
+                      <span className="dash-rsvp-dot" style={{ background: '#059669' }} />
+                      Hadir: <strong>{rsvpStats.attending}</strong>
+                    </span>
+                    <span className="dash-rsvp-legend-item">
+                      <span className="dash-rsvp-dot" style={{ background: '#dc2626' }} />
+                      Tidak Hadir: <strong>{rsvpStats.declined}</strong>
+                    </span>
+                    <span className="dash-rsvp-legend-item">
+                      <span className="dash-rsvp-dot" style={{ background: '#7ca893' }} />
+                      Belum Merespons: <strong>{rsvpStats.pending}</strong>
+                    </span>
+                    <span className="dash-rsvp-legend-item" style={{ color: 'var(--text-tertiary)' }}>
+                      Total Undangan: <strong>{rsvpStats.totalInvitations}</strong>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  <p>
+                    Belum ada data respons RSVP yang tercatat. Status kehadiran akan terbarui otomatis secara realtime saat tamu memberikan konfirmasi melalui website undangan pribadi mereka.
+                  </p>
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--admin-accent)', fontSize: '0.75rem', fontWeight: 500 }}>
+                    <IconCheckCircle /> Presensi hari H diverifikasi melalui Scanner QR unik tamu.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column */}
+        <div className="dash-section">
+          {/* Section: Aksi Cepat Undangan — tampil saat 'all' atau 'wedding' */}
+          {dashFilter !== 'tickets' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <h2 className="dash-panel__title">Aksi Cepat Undangan</h2>
+              </div>
+              <div className="dash-panel__body">
+                <div className="dash-actions-grid">
+                  <Link
+                    id="dash-action-create-event"
+                    href="/events/create"
+                    className="dash-action-card"
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconPlus />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Buat Event Baru
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Input data mempelai, tanggal akad/resepsi, dan venue acara.
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    id="dash-action-manage-events"
+                    href="/events"
+                    className="dash-action-card"
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconCalendar />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Kelola Event
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Akses daftar seluruh event, kelola daftar tamu, dan tautan undangan.
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    id="dash-action-view-templates"
+                    href="/templates"
+                    className="dash-action-card"
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconTemplate />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Katalog Template
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Eksplorasi koleksi desain undangan tetap siap pakai IRVITE.
+                      </p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    id="dash-action-open-scanner"
+                    href="/events"
+                    className="dash-action-card"
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconQr />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Scanner Presensi
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Pilih event aktif dan buka kamera scanner untuk check-in tamu.
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section: Aksi Cepat Operasional Tiket — tampil saat 'tickets' */}
+          {dashFilter === 'tickets' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <h2 className="dash-panel__title">Aksi Cepat Operasional Tiket</h2>
+              </div>
+              <div className="dash-panel__body">
+                <div className="dash-actions-grid">
+                  <button
+                    type="button"
+                    className="dash-action-card"
+                    style={{ textAlign: 'left', width: '100%', cursor: 'pointer' }}
+                    onClick={() => setShowCreateTicketModal(true)}
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconPlus />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Buat Event Tiket Baru
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Terbitkan konser, seminar, atau workshop baru ke katalog /tiket.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="dash-action-card"
+                    style={{ textAlign: 'left', width: '100%', cursor: 'pointer' }}
+                    onClick={() => setShowWaSopModal(true)}
+                  >
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconSparkles />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Drawer WhatsApp EO (SOP 3 Babak)
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Salin template balasan cepat kemitraan EO dan rincian fee Rp 3.000.
+                      </p>
+                    </div>
+                  </button>
+
+                  <Link href="/orders" className="dash-action-card">
+                    <div className="dash-action-card__icon" aria-hidden="true">
+                      <IconTicketPass />
+                    </div>
+                    <div className="dash-action-card__content">
+                      <div className="dash-action-card__title">
+                        Kelola Pesanan Tiket
+                        <IconArrowRight />
+                      </div>
+                      <p className="dash-action-card__desc">
+                        Pantau transaksi pembelian e-ticket dan status penerbitan QR Pass.
+                      </p>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section: CS Fast-Resolution — Koreksi Typo Email 5 Detik (hanya tampil saat 'all' atau 'tickets') */}
+          {dashFilter !== 'wedding' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <div className="dash-panel__title-group">
+                  <h2 className="dash-panel__title">CS Fast-Action: Koreksi Typo Email Pembeli (5 Detik)</h2>
+                  <span className="dash-panel__subtitle">
+                    Perbaiki salah ketik email pembeli tiket dan kirim ulang E-Ticket secara instan.
+                  </span>
+                </div>
+              </div>
+              <div className="dash-panel__body">
+                <form onSubmit={handleDashboardEmailCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div>
+                    <label htmlFor="dash-cs-code" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                      Kode Pesanan / Kode E-Ticket
+                    </label>
+                    <input
+                      id="dash-cs-code"
+                      className="form-input"
+                      value={csLookupCode}
+                      onChange={(e) => setCsLookupCode(e.target.value)}
+                      placeholder="ORD-IRV-2026-8821"
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="dash-cs-email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                      Alamat Email Baru yang Valid
+                    </label>
+                    <input
+                      id="dash-cs-email"
+                      type="email"
+                      className="form-input"
+                      value={csNewEmail}
+                      onChange={(e) => setCsNewEmail(e.target.value)}
+                      placeholder="pembeli@gmail.com"
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={csLoading}>
+                    {csLoading ? 'Memproses & Mengirim Ulang...' : 'Koreksi Email & Kirim Ulang E-Ticket'}
+                  </button>
+                  {csFeedback && (
+                    <div
+                      style={{
+                        fontSize: '0.78rem',
+                        padding: '0.65rem 0.75rem',
+                        borderRadius: '8px',
+                        background: csFeedback.type === 'ok' ? '#ecfdf5' : '#fef2f2',
+                        color: csFeedback.type === 'ok' ? '#065f46' : '#991b1b',
+                        border: `1px solid ${csFeedback.type === 'ok' ? '#a7f3d0' : '#fecaca'}`,
+                      }}
+                    >
+                      {csFeedback.text}
+                    </div>
+                  )}
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Section: Template Katalog Overview — hanya tampil saat 'all' atau 'wedding' */}
+          {dashFilter !== 'tickets' && (
+            <div className="dash-panel">
+              <div className="dash-panel__header">
+                <div className="dash-panel__title-group">
+                  <h2 className="dash-panel__title">Template Undangan Siap Pakai</h2>
+                  <span className="dash-panel__subtitle">
+                    Desain tetap berbasis kode dengan estetika terkurasi.
+                  </span>
+                </div>
+              </div>
+              <div className="dash-panel__body">
+                <div className="dash-tpl-showcase">
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Setiap template di IRVITE memiliki tipografi dan layout dengan ketentuan baku untuk performa optimal di seluruh perangkat.
+                  </p>
+
+                  <div className="dash-tpl-pill-list">
+                    {!loading && templateHighlights.length === 0 && <p>Belum ada template tersedia.</p>}
+                    {templateHighlights.map((tpl) => (
+                      <div key={tpl.id} className="dash-tpl-pill">
+                        <span className="dash-tpl-pill__name">{tpl.name}</span>
+                        <span className="dash-tpl-pill__tag">{tpl.themeCode}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link
+                    href="/templates"
+                    className="btn btn-secondary btn-sm"
+                    style={{ width: '100%', marginTop: '0.25rem' }}
+                  >
+                    Buka Katalog Lengkap <IconArrowRight />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal: Pemilihan Jenis Event Saat Klik "+ Buat Event" (Portal ke document.body agar selalu di tengah viewport) */}
+      {showEventTypeModal &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
             style={{
-              background: 'var(--surface-primary, #ffffff)',
-              borderRadius: '16px',
-              maxWidth: '520px',
-              width: '100%',
-              padding: '1.5rem',
-              border: '1px solid var(--admin-border, #e5e7eb)',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 31, 23, 0.55)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.25rem',
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setShowEventTypeModal(false)}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
-                Buat Event Tiket Publik Baru
-              </h2>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setShowCreateTicketModal(false)}
-              >
-                Tutup
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTicketEvent} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                  Judul Event (Tampil di Katalog /tiket)
-                </label>
-                <input
-                  className="form-input"
-                  value={newTktTitle}
-                  onChange={(e) => setNewTktTitle(e.target.value)}
-                  placeholder="Contoh: JAKARTA SYMPHONY NIGHT 2026"
-                  required
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Kategori Acara
-                  </label>
-                  <select
-                    className="form-input"
-                    value={newTktCategory}
-                    onChange={(e) => setNewTktCategory(e.target.value)}
-                    style={{ width: '100%' }}
-                  >
-                    <option value="Konser Musik">Konser Musik</option>
-                    <option value="Seminar & Edukasi">Seminar &amp; Edukasi</option>
-                    <option value="Workshop">Workshop</option>
-                    <option value="Standup Comedy">Standup Comedy</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Tanggal Acara
-                  </label>
-                  <input
-                    className="form-input"
-                    value={newTktDate}
-                    onChange={(e) => setNewTktDate(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Nama Venue / Gedung
-                  </label>
-                  <input
-                    className="form-input"
-                    value={newTktVenue}
-                    onChange={(e) => setNewTktVenue(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Kota
-                  </label>
-                  <input
-                    className="form-input"
-                    value={newTktCity}
-                    onChange={(e) => setNewTktCity(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 0.8fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Nama Tier Utama
-                  </label>
-                  <input
-                    className="form-input"
-                    value={newTktTierName}
-                    onChange={(e) => setNewTktTierName(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Harga (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    className="form-input"
-                    value={newTktPrice}
-                    onChange={(e) => setNewTktPrice(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    Kuota
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="form-input"
-                    value={newTktQuota}
-                    onChange={(e) => setNewTktQuota(e.target.value)}
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <div
+              style={{
+                background: 'var(--surface-primary, #ffffff)',
+                borderRadius: '16px',
+                maxWidth: '460px',
+                width: '100%',
+                padding: '1.5rem',
+                border: '1px solid var(--admin-border, #e5e7eb)',
+                boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                  Pilih Jenis Event Baru
+                </h2>
                 <button
                   type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowCreateTicketModal(false)}
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowEventTypeModal(false)}
                 >
-                  Batal
-                </button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={creatingTicketEvent}>
-                  {creatingTicketEvent ? 'Menerbitkan...' : 'Terbitkan ke Katalog /tiket'}
+                  Tutup
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div
+                  onClick={() => {
+                    setShowEventTypeModal(false);
+                    router.push('/events/create');
+                  }}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    border: '1px solid var(--admin-border, #d1d5db)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: '0.25rem' }}>
+                    Undangan Pernikahan Digital
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Input data mempelai, tanggal akad &amp; resepsi, customizer tema eksklusif, dan amplop digital.
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setShowEventTypeModal(false);
+                    setShowCreateTicketModal(true);
+                  }}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    border: '2px solid #1b3b2b',
+                    background: 'rgba(27, 59, 43, 0.04)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                      Tiket Event / Seminar / Konser
+                    </span>
+                    <span className="badge badge--success">BARU</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                    Atur tier tiket (Presale/Reguler/VIP), kuota &amp; harga, opsi cetak gelang fisik, dan Gate Scanner.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Modal: Drawer Template WhatsApp Kemitraan EO (SOP 3 Babak) */}
+      {showWaSopModal &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 31, 23, 0.55)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.25rem',
+            }}
+            onClick={() => setShowWaSopModal(false)}
+          >
+            <div
+              style={{
+                background: 'var(--surface-primary, #ffffff)',
+                borderRadius: '16px',
+                maxWidth: '580px',
+                width: '100%',
+                padding: '1.5rem',
+                border: '1px solid var(--admin-border, #e5e7eb)',
+                boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                    Drawer WhatsApp Kemitraan EO (SOP 3 Babak)
+                  </h2>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                    Klik 1 tombol untuk menyalin skrip percakapan ramah ke WhatsApp calon Event Organizer.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowWaSopModal(false)}
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {[
+                  {
+                    id: 'b1',
+                    label: 'Babak 1: Pemanasan & Profil',
+                    text: 'Halo Kak! Salam hangat dari tim IRVITE.id. Boleh info nama acara, tanggal pelaksanaan, & estimasi kuota penontonnya Kak?',
+                  },
+                  {
+                    id: 'b2',
+                    label: 'Babak 2: Format Tiket & Gelang',
+                    text: 'Siap Kak! Di IRVITE fee flat Rp 3.000/tiket (acara gratis Rp 0). Mau pakai E-Ticket Digital di HP atau sekalian produksi Gelang Fisik Tyvek/Kain QR 300 DPI?',
+                  },
+                  {
+                    id: 'b3',
+                    label: 'Babak 3: Closing Data & Link Payout H+1',
+                    text: 'Mantap Kak, kami bantu setup hari ini! Mohon kirimkan poster 16:9, daftar tier tiket, serta nomor rekening resmi EO untuk pencairan dana otomatis H+1.',
+                  },
+                ].map((step) => (
+                  <div
+                    key={step.id}
+                    style={{
+                      padding: '0.85rem',
+                      borderRadius: '10px',
+                      border: '1px solid var(--admin-border, #e5e7eb)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8C6224', textTransform: 'uppercase' }}>
+                        {step.label}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                        &ldquo;{step.text}&rdquo;
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                          void navigator.clipboard.writeText(step.text);
+                        }
+                        setCopiedSopId(step.id);
+                        setTimeout(() => setCopiedSopId(null), 2000);
+                      }}
+                    >
+                      {copiedSopId === step.id ? 'Tersalin' : 'Salin'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Modal: Buat Event Tiket Publik Baru */}
+      {showCreateTicketModal &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 31, 23, 0.55)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.25rem',
+            }}
+            onClick={() => setShowCreateTicketModal(false)}
+          >
+            <div
+              style={{
+                background: 'var(--surface-primary, #ffffff)',
+                borderRadius: '16px',
+                maxWidth: '520px',
+                width: '100%',
+                padding: '1.5rem',
+                border: '1px solid var(--admin-border, #e5e7eb)',
+                boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                  Buat Event Tiket Publik Baru
+                </h2>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setShowCreateTicketModal(false)}
+                >
+                  Tutup
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTicketEvent} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Judul Event (Tampil di Katalog /tiket)
+                  </label>
+                  <input
+                    className="form-input"
+                    value={newTktTitle}
+                    onChange={(e) => setNewTktTitle(e.target.value)}
+                    placeholder="Contoh: JAKARTA SYMPHONY NIGHT 2026"
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Kategori Acara
+                    </label>
+                    <select
+                      className="form-input"
+                      value={newTktCategory}
+                      onChange={(e) => setNewTktCategory(e.target.value)}
+                      style={{ width: '100%' }}
+                    >
+                      <option value="Konser Musik">Konser Musik</option>
+                      <option value="Seminar & Edukasi">Seminar &amp; Edukasi</option>
+                      <option value="Workshop">Workshop</option>
+                      <option value="Standup Comedy">Standup Comedy</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Tanggal Acara
+                    </label>
+                    <input
+                      className="form-input"
+                      value={newTktDate}
+                      onChange={(e) => setNewTktDate(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Nama Venue / Gedung
+                    </label>
+                    <input
+                      className="form-input"
+                      value={newTktVenue}
+                      onChange={(e) => setNewTktVenue(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Kota
+                    </label>
+                    <input
+                      className="form-input"
+                      value={newTktCity}
+                      onChange={(e) => setNewTktCity(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 0.8fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Nama Tier Utama
+                    </label>
+                    <input
+                      className="form-input"
+                      value={newTktTierName}
+                      onChange={(e) => setNewTktTierName(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Harga (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="form-input"
+                      value={newTktPrice}
+                      onChange={(e) => setNewTktPrice(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                      Kuota
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="form-input"
+                      value={newTktQuota}
+                      onChange={(e) => setNewTktQuota(e.target.value)}
+                      required
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowCreateTicketModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={creatingTicketEvent}>
+                    {creatingTicketEvent ? 'Menerbitkan...' : 'Terbitkan ke Katalog /tiket'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

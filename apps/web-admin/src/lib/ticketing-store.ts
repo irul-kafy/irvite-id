@@ -294,6 +294,9 @@ const INITIAL_ORDERS: TicketOrderRecord[] = [
   },
 ];
 
+export const PUBLIC_TICKETING_EVENTS: PublicTicketingEvent[] = INITIAL_EVENTS;
+export const PUBLIC_TICKETING_ORDERS: TicketOrderRecord[] = INITIAL_ORDERS;
+
 // Global store instance so state persists across Next.js route invocations in dev/prod
 const globalForTicketing = globalThis as unknown as {
   irviteTicketingEvents?: PublicTicketingEvent[];

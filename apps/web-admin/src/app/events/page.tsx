@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCanonicalPublicEventUrl } from '@/utils/url';
+import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent } from '@/lib/ticketing-store';
 
 type EventData = {
   id: string;
@@ -107,6 +108,8 @@ function statusBadgeClass(status?: string): string {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventData[]>([]);
+  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>(PUBLIC_TICKETING_EVENTS);
+  const [eventCategoryTab, setEventCategoryTab] = useState<'wedding' | 'tickets'>('wedding');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
@@ -122,7 +125,22 @@ export default function EventsPage() {
       try {
         setLoading(true);
         setError('');
-        const adminRes = await fetch(`/api/events?page=${page}&limit=10&filter=${filter}`, { signal: controller.signal, cache: 'no-store' });
+        const [adminRes, tktRes] = await Promise.all([
+          fetch(`/api/events?page=${page}&limit=10&filter=${filter}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch('/api/ticketing', { signal: controller.signal, cache: 'no-store' }).catch(() => null),
+        ]);
+
+        if (tktRes && tktRes.ok) {
+          const tktData = await tktRes.json().catch(() => null);
+          const list = Array.isArray(tktData?.items)
+            ? tktData.items
+            : Array.isArray(tktData?.events)
+              ? tktData.events
+              : null;
+          if (list) {
+            setTicketingEvents(list);
+          }
+        }
 
         if (adminRes.status === 401) {
           router.push('/login');
@@ -181,113 +199,228 @@ export default function EventsPage() {
           <h1 className="admin-page__title">Events</h1>
           <p className="admin-page__subtitle">
             {isAdmin
-              ? 'Kelola seluruh acara dan undangan client IRVITE.'
+              ? 'Kelola seluruh acara undangan pernikahan dan tiket event publik client IRVITE.'
               : 'Pilih acara yang ditugaskan untuk membuka scanner QR kehadiran.'}
           </p>
         </div>
         {isAdmin && (
-          <button
-            id="events-create-btn"
-            className="btn btn-primary"
-            onClick={() => router.push('/events/create')}
-            type="button"
-          >
-            <IconPlus />
-            + Buat Event
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              id="events-create-btn"
+              className="btn btn-primary"
+              onClick={() => router.push('/events/create')}
+              type="button"
+            >
+              <IconPlus />
+              Buat Event Undangan
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Filter Tabs */}
+      {/* Category Switcher: Undangan Pernikahan vs Tiket Event & Konser */}
       {isAdmin && (
-        <div style={{ display: 'flex', gap: '0.5rem', margin: '0.5rem 0 1.25rem 0' }} role="tablist" aria-label="Filter status acara">
-          <button
-            type="button"
-            id="filter-all"
-            className={'btn btn-sm ' + (filter === 'all' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => { setFilter('all'); setPage(1); }}
-          >
-            Semua
-          </button>
-          <button
-            type="button"
-            id="filter-active"
-            className={'btn btn-sm ' + (filter === 'active' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => { setFilter('active'); setPage(1); }}
-          >
-            Aktif
-          </button>
-          <button
-            type="button"
-            id="filter-archived"
-            className={'btn btn-sm ' + (filter === 'archived' ? 'btn-primary' : 'btn-secondary')}
-            onClick={() => { setFilter('archived'); setPage(1); }}
-          >
-            Diarsipkan
-          </button>
-        </div>
-      )}
-
-      {isAdmin && !error && (
-        <nav aria-label="Halaman daftar acara" className="flex-between" style={{ marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary btn-sm" disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}>Sebelumnya</button>
-          <span aria-live="polite">{loading ? 'Memuat…' : `${total} acara · Halaman ${page} / ${lastPage}`}</span>
-          <button className="btn btn-secondary btn-sm" disabled={loading || page >= lastPage} onClick={() => setPage((value) => value + 1)}>Berikutnya</button>
-        </nav>
-      )}
-
-      {/* Error Alert */}
-      {error && (
-        <div className="alert alert--error mb-6" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* Loading Skeleton */}
-      {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                height: '96px',
-                borderRadius: 'var(--radius-lg)',
-                background: 'var(--admin-surface)',
-                border: '1px solid var(--admin-border)',
-                animation: 'admin-skeleton-pulse 1.5s ease-in-out infinite',
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && events.length === 0 && (
-        <div className="card">
-          <div className="empty-state">
-            <IconEmpty />
-            <div className="empty-state__title" style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-              Belum ada event
-            </div>
-            <p className="empty-state__desc" style={{ maxWidth: '420px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
-              {isAdmin
-                ? 'Belum ada event. Buat event pertama untuk mulai menyiapkan undangan digital.'
-                : 'Belum ada acara yang ditugaskan ke akun staff Anda.'}
-            </p>
-            {isAdmin && (
-              <button
-                id="events-empty-create-btn"
-                className="btn btn-primary"
-                onClick={() => router.push('/events/create')}
-                type="button"
-              >
-                <IconPlus />
-                + Buat Event
-              </button>
-            )}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            margin: '0.25rem 0 1.25rem 0',
+            paddingBottom: '0.75rem',
+            borderBottom: '1px solid var(--admin-border)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${eventCategoryTab === 'wedding' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setEventCategoryTab('wedding')}
+            >
+              Undangan Pernikahan ({total})
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${eventCategoryTab === 'tickets' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setEventCategoryTab('tickets')}
+            >
+              Tiket Event &amp; Konser ({ticketingEvents.length})
+            </button>
           </div>
+
+          {eventCategoryTab === 'wedding' && (
+            <div style={{ display: 'flex', gap: '0.5rem' }} role="tablist" aria-label="Filter status acara">
+              <button
+                type="button"
+                id="filter-all"
+                className={'btn btn-sm ' + (filter === 'all' ? 'btn-primary' : 'btn-secondary')}
+                onClick={() => { setFilter('all'); setPage(1); }}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                id="filter-active"
+                className={'btn btn-sm ' + (filter === 'active' ? 'btn-primary' : 'btn-secondary')}
+                onClick={() => { setFilter('active'); setPage(1); }}
+              >
+                Aktif
+              </button>
+              <button
+                type="button"
+                id="filter-archived"
+                className={'btn btn-sm ' + (filter === 'archived' ? 'btn-primary' : 'btn-secondary')}
+                onClick={() => { setFilter('archived'); setPage(1); }}
+              >
+                Diarsipkan
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      {eventCategoryTab === 'tickets' ? (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Acara &amp; Kategori</th>
+                <th>Tanggal &amp; Waktu</th>
+                <th>Lokasi</th>
+                <th>Tiket Terjual</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ticketingEvents.map((ev) => {
+                const sold = ev.tiers.reduce((acc, t) => acc + t.soldCount, 0);
+                const quota = ev.tiers.reduce((acc, t) => acc + t.quota, 0);
+                return (
+                  <tr key={ev.id}>
+                    <td>
+                      <div className="font-semibold" style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                        {ev.title}
+                      </div>
+                      <div className="text-xs text-muted mt-1 flex-center gap-2">
+                        <span style={{ color: 'var(--admin-accent)', fontWeight: 600 }}>{ev.category}</span>
+                        <span>•</span>
+                        <span>EO: {ev.organizerName}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        <IconCalendar />
+                        <span>{ev.eventDate}</span>
+                      </div>
+                      <div className="text-xs text-muted mt-1">{ev.eventTime}</div>
+                    </td>
+                    <td>
+                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        <IconLocation />
+                        <span>{ev.venueName}, {ev.city}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="font-semibold" style={{ fontSize: '0.875rem' }}>
+                        {sold.toLocaleString('id-ID')} / {quota.toLocaleString('id-ID')} Tiket
+                      </div>
+                      <div className="text-xs text-muted">
+                        Mulai {ev.startingPriceLabel}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge badge--success">PUBLISHED</span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => router.push('/orders')}
+                        >
+                          Pesanan Tiket
+                        </button>
+                        <a
+                          href="https://irvite-id.vercel.app/tiket"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-success btn-sm flex-center gap-1"
+                        >
+                          <IconExternal />
+                          Web Tiket
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <>
+          {isAdmin && !error && (
+            <nav aria-label="Halaman daftar acara" className="flex-between" style={{ marginBottom: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary btn-sm" disabled={loading || page <= 1} onClick={() => setPage((value) => value - 1)}>Sebelumnya</button>
+              <span aria-live="polite">{loading ? 'Memuat…' : `${total} acara · Halaman ${page} / ${lastPage}`}</span>
+              <button className="btn btn-secondary btn-sm" disabled={loading || page >= lastPage} onClick={() => setPage((value) => value + 1)}>Berikutnya</button>
+            </nav>
+          )}
+
+          {/* Error Alert */}
+          {error && (
+            <div className="alert alert--error mb-6" role="alert">
+              {error}
+            </div>
+          )}
+
+          {/* Loading Skeleton */}
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: '96px',
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'var(--admin-surface)',
+                    border: '1px solid var(--admin-border)',
+                    animation: 'admin-skeleton-pulse 1.5s ease-in-out infinite',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && events.length === 0 && (
+            <div className="card">
+              <div className="empty-state">
+                <IconEmpty />
+                <div className="empty-state__title" style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  Belum ada event
+                </div>
+                <p className="empty-state__desc" style={{ maxWidth: '420px', margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
+                  {isAdmin
+                    ? 'Belum ada event. Buat event pertama untuk mulai menyiapkan undangan digital.'
+                    : 'Belum ada acara yang ditugaskan ke akun staff Anda.'}
+                </p>
+                {isAdmin && (
+                  <button
+                    id="events-empty-create-btn"
+                    className="btn btn-primary"
+                    onClick={() => router.push('/events/create')}
+                    type="button"
+                  >
+                    <IconPlus />
+                    Buat Event
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
       {/* Filtered Empty State */}
       {!loading && !error && events.length > 0 && filteredEvents.length === 0 && (
@@ -640,8 +773,8 @@ export default function EventsPage() {
         </div>
       </>
     )}
-
-
-  </>
-);
+        </>
+      )}
+    </>
+  );
 }

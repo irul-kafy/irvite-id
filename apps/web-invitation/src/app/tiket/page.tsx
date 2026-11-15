@@ -291,6 +291,7 @@ export default function ClientTicketingPage() {
 
   return (
     <div
+      className="irv-client-tiket-root"
       style={{
         minHeight: '100vh',
         backgroundColor: '#edf4f0',
@@ -299,6 +300,16 @@ export default function ClientTicketingPage() {
         paddingBottom: '4rem',
       }}
     >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .irv-client-tiket-root,
+        .irv-client-tiket-root h1,
+        .irv-client-tiket-root h2,
+        .irv-client-tiket-root h3,
+        .irv-client-tiket-root p {
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        }
+      `}</style>
       {/* Top Client Navigation Bar (High Contrast, Zero Admin Buttons) */}
       <div
         style={{

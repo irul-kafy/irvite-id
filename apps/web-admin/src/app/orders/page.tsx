@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { EmptyState } from '@/components/empty-state';
+import { PUBLIC_TICKETING_ORDERS, type TicketOrderRecord } from '@/lib/ticketing-store';
 
 export interface OrderItem {
   id: string;
@@ -102,6 +103,8 @@ export function getStatusBadgeStyle(status: string) {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [ticketOrders, setTicketOrders] = useState<TicketOrderRecord[]>(PUBLIC_TICKETING_ORDERS);
+  const [orderCategoryTab, setOrderCategoryTab] = useState<'wedding' | 'tickets'>('wedding');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -122,7 +125,17 @@ export default function OrdersPage() {
       if (selectedStatus !== 'ALL') query.set('status', selectedStatus);
       if (searchQuery.trim()) query.set('search', searchQuery.trim());
 
-      const res = await fetch(`/api/orders?${query.toString()}`);
+      const [res, tktRes] = await Promise.all([
+        fetch(`/api/orders?${query.toString()}`),
+        fetch('/api/ticketing?mode=summary', { cache: 'no-store' }).catch(() => null),
+      ]);
+
+      if (tktRes && tktRes.ok) {
+        const tktJson = await tktRes.json().catch(() => null);
+        if (tktJson && Array.isArray(tktJson.recentOrders) && tktJson.recentOrders.length > 0) {
+          setTicketOrders(tktJson.recentOrders);
+        }
+      }
       if (res.status === 401) {
         window.location.href = '/login';
         return;
@@ -220,22 +233,154 @@ export default function OrdersPage() {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* ── Page Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--text-primary, #111814)', margin: 0 }}>
             Kelola Pesanan & Masa Aktif
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #4a544e)', marginTop: '0.25rem' }}>
-            Pantau status pesanan, paket langganan, konfirmasi transfer manual, dan masa aktif undangan klien.
+            Pantau status pesanan undangan pernikahan maupun transaksi pembelian e-ticket konser &amp; seminar.
           </p>
         </div>
       </div>
 
+      {/* ── Category Switcher: Undangan Pernikahan vs Tiket Event ── */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          marginBottom: '1.25rem',
+          paddingBottom: '0.75rem',
+          borderBottom: '1px solid var(--admin-border, rgba(17,24,20,0.1))',
+        }}
+      >
+        <button
+          type="button"
+          className={`btn btn-sm ${orderCategoryTab === 'wedding' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setOrderCategoryTab('wedding')}
+        >
+          Pesanan Undangan Pernikahan ({counts.TOTAL ?? orders.length})
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${orderCategoryTab === 'tickets' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setOrderCategoryTab('tickets')}
+        >
+          Pesanan Tiket Event ({ticketOrders.length})
+        </button>
+      </div>
+
       {actionSuccess && (
         <div style={{ padding: '0.75rem 1rem', background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
-          ✅ {actionSuccess}
+          {actionSuccess}
         </div>
       )}
+
+      {orderCategoryTab === 'tickets' ? (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#78716c', fontWeight: 500 }}>Total Pesanan Tiket</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111814', marginTop: '0.25rem' }}>
+                {ticketOrders.length}
+              </div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#065f46', fontWeight: 500 }}>Tiket Terbit (ISSUED)</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.25rem' }}>
+                {ticketOrders.reduce((acc, o) => acc + o.quantity, 0)}
+              </div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#78716c', fontWeight: 500 }}>Total Pembayaran Masuk</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111814', marginTop: '0.25rem' }}>
+                {formatRupiah(ticketOrders.reduce((acc, o) => acc + o.totalAmount, 0))}
+              </div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: 500 }}>Fee Platform (Rp 3.000/tkt)</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#334155', marginTop: '0.25rem' }}>
+                {formatRupiah(ticketOrders.reduce((acc, o) => acc + o.serviceFeeAmount, 0))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <th style={{ padding: '0.85rem 1rem' }}>Kode Pesanan</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Pembeli &amp; Kontak</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Acara &amp; E-Ticket</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Jumlah &amp; Total</th>
+                    <th style={{ padding: '0.85rem 1rem' }}>Status</th>
+                    <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ticketOrders.map((tOrder) => (
+                    <tr key={tOrder.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
+                        <code>{tOrder.orderCode}</code>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginTop: '2px' }}>
+                          {tOrder.paymentMethod}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <div style={{ fontWeight: 600, color: '#111814' }}>{tOrder.buyerName}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#475569' }}>{tOrder.buyerEmail}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#059669' }}>{tOrder.buyerWhatsapp}</div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <div style={{ fontWeight: 600, color: '#0f766e' }}>{tOrder.eventTitle}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          Kode E-Ticket: {tOrder.tickets.map((t) => t.ticketCode).join(', ')}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
+                          {tOrder.quantity} Tiket
+                        </span>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
+                          {formatRupiah(tOrder.totalAmount)}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            background: '#ecfdf5',
+                            color: '#065f46',
+                            border: '1px solid #a7f3d0',
+                          }}
+                        >
+                          Lunas ({tOrder.status})
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        <Link
+                          href="/dashboard"
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          Koreksi Email CS
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
 
       {/* ── KPI Stats Summary ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -477,6 +622,8 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* ── Status Update Modal ── */}
       {updatingOrder && typeof document !== 'undefined' && createPortal(
