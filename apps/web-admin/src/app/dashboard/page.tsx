@@ -700,7 +700,7 @@ export default function DashboardPage() {
                   Jika salah scan atau jumlah pax keliru, klik tombol <strong>&ldquo;Urungkan Check-in&rdquo;</strong> pada kartu hasil scan seketika.
                 </p>
                 <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600, padding: '0.35rem 0' }}>
-                  ↩ Kuota & Sheets Otomatis Ditarik
+                  Kuota &amp; Sheets Otomatis Ditarik
                 </div>
               </div>
 
