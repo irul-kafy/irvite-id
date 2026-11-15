@@ -628,6 +628,10 @@ export default function ClientTicketingPage() {
             grid-template-columns: 1fr;
           }
         }
+        /* Mobile Hero Caption (Shown on Mobile below Hero Banner) */
+        .irv-hero-mobile-caption {
+          display: none;
+        }
         /* Mobile Bottom Nav (Hidden on Tablet & Desktop) */
         .irv-mobile-bottom-nav {
           display: none;
@@ -670,10 +674,17 @@ export default function ClientTicketingPage() {
           }
           .irv-hero-banner-section {
             min-height: 220px;
-            margin-bottom: 1.35rem;
+            margin-bottom: 0;
           }
           .irv-hero-floating-cta {
             display: none !important;
+          }
+          .irv-hero-mobile-caption {
+            display: block;
+            background: #ffffff;
+            padding: 1rem 1rem 1.15rem;
+            margin-bottom: 1.15rem;
+            border-bottom: 1px solid #e8edf3;
           }
           .irv-event-catalog-grid {
             grid-template-columns: 1fr;
@@ -1079,90 +1090,259 @@ export default function ClientTicketingPage() {
           </div>
         )}
 
-        {/* Mobile Hamburger Menu Drawer (Shown when ☰ is tapped on Mobile) */}
+        {/* Mobile Hamburger Menu Popover + Dark Backdrop (Exact Match to Loket Mobile Menu Screenshot) */}
         {mobileMenuOpen && (
-          <div
-            style={{
-              background: '#ffffff',
-              borderTop: '1px solid #e8edf3',
-              padding: '1rem',
-              display: 'grid',
-              gap: '0.65rem',
-              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)',
-            }}
-          >
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setAuthStep('welcome');
-                  setAuthModalOpen(true);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.68rem 1rem',
-                  borderRadius: '999px',
-                  border: 'none',
-                  background: '#0d253f',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: '0.84rem',
-                  cursor: 'pointer',
-                }}
-              >
-                {authUser ? `Akun: ${authUser.name}` : 'Masuk / Daftar / Tamu'}
-              </button>
-              <Link
-                href="/partnership"
-                style={{
-                  padding: '0.68rem 1rem',
-                  borderRadius: '999px',
-                  border: '1.5px solid #0d253f',
-                  color: '#0d253f',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                }}
-              >
-                Kerjasama EO
-              </Link>
-            </div>
+          <>
+            {/* Dark Backdrop Overlay below Top Navbar Row */}
+            <div
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                position: 'fixed',
+                top: '56px',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(15, 23, 42, 0.56)',
+                zIndex: 70,
+              }}
+            />
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', paddingTop: '0.25rem' }}>
-              {[
-                { id: 'catalog' as ClientTab, label: 'Katalog Event' },
-                { id: 'my-ticket' as ClientTab, label: 'E-Ticket Saya' },
-                { id: 'transactions' as ClientTab, label: 'Transaksi' },
-                { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
-                { id: 'wristband' as ClientTab, label: 'Tiket Gelang' },
-                { id: 'support' as ClientTab, label: 'Layanan Pelanggan' },
-              ].map((item) => (
+            {/* Floating White Popover Card Anchored at Top-Right */}
+            <div
+              role="menu"
+              aria-label="Menu Utama"
+              style={{
+                position: 'fixed',
+                top: '56px',
+                right: '1.15rem',
+                width: 'min(300px, calc(100vw - 2.3rem))',
+                background: '#ffffff',
+                borderRadius: '0 0 16px 16px',
+                padding: '1.15rem 1.15rem 0.65rem',
+                boxShadow: '0 18px 42px rgba(15, 23, 42, 0.25)',
+                zIndex: 80,
+              }}
+            >
+              {/* Top Stacked Buttons: Daftar (Light Blue) & Masuk (Solid Royal Blue) */}
+              <div style={{ display: 'grid', gap: '0.65rem' }}>
                 <button
-                  key={item.id}
                   type="button"
                   onClick={() => {
-                    setActiveTab(item.id);
                     setMobileMenuOpen(false);
+                    setPendingCheckoutEvent(null);
+                    setAuthError(null);
+                    setAuthStep('register');
+                    setAuthModalOpen(true);
                   }}
                   style={{
-                    padding: '0.42rem 0.8rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: activeTab === item.id ? '#0d253f' : '#f8fafc',
-                    color: activeTab === item.id ? '#ffffff' : '#0d253f',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
+                    width: '100%',
+                    padding: '0.78rem 1rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#eef4ff',
+                    color: '#0049cc',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
                     cursor: 'pointer',
                   }}
                 >
-                  {item.label}
+                  Daftar
                 </button>
-              ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setPendingCheckoutEvent(null);
+                    setAuthError(null);
+                    setAuthStep('welcome');
+                    setAuthModalOpen(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '0.78rem 1rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#0049cc',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {authUser ? `Akun (${authUser.name.split(' ')[0]})` : 'Masuk'}
+                </button>
+              </div>
+
+              {/* Thin Horizontal Divider */}
+              <div
+                style={{
+                  borderTop: '1px solid #e8edf3',
+                  margin: '0.95rem 0 0.25rem',
+                }}
+              />
+
+              {/* 3 Menu Items with Left Icon + Label + Right Chevron › */}
+              <div style={{ display: 'grid' }}>
+                {/* 1. Kerjasama dengan Kami */}
+                <Link
+                  href="/partnership"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.72rem 0.15rem',
+                    color: '#334155',
+                    textDecoration: 'none',
+                    fontSize: '0.88rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0d253f"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polygon points="12 2 19 6 19 14 12 22 5 14 5 6 12 2" />
+                      <polygon points="12 7.5 13.4 10.3 16.5 10.8 14.2 13 14.8 16 12 14.5 9.2 16 9.8 13 7.5 10.8 10.6 10.3 12 7.5" />
+                    </svg>
+                    <span>Kerjasama dengan Kami</span>
+                  </span>
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#94a3b8"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </Link>
+
+                {/* 2. Bahasa */}
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.72rem 0.15rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#334155',
+                    fontSize: '0.88rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0d253f"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 8l6 6" />
+                      <path d="M4 14l6-6 2-3" />
+                      <path d="M2 5h12" />
+                      <path d="M7 2h1" />
+                      <path d="M22 22l-5-10-5 10" />
+                      <path d="M14 18h6" />
+                    </svg>
+                    <span>Bahasa</span>
+                  </span>
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#94a3b8"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+
+                {/* 3. Pusat Bantuan */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('support');
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '0.72rem 0.15rem',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#334155',
+                    fontSize: '0.88rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <svg
+                      width="19"
+                      height="19"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0d253f"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                      <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span>Pusat Bantuan</span>
+                  </span>
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#94a3b8"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </header>
 
@@ -1179,6 +1359,7 @@ export default function ClientTicketingPage() {
         const currentBg = heroPalettes[heroSlideIndex % heroPalettes.length];
 
         return (
+          <>
           <section className="irv-hero-banner-section" style={{ background: currentBg }}>
             {/* Subtle Atmospheric Stage Foliage / Concert Rays Overlay */}
             <div
@@ -1388,6 +1569,45 @@ export default function ClientTicketingPage() {
               </span>
             </div>
           </section>
+
+          {/* Mobile Hero Caption Strip below Banner (Matching Loket Mobile Screenshot) */}
+          <div className="irv-hero-mobile-caption">
+            <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.4, marginBottom: '0.45rem' }}>
+              Penantian Berakhir! {activeHeroEvent.title} Akhirnya Sapa Penggemar Setia di {activeHeroEvent.city}
+            </div>
+            <button
+              type="button"
+              onClick={() => openCheckoutModal(activeHeroEvent)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: '#0049cc',
+                fontSize: '0.88rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              <span>Beli Tiket di Sini</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0049cc"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5V7z" />
+              </svg>
+            </button>
+          </div>
+          </>
         );
       })()}
 
