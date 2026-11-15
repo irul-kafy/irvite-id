@@ -122,6 +122,9 @@ model Event {
   offlineSyncOps OfflineSyncOp[]
   order          Order?
   activityLogs   ActivityLog[]   @relation("EventActivityLogs")
+  ticketTiers    TicketTier[]
+  ticketOrders   TicketOrder[]
+  issuedTickets  IssuedTicket[]
 
   @@index([userId])
   @@map("events")
@@ -307,4 +310,109 @@ model ActivityLog {
   @@index([actorUserId, createdAt])
   @@index([action])
   @@map("activity_logs")
+}
+
+enum TicketOrderStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum IssuedTicketStatus {
+  ISSUED
+  CHECKED_IN
+  VOID
+}
+
+model TicketTier {
+  id          String   @id @default(uuid())
+  eventId     String   @map("event_id")
+  name        String   @db.VarChar(120)
+  description String?  @db.VarChar(500)
+  price       Int      @default(0)
+  quota       Int      @default(100)
+  soldCount   Int      @default(0) @map("sold_count")
+  benefits    Json?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketOrders  TicketOrder[]
+  issuedTickets IssuedTicket[]
+
+  @@index([eventId])
+  @@map("ticket_tiers")
+}
+
+model TicketOrder {
+  id               String            @id @default(uuid())
+  eventId          String            @map("event_id")
+  tierId           String            @map("tier_id")
+  orderCode        String            @unique @map("order_code") @db.VarChar(64)
+  buyerName        String            @map("buyer_name") @db.VarChar(150)
+  buyerEmail       String            @map("buyer_email") @db.VarChar(191)
+  buyerWhatsapp    String            @map("buyer_whatsapp") @db.VarChar(40)
+  quantity         Int               @default(1)
+  unitPrice        Int               @default(0) @map("unit_price")
+  serviceFee       Int               @default(3000) @map("service_fee")
+  totalAmount      Int               @default(0) @map("total_amount")
+  paymentMethod    String            @default("QRIS") @map("payment_method") @db.VarChar(40)
+  status           TicketOrderStatus @default(PENDING)
+  paidAt           DateTime?         @map("paid_at")
+  emailCorrectedAt DateTime?         @map("email_corrected_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tier          TicketTier     @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  issuedTickets IssuedTicket[]
+
+  @@index([eventId])
+  @@index([buyerEmail])
+  @@index([orderCode])
+  @@map("ticket_orders")
+}
+
+model IssuedTicket {
+  id            String             @id @default(uuid())
+  orderId       String             @map("order_id")
+  eventId       String             @map("event_id")
+  tierId        String             @map("tier_id")
+  ticketCode    String             @unique @map("ticket_code") @db.VarChar(64)
+  attendeeName  String             @map("attendee_name") @db.VarChar(150)
+  attendeeEmail String             @map("attendee_email") @db.VarChar(191)
+  status        IssuedTicketStatus @default(ISSUED)
+  checkedInAt   DateTime?          @map("checked_in_at")
+  checkedInBy   String?            @map("checked_in_by")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  order       TicketOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tier        TicketTier         @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  checkInLogs TicketCheckInLog[]
+
+  @@index([eventId])
+  @@index([orderId])
+  @@index([ticketCode])
+  @@map("issued_tickets")
+}
+
+model TicketCheckInLog {
+  id             String   @id @default(uuid())
+  issuedTicketId String   @map("issued_ticket_id")
+  eventId        String   @map("event_id")
+  scannedBy      String?  @map("scanned_by")
+  gateName       String   @default("Main Gate") @map("gate_name") @db.VarChar(80)
+  result         String   @default("VALID") @db.VarChar(30)
+  scannedAt      DateTime @default(now()) @map("scanned_at")
+
+  issuedTicket IssuedTicket @relation(fields: [issuedTicketId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, scannedAt])
+  @@index([issuedTicketId])
+  @@map("ticket_check_in_logs")
 }

@@ -24,8 +24,15 @@ export default function AdminRootShell({ children }: { children: React.ReactNode
     }
   }, []);
 
-  // /login and standalone full-screen preview routes render independently without the admin sidebar and header shell
-  if (pathname === '/login' || pathname?.endsWith('/preview') || (pathname?.includes('/templates/') && pathname?.includes('/preview'))) {
+  // /login, public gateway/ticketing routes, and standalone full-screen preview routes render independently without the admin sidebar and header shell
+  if (
+    pathname === '/login' ||
+    pathname?.startsWith('/gateway') ||
+    pathname?.startsWith('/tiket') ||
+    pathname?.startsWith('/partnership') ||
+    pathname?.endsWith('/preview') ||
+    (pathname?.includes('/templates/') && pathname?.includes('/preview'))
+  ) {
     return <>{children}</>;
   }
 

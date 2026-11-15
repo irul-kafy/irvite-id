@@ -25,6 +25,35 @@ interface RsvpStats {
   pending: number;
 }
 
+interface TicketingDashboardSummary {
+  totalPublicEvents: number;
+  totalTicketsSold: number;
+  grossTicketRevenue: number;
+  grossTicketRevenueLabel: string;
+  platformFeeRevenue: number;
+  platformFeeRevenueLabel: string;
+}
+
+function IconTicketPass() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+      <path d="M13 5v2" />
+      <path d="M13 17v2" />
+      <path d="M13 11v2" />
+    </svg>
+  );
+}
+
+function IconRevenueWallet() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
+
 // ── Icons ──────────────────────────────────────────────────────────────────────
 
 function IconCalendar() {
@@ -144,6 +173,28 @@ export default function DashboardPage() {
   const [refresh, setRefresh] = useState(0);
   const [publishedEventsCount, setPublishedEventsCount] = useState(0);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
+  const [ticketingSummary, setTicketingSummary] = useState<TicketingDashboardSummary>({
+    totalPublicEvents: 4,
+    totalTicketsSold: 1634,
+    grossTicketRevenue: 256800000,
+    grossTicketRevenueLabel: 'Rp 256.800.000',
+    platformFeeRevenue: 4902000,
+    platformFeeRevenueLabel: 'Rp 4.902.000',
+  });
+  const [csLookupCode, setCsLookupCode] = useState('ORD-IRV-2026-8821');
+  const [csNewEmail, setCsNewEmail] = useState('rizky.pratama@gmail.com');
+  const [csLoading, setCsLoading] = useState(false);
+  const [csFeedback, setCsFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
+  const [newTktTitle, setNewTktTitle] = useState('');
+  const [newTktCategory, setNewTktCategory] = useState('Konser Musik');
+  const [newTktDate, setNewTktDate] = useState('30 Okt 2026');
+  const [newTktVenue, setNewTktVenue] = useState('Jakarta Convention Center');
+  const [newTktCity, setNewTktCity] = useState('Jakarta Pusat');
+  const [newTktTierName, setNewTktTierName] = useState('Presale 1 — Festival Pass');
+  const [newTktPrice, setNewTktPrice] = useState('150000');
+  const [newTktQuota, setNewTktQuota] = useState('300');
+  const [creatingTicketEvent, setCreatingTicketEvent] = useState(false);
   const [showGuide, setShowGuide] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('irvite_hide_staff_guide') !== 'true';
@@ -225,10 +276,81 @@ export default function DashboardPage() {
 
     loadDashboardData();
 
+    fetch('/api/ticketing?mode=summary', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data && typeof data.totalTicketsSold === 'number') {
+          setTicketingSummary(data);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       isMounted = false;
     };
   }, [router, refresh]);
+
+  async function handleDashboardEmailCorrection(e: React.FormEvent) {
+    e.preventDefault();
+    setCsLoading(true);
+    setCsFeedback(null);
+    try {
+      const res = await fetch('/api/ticketing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'correct-email',
+          lookupCode: csLookupCode,
+          newEmail: csNewEmail,
+          correctedBy: 'Admin Dashboard CS Console',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || 'Gagal memperbarui alamat email.');
+      }
+      setCsFeedback({ type: 'ok', text: data.message });
+    } catch (err) {
+      setCsFeedback({
+        type: 'err',
+        text: err instanceof Error ? err.message : 'Terjadi kesalahan koreksi email.',
+      });
+    } finally {
+      setCsLoading(false);
+    }
+  }
+
+  async function handleCreateTicketEvent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTktTitle.trim()) return;
+    setCreatingTicketEvent(true);
+    try {
+      const res = await fetch('/api/ticketing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-event',
+          title: newTktTitle,
+          category: newTktCategory,
+          organizerName: 'IRVITE Official Organizer',
+          eventDate: newTktDate,
+          eventTime: '19:00 - 22:30 WIB',
+          venueName: newTktVenue,
+          city: newTktCity,
+          tierName: newTktTierName,
+          tierPrice: Number(newTktPrice) || 0,
+          tierQuota: Number(newTktQuota) || 100,
+        }),
+      });
+      if (res.ok) {
+        setShowCreateTicketModal(false);
+        setNewTktTitle('');
+        setRefresh((v) => v + 1);
+      }
+    } finally {
+      setCreatingTicketEvent(false);
+    }
+  }
 
   const upcomingEvents = events;
 
@@ -275,8 +397,19 @@ export default function DashboardPage() {
         </div>
 
         <div className="dash-page-header__right">
+          <Link href="/gateway" className="btn btn-secondary">
+            Home Gateway
+          </Link>
           <button className="btn btn-secondary" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>
             {loading ? 'Memuat…' : 'Perbarui statistik'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowCreateTicketModal(true)}
+          >
+            <IconPlus />
+            Buat Event Tiket
           </button>
           <button
             id="dashboard-create-event-btn"
@@ -369,6 +502,38 @@ export default function DashboardPage() {
           </div>
           <div className="dash-kpi__meta">
             Ketentuan desain siap pakai
+          </div>
+        </div>
+
+        {/* KPI 6: Tiket Terjual (Public Ticketing Integration) */}
+        <div className="dash-kpi">
+          <div className="dash-kpi__top">
+            <span className="dash-kpi__label">Tiket Terjual</span>
+            <div className="dash-kpi__icon-box" aria-hidden="true">
+              <IconTicketPass />
+            </div>
+          </div>
+          <div className="dash-kpi__value">
+            {ticketingSummary.totalTicketsSold.toLocaleString('id-ID')}
+          </div>
+          <div className="dash-kpi__meta">
+            {ticketingSummary.totalPublicEvents} event publik aktif di /tiket
+          </div>
+        </div>
+
+        {/* KPI 7: Pendapatan Tiket */}
+        <div className="dash-kpi">
+          <div className="dash-kpi__top">
+            <span className="dash-kpi__label">Pendapatan Tiket</span>
+            <div className="dash-kpi__icon-box" aria-hidden="true">
+              <IconRevenueWallet />
+            </div>
+          </div>
+          <div className="dash-kpi__value" style={{ fontSize: '1.35rem' }}>
+            {ticketingSummary.grossTicketRevenueLabel}
+          </div>
+          <div className="dash-kpi__meta">
+            Fee Platform: {ticketingSummary.platformFeeRevenueLabel} (Rp 3rb/tkt)
           </div>
         </div>
       </section>
@@ -780,7 +945,109 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </Link>
+
+                {/* Action 5: Katalog Event & E-Ticketing */}
+                <Link
+                  id="dash-action-public-ticketing"
+                  href="/tiket"
+                  className="dash-action-card"
+                >
+                  <div className="dash-action-card__icon" aria-hidden="true">
+                    <IconTicketPass />
+                  </div>
+                  <div className="dash-action-card__content">
+                    <div className="dash-action-card__title">
+                      Katalog Tiket Publik
+                      <IconArrowRight />
+                    </div>
+                    <p className="dash-action-card__desc">
+                      Buka halaman pembelian tiket konser, seminar, E-Ticket QR, &amp; Gate Scanner.
+                    </p>
+                  </div>
+                </Link>
+
+                {/* Action 6: Home Gateway 2x2 */}
+                <Link
+                  id="dash-action-home-gateway"
+                  href="/gateway"
+                  className="dash-action-card"
+                >
+                  <div className="dash-action-card__icon" aria-hidden="true">
+                    <IconSparkles />
+                  </div>
+                  <div className="dash-action-card__content">
+                    <div className="dash-action-card__title">
+                      Beranda Gateway 2x2
+                      <IconArrowRight />
+                    </div>
+                    <p className="dash-action-card__desc">
+                      Halaman utama Soft Sage terpadu: Beli Tiket, Undangan, Partnership, &amp; CS.
+                    </p>
+                  </div>
+                </Link>
               </div>
+            </div>
+          </div>
+
+          {/* Section: CS Fast-Resolution — Koreksi Typo Email 5 Detik */}
+          <div className="dash-panel">
+            <div className="dash-panel__header">
+              <div className="dash-panel__title-group">
+                <h2 className="dash-panel__title">CS Fast-Action: Koreksi Typo Email Pembeli (5 Detik)</h2>
+                <span className="dash-panel__subtitle">
+                  Perbaiki salah ketik email pembeli tiket dan kirim ulang E-Ticket secara instan.
+                </span>
+              </div>
+            </div>
+            <div className="dash-panel__body">
+              <form onSubmit={handleDashboardEmailCorrection} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <label htmlFor="dash-cs-code" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                    Kode Pesanan / Kode E-Ticket
+                  </label>
+                  <input
+                    id="dash-cs-code"
+                    className="form-input"
+                    value={csLookupCode}
+                    onChange={(e) => setCsLookupCode(e.target.value)}
+                    placeholder="ORD-IRV-2026-8821"
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dash-cs-email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>
+                    Alamat Email Baru yang Valid
+                  </label>
+                  <input
+                    id="dash-cs-email"
+                    type="email"
+                    className="form-input"
+                    value={csNewEmail}
+                    onChange={(e) => setCsNewEmail(e.target.value)}
+                    placeholder="pembeli@gmail.com"
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={csLoading}>
+                  {csLoading ? 'Memproses & Mengirim Ulang...' : 'Koreksi Email & Kirim Ulang E-Ticket'}
+                </button>
+                {csFeedback && (
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      padding: '0.65rem 0.75rem',
+                      borderRadius: '8px',
+                      background: csFeedback.type === 'ok' ? '#ecfdf5' : '#fef2f2',
+                      color: csFeedback.type === 'ok' ? '#065f46' : '#991b1b',
+                      border: `1px solid ${csFeedback.type === 'ok' ? '#a7f3d0' : '#fecaca'}`,
+                    }}
+                  >
+                    {csFeedback.text}
+                  </div>
+                )}
+              </form>
             </div>
           </div>
 
@@ -822,6 +1089,180 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal: Buat Event Tiket Publik Baru */}
+      {showCreateTicketModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 31, 23, 0.55)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+          onClick={() => setShowCreateTicketModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface-primary, #ffffff)',
+              borderRadius: '16px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '1.5rem',
+              border: '1px solid var(--admin-border, #e5e7eb)',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+                Buat Event Tiket Publik Baru
+              </h2>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowCreateTicketModal(false)}
+              >
+                Tutup
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTicketEvent} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  Judul Event (Tampil di Katalog /tiket)
+                </label>
+                <input
+                  className="form-input"
+                  value={newTktTitle}
+                  onChange={(e) => setNewTktTitle(e.target.value)}
+                  placeholder="Contoh: JAKARTA SYMPHONY NIGHT 2026"
+                  required
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Kategori Acara
+                  </label>
+                  <select
+                    className="form-input"
+                    value={newTktCategory}
+                    onChange={(e) => setNewTktCategory(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="Konser Musik">Konser Musik</option>
+                    <option value="Seminar & Edukasi">Seminar &amp; Edukasi</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Standup Comedy">Standup Comedy</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Tanggal Acara
+                  </label>
+                  <input
+                    className="form-input"
+                    value={newTktDate}
+                    onChange={(e) => setNewTktDate(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Nama Venue / Gedung
+                  </label>
+                  <input
+                    className="form-input"
+                    value={newTktVenue}
+                    onChange={(e) => setNewTktVenue(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Kota
+                  </label>
+                  <input
+                    className="form-input"
+                    value={newTktCity}
+                    onChange={(e) => setNewTktCity(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 0.8fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Nama Tier Utama
+                  </label>
+                  <input
+                    className="form-input"
+                    value={newTktTierName}
+                    onChange={(e) => setNewTktTierName(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Harga (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    className="form-input"
+                    value={newTktPrice}
+                    onChange={(e) => setNewTktPrice(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Kuota
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input"
+                    value={newTktQuota}
+                    onChange={(e) => setNewTktQuota(e.target.value)}
+                    required
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowCreateTicketModal(false)}
+                >
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={creatingTicketEvent}>
+                  {creatingTicketEvent ? 'Menerbitkan...' : 'Terbitkan ke Katalog /tiket'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -23,6 +23,7 @@ import { ReportsModule } from './reports/reports.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
 import { OrdersModule } from './orders/orders.module';
 import { ActivityLogsModule } from './activity-logs/activity-logs.module';
+import { TicketingModule } from './ticketing/ticketing.module';
 import { validateEnvironment } from './common/validate-environment';
 
 @Module({
@@ -52,6 +53,7 @@ import { validateEnvironment } from './common/validate-environment';
     ClientPortalModule,
     OrdersModule,
     ActivityLogsModule,
+    TicketingModule,
     ThrottlerModule.forRoot([
       {
         name: 'default',
