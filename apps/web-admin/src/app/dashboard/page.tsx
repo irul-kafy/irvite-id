@@ -185,6 +185,11 @@ export default function DashboardPage() {
   const [csNewEmail, setCsNewEmail] = useState('rizky.pratama@gmail.com');
   const [csLoading, setCsLoading] = useState(false);
   const [csFeedback, setCsFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [dashFilter, setDashFilter] = useState<'all' | 'wedding' | 'tickets'>('all');
+  const [showEventTypeModal, setShowEventTypeModal] = useState(false);
+  const [showWaSopModal, setShowWaSopModal] = useState(false);
+  const [copiedSopId, setCopiedSopId] = useState<string | null>(null);
+  const [wristbandExportNotice, setWristbandExportNotice] = useState<string | null>(null);
   const [showCreateTicketModal, setShowCreateTicketModal] = useState(false);
   const [newTktTitle, setNewTktTitle] = useState('');
   const [newTktCategory, setNewTktCategory] = useState('Konser Musik');
@@ -415,13 +420,59 @@ export default function DashboardPage() {
             id="dashboard-create-event-btn"
             type="button"
             className="btn btn-accent dash-page-header__cta"
-            onClick={() => router.push('/events/create')}
+            onClick={() => setShowEventTypeModal(true)}
           >
             <IconPlus />
             Buat Event
           </button>
         </div>
       </header>
+
+      {/* ── Filter Tabs Halus (Semua Kategori / Undangan Pernikahan / Tiket Seminar & Konser) ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          marginBottom: '1.25rem',
+          paddingBottom: '0.75rem',
+          borderBottom: '1px solid var(--admin-border, #e5e7eb)',
+        }}
+      >
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '0.25rem' }}>
+          Tampilkan:
+        </span>
+        <button
+          type="button"
+          className={`btn btn-sm ${dashFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setDashFilter('all')}
+        >
+          Semua Kategori
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${dashFilter === 'wedding' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setDashFilter('wedding')}
+        >
+          Undangan Pernikahan
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${dashFilter === 'tickets' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setDashFilter('tickets')}
+        >
+          Tiket Seminar &amp; Konser
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginLeft: 'auto' }}
+          onClick={() => setShowWaSopModal(true)}
+        >
+          Drawer Template WA EO (SOP 3 Babak)
+        </button>
+      </div>
 
       {/* ── Primary KPI Cards ── */}
       <section className="dash-kpis" aria-label="Ringkasan Indikator Utama">
@@ -553,7 +604,9 @@ export default function DashboardPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showGuide ? '1.25rem' : '0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-              <span style={{ fontSize: '1.25rem', color: '#059669' }}>📋</span>
+              <span style={{ fontSize: '1.25rem', color: '#059669', display: 'inline-flex' }}>
+                <IconTemplate />
+              </span>
               <div>
                 <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Buku Panduan Operasional Staf (Meja Registrasi & Scanner Kehadiran)
@@ -695,7 +748,71 @@ export default function DashboardPage() {
             </div>
 
             <div className="dash-panel__body dash-panel__body--flush">
-              {loading ? (
+              {wristbandExportNotice && (
+                <div
+                  style={{
+                    margin: '0.75rem 1.25rem 0',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    background: '#ecfdf5',
+                    border: '1px solid #a7f3d0',
+                    color: '#065f46',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span>{wristbandExportNotice}</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setWristbandExportNotice(null)}
+                  >
+                    Tutup
+                  </button>
+                </div>
+              )}
+
+              {dashFilter !== 'wedding' && (
+                <div style={{ padding: '0.85rem 1.25rem', borderBottom: '1px solid var(--admin-border, #e5e7eb)', background: 'var(--surface-subtle, #f9fafb)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <span className="badge badge--info">TIKET KONSER &amp; SEMINAR</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          {ticketingSummary.totalPublicEvents} Event Publik Aktif • Fee Flat Rp 3.000/Tiket
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                        JAKARTA INDIE SOUNDWAVE FESTIVAL &amp; INDONESIA AI SUMMIT 2026
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                        Terjual: <strong>{ticketingSummary.totalTicketsSold.toLocaleString('id-ID')} Tiket</strong> • Gross: <strong>{ticketingSummary.grossTicketRevenueLabel}</strong> • Payout Otomatis H+1
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() =>
+                          setWristbandExportNotice(
+                            'Paket ZIP Vektor QR Gelang 300 DPI (Tyvek & Lanyard) siap diunduh untuk produksi cetak.',
+                          )
+                        }
+                      >
+                        Ekspor ZIP Gelang (300 DPI)
+                      </button>
+                      <Link href="/tiket" className="btn btn-secondary btn-sm">
+                        Buka Katalog /tiket
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {dashFilter === 'tickets' ? null : loading ? (
                 <div style={{ padding: '2rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                   Memuat data event...
                 </div>
@@ -1089,6 +1206,200 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal: Pemilihan Jenis Event Saat Klik "+ Buat Event" */}
+      {showEventTypeModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 31, 23, 0.55)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+          onClick={() => setShowEventTypeModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface-primary, #ffffff)',
+              borderRadius: '16px',
+              maxWidth: '460px',
+              width: '100%',
+              padding: '1.5rem',
+              border: '1px solid var(--admin-border, #e5e7eb)',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                Pilih Jenis Event Baru
+              </h2>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowEventTypeModal(false)}
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div
+                onClick={() => {
+                  setShowEventTypeModal(false);
+                  router.push('/events/create');
+                }}
+                style={{
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  border: '1px solid var(--admin-border, #d1d5db)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '0.92rem', marginBottom: '0.25rem' }}>
+                  Undangan Pernikahan Digital
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Input data mempelai, tanggal akad &amp; resepsi, customizer tema eksklusif, dan amplop digital.
+                </div>
+              </div>
+
+              <div
+                onClick={() => {
+                  setShowEventTypeModal(false);
+                  setShowCreateTicketModal(true);
+                }}
+                style={{
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  border: '2px solid #1b3b2b',
+                  background: 'rgba(27, 59, 43, 0.04)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>
+                    Tiket Event / Seminar / Konser
+                  </span>
+                  <span className="badge badge--success">BARU</span>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Atur tier tiket (Presale/Reguler/VIP), kuota &amp; harga, opsi cetak gelang fisik, dan Gate Scanner.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Drawer Template WhatsApp Kemitraan EO (SOP 3 Babak) */}
+      {showWaSopModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 31, 23, 0.55)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem',
+          }}
+          onClick={() => setShowWaSopModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--surface-primary, #ffffff)',
+              borderRadius: '16px',
+              maxWidth: '580px',
+              width: '100%',
+              padding: '1.5rem',
+              border: '1px solid var(--admin-border, #e5e7eb)',
+              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                  Drawer WhatsApp Kemitraan EO (SOP 3 Babak)
+                </h2>
+                <p style={{ margin: '0.2rem 0 0', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  Klik 1 tombol untuk menyalin skrip percakapan ramah ke WhatsApp calon Event Organizer.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowWaSopModal(false)}
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {[
+                {
+                  id: 'b1',
+                  label: 'Babak 1: Pemanasan & Profil',
+                  text: 'Halo Kak! Salam hangat dari tim IRVITE.id. Boleh info nama acara, tanggal pelaksanaan, & estimasi kuota penontonnya Kak?',
+                },
+                {
+                  id: 'b2',
+                  label: 'Babak 2: Format Tiket & Gelang',
+                  text: 'Siap Kak! Di IRVITE fee flat Rp 3.000/tiket (acara gratis Rp 0). Mau pakai E-Ticket Digital di HP atau sekalian produksi Gelang Fisik Tyvek/Kain QR 300 DPI?',
+                },
+                {
+                  id: 'b3',
+                  label: 'Babak 3: Closing Data & Link Payout H+1',
+                  text: 'Mantap Kak, kami bantu setup hari ini! Mohon kirimkan poster 16:9, daftar tier tiket, serta nomor rekening resmi EO untuk pencairan dana otomatis H+1.',
+                },
+              ].map((step) => (
+                <div
+                  key={step.id}
+                  style={{
+                    padding: '0.85rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--admin-border, #e5e7eb)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8C6224', textTransform: 'uppercase' }}>
+                      {step.label}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                      &ldquo;{step.text}&rdquo;
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        void navigator.clipboard.writeText(step.text);
+                      }
+                      setCopiedSopId(step.id);
+                      setTimeout(() => setCopiedSopId(null), 2000);
+                    }}
+                  >
+                    {copiedSopId === step.id ? 'Tersalin' : 'Salin'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Buat Event Tiket Publik Baru */}
       {showCreateTicketModal && (

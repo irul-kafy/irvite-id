@@ -460,6 +460,8 @@ export default function IrviteGatewayPage() {
         <span>•</span>
         <Link href="/tiket">Katalog Event</Link>
         <span>•</span>
+        <Link href="/partnership">Partnership EO</Link>
+        <span>•</span>
         <Link href="/dashboard">Panel Organizer &amp; Admin</Link>
       </footer>
 
@@ -532,7 +534,10 @@ export default function IrviteGatewayPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '24px' }}>
-              <Link href="/dashboard" className="irv-btn-primary">
+              <Link href="/partnership" className="irv-btn-primary">
+                Halaman Lengkap Partnership &amp; Kalkulator EO
+              </Link>
+              <Link href="/dashboard" className="irv-btn-secondary">
                 Buka Panel Organizer &amp; Buat Event
               </Link>
               <Link href="/tiket" className="irv-btn-secondary">

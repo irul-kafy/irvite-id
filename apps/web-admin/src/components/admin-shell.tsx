@@ -187,6 +187,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     label: 'Events',
     href: '/events',
     icon: IconEvents,
+    badge: '+ Tiket',
   },
   {
     id: 'orders',
@@ -475,6 +476,34 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </Link>
             );
           })}
+
+          <div className="admin-sidebar__section-label" style={{ marginTop: '1.25rem' }}>
+            Ekosistem Tiket &amp; Gateway
+          </div>
+          <Link
+            href="/gateway"
+            id="nav-gateway"
+            className="admin-sidebar__link"
+          >
+            <IconDashboard className="admin-sidebar__link-icon" />
+            Home Gateway 2x2
+          </Link>
+          <Link
+            href="/tiket"
+            id="nav-tiket"
+            className="admin-sidebar__link"
+          >
+            <IconOrders className="admin-sidebar__link-icon" />
+            Katalog E-Ticketing
+          </Link>
+          <Link
+            href="/partnership"
+            id="nav-partnership"
+            className="admin-sidebar__link"
+          >
+            <IconActivityLog className="admin-sidebar__link-icon" />
+            Partnership EO
+          </Link>
         </nav>
 
         {/* Footer / Logout */}

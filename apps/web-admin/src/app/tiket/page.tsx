@@ -657,6 +657,52 @@ export default function IrviteTicketingCatalogPage() {
                   </div>
                 </div>
 
+                {/* Tear-Line Divider with Physical Ticket Notches */}
+                <div
+                  style={{
+                    position: 'relative',
+                    background: '#f7faf8',
+                    padding: '10px 24px',
+                    borderBottom: '1.5px dashed #c8d8cf',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '999px',
+                      background: '#edf4f0',
+                      marginLeft: '-34px',
+                      borderRight: '1.5px solid rgba(27, 59, 43, 0.16)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      fontFamily: 'monospace',
+                      fontWeight: 800,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: '#8c6224',
+                    }}
+                  >
+                    Tunjukkan Kode QR Ini di Pintu Masuk
+                  </span>
+                  <span
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '999px',
+                      background: '#edf4f0',
+                      marginRight: '-34px',
+                      borderLeft: '1.5px solid rgba(27, 59, 43, 0.16)',
+                    }}
+                  />
+                </div>
+
                 <div
                   style={{
                     padding: '28px 32px',
@@ -786,6 +832,24 @@ export default function IrviteTicketingCatalogPage() {
                   </div>
                 )}
 
+                {/* Syarat & Ketentuan Masuk (T&C) */}
+                <div
+                  style={{
+                    padding: '14px 32px',
+                    borderTop: '1px dashed #dfeae3',
+                    fontSize: '0.78rem',
+                    color: '#546d60',
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: '#13261c', marginBottom: '4px' }}>
+                    Syarat &amp; Ketentuan Masuk (T&amp;C):
+                  </div>
+                  <div>1. Tiket sah untuk 1 orang dan hanya dapat di-scan 1 kali di Gate Scanner.</div>
+                  <div>2. Wajib membawa kartu identitas asli (KTP/SIM/Paspor) sesuai nama pemegang tiket.</div>
+                  <div>3. Dilarang membawa senjata tajam, minuman keras, atau atribut terlarang ke dalam venue.</div>
+                </div>
+
                 <div
                   style={{
                     padding: '18px 32px',
@@ -800,16 +864,51 @@ export default function IrviteTicketingCatalogPage() {
                   <span style={{ fontSize: '0.84rem', color: '#4a6356', fontWeight: 600 }}>
                     Total Dibayar ({activeOrder.quantity} Tiket): <strong>{formatRp(activeOrder.totalAmount)}</strong>
                   </span>
-                  <button
-                    type="button"
-                    className="irv-buy-pill"
-                    onClick={() => {
-                      setScanCode(currentTicket.ticketCode);
-                      setActiveTab('scanner');
-                    }}
-                  >
-                    Uji Scan Tiket Ini di Gate Scanner
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      style={{
+                        background: '#ffffff',
+                        color: '#1b3b2b',
+                        border: '1px solid #1b3b2b',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Unduh / Cetak PDF Resmi
+                    </button>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentTicket.venueName)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        background: '#ffffff',
+                        color: '#1b3b2b',
+                        border: '1px solid rgba(27, 59, 43, 0.25)',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        padding: '8px 14px',
+                        borderRadius: '10px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Rute Lokasi Maps
+                    </a>
+                    <button
+                      type="button"
+                      className="irv-buy-pill"
+                      onClick={() => {
+                        setScanCode(currentTicket.ticketCode);
+                        setActiveTab('scanner');
+                      }}
+                    >
+                      Uji Scan di Gate Scanner
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (

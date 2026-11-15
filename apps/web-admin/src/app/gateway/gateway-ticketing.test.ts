@@ -87,12 +87,16 @@ test('Creating a public event adds it to catalog and updates dashboard summary',
   assert.ok(summary.totalTicketsSold > 0);
 });
 
-test('Gateway and Ticketing pages enforce Soft Sage (#edf4f0), transparent PNG logo, web-invitation link, and zero emojis', () => {
+test('Gateway, Ticketing, Partnership, and Dashboard pages enforce Soft Sage (#edf4f0), transparent PNG logo, web-invitation link, and zero emojis', () => {
   const gatewayFile = path.resolve(__dirname, 'page.tsx');
   const tiketFile = path.resolve(__dirname, '../tiket/page.tsx');
+  const partnershipFile = path.resolve(__dirname, '../partnership/page.tsx');
+  const dashboardFile = path.resolve(__dirname, '../dashboard/page.tsx');
 
   const gatewaySource = fs.readFileSync(gatewayFile, 'utf8');
   const tiketSource = fs.readFileSync(tiketFile, 'utf8');
+  const partnershipSource = fs.readFileSync(partnershipFile, 'utf8');
+  const dashboardSource = fs.readFileSync(dashboardFile, 'utf8');
 
   // Verify Soft Sage background & PNG logo
   assert.match(gatewaySource, /#edf4f0/);
@@ -106,8 +110,18 @@ test('Gateway and Ticketing pages enforce Soft Sage (#edf4f0), transparent PNG l
   assert.match(gatewaySource, /Customer Services/);
   assert.match(gatewaySource, /NEXT_PUBLIC_INVITATION_ORIGIN/);
 
-  // Verify zero Unicode emojis in Gateway and Tiket pages
+  // Verify Partnership EO page features
+  assert.match(partnershipSource, /Hanya Rp 3\.000 \/ Tiket/);
+  assert.match(partnershipSource, /SOP 3 Babak/);
+
+  // Verify Dashboard integration features
+  assert.match(dashboardSource, /Ekspor ZIP Gelang/);
+  assert.match(dashboardSource, /Drawer WhatsApp Kemitraan EO/);
+
+  // Verify zero Unicode emojis across all 4 pages
   const emojiRegex = /\p{Extended_Pictographic}/u;
   assert.equal(emojiRegex.test(gatewaySource), false, 'Gateway page must not contain emojis');
   assert.equal(emojiRegex.test(tiketSource), false, 'Tiket page must not contain emojis');
+  assert.equal(emojiRegex.test(partnershipSource), false, 'Partnership page must not contain emojis');
+  assert.equal(emojiRegex.test(dashboardSource), false, 'Dashboard page must not contain emojis');
 });
