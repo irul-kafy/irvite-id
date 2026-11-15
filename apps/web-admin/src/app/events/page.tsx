@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCanonicalPublicEventUrl } from '@/utils/url';
-import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent } from '@/lib/ticketing-store';
+import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent, type PublicTicketTier } from '@/lib/ticketing-store';
 
 type EventData = {
   id: string;
@@ -110,6 +110,27 @@ export default function EventsPage() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>(PUBLIC_TICKETING_EVENTS);
   const [eventCategoryTab, setEventCategoryTab] = useState<'wedding' | 'tickets'>('wedding');
+  const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
+  const [ticketActionSuccess, setTicketActionSuccess] = useState<string | null>(null);
+
+  // Form states for creating a new ticketing event (Loket.com style)
+  const [formTitle, setFormTitle] = useState('');
+  const [formOrganizer, setFormOrganizer] = useState('');
+  const [formCategory, setFormCategory] = useState('Konser Musik');
+  const [formDate, setFormDate] = useState('28 Agu 2026');
+  const [formTime, setFormTime] = useState('18:00 - 23:00 WIB');
+  const [formVenue, setFormVenue] = useState('Stadion Madya GBK');
+  const [formCity, setFormCity] = useState('Jakarta Pusat');
+  const [formBannerUrl, setFormBannerUrl] = useState('');
+  const [formHeadline, setFormHeadline] = useState('');
+  const [formIsFeatured, setFormIsFeatured] = useState(false);
+  const [formTierName1, setFormTierName1] = useState('Presale 1');
+  const [formTierPrice1, setFormTierPrice1] = useState(125000);
+  const [formTierQuota1, setFormTierQuota1] = useState(500);
+  const [formTierName2, setFormTierName2] = useState('VIP Pass');
+  const [formTierPrice2, setFormTierPrice2] = useState(350000);
+  const [formTierQuota2, setFormTierQuota2] = useState(150);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
@@ -191,6 +212,79 @@ export default function EventsPage() {
     return true;
   });
 
+  const handleCreateTicketSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formTitle.trim()) {
+      alert('Nama acara/event wajib diisi.');
+      return;
+    }
+    const newEventId = `tkt-${Date.now()}`;
+    const tiers: PublicTicketTier[] = [
+      {
+        id: `${newEventId}-tier-1`,
+        name: formTierName1.trim() || 'Reguler',
+        price: Number(formTierPrice1) || 100000,
+        quota: Number(formTierQuota1) || 500,
+        remainingQuota: Number(formTierQuota1) || 500,
+        soldCount: 0,
+        statusLabel: 'TERSEDIA',
+        description: 'Akses masuk resmi acara',
+        benefits: ['E-Ticket QR Resmi', 'Akses Masuk Gate Venue'],
+      },
+    ];
+    if (formTierName2.trim()) {
+      tiers.push({
+        id: `${newEventId}-tier-2`,
+        name: formTierName2.trim(),
+        price: Number(formTierPrice2) || 250000,
+        quota: Number(formTierQuota2) || 150,
+        remainingQuota: Number(formTierQuota2) || 150,
+        soldCount: 0,
+        statusLabel: 'TERSEDIA',
+        description: 'Akses prioritas VIP acara',
+        benefits: ['VIP Pass & Akses Khusus', 'Tiket Gelang Eksklusif'],
+      });
+    }
+
+    const lowestPrice = Math.min(...tiers.map((t) => t.price));
+    const startingPriceLabel = new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0,
+    }).format(lowestPrice);
+
+    const newEvent: PublicTicketingEvent = {
+      id: newEventId,
+      slug: formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      title: formTitle.trim(),
+      category: (formCategory === 'Workshop / Bootcamp' ? 'Workshop' : formCategory) as 'Konser Musik' | 'Seminar & Edukasi' | 'Workshop' | 'Standup Comedy',
+      organizerName: formOrganizer.trim() || 'Event Organizer',
+      eventDate: formDate,
+      eventTime: formTime,
+      venueName: formVenue,
+      city: formCity,
+      bannerGradient: 'linear-gradient(135deg, #1b3b2b 0%, #0d251e 100%)',
+      bannerTag: formCategory.toUpperCase(),
+      startingPrice: lowestPrice,
+      startingPriceLabel,
+      isFeaturedBanner: formIsFeatured,
+      bannerHeadline: formHeadline.trim() || undefined,
+      tiers,
+    };
+
+    setTicketingEvents((prev) => [newEvent, ...prev]);
+    setIsCreateTicketModalOpen(false);
+    setTicketActionSuccess(`Event Tiket "${formTitle}" berhasil dibuat dan diterbitkan!`);
+    setTimeout(() => setTicketActionSuccess(null), 5000);
+
+    // Reset form
+    setFormTitle('');
+    setFormOrganizer('');
+    setFormHeadline('');
+    setFormBannerUrl('');
+    setFormIsFeatured(false);
+  };
+
   return (
     <>
       {/* Page Header */}
@@ -205,18 +299,36 @@ export default function EventsPage() {
         </div>
         {isAdmin && (
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              id="events-create-btn"
-              className="btn btn-primary"
-              onClick={() => router.push('/events/create')}
-              type="button"
-            >
-              <IconPlus />
-              Buat Event Undangan
-            </button>
+            {eventCategoryTab === 'wedding' ? (
+              <button
+                id="events-create-btn"
+                className="btn btn-primary"
+                onClick={() => router.push('/events/create')}
+                type="button"
+              >
+                <IconPlus />
+                Buat Event Undangan
+              </button>
+            ) : (
+              <button
+                id="events-create-ticket-btn"
+                className="btn btn-primary"
+                onClick={() => setIsCreateTicketModalOpen(true)}
+                type="button"
+              >
+                <IconPlus />
+                Buat Event Tiket / Konser
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {ticketActionSuccess && (
+        <div style={{ padding: '0.75rem 1rem', background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          ✓ {ticketActionSuccess}
+        </div>
+      )}
 
       {/* Category Switcher: Undangan Pernikahan vs Tiket Event & Konser */}
       {isAdmin && (
@@ -794,6 +906,260 @@ export default function EventsPage() {
       </>
     )}
         </>
+      )}
+
+      {/* Create Ticketing Event Modal (Loket.com Standard) */}
+      {isCreateTicketModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+          onClick={() => setIsCreateTicketModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '16px',
+              maxWidth: '680px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.25)',
+              border: '1px solid #e2e8f0',
+              padding: '1.75rem',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  Buat Event Tiket / Konser Baru
+                </h2>
+                <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0.25rem 0 0 0' }}>
+                  Lengkapi data event, kuota tiket tiering, dan opsi spotlight banner (standar Loket.com).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateTicketModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.25rem',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTicketSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Nama Event / Acara *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: JAKARTA SUMMER FESTIVAL 2026"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Penyelenggara / EO *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Soundwave Live Indonesia"
+                    value={formOrganizer}
+                    onChange={(e) => setFormOrganizer(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Kategori Event
+                  </label>
+                  <select
+                    value={formCategory}
+                    onChange={(e) => setFormCategory(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem', background: '#fff' }}
+                  >
+                    <option value="Konser Musik">Konser Musik</option>
+                    <option value="Seminar & Edukasi">Seminar &amp; Edukasi</option>
+                    <option value="Workshop / Bootcamp">Workshop / Bootcamp</option>
+                    <option value="Standup Comedy">Standup Comedy</option>
+                    <option value="Festival Budaya">Festival Budaya</option>
+                    <option value="Acara Kampus">Acara Kampus</option>
+                    <option value="Olahraga & Komunitas">Olahraga &amp; Komunitas</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Tanggal Acara
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 28 Agu 2026"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Jam / Waktu Pelaksanaan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: 18:00 - 23:00 WIB"
+                    value={formTime}
+                    onChange={(e) => setFormTime(e.target.value)}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
+                    Venue & Kota
+                  </label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Venue (GBK)"
+                      value={formVenue}
+                      onChange={(e) => setFormVenue(e.target.value)}
+                      style={{ flex: 1.5, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Kota"
+                      value={formCity}
+                      onChange={(e) => setFormCity(e.target.value)}
+                      style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tier Tiket (Tiering) */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.65rem' }}>
+                  Pengaturan Tiket &amp; Kuota (Tiering)
+                </div>
+                {/* Tier 1 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Nama Tier (Presale 1)"
+                    value={formTierName1}
+                    onChange={(e) => setFormTierName1(e.target.value)}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Harga (Rp)"
+                    value={formTierPrice1}
+                    onChange={(e) => setFormTierPrice1(Number(e.target.value))}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Kuota"
+                    value={formTierQuota1}
+                    onChange={(e) => setFormTierQuota1(Number(e.target.value))}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                </div>
+                {/* Tier 2 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '0.5rem', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="Nama Tier (VIP Pass)"
+                    value={formTierName2}
+                    onChange={(e) => setFormTierName2(e.target.value)}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Harga (Rp)"
+                    value={formTierPrice2}
+                    onChange={(e) => setFormTierPrice2(Number(e.target.value))}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Kuota"
+                    value={formTierQuota2}
+                    onChange={(e) => setFormTierQuota2(Number(e.target.value))}
+                    style={{ padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                  />
+                </div>
+              </div>
+
+              {/* Spotlight Banner Setting */}
+              <div style={{ background: '#fdfbf7', border: '1.5px solid #fde68a', borderRadius: '10px', padding: '1rem', marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.86rem', color: '#92400e' }}>
+                  <input
+                    type="checkbox"
+                    checked={formIsFeatured}
+                    onChange={(e) => setFormIsFeatured(e.target.checked)}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <span>★ Tampilkan sebagai Banner Spotlight di Halaman Depan (/tiket)</span>
+                </label>
+                {formIsFeatured && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Headline Banner Depan (Contoh: Penantian Berakhir! Konser Spektakuler 2026)"
+                      value={formHeadline}
+                      onChange={(e) => setFormHeadline(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #fde68a', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateTicketModalOpen(false)}
+                  className="btn btn-secondary"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                >
+                  Terbitkan Event Tiket Sekarang
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );

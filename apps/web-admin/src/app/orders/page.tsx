@@ -110,6 +110,8 @@ export default function OrdersPage() {
   const [error, setError] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ticketSearchQuery, setTicketSearchQuery] = useState('');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'CANCELLED'>('ALL');
   const [updatingOrder, setUpdatingOrder] = useState<OrderItem | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
   const [newActiveUntil, setNewActiveUntil] = useState<string>('');
@@ -301,8 +303,71 @@ export default function OrdersPage() {
             <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1rem' }}>
               <div style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: 500 }}>Fee Platform (Rp 3.000/tkt)</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#334155', marginTop: '0.25rem' }}>
-                {formatRupiah(ticketOrders.reduce((acc, o) => acc + o.serviceFeeAmount, 0))}
+                {formatRupiah(
+                  ticketOrders.reduce(
+                    (acc, o) =>
+                      acc +
+                      Number(
+                        o.serviceFeeAmount ??
+                          (o as unknown as { serviceFee?: number }).serviceFee ??
+                          (o.quantity ? o.quantity * 3000 : 3000)
+                      ),
+                    0
+                  )
+                )}
               </div>
+            </div>
+          </div>
+
+          {/* Status Tabs for Tickets */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }} role="tablist">
+            {[
+              { key: 'ALL', label: 'Semua', count: ticketOrders.length },
+              { key: 'PAID', label: 'Lunas (PAID)', count: ticketOrders.filter((t) => t.status === 'PAID').length },
+              { key: 'PENDING', label: 'Menunggu Bayar', count: ticketOrders.filter((t) => t.status === 'PENDING').length },
+              { key: 'CANCELLED', label: 'Batal', count: ticketOrders.filter((t) => t.status === 'CANCELLED').length },
+            ].map((tab) => {
+              const active = ticketStatusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTicketStatusFilter(tab.key as any)}
+                  className={`btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ borderRadius: '8px' }}
+                >
+                  {tab.label} ({tab.count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Bar for Tickets */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '520px' }}>
+              <input
+                type="text"
+                placeholder="Cari Kode Order (ORD-...) / E-Ticket / Nama Pembeli / WhatsApp..."
+                value={ticketSearchQuery}
+                onChange={(e) => setTicketSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '0.55rem 0.85rem',
+                  fontSize: '0.875rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--admin-border, #cbd5e1)',
+                  background: '#ffffff',
+                }}
+              />
+              {ticketSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setTicketSearchQuery('')}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
 
@@ -320,7 +385,34 @@ export default function OrdersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ticketOrders.map((tOrder) => (
+                  {(() => {
+                    const filtered = ticketOrders.filter((order) => {
+                      if (ticketStatusFilter !== 'ALL' && order.status !== ticketStatusFilter) return false;
+                      if (ticketSearchQuery.trim()) {
+                        const q = ticketSearchQuery.toLowerCase().trim();
+                        const match =
+                          (order.orderCode && order.orderCode.toLowerCase().includes(q)) ||
+                          (order.buyerName && order.buyerName.toLowerCase().includes(q)) ||
+                          (order.buyerEmail && order.buyerEmail.toLowerCase().includes(q)) ||
+                          (order.buyerWhatsapp && order.buyerWhatsapp.toLowerCase().includes(q)) ||
+                          (order.eventTitle && order.eventTitle.toLowerCase().includes(q)) ||
+                          (order.tickets && order.tickets.some((tk) => tk.ticketCode.toLowerCase().includes(q)));
+                        if (!match) return false;
+                      }
+                      return true;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748b' }}>
+                            Tidak ada pesanan tiket yang cocok dengan filter atau kata kunci &ldquo;{ticketSearchQuery}&rdquo;.
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filtered.map((tOrder) => (
                     <tr key={tOrder.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
                         <code>{tOrder.orderCode}</code>
@@ -373,7 +465,8 @@ export default function OrdersPage() {
                         </Link>
                       </td>
                     </tr>
-                  ))}
+                  ));
+                })()}
                 </tbody>
               </table>
             </div>

@@ -328,7 +328,6 @@ export default function ClientTicketingPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [accountTickets, setAccountTickets] = useState<IssuedTicketRecord[]>([]);
   const [mobileSearchOpen, setMobileSearchOpen] = useState<boolean>(false);
-  const [showCategoryFilters, setShowCategoryFilters] = useState<boolean>(false);
   const [heroSlideIndex, setHeroSlideIndex] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [searchFocused, setSearchFocused] = useState<boolean>(false);
@@ -924,47 +923,6 @@ export default function ClientTicketingPage() {
               />
             </button>
 
-            {/* "Kategori" Button with Geometric Shapes Icon (Desktop/Tablet) */}
-            <button
-              type="button"
-              className="irv-loket-kategori-btn"
-              onClick={() => {
-                setShowCategoryFilters((prev) => !prev);
-                setServicesMenuOpen(false);
-                setLangMenuOpen(false);
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                background: showCategoryFilters ? '#f1f5f9' : 'transparent',
-                border: 'none',
-                padding: '0.4rem 0.5rem',
-                borderRadius: '8px',
-                color: '#0d253f',
-                fontSize: '0.92rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              <svg
-                width="19"
-                height="19"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#0d253f"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polygon points="12 3 16.5 10.5 7.5 10.5 12 3" />
-                <circle cx="7.5" cy="17.5" r="3.5" />
-                <rect x="13.5" y="14" width="7" height="7" rx="1" />
-              </svg>
-              <span>Kategori</span>
-            </button>
-
             {/* Dropdown Menu Layanan ⌄ (Desktop/Tablet) */}
             <div className="irv-loket-layanan-dropdown" style={{ position: 'relative' }}>
               <button
@@ -1540,84 +1498,7 @@ export default function ClientTicketingPage() {
           </div>
         </div>
 
-        {/* Desktop "Kategori" & Quick Menu Bar (Shown when "Kategori" is clicked) */}
-        {showCategoryFilters && (
-          <div
-            style={{
-              background: '#f8fafc',
-              borderTop: '1px solid #e8edf3',
-              padding: '0.75rem 0',
-            }}
-          >
-            <div
-              className="irv-tiket-container"
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '0.75rem',
-              }}
-            >
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.45rem' }}>
-                {CATEGORIES.map((cat) => {
-                  const active = selectedCategory === cat && activeTab === 'catalog';
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setActiveTab('catalog');
-                      }}
-                      style={{
-                        padding: '0.42rem 0.9rem',
-                        borderRadius: '999px',
-                        border: active ? '1.5px solid #0d253f' : '1px solid #cbd5e1',
-                        background: active ? '#0d253f' : '#ffffff',
-                        color: active ? '#ffffff' : '#334155',
-                        fontWeight: 700,
-                        fontSize: '0.78rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  );
-                })}
-              </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem' }}>
-                {[
-                  { id: 'my-ticket' as ClientTab, label: t.tabMyTicket },
-                  { id: 'transactions' as ClientTab, label: t.tabHistory },
-                  { id: 'mini-apps' as ClientTab, label: t.tabMiniApps },
-                  { id: 'wristband' as ClientTab, label: t.tabWristband },
-                  { id: 'about' as ClientTab, label: t.tabAbout },
-                  { id: 'support' as ClientTab, label: t.tabSupport },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveTab(item.id)}
-                    style={{
-                      background: activeTab === item.id ? '#e2e8f0' : 'transparent',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '0.35rem 0.65rem',
-                      color: '#0d253f',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Mobile Hamburger Menu Popover + Dark Backdrop (Exact Match to Loket Mobile Menu Screenshot) */}
         {mobileMenuOpen && (
@@ -2333,13 +2214,10 @@ export default function ClientTicketingPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowCategoryFilters((prev) => !prev);
-                    if (selectedCategory !== 'Semua' || searchQuery || selectedCity !== 'Semua Kota') {
-                      setSelectedCategory('Semua');
-                      setSelectedCity('Semua Kota');
-                      setSearchQuery('');
-                      fetchCatalog('Semua', '');
-                    }
+                    setSelectedCategory('Semua');
+                    setSelectedCity('Semua Kota');
+                    setSearchQuery('');
+                    fetchCatalog('Semua', '');
                   }}
                   style={{
                     background: 'transparent',
@@ -2353,6 +2231,47 @@ export default function ClientTicketingPage() {
                 >
                   {t.viewAll}
                 </button>
+              </div>
+
+              {/* Category Filter Pills (Always visible, elegant Loket style) */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  overflowX: 'auto',
+                  paddingBottom: '0.45rem',
+                  marginBottom: '0.65rem',
+                  scrollbarWidth: 'none',
+                }}
+              >
+                {CATEGORIES.map((cat) => {
+                  const active = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        fetchCatalog(cat, searchQuery);
+                      }}
+                      style={{
+                        padding: '0.42rem 0.95rem',
+                        borderRadius: '999px',
+                        border: active ? '1.5px solid #0d253f' : '1px solid #cbd5e1',
+                        background: active ? '#0d253f' : '#ffffff',
+                        color: active ? '#ffffff' : '#334155',
+                        fontWeight: 700,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Quick Location Chips (Filter Kota Cepat — Tahap 2) */}
@@ -2407,34 +2326,6 @@ export default function ClientTicketingPage() {
                   );
                 })}
               </div>
-
-              {/* Optional Category Filter Pills */}
-              {showCategoryFilters && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.15rem' }}>
-                  {CATEGORIES.map((cat) => {
-                    const active = selectedCategory === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setSelectedCategory(cat)}
-                        style={{
-                          padding: '0.45rem 0.95rem',
-                          borderRadius: '999px',
-                          border: active ? '1.5px solid #1b3b2b' : '1px solid #cbd5e1',
-                          background: active ? '#1b3b2b' : '#ffffff',
-                          color: active ? '#ffffff' : '#334155',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
 
               {/* Quick E-Ticket Instant Lookup Bar (Tahap 2) */}
               <div

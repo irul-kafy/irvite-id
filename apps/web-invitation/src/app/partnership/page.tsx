@@ -365,10 +365,16 @@ export default function ClientPartnershipPage() {
           object-fit: contain;
           display: block;
         }
+        .irv-hero-split-grid {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 2.25rem;
+          align-items: center;
+        }
         .irv-hero-stats-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 1rem;
+          gap: 0.85rem;
         }
         .irv-pillars-grid {
           display: grid;
@@ -397,6 +403,10 @@ export default function ClientPartnershipPage() {
           display: none;
         }
         @media (max-width: 1024px) {
+          .irv-hero-split-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
           .irv-hero-stats-grid {
             grid-template-columns: repeat(2, 1fr);
           }
@@ -1059,128 +1069,224 @@ export default function ClientPartnershipPage() {
             }}
           />
 
-          <div style={{ maxWidth: '880px', position: 'relative', zIndex: 2 }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: '#e5c170',
-                background: 'rgba(229, 193, 112, 0.12)',
-                border: '1px solid rgba(229, 193, 112, 0.28)',
-                padding: '0.35rem 0.85rem',
-                borderRadius: '999px',
-                marginBottom: '1rem',
-              }}
-            >
-              <span>{t.badge}</span>
-            </span>
-
-            <h1
-              style={{
-                fontSize: 'clamp(1.95rem, 3.8vw, 3rem)',
-                fontWeight: 900,
-                lineHeight: 1.15,
-                margin: '0 0 1.15rem 0',
-                letterSpacing: '-0.02em',
-                color: '#ffffff',
-              }}
-            >
-              {t.heroTitle}
-            </h1>
-
-            <p
-              style={{
-                fontSize: 'clamp(0.96rem, 1.4vw, 1.12rem)',
-                color: '#d1e3d9',
-                lineHeight: 1.65,
-                margin: '0 0 2rem 0',
-                maxWidth: '780px',
-              }}
-            >
-              {t.heroDesc}
-            </p>
-
-            {/* CTAs */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.5rem' }}>
-              <a
-                href="#daftar-event"
+          <div className="irv-hero-split-grid" style={{ position: 'relative', zIndex: 2 }}>
+            {/* Left Column (58%): Headline, Badges, CTAs, 4 Quick Stat Cards */}
+            <div>
+              <span
                 style={{
-                  padding: '0.9rem 1.65rem',
-                  borderRadius: '12px',
-                  background: '#c5a059',
-                  color: '#11291d',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.74rem',
                   fontWeight: 800,
-                  fontSize: '0.92rem',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 16px rgba(197, 160, 89, 0.35)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#e5c170',
+                  background: 'rgba(229, 193, 112, 0.12)',
+                  border: '1px solid rgba(229, 193, 112, 0.28)',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '999px',
+                  marginBottom: '1rem',
                 }}
               >
-                <span>{t.consultBtn}</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </a>
+                <span>{t.badge}</span>
+              </span>
 
-              <a
-                href="https://irvite-admin.vercel.app/login"
-                target="_blank"
-                rel="noopener noreferrer"
+              <h1
                 style={{
-                  padding: '0.9rem 1.45rem',
-                  borderRadius: '12px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                  fontSize: 'clamp(1.95rem, 3.6vw, 2.9rem)',
+                  fontWeight: 900,
+                  lineHeight: 1.15,
+                  margin: '0 0 1.15rem 0',
+                  letterSpacing: '-0.02em',
                   color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.92rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
                 }}
               >
-                <span>{t.adminLoginBtn}</span>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="7" y1="17" x2="17" y2="7" />
-                  <polyline points="7 7 17 7 17 17" />
-                </svg>
-              </a>
-            </div>
+                {t.heroTitle}
+              </h1>
 
-            {/* 4 Stat Highlights in Hero */}
-            <div className="irv-hero-stats-grid">
-              {t.stats.map((stat) => (
-                <div
-                  key={stat.title}
+              <p
+                style={{
+                  fontSize: 'clamp(0.94rem, 1.35vw, 1.05rem)',
+                  color: '#d1e3d9',
+                  lineHeight: 1.65,
+                  margin: '0 0 2rem 0',
+                  maxWidth: '720px',
+                }}
+              >
+                {t.heroDesc}
+              </p>
+
+              {/* CTAs */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '2.25rem' }}>
+                <a
+                  href="#daftar-event"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '14px',
-                    padding: '0.9rem 1.05rem',
+                    padding: '0.9rem 1.65rem',
+                    borderRadius: '12px',
+                    background: '#c5a059',
+                    color: '#11291d',
+                    fontWeight: 800,
+                    fontSize: '0.92rem',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 16px rgba(197, 160, 89, 0.35)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
                   }}
                 >
-                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.2rem' }}>
-                    {stat.title}
+                  <span>{t.consultBtn}</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </a>
+
+                <a
+                  href="https://irvite-admin.vercel.app/login"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '0.9rem 1.45rem',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.92rem',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <span>{t.adminLoginBtn}</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="7" y1="17" x2="17" y2="7" />
+                    <polyline points="7 7 17 7 17 17" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* 4 Stat Highlights */}
+              <div className="irv-hero-stats-grid">
+                {t.stats.map((stat) => (
+                  <div
+                    key={stat.title}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '14px',
+                      padding: '0.9rem 1rem',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.2rem' }}>
+                      {stat.title}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#c5d9ce', lineHeight: 1.4 }}>
+                      {stat.desc}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#c5d9ce', lineHeight: 1.4 }}>
-                    {stat.desc}
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column (42%): Organizer Live Command Center Mockup (Glassmorphism Preview Card) */}
+            <div
+              style={{
+                background: 'rgba(13, 37, 27, 0.65)',
+                backdropFilter: 'blur(16px)',
+                borderRadius: '20px',
+                border: '1.5px solid rgba(197, 160, 89, 0.3)',
+                padding: '1.5rem',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.35)',
+              }}
+            >
+              {/* Card Header: Live pulse & Event name */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '999px',
+                      background: '#10b981',
+                      boxShadow: '0 0 8px #10b981',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: '#6ee7b7', textTransform: 'uppercase' }}>
+                    LIVE EVENT DASHBOARD
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', background: 'rgba(255,255,255,0.08)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
+                  Web Admin EO
+                </span>
+              </div>
+
+              {/* Event Title */}
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffffff', marginBottom: '0.35rem' }}>
+                JAKARTA INDIE SOUNDWAVE 2026
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#c5a059', fontWeight: 600, marginBottom: '1.25rem' }}>
+                24 Agu 2026 • Stadion Madya GBK, Jakarta Pusat
+              </div>
+
+              {/* Sales Metrics with Glowing Progress Bar */}
+              <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '1rem', border: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '1.15rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>Tiket Terjual (65.7% Kuota)</span>
+                  <strong style={{ fontSize: '0.95rem', color: '#ffffff' }}>888 / 1.350</strong>
+                </div>
+                {/* Progress Bar */}
+                <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '999px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                  <div style={{ width: '65.7%', height: '100%', background: 'linear-gradient(90deg, #c5a059 0%, #10b981 100%)', borderRadius: '999px' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600 }}>Estimasi Omzet Penjualan</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#e5c170', fontWeight: 900 }}>Rp 132.450.000</strong>
+                </div>
+              </div>
+
+              {/* Live Gate Check-in Micro-Feed */}
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                  Aktivitas Scanner Pintu Masuk
+                </div>
+                <div style={{ display: 'grid', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34d399', background: 'rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>✓ VALID</span>
+                      <span style={{ fontSize: '0.78rem', color: '#ffffff', fontWeight: 600 }}>Rian Pratama (Presale 1)</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>Gate 01 • Baru saja</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', padding: '0.5rem 0.75rem', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#34d399', background: 'rgba(16, 185, 129, 0.2)', padding: '0.15rem 0.35rem', borderRadius: '4px' }}>✓ VALID</span>
+                      <span style={{ fontSize: '0.78rem', color: '#ffffff', fontWeight: 600 }}>Sarah Amalia (VIP Pass)</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Gate 02 VIP • 12 dtk lalu</span>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Physical Wristband Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.55rem 0.75rem', background: 'rgba(197, 160, 89, 0.1)', border: '1px solid rgba(197, 160, 89, 0.22)', borderRadius: '8px' }}>
+                <span style={{ fontSize: '0.74rem', color: '#e5c170', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span>🎟️</span>
+                  <span>Tiket Gelang Tyvek 300 DPI:</span>
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#ffffff', fontWeight: 800 }}>
+                  1.350 Pcs Ready di Venue
+                </span>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* 3 CONCRETE SOLUTION PILLARS */}
+        {/* 3 CONCRETE SOLUTION PILLARS WITH RICH VISUAL MOCKUPS */}
         <section style={{ marginBottom: '2.5rem' }}>
           <div style={{ textAlign: 'center', maxWidth: '720px', margin: '0 auto 1.75rem' }}>
             <span
@@ -1205,7 +1311,7 @@ export default function ClientPartnershipPage() {
           </div>
 
           <div className="irv-pillars-grid">
-            {/* Pilar 1: Automated Ticketing */}
+            {/* Pilar 1: Automated Ticketing + E-Ticket Pass Mockup */}
             <div
               style={{
                 background: '#ffffff',
@@ -1235,12 +1341,77 @@ export default function ClientPartnershipPage() {
                     <line x1="2" y1="10" x2="22" y2="10" />
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.65rem 0', color: '#0f172a' }}>
+                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#0f172a' }}>
                   {t.pillar1Title}
                 </h3>
-                <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6, margin: '0 0 1.25rem 0' }}>
+                <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.55, margin: '0 0 1rem 0' }}>
                   {t.pillar1Desc}
                 </p>
+
+                {/* Visual Mockup: Digital Concert E-Ticket Pass (Apple/Google Wallet aesthetic) */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #0d251e 0%, #1b3b2b 100%)',
+                    borderRadius: '14px',
+                    padding: '1rem',
+                    color: '#ffffff',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    marginBottom: '1.25rem',
+                    border: '1px solid rgba(197, 160, 89, 0.35)',
+                    boxShadow: '0 8px 24px rgba(17, 41, 29, 0.15)',
+                  }}
+                >
+                  {/* Perforated Ticket Notches */}
+                  <div style={{ position: 'absolute', top: '50%', left: '-8px', transform: 'translateY(-50%)', width: '16px', height: '16px', borderRadius: '50%', background: '#ffffff' }} />
+                  <div style={{ position: 'absolute', top: '50%', right: '-8px', transform: 'translateY(-50%)', width: '16px', height: '16px', borderRadius: '50%', background: '#ffffff' }} />
+
+                  {/* Ticket Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.05em' }}>
+                      IRVITE CONCERT PASS
+                    </span>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#c5a059', color: '#11291d', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                      VIP ACCESS
+                    </span>
+                  </div>
+
+                  {/* Event & QR Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.65rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#ffffff', lineHeight: 1.2 }}>
+                        INDIE SOUNDWAVE
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#c5d9ce', marginTop: '2px' }}>
+                        Rian Pratama • Gate 01 VIP
+                      </div>
+                      <div style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, marginTop: '4px' }}>
+                        ✓ LUNAS via QRIS Instant
+                      </div>
+                    </div>
+                    {/* QR Code SVG Miniature */}
+                    <div style={{ background: '#ffffff', padding: '0.35rem', borderRadius: '6px', flexShrink: 0 }}>
+                      <svg width="44" height="44" viewBox="0 0 24 24" fill="#0d251e">
+                        <rect x="2" y="2" width="6" height="6" rx="1" fill="#0d251e" />
+                        <rect x="4" y="4" width="2" height="2" fill="#ffffff" />
+                        <rect x="16" y="2" width="6" height="6" rx="1" fill="#0d251e" />
+                        <rect x="18" y="4" width="2" height="2" fill="#ffffff" />
+                        <rect x="2" y="16" width="6" height="6" rx="1" fill="#0d251e" />
+                        <rect x="4" y="18" width="2" height="2" fill="#ffffff" />
+                        <rect x="10" y="3" width="3" height="3" fill="#0d251e" />
+                        <rect x="10" y="8" width="4" height="3" fill="#0d251e" />
+                        <rect x="15" y="10" width="3" height="4" fill="#0d251e" />
+                        <rect x="10" y="14" width="3" height="3" fill="#0d251e" />
+                        <rect x="15" y="16" width="7" height="6" fill="#0d251e" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Delivery status */}
+                  <div style={{ borderTop: '1px dashed rgba(255,255,255,0.2)', paddingTop: '0.45rem', fontSize: '0.68rem', color: '#a7f3d0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <span>⚡ Terkirim otomatis ke WhatsApp &amp; Email penonton dlm 0.8 detik</span>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
@@ -1262,7 +1433,7 @@ export default function ClientPartnershipPage() {
               </div>
             </div>
 
-            {/* Pilar 2: Smartphone Gate Scanner */}
+            {/* Pilar 2: Smartphone Gate Scanner + Phone Camera Mockup */}
             <div
               style={{
                 background: '#ffffff',
@@ -1292,12 +1463,67 @@ export default function ClientPartnershipPage() {
                     <line x1="12" y1="18" x2="12.01" y2="18" />
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.65rem 0', color: '#0f172a' }}>
+                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#0f172a' }}>
                   {t.pillar2Title}
                 </h3>
-                <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6, margin: '0 0 1.25rem 0' }}>
+                <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.55, margin: '0 0 1rem 0' }}>
                   {t.pillar2Desc}
                 </p>
+
+                {/* Visual Mockup: Smartphone Gate Scanner Device Frame */}
+                <div
+                  style={{
+                    background: '#0f172a',
+                    borderRadius: '16px',
+                    padding: '0.85rem',
+                    color: '#ffffff',
+                    marginBottom: '1.25rem',
+                    border: '2px solid #334155',
+                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.18)',
+                  }}
+                >
+                  {/* Phone Top Notch / Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#94a3b8' }}>GATE SCANNER CAMERA</span>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', color: '#64748b' }}>HP Panitia</span>
+                  </div>
+
+                  {/* Scanner Viewfinder Area */}
+                  <div
+                    style={{
+                      background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.9) 80%)',
+                      border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                      borderRadius: '10px',
+                      padding: '0.75rem',
+                      textAlign: 'center',
+                      position: 'relative',
+                      marginBottom: '0.5rem',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {/* Laser scan line effect */}
+                    <div style={{ position: 'absolute', top: '35%', left: '10%', right: '10%', height: '2px', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+                    <div style={{ fontSize: '0.7rem', color: '#6ee7b7', fontWeight: 700, marginBottom: '0.35rem' }}>
+                      [ TARGET TIKET QR TERDETEKSI ]
+                    </div>
+                    {/* Big Green Valid Result Box */}
+                    <div style={{ background: '#10b981', color: '#064e3b', borderRadius: '8px', padding: '0.45rem 0.65rem', fontWeight: 900, fontSize: '0.82rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)' }}>
+                      ✓ VALID — SILAKAN MASUK
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#ffffff', fontWeight: 700, marginTop: '0.35rem' }}>
+                      Rian Pratama • Presale 1 • Gate 01
+                    </div>
+                  </div>
+
+                  {/* Scanner Footer Stats */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#94a3b8', paddingTop: '0.25rem' }}>
+                    <span>Speed: <strong>0.3 dtk/scan</strong></span>
+                    <span>Anti-Tiket Ganda: <strong style={{ color: '#34d399' }}>100% Aktif</strong></span>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
@@ -1319,7 +1545,7 @@ export default function ClientPartnershipPage() {
               </div>
             </div>
 
-            {/* Pilar 3: Waterproof Wristband */}
+            {/* Pilar 3: Waterproof Wristband + Tactile Wristbands Mockup */}
             <div
               style={{
                 background: '#ffffff',
@@ -1350,12 +1576,87 @@ export default function ClientPartnershipPage() {
                     <path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83" />
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.65rem 0', color: '#0f172a' }}>
+                <h3 style={{ fontSize: '1.18rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#0f172a' }}>
                   {t.pillar3Title}
                 </h3>
-                <p style={{ fontSize: '0.88rem', color: '#475569', lineHeight: 1.6, margin: '0 0 1.25rem 0' }}>
+                <p style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.55, margin: '0 0 1rem 0' }}>
                   {t.pillar3Desc}
                 </p>
+
+                {/* Visual Mockup: Tactile Festival Wristbands Display */}
+                <div
+                  style={{
+                    background: '#f8faf9',
+                    borderRadius: '14px',
+                    padding: '0.85rem',
+                    marginBottom: '1.25rem',
+                    border: '1.5px solid #d5e4dc',
+                  }}
+                >
+                  {/* Band 1: Tyvek Concert Standard */}
+                  <div
+                    style={{
+                      background: 'linear-gradient(90deg, #1b3b2b 0%, #25573e 70%, #d97706 100%)',
+                      borderRadius: '8px',
+                      padding: '0.55rem 0.75rem',
+                      color: '#ffffff',
+                      marginBottom: '0.55rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 12px rgba(27, 59, 43, 0.16)',
+                      position: 'relative',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.04em', color: '#fef08a' }}>
+                        TYVEK CONCERT WRISTBAND
+                      </div>
+                      <div style={{ fontSize: '0.64rem', opacity: 0.9 }}>
+                        Waterproof • Serat Anti-Sobek #08819
+                      </div>
+                    </div>
+                    {/* Miniature Barcode Lines */}
+                    <div style={{ display: 'flex', gap: '2px', alignItems: 'center', background: '#ffffff', padding: '0.2rem 0.35rem', borderRadius: '4px' }}>
+                      <span style={{ width: '2px', height: '18px', background: '#000' }} />
+                      <span style={{ width: '3px', height: '18px', background: '#000' }} />
+                      <span style={{ width: '1px', height: '18px', background: '#000' }} />
+                      <span style={{ width: '4px', height: '18px', background: '#000' }} />
+                      <span style={{ width: '2px', height: '18px', background: '#000' }} />
+                      <span style={{ width: '3px', height: '18px', background: '#000' }} />
+                    </div>
+                  </div>
+
+                  {/* Band 2: VIP Woven Fabric Lanyard */}
+                  <div
+                    style={{
+                      background: 'linear-gradient(90deg, #0f172a 0%, #1e293b 75%, #c5a059 100%)',
+                      borderRadius: '8px',
+                      padding: '0.55rem 0.75rem',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.12)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.04em', color: '#e5c170' }}>
+                        VIP WOVEN FABRIC LANYARD
+                      </div>
+                      <div style={{ fontSize: '0.64rem', color: '#cbd5e1' }}>
+                        Kain Tenun Mewah • One-Way Barrel Lock
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.62rem', fontWeight: 800, background: '#c5a059', color: '#11291d', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                      VIP PASS
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: '0.55rem', textAlign: 'center' }}>
+                    ✓ Cetak Barcode 300 DPI Siap Kirim ke Seluruh Indonesia
+                  </div>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
@@ -1555,6 +1856,32 @@ export default function ClientPartnershipPage() {
                   {t.payoutNote}
                 </div>
               </div>
+
+              {/* Savings Comparison vs Percentage Commission */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #edf5f0 0%, #ffffff 100%)',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  border: '1.5px solid #a7f3d0',
+                  marginTop: '1.15rem',
+                }}
+              >
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+                  💡 KENAPA FLAT RP 3.000 JAUH LEBIH MENGUNTUNGKAN EO?
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#334155', lineHeight: 1.45, marginBottom: '0.45rem' }}>
+                  Jika menggunakan platform komisi 5% (Rp {((ticketPrice * 0.05)).toLocaleString('id-ID')}/tiket), biaya potongan mencapai <strong>Rp {((ticketPrice * 0.05 * estimatedSold)).toLocaleString('id-ID')}</strong>.
+                </div>
+                {ticketPrice >= 70000 && (
+                  <div style={{ background: '#ecfdf5', border: '1px solid #10b981', color: '#065f46', borderRadius: '8px', padding: '0.45rem 0.65rem', fontWeight: 800, fontSize: '0.82rem' }}>
+                    💰 Bersama IRVITE, Panitia Menghemat {formatRupiah(Math.max(0, (ticketPrice * 0.05 - 3000) * estimatedSold))}!
+                  </div>
+                )}
+                <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 700, marginTop: '0.45rem' }}>
+                  ⚡ Pencairan dana H+1 otomatis ke rekening resmi panitia (BCA, Mandiri, BRI, BNI).
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1589,9 +1916,10 @@ export default function ClientPartnershipPage() {
               gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
               gap: '1.25rem',
               marginBottom: '2rem',
+              position: 'relative',
             }}
           >
-            {t.steps.map((st) => (
+            {t.steps.map((st, sIdx) => (
               <div
                 key={st.step}
                 style={{
@@ -1600,31 +1928,41 @@ export default function ClientPartnershipPage() {
                   padding: '1.35rem',
                   border: '1.5px solid #d5e4dc',
                   position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
                 }}
               >
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
-                    fontWeight: 900,
-                    fontSize: '0.88rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '0.85rem',
-                  }}
-                >
-                  {st.step}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                    <div
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        background: '#1b3b2b',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: '0.88rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {st.step}
+                    </div>
+                    {sIdx < t.steps.length - 1 && (
+                      <span style={{ fontSize: '1.1rem', color: '#cbd5e1', fontWeight: 800 }}>➔</span>
+                    )}
+                  </div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.4rem', color: '#0f172a' }}>
+                    {st.title}
+                  </h3>
+                  <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
+                    {st.desc}
+                  </p>
                 </div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 0.4rem', color: '#0f172a' }}>
-                  {st.title}
-                </h3>
-                <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5, margin: 0 }}>
-                  {st.desc}
-                </p>
               </div>
             ))}
           </div>
