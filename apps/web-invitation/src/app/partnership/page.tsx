@@ -2,9 +2,29 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { formatRupiah, PLATFORM_FEE_PER_TICKET } from '@/lib/ticketing-store';
 
+function IconSparkleStar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#f5c443" stroke="#f5c443" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z" />
+    </svg>
+  );
+}
+
+function IconSearch() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
 export default function ClientPartnershipPage() {
+  const router = useRouter();
+  const [headerSearch, setHeaderSearch] = useState<string>('');
   const [ticketPrice, setTicketPrice] = useState<number>(150000);
   const [estimatedSold, setEstimatedSold] = useState<number>(300);
   const [feeBearer, setFeeBearer] = useState<'buyer' | 'organizer'>('buyer');
@@ -63,84 +83,216 @@ export default function ClientPartnershipPage() {
           }
         }
       `}</style>
-      {/* Top Client Navigation Bar (Full-Width Widescreen) */}
+      {/* 1. TOP UTILITY PROMO BAR (Daftarkan Eventmu Sekarang | Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan) */}
       <div
-        className="irv-part-container"
         style={{
-          paddingTop: '1.5rem',
-          paddingBottom: '1rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
+          width: '100%',
+          background: 'linear-gradient(90deg, #0f2419 0%, #1b3b2b 35%, #2d6a4f 52%, #1b3b2b 72%, #0f2419 100%)',
+          color: '#ffffff',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div
+          className="irv-part-container"
+          style={{
+            minHeight: '42px',
+            paddingTop: '0.4rem',
+            paddingBottom: '0.4rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}
+        >
           <Link
-            href="/"
+            href="/partnership"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.58rem 1.05rem',
-              borderRadius: '999px',
-              background: '#ffffff',
-              border: '1.5px solid #bfd4c8',
-              color: '#13281e',
+              gap: '0.5rem',
+              color: '#f5c443',
+              textDecoration: 'none',
               fontSize: '0.84rem',
               fontWeight: 800,
-              textDecoration: 'none',
+              letterSpacing: '0.01em',
             }}
           >
-            ← Beranda Utama
+            <IconSparkleStar />
+            <span>Daftarkan Eventmu Sekarang</span>
           </Link>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <img
-              src="/irvite-logo.png"
-              alt="IRVITE.ID"
-              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
-            />
-          </Link>
-        </div>
 
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-          <Link
-            href="/tiket"
+          <div
             style={{
-              padding: '0.58rem 1.05rem',
-              borderRadius: '12px',
-              background: '#ffffff',
-              border: '1.5px solid #d5e4dc',
-              color: '#13281e',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              textDecoration: 'none',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '1.5rem',
             }}
           >
-            Lihat Katalog Tiket
-          </Link>
-          <a
-            href="https://wa.me/6281234567890?text=Halo%20Tim%20Partnership%20IRVITE.ID,%20saya%20ingin%20mendaftarkan%20event%20di%20platform%20IRVITE."
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              padding: '0.58rem 1.1rem',
-              borderRadius: '12px',
-              background: '#1b3b2b',
-              color: '#ffffff',
-              fontSize: '0.84rem',
-              fontWeight: 800,
-              textDecoration: 'none',
-            }}
-          >
-            Hubungi Tim Partnership
-          </a>
+            {[
+              { href: '/tiket?tab=mini-apps', label: 'Mini Apps' },
+              { href: '/tiket?tab=about', label: 'Tentang Kami' },
+              { href: '/tiket?tab=wristband', label: 'Cetak Tiket Gelang' },
+              { href: '/tiket?tab=support', label: 'Layanan Pelanggan' },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: '0.83rem',
+                  fontWeight: 700,
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* 2. MAIN WHITE HEADER WITH WIDE SEARCH BAR ON TOP */}
+      <header
+        style={{
+          width: '100%',
+          background: '#ffffff',
+          borderBottom: '1px solid #dce8e1',
+          boxShadow: '0 4px 18px rgba(19, 40, 30, 0.04)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          marginBottom: '1.25rem',
+        }}
+      >
+        <div
+          className="irv-part-container"
+          style={{
+            paddingTop: '0.9rem',
+            paddingBottom: '0.9rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
+            <Link href="/tiket" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <img
+                src="/irvite-logo.png"
+                alt="IRVITE.ID"
+                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+              />
+            </Link>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0.36rem 0.75rem',
+                borderRadius: '999px',
+                background: '#edf4f0',
+                border: '1px solid #cfe0d6',
+                color: '#1b3b2b',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              Beranda
+            </Link>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              router.push('/tiket');
+            }}
+            style={{
+              flex: '1 1 420px',
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1.5px solid #d5e4dc',
+              borderRadius: '10px',
+              padding: '0.28rem 0.32rem 0.28rem 1rem',
+              boxShadow: 'inset 0 1px 2px rgba(19, 40, 30, 0.03)',
+            }}
+          >
+            <input
+              type="text"
+              value={headerSearch}
+              onChange={(e) => setHeaderSearch(e.target.value)}
+              placeholder="Cari berdasarkan artis, acara, atau nama tempat"
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.88rem',
+                flex: 1,
+                color: '#13281e',
+                background: 'transparent',
+                fontWeight: 500,
+              }}
+            />
+            <button
+              type="submit"
+              aria-label="Cari Event"
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#1b3b2b',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <IconSearch />
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
+            <Link
+              href="/tiket"
+              style={{
+                padding: '0.58rem 1rem',
+                borderRadius: '10px',
+                background: '#ffffff',
+                border: '1.5px solid #d5e4dc',
+                color: '#13281e',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+              }}
+            >
+              Katalog Event
+            </Link>
+            <Link
+              href="/tiket?tab=my-ticket"
+              style={{
+                padding: '0.58rem 1rem',
+                borderRadius: '10px',
+                background: '#1b3b2b',
+                color: '#ffffff',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+              }}
+            >
+              E-Ticket Pass Saya
+            </Link>
+          </div>
+        </div>
+      </header>
+
       {/* Main Content (Full-Width Widescreen) */}
-      <main className="irv-part-container" style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
+      <main className="irv-part-container" style={{ paddingTop: '0.25rem', paddingBottom: '0.5rem' }}>
         {/* Hero Banner (2-Column Balanced Widescreen) */}
         <section
           style={{

@@ -12,9 +12,17 @@ import {
   TicketOrderRecord,
 } from '@/lib/ticketing-store';
 
-type ClientTab = 'catalog' | 'my-ticket';
+type ClientTab = 'catalog' | 'my-ticket' | 'mini-apps' | 'about' | 'wristband' | 'support';
 
 const CATEGORIES = ['Semua', 'Konser Musik', 'Seminar & Edukasi', 'Workshop', 'Standup Comedy'] as const;
+
+function IconSparkleStar() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#f5c443" stroke="#f5c443" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L14.6 9.4L22 12L14.6 14.6L12 22L9.4 14.6L2 12L9.4 9.4L12 2Z" />
+    </svg>
+  );
+}
 
 function IconSearch() {
   return (
@@ -161,6 +169,26 @@ export default function ClientTicketingPage() {
   const [quickEmailInput, setQuickEmailInput] = useState<string>('');
   const [quickEmailStatus, setQuickEmailStatus] = useState<string | null>(null);
 
+  // Interactive Mini Apps State (QR Gate Scanner & EO Profit Calculator)
+  const [miniScannerCode, setMiniScannerCode] = useState<string>('IRV-TKT-2026-8821');
+  const [miniScannerResult, setMiniScannerResult] = useState<{
+    valid: boolean;
+    title: string;
+    detail: string;
+  } | null>({
+    valid: true,
+    title: 'VALID • TIKET RESMI TERVERIFIKASI',
+    detail: 'Pemegang: Rizky Pratama • Presale 1 — Festival Pass • Gate Utama GBK',
+  });
+  const [miniEoPrice, setMiniEoPrice] = useState<number>(150000);
+  const [miniEoQty, setMiniEoQty] = useState<number>(500);
+
+  // Interactive Cetak Tiket Gelang (Wristband Customizer) State
+  const [wbMaterial, setWbMaterial] = useState<'tyvek' | 'lanyard' | 'vinyl'>('tyvek');
+  const [wbEventTitle, setWbEventTitle] = useState<string>('JAKARTA INDIE SOUNDWAVE 2026');
+  const [wbTierLabel, setWbTierLabel] = useState<string>('VIP EMERALD ACCESS');
+  const [wbQty, setWbQty] = useState<number>(500);
+
   const fetchCatalog = useCallback(async (category: string, search: string) => {
     setLoading(true);
     try {
@@ -205,8 +233,14 @@ export default function ClientTicketingPage() {
     if (typeof window !== 'undefined') {
       const sp = new URLSearchParams(window.location.search);
       const tabParam = sp.get('tab');
-      if (tabParam === 'my-ticket') {
-        setActiveTab('my-ticket');
+      if (
+        tabParam === 'my-ticket' ||
+        tabParam === 'mini-apps' ||
+        tabParam === 'about' ||
+        tabParam === 'wristband' ||
+        tabParam === 'support'
+      ) {
+        setActiveTab(tabParam);
       }
     }
   }, []);
@@ -331,97 +365,256 @@ export default function ClientTicketingPage() {
           }
         }
       `}</style>
-      {/* Top Client Navigation Bar (Full-Width Widescreen, High Contrast, Zero Admin Buttons) */}
+      {/* 1. TOP UTILITY PROMO BAR (Daftarkan Eventmu Sekarang | Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan) */}
       <div
-        className="irv-tiket-container"
         style={{
-          paddingTop: '1.5rem',
-          paddingBottom: '1rem',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
+          width: '100%',
+          background: 'linear-gradient(90deg, #0f2419 0%, #1b3b2b 35%, #2d6a4f 52%, #1b3b2b 72%, #0f2419 100%)',
+          color: '#ffffff',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div
+          className="irv-tiket-container"
+          style={{
+            minHeight: '42px',
+            paddingTop: '0.4rem',
+            paddingBottom: '0.4rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+          }}
+        >
+          {/* Left: Sparkle + Daftarkan Eventmu Sekarang */}
           <Link
-            href="/"
+            href="/partnership"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.58rem 1.05rem',
-              borderRadius: '999px',
-              background: '#ffffff',
-              border: '1.5px solid #bfd4c8',
-              color: '#13281e',
-              fontSize: '0.84rem',
-              fontWeight: 800,
+              gap: '0.5rem',
+              color: '#ffffff',
               textDecoration: 'none',
-              boxShadow: '0 4px 12px rgba(19, 40, 30, 0.06)',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              letterSpacing: '0.01em',
             }}
           >
-            ← Beranda Utama
+            <IconSparkleStar />
+            <span>Daftarkan Eventmu Sekarang</span>
           </Link>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <img
-              src="/irvite-logo.png"
-              alt="IRVITE.ID"
-              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
-            />
-          </Link>
-        </div>
 
-        {/* Client-Only Mode Switcher (Katalog Event & E-Ticket Pass Saya) */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.4rem',
-            background: '#ffffff',
-            padding: '0.35rem',
-            borderRadius: '14px',
-            border: '1.5px solid #d5e4dc',
-            boxShadow: '0 4px 14px rgba(19, 40, 30, 0.04)',
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveTab('catalog')}
+          {/* Right: Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan */}
+          <div
             style={{
-              padding: '0.52rem 1rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: activeTab === 'catalog' ? '#1b3b2b' : 'transparent',
-              color: activeTab === 'catalog' ? '#ffffff' : '#355244',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '1.5rem',
             }}
           >
-            Katalog Event ({events.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('my-ticket')}
-            style={{
-              padding: '0.52rem 1rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: activeTab === 'my-ticket' ? '#1b3b2b' : 'transparent',
-              color: activeTab === 'my-ticket' ? '#ffffff' : '#355244',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-            }}
-          >
-            E-Ticket Pass Saya
-          </button>
+            {[
+              { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
+              { id: 'about' as ClientTab, label: 'Tentang Kami' },
+              { id: 'wristband' as ClientTab, label: 'Cetak Tiket Gelang' },
+              { id: 'support' as ClientTab, label: 'Layanan Pelanggan' },
+            ].map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: isActive ? '2px solid #f5c443' : '2px solid transparent',
+                    padding: '0.2rem 0',
+                    color: isActive ? '#f5c443' : '#ffffff',
+                    fontSize: '0.83rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'color 0.15s ease',
+                  }}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
+      {/* 2. MAIN WHITE HEADER WITH WIDE SEARCH BAR ON TOP */}
+      <header
+        style={{
+          width: '100%',
+          background: '#ffffff',
+          borderBottom: '1px solid #dce8e1',
+          boxShadow: '0 4px 18px rgba(19, 40, 30, 0.04)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          marginBottom: '1.25rem',
+        }}
+      >
+        <div
+          className="irv-tiket-container"
+          style={{
+            paddingTop: '0.9rem',
+            paddingBottom: '0.9rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1.25rem',
+          }}
+        >
+          {/* Left: Brand Logo + Back to Gateway */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('catalog')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
+              title="Katalog Tiket IRVITE.ID"
+            >
+              <img
+                src="/irvite-logo.png"
+                alt="IRVITE.ID"
+                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+              />
+            </button>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0.36rem 0.75rem',
+                borderRadius: '999px',
+                background: '#edf4f0',
+                border: '1px solid #cfe0d6',
+                color: '#1b3b2b',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+              }}
+            >
+              Beranda
+            </Link>
+          </div>
+
+          {/* Center: Full-Width Top Search Box (Matching Reference Screenshot) */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (activeTab !== 'catalog') setActiveTab('catalog');
+              fetchCatalog(selectedCategory, searchQuery);
+            }}
+            style={{
+              flex: '1 1 420px',
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ffffff',
+              border: '1.5px solid #d5e4dc',
+              borderRadius: '10px',
+              padding: '0.28rem 0.32rem 0.28rem 1rem',
+              boxShadow: 'inset 0 1px 2px rgba(19, 40, 30, 0.03)',
+            }}
+          >
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (activeTab !== 'catalog') setActiveTab('catalog');
+              }}
+              placeholder="Cari berdasarkan artis, acara, atau nama tempat"
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.88rem',
+                flex: 1,
+                color: '#13281e',
+                background: 'transparent',
+                fontWeight: 500,
+              }}
+            />
+            <button
+              type="submit"
+              aria-label="Cari Event"
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '8px',
+                border: 'none',
+                background: '#1b3b2b',
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <IconSearch />
+            </button>
+          </form>
+
+          {/* Right: Katalog Event & E-Ticket Pass Saya Switcher */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              flexShrink: 0,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveTab('catalog')}
+              style={{
+                padding: '0.58rem 1rem',
+                borderRadius: '10px',
+                border: activeTab === 'catalog' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
+                background: activeTab === 'catalog' ? '#1b3b2b' : '#ffffff',
+                color: activeTab === 'catalog' ? '#ffffff' : '#1b3b2b',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              Katalog Event ({events.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('my-ticket')}
+              style={{
+                padding: '0.58rem 1rem',
+                borderRadius: '10px',
+                border: activeTab === 'my-ticket' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
+                background: activeTab === 'my-ticket' ? '#1b3b2b' : '#edf4f0',
+                color: activeTab === 'my-ticket' ? '#ffffff' : '#1b3b2b',
+                fontWeight: 800,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              E-Ticket Pass Saya
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* Main Content Container (Full-Width Widescreen) */}
-      <main className="irv-tiket-container" style={{ paddingTop: '0.5rem', paddingBottom: '0.5rem' }}>
+      <main className="irv-tiket-container" style={{ paddingTop: '0.25rem', paddingBottom: '0.5rem' }}>
         {activeTab === 'catalog' && (
           <>
             {/* Client Hero Banner (Full-Width Balanced 2-Column Layout) */}
@@ -523,8 +716,9 @@ export default function ClientTicketingPage() {
                   >
                     Cek E-Ticket Saya
                   </button>
-                  <Link
-                    href="/partnership"
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('wristband')}
                     style={{
                       padding: '0.82rem 1.35rem',
                       borderRadius: '14px',
@@ -533,16 +727,16 @@ export default function ClientTicketingPage() {
                       color: '#ffffff',
                       fontWeight: 700,
                       fontSize: '0.86rem',
-                      textDecoration: 'none',
+                      cursor: 'pointer',
                     }}
                   >
-                    Daftarkan Eventmu (EO)
-                  </Link>
+                    Cetak Tiket Gelang
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Category Pills + Search Bar */}
+            {/* Category Filter Bar (Search is now in the Top Header) */}
             <div
               style={{
                 display: 'flex',
@@ -550,7 +744,7 @@ export default function ClientTicketingPage() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '1rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1.35rem',
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -578,55 +772,10 @@ export default function ClientTicketingPage() {
                 })}
               </div>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  fetchCatalog(selectedCategory, searchQuery);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  background: '#ffffff',
-                  border: '1.5px solid #d5e4dc',
-                  borderRadius: '999px',
-                  padding: '0.35rem 0.5rem 0.35rem 0.9rem',
-                  minWidth: '280px',
-                }}
-              >
-                <span style={{ color: '#4d6a5b', display: 'flex' }}>
-                  <IconSearch />
-                </span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari judul konser, seminar, kota..."
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: '0.84rem',
-                    flex: 1,
-                    color: '#13281e',
-                    background: 'transparent',
-                  }}
-                />
-                <button
-                  type="submit"
-                  style={{
-                    padding: '0.42rem 0.85rem',
-                    borderRadius: '999px',
-                    border: 'none',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cari
-                </button>
-              </form>
+              <div style={{ fontSize: '0.82rem', color: '#4d6a5b', fontWeight: 700 }}>
+                Menampilkan <strong>{events.length}</strong> event publik aktif
+                {searchQuery.trim() ? ` untuk pencarian "${searchQuery.trim()}"` : ''}
+              </div>
             </div>
 
             {/* Event Grid */}
@@ -1352,6 +1501,941 @@ export default function ClientTicketingPage() {
                     <strong style={{ color: '#1b3b2b' }}>03.</strong>
                     <span>Terima gelang fisik (Tyvek/Lanyard VIP) sesuai kategori tier tiket Anda untuk akses area venue.</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: MINI APPS EKOSISTEM IRVITE.ID */}
+        {activeTab === 'mini-apps' && (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            {/* Top Banner Mini Apps */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1b3b2b 0%, #10241a 60%, #28523d 100%)',
+                borderRadius: '24px',
+                padding: '2rem 2.3rem',
+                color: '#ffffff',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1.5rem',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  IRVITE MINI APPS ECOSYSTEM • ZERO INSTALL WEB TOOLS
+                </div>
+                <h1 style={{ margin: '0 0 0.45rem 0', fontSize: 'clamp(1.45rem, 2.4vw, 2rem)', fontWeight: 800 }}>
+                  Mini Apps Operasional Event &amp; Self-Service Peserta
+                </h1>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cfe0d6', maxWidth: '780px', lineHeight: 1.55 }}>
+                  Seluruh utilitas digital untuk panitia Event Organizer maupun peserta konser/seminar yang berjalan instan langsung dari browser tanpa perlu mengunduh aplikasi tambahan.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalog')}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.28)',
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                }}
+              >
+                ← Kembali ke Katalog Event
+              </button>
+            </div>
+
+            {/* Interactive 2-Column Live Mini Apps */}
+            <div className="irv-my-ticket-grid">
+              {/* Mini App 1: Live Web Gate Scanner Simulator */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.6rem',
+                  border: '1.5px solid #d5e4dc',
+                  boxShadow: '0 10px 26px rgba(19, 40, 30, 0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1b3b2b', background: '#edf4f0', padding: '0.25rem 0.65rem', borderRadius: '999px' }}>
+                    MINI APP 01 • GATE SCANNER WEB
+                  </span>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#16a34a' }}>Online • Latency &lt; 0.3s</span>
+                </div>
+                <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.18rem', fontWeight: 800, color: '#13281e' }}>
+                  Simulator Validasi QR Gate Scanner
+                </h2>
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.84rem', color: '#4d6a5b', lineHeight: 1.5 }}>
+                  Uji coba pemindaian kode E-Ticket atau gelang fisik untuk memverifikasi keaslian tiket dan status check-in peserta di pintu masuk venue.
+                </p>
+
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const code = miniScannerCode.trim().toUpperCase();
+                    if (!code) return;
+                    if (code.includes('8821') || code.startsWith('IRV-')) {
+                      setMiniScannerResult({
+                        valid: true,
+                        title: `VALID • TIKET RESMI (${code})`,
+                        detail: `Pemegang: ${activeTicket.holderName} • ${activeTicket.tierName} • Status: Siap Masuk Gate`,
+                      });
+                    } else {
+                      setMiniScannerResult({
+                        valid: false,
+                        title: `TIDAK TERDAFTAR (${code})`,
+                        detail: 'Kode QR tidak ditemukan di database acara aktif. Harap arahkan ke meja Helpdesk.',
+                      });
+                    }
+                  }}
+                  style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}
+                >
+                  <input
+                    type="text"
+                    value={miniScannerCode}
+                    onChange={(e) => setMiniScannerCode(e.target.value)}
+                    placeholder="Masukkan kode tiket (contoh: IRV-TKT-2026-8821)"
+                    style={{
+                      flex: 1,
+                      padding: '0.65rem 0.9rem',
+                      borderRadius: '10px',
+                      border: '1px solid #c5d9ce',
+                      fontSize: '0.86rem',
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '0.65rem 1.2rem',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#1b3b2b',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Verifikasi QR
+                  </button>
+                </form>
+
+                {miniScannerResult && (
+                  <div
+                    style={{
+                      padding: '1rem 1.15rem',
+                      borderRadius: '14px',
+                      background: miniScannerResult.valid ? '#edf7f1' : '#fdecec',
+                      border: `1.5px solid ${miniScannerResult.valid ? '#9fd5b5' : '#f5c2c2'}`,
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: '0.88rem', color: miniScannerResult.valid ? '#136f3a' : '#9b1c1c' }}>
+                      {miniScannerResult.title}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#2d4b3c', marginTop: '0.25rem' }}>
+                      {miniScannerResult.detail}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mini App 2: Kalkulator Simulasi Pendapatan Bersih EO */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.6rem',
+                  border: '1.5px solid #d5e4dc',
+                  boxShadow: '0 10px 26px rgba(19, 40, 30, 0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9a7328', background: '#f8f4eb', padding: '0.25rem 0.65rem', borderRadius: '999px' }}>
+                    MINI APP 02 • EO PROFIT SIMULATOR
+                  </span>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#1b3b2b' }}>Fee Flat Rp 3.000/Tiket</span>
+                </div>
+                <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.18rem', fontWeight: 800, color: '#13281e' }}>
+                  Kalkulator Dana Cair Panitia (EO)
+                </h2>
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.84rem', color: '#4d6a5b', lineHeight: 1.5 }}>
+                  Hitung estimasi penjualan tiket acara Anda tanpa potongan persentase tersembunyi.
+                </p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#4d6a5b', marginBottom: '0.25rem' }}>
+                      Harga Tiket (Rp)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={miniEoPrice}
+                      onChange={(e) => setMiniEoPrice(Math.max(0, Number(e.target.value)))}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontWeight: 700,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#4d6a5b', marginBottom: '0.25rem' }}>
+                      Target Tiket Terjual
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={miniEoQty}
+                      onChange={(e) => setMiniEoQty(Math.max(1, Number(e.target.value)))}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.8rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontWeight: 700,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ background: '#f6faf8', borderRadius: '14px', padding: '0.95rem 1.1rem', border: '1px solid #d5e4dc', fontSize: '0.82rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                    <span>Total Penjualan Bersih EO (100% Utuh)</span>
+                    <strong style={{ color: '#1b3b2b', fontSize: '0.95rem' }}>{formatRupiah(miniEoPrice * miniEoQty)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4d6a5b' }}>
+                    <span>Biaya Platform IRVITE (Dibebankan ke Pembeli)</span>
+                    <strong>{formatRupiah((miniEoPrice > 0 ? PLATFORM_FEE_PER_TICKET : 0) * miniEoQty)}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Mini App Cards Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.15rem' }}>
+              {[
+                {
+                  badge: 'MINI APP 03',
+                  title: 'E-Ticket Pass Finder',
+                  desc: 'Cek dan tampilkan ulang QR Code E-Ticket resmi hanya dengan memasukkan kode order atau nomor tiket.',
+                  btn: 'Buka E-Ticket Saya',
+                  action: () => setActiveTab('my-ticket'),
+                },
+                {
+                  badge: 'MINI APP 04',
+                  title: 'Self-Service Email Fixer',
+                  desc: 'Perbaiki salah ketik alamat email saat pembelian dan kirim ulang E-Ticket secara instan dalam 5 detik.',
+                  btn: 'Perbaiki Email Pesanan',
+                  action: () => setActiveTab('support'),
+                },
+                {
+                  badge: 'MINI APP 05',
+                  title: 'Wristband QR Customizer',
+                  desc: 'Desain preview gelang tiket fisik (Tyvek/Lanyard VIP) lengkap dengan kalkulasi harga produksi 300 DPI.',
+                  btn: 'Buka Studio Gelang',
+                  action: () => setActiveTab('wristband'),
+                },
+                {
+                  badge: 'MINI APP 06',
+                  title: 'Digital Wedding & RSVP Suite',
+                  desc: 'Buat undangan pernikahan digital eksklusif dengan buku tamu QR dan manajemen RSVP real-time.',
+                  btn: 'Buka Katalog Undangan',
+                  href: '/undangan',
+                },
+              ].map((card) => (
+                <div
+                  key={card.badge}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '1.35rem',
+                    border: '1.5px solid #d5e4dc',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9a7328', letterSpacing: '0.08em', marginBottom: '0.3rem' }}>
+                      {card.badge}
+                    </div>
+                    <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: 800, color: '#13281e' }}>
+                      {card.title}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#4d6a5b', lineHeight: 1.5 }}>
+                      {card.desc}
+                    </p>
+                  </div>
+                  {card.href ? (
+                    <Link
+                      href={card.href}
+                      style={{
+                        padding: '0.62rem 1rem',
+                        borderRadius: '10px',
+                        background: '#edf4f0',
+                        color: '#1b3b2b',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {card.btn} →
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={card.action}
+                      style={{
+                        padding: '0.62rem 1rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#edf4f0',
+                        color: '#1b3b2b',
+                        fontWeight: 800,
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {card.btn} →
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: TENTANG KAMI (PROFIL RESMI IRVITE.ID) */}
+        {activeTab === 'about' && (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1b3b2b 0%, #10241a 60%, #28523d 100%)',
+                borderRadius: '24px',
+                padding: '2.2rem 2.4rem',
+                color: '#ffffff',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '1.75rem',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  TENTANG KAMI • PROFIL EKOSISTEM IRVITE.ID
+                </div>
+                <h1 style={{ margin: '0 0 0.55rem 0', fontSize: 'clamp(1.55rem, 2.6vw, 2.2rem)', fontWeight: 800, lineHeight: 1.2 }}>
+                  Satu Ekosistem Modern untuk Tiket Event Publik &amp; Undangan Digital
+                </h1>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: '#cfe0d6', lineHeight: 1.6 }}>
+                  IRVITE.ID hadir sebagai solusi manajemen akses tamu dan ticketing terpadu di Indonesia. Kami menggabungkan kemudahan pembelian tiket konser, seminar, dan festival dengan sistem check-in QR berkecepatan tinggi serta transparansi biaya terbaik bagi penyelenggara acara.
+                </p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem' }}>
+                {[
+                  { num: 'Rp 3.000', label: 'Biaya Layanan Flat per Tiket' },
+                  { num: 'H+1 Cair', label: 'Settlement Dana Otomatis ke EO' },
+                  { num: '< 0.3 Detik', label: 'Kecepatan Validasi QR Gate' },
+                  { num: '99.9% SLA', label: 'Infrastruktur Cloud Skalabel' },
+                ].map((stat) => (
+                  <div
+                    key={stat.num}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.16)',
+                      borderRadius: '16px',
+                      padding: '1rem 1.15rem',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#e5c170' }}>{stat.num}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#e2efe8', marginTop: '0.2rem', fontWeight: 600 }}>{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+              {[
+                {
+                  step: 'PILAR 01',
+                  title: 'Transparansi Tanpa Komisi Persentase',
+                  desc: 'Tidak seperti platform konvensional yang memotong 5% hingga 10% dari harga tiket, IRVITE menerapkan biaya tetap Rp 3.000/tiket (dan Rp 0 untuk acara kampus/komunitas gratis).',
+                },
+                {
+                  step: 'PILAR 02',
+                  title: 'Keamanan QR Anti-Duplikasi',
+                  desc: 'Setiap E-Ticket dan gelang fisik memiliki tanda tangan kriptografi unik. Begitu di-scan pada pintu masuk, tiket otomatis terkunci untuk mencegah duplikasi atau tiket palsu.',
+                },
+                {
+                  step: 'PILAR 03',
+                  title: 'Integrasi Online-ke-Offline (O2O)',
+                  desc: 'Mendukung penerbitan E-Ticket instan via WhatsApp/Email sekaligus pencetakan gelang tiket fisik (Wristband) beresolusi 300 DPI untuk operasional lapangan.',
+                },
+                {
+                  step: 'PILAR 04',
+                  title: 'Self-Service Ramah Pengguna',
+                  desc: 'Pembeli dapat mengoreksi salah ketik alamat email dan mengirim ulang E-Ticket secara mandiri dalam hitungan detik tanpa perlu antre di layanan pelanggan.',
+                },
+              ].map((pilar) => (
+                <div
+                  key={pilar.step}
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '1.5rem',
+                    border: '1.5px solid #d5e4dc',
+                    boxShadow: '0 8px 24px rgba(19, 40, 30, 0.04)',
+                  }}
+                >
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#9a7328', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>
+                    {pilar.step}
+                  </div>
+                  <h3 style={{ margin: '0 0 0.45rem 0', fontSize: '1.05rem', fontWeight: 800, color: '#13281e' }}>
+                    {pilar.title}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#4d6a5b', lineHeight: 1.55 }}>
+                    {pilar.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: CETAK TIKET GELANG (WRISTBAND PRINTING & 300 DPI QR STUDIO) */}
+        {activeTab === 'wristband' && (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1b3b2b 0%, #10241a 60%, #28523d 100%)',
+                borderRadius: '24px',
+                padding: '2rem 2.3rem',
+                color: '#ffffff',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1.5rem',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  IRVITE PHYSICAL WRISTBAND PRODUCTION • 300 DPI SERIALIZED QR
+                </div>
+                <h1 style={{ margin: '0 0 0.45rem 0', fontSize: 'clamp(1.45rem, 2.4vw, 2rem)', fontWeight: 800 }}>
+                  Layanan Cetak Tiket Gelang (Wristband) Terintegrasi QR Gate
+                </h1>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cfe0d6', maxWidth: '820px', lineHeight: 1.55 }}>
+                  Cetak gelang tiket konser, festival, dan seminar dengan QR Code unik 300 DPI yang langsung sinkron dengan aplikasi Gate Scanner IRVITE. Tahan air, anti-robek, dan dilengkapi nomor seri berurutan.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalog')}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.28)',
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                }}
+              >
+                ← Kembali ke Katalog Event
+              </button>
+            </div>
+
+            <div className="irv-my-ticket-grid">
+              {/* Left: Live Wristband Studio & Preview */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.75rem',
+                  border: '1.5px solid #d5e4dc',
+                  boxShadow: '0 10px 26px rgba(19, 40, 30, 0.04)',
+                }}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9a7328', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  LIVE WRISTBAND MOCKUP PREVIEW (300 DPI)
+                </div>
+                <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.2rem', fontWeight: 800, color: '#13281e' }}>
+                  Simulasi Desain Gelang Tiket Fisik &amp; Kalkulator Produksi
+                </h2>
+
+                {/* Horizontal Physical Wristband Strap Mockup */}
+                <div
+                  style={{
+                    background:
+                      wbMaterial === 'tyvek'
+                        ? 'linear-gradient(90deg, #0f2419 0%, #1b3b2b 65%, #2b5b43 100%)'
+                        : wbMaterial === 'lanyard'
+                          ? 'linear-gradient(90deg, #241b0f 0%, #5c451b 65%, #8c6a2b 100%)'
+                          : 'linear-gradient(90deg, #132a3a 0%, #1d4d6b 65%, #286a91 100%)',
+                    borderRadius: '18px',
+                    padding: '1.25rem 1.5rem',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    border: '2px solid #d4af37',
+                    marginBottom: '1.35rem',
+                    boxShadow: '0 14px 30px rgba(19, 40, 30, 0.16)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    {/* Die-Cut Security Seal Area */}
+                    <div
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.12)',
+                        border: '1px dashed rgba(255,255,255,0.35)',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        textAlign: 'center',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      SECURITY
+                      <br />
+                      SEAL LOCK
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f5c443', letterSpacing: '0.1em' }}>
+                        {wbTierLabel || 'VIP ACCESS'} • {wbMaterial.toUpperCase()} EDITION
+                      </div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.01em', marginTop: '0.15rem' }}>
+                        {wbEventTitle || 'NAMA EVENT ANDA 2026'}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#d5e4dc', fontFamily: 'monospace', marginTop: '0.2rem' }}>
+                        SN: IRV-WB-2026-0001 s/d #{String(wbQty).padStart(4, '0')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Embedded 300 DPI QR Zone */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      background: '#ffffff',
+                      color: '#13281e',
+                      padding: '0.55rem 0.85rem',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    <div style={{ transform: 'scale(0.52)', transformOrigin: 'center', margin: '-32px' }}>
+                      <DeterministicQrMatrix seed={`WB|${wbEventTitle}|${wbTierLabel}|${wbQty}`} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#5a7667' }}>GATE QR 300 DPI</div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 800, fontFamily: 'monospace' }}>IRV-WB-0001</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customizer Controls */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Pilih Bahan Tiket Gelang
+                    </label>
+                    <select
+                      value={wbMaterial}
+                      onChange={(e) => setWbMaterial(e.target.value as 'tyvek' | 'lanyard' | 'vinyl')}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                      }}
+                    >
+                      <option value="tyvek">Tyvek Waterproof Anti-Robek (Rp 1.800/pcs)</option>
+                      <option value="vinyl">Vinyl Snap-Lock Klip Permanen (Rp 3.200/pcs)</option>
+                      <option value="lanyard">Lanyard Tissue + PVC ID Card VIP (Rp 8.500/pcs)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Nama Acara pada Gelang
+                    </label>
+                    <input
+                      type="text"
+                      value={wbEventTitle}
+                      onChange={(e) => setWbEventTitle(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Kategori Tier / Gate
+                    </label>
+                    <input
+                      type="text"
+                      value={wbTierLabel}
+                      onChange={(e) => setWbTierLabel(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Jumlah Cetak (Pcs)
+                    </label>
+                    <input
+                      type="number"
+                      min={50}
+                      step={50}
+                      value={wbQty}
+                      onChange={(e) => setWbQty(Math.max(50, Number(e.target.value)))}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Estimation Summary & Order CTA */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.6rem',
+                  border: '1.5px solid #d5e4dc',
+                  boxShadow: '0 10px 26px rgba(19, 40, 30, 0.04)',
+                  display: 'grid',
+                  gap: '1rem',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1b3b2b', background: '#edf4f0', padding: '0.25rem 0.65rem', borderRadius: '999px' }}>
+                    ESTIMASI BIAYA PRODUKSI
+                  </span>
+                  <h3 style={{ margin: '0.5rem 0 0.25rem', fontSize: '1.15rem', fontWeight: 800, color: '#13281e' }}>
+                    Ringkasan Pesanan Cetak Gelang
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#4d6a5b' }}>
+                    Sudah termasuk generate kode QR unik 300 DPI dan integrasi database Gate Scanner.
+                  </p>
+                </div>
+
+                {(() => {
+                  const unitPrice = wbMaterial === 'tyvek' ? 1800 : wbMaterial === 'vinyl' ? 3200 : 8500;
+                  const totalCost = unitPrice * wbQty;
+                  return (
+                    <div style={{ background: '#f6faf8', borderRadius: '14px', padding: '1rem 1.15rem', border: '1px solid #d5e4dc', fontSize: '0.84rem', display: 'grid', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Harga Satuan ({wbMaterial.toUpperCase()})</span>
+                        <strong>{formatRupiah(unitPrice)} / pcs</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Kuantitas Produksi</span>
+                        <strong>{wbQty} pcs</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Sinkronisasi QR Gate Scanner</span>
+                        <strong style={{ color: '#136f3a' }}>GRATIS (Termasuk)</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #cfe0d6', fontSize: '1.02rem', fontWeight: 800, color: '#1b3b2b' }}>
+                        <span>Total Estimasi Cetak</span>
+                        <span>{formatRupiah(totalCost)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <a
+                  href={`https://wa.me/6281234567890?text=${encodeURIComponent(
+                    `Halo Tim Produksi IRVITE.ID, saya ingin memesan Cetak Tiket Gelang (${wbMaterial.toUpperCase()}) sebanyak ${wbQty} pcs untuk acara "${wbEventTitle}" (Tier: ${wbTierLabel}).`,
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '0.85rem 1.2rem',
+                    borderRadius: '12px',
+                    background: '#1b3b2b',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.86rem',
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                  }}
+                >
+                  Pesan Cetak Gelang via WhatsApp Produksi →
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: LAYANAN PELANGGAN (CUSTOMER CARE & SELF-SERVICE 24/7) */}
+        {activeTab === 'support' && (
+          <div style={{ display: 'grid', gap: '1.5rem' }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #1b3b2b 0%, #10241a 60%, #28523d 100%)',
+                borderRadius: '24px',
+                padding: '2rem 2.3rem',
+                color: '#ffffff',
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1.5rem',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  IRVITE CUSTOMER CARE &amp; SELF-SERVICE HELPDESK
+                </div>
+                <h1 style={{ margin: '0 0 0.45rem 0', fontSize: 'clamp(1.45rem, 2.4vw, 2rem)', fontWeight: 800 }}>
+                  Pusat Layanan Pelanggan &amp; Bantuan Tiket
+                </h1>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: '#cfe0d6', maxWidth: '780px', lineHeight: 1.55 }}>
+                  Kendala belum menerima E-Ticket karena salah ketik email, lupa kode pesanan, atau butuh bantuan pengembalian dana? Selesaikan langsung secara instan di bawah ini.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('catalog')}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255,255,255,0.28)',
+                  background: 'rgba(255,255,255,0.1)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                }}
+              >
+                ← Kembali ke Katalog Event
+              </button>
+            </div>
+
+            <div className="irv-my-ticket-grid">
+              {/* Left: Self-Service Email Typo Correction + Order Lookup */}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.65rem',
+                  border: '1.5px solid #d5e4dc',
+                  boxShadow: '0 10px 26px rgba(19, 40, 30, 0.04)',
+                }}
+              >
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#9a7328', background: '#f8f4eb', padding: '0.25rem 0.65rem', borderRadius: '999px' }}>
+                  FITUR UNGGULAN • SELF-SERVICE 5 DETIK
+                </span>
+                <h2 style={{ margin: '0.55rem 0 0.35rem', fontSize: '1.2rem', fontWeight: 800, color: '#13281e' }}>
+                  Koreksi Salah Ketik Email &amp; Kirim Ulang E-Ticket
+                </h2>
+                <p style={{ margin: '0 0 1.1rem', fontSize: '0.84rem', color: '#4d6a5b', lineHeight: 1.5 }}>
+                  Masukkan Kode Tiket atau Kode Order Anda beserta alamat email yang benar. Sistem akan langsung memperbarui data dan mengirim ulang E-Ticket QR Pass detik ini juga.
+                </p>
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!ticketLookupInput.trim() || !quickEmailInput.trim()) return;
+                    setQuickEmailStatus('Memproses perubahan email & mengirim ulang E-Ticket...');
+                    try {
+                      const res = await fetch('/api/ticketing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          action: 'correct-email',
+                          lookupCode: ticketLookupInput.trim(),
+                          newEmail: quickEmailInput.trim(),
+                        }),
+                      });
+                      const data = await res.json();
+                      if (res.ok) {
+                        setQuickEmailStatus(data?.message || 'Berhasil! Email diperbarui dan E-Ticket telah dikirim ulang.');
+                        setQuickEmailInput('');
+                      } else {
+                        setQuickEmailStatus(data?.message || 'Kode pesanan tidak ditemukan.');
+                      }
+                    } catch {
+                      setQuickEmailStatus('Terjadi gangguan koneksi.');
+                    }
+                  }}
+                  style={{ display: 'grid', gap: '0.85rem' }}
+                >
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Kode Tiket / Kode Order
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={ticketLookupInput}
+                      onChange={(e) => setTicketLookupInput(e.target.value)}
+                      placeholder="Contoh: IRV-TKT-2026-8821"
+                      style={{
+                        width: '100%',
+                        padding: '0.68rem 0.9rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontSize: '0.86rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 700, color: '#3b5949', marginBottom: '0.3rem' }}>
+                      Alamat Email Baru yang Benar
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={quickEmailInput}
+                      onChange={(e) => setQuickEmailInput(e.target.value)}
+                      placeholder="nama.anda@gmail.com"
+                      style={{
+                        width: '100%',
+                        padding: '0.68rem 0.9rem',
+                        borderRadius: '10px',
+                        border: '1px solid #c5d9ce',
+                        fontSize: '0.86rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '0.8rem 1.2rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: '#1b3b2b',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.86rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Perbarui Email &amp; Kirim Ulang E-Ticket Sekarang
+                  </button>
+                  {quickEmailStatus && (
+                    <div style={{ padding: '0.75rem 0.95rem', borderRadius: '10px', background: '#edf7f1', color: '#136f3a', fontSize: '0.82rem', fontWeight: 700 }}>
+                      {quickEmailStatus}
+                    </div>
+                  )}
+                </form>
+              </div>
+
+              {/* Right: FAQ & Direct WhatsApp Helpdesk */}
+              <div style={{ display: 'grid', gap: '1.15rem' }}>
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '22px',
+                    padding: '1.5rem',
+                    border: '1.5px solid #d5e4dc',
+                  }}
+                >
+                  <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.05rem', fontWeight: 800, color: '#13281e' }}>
+                    Pertanyaan Umum (FAQ Pembeli Tiket)
+                  </h3>
+                  <div style={{ display: 'grid', gap: '0.75rem', fontSize: '0.82rem', color: '#3b5949', lineHeight: 1.5 }}>
+                    <div>
+                      <strong style={{ color: '#13281e' }}>1. Apakah E-Ticket wajib dicetak kertas?</strong>
+                      <div>Tidak wajib. Anda cukup menunjukkan QR Code di menu &quot;E-Ticket Pass Saya&quot; dari layar smartphone saat di pintu masuk venue.</div>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#13281e' }}>2. Bagaimana cara menukar E-Ticket menjadi Tiket Gelang?</strong>
+                      <div>Tunjukkan QR E-Ticket dan kartu identitas (KTP/SIM/Kartu Pelajar) pada booth Penukaran Wristband di lokasi acara.</div>
+                    </div>
+                    <div>
+                      <strong style={{ color: '#13281e' }}>3. Bagaimana jika acara ditunda atau dibatalkan?</strong>
+                      <div>Dana pembelian tiket dijamin aman dan dikembalikan 100% sesuai prosedur resmi penyelenggara acara melalui kanal pembayaran awal.</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: '22px',
+                    padding: '1.5rem',
+                    border: '1.5px solid #d5e4dc',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1b3b2b', textTransform: 'uppercase' }}>
+                      BUTUH BANTUAN TIM CS MANUSIA?
+                    </div>
+                    <div style={{ fontSize: '0.98rem', fontWeight: 800, color: '#13281e', marginTop: '0.15rem' }}>
+                      WhatsApp Helpdesk Resmi (08.00 – 22.00 WIB)
+                    </div>
+                  </div>
+                  <a
+                    href="https://wa.me/6281234567890?text=Halo%20Layanan%20Pelanggan%20IRVITE.ID,%20saya%20membutuhkan%20bantuan%20terkait%20tiket%20event."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '0.72rem 1.15rem',
+                      borderRadius: '12px',
+                      background: '#1b3b2b',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Chat WhatsApp CS →
+                  </a>
                 </div>
               </div>
             </div>
