@@ -12,7 +12,7 @@ import {
   TicketOrderRecord,
 } from '@/lib/ticketing-store';
 
-type ClientTab = 'catalog' | 'my-ticket' | 'mini-apps' | 'about' | 'wristband' | 'support';
+type ClientTab = 'catalog' | 'my-ticket' | 'transactions' | 'mini-apps' | 'about' | 'wristband' | 'support';
 type AuthModalStep = 'welcome' | 'google' | 'email-login' | 'register';
 
 interface ClientAuthSession {
@@ -251,6 +251,8 @@ export default function ClientTicketingPage() {
   const [authWhatsappInput, setAuthWhatsappInput] = useState<string>('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [accountTickets, setAccountTickets] = useState<IssuedTicketRecord[]>([]);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState<boolean>(false);
+  const [showCategoryFilters, setShowCategoryFilters] = useState<boolean>(false);
 
   const fetchAccountTickets = useCallback(async (email: string) => {
     if (!email.trim()) {
@@ -503,14 +505,16 @@ export default function ClientTicketingPage() {
       className="irv-client-tiket-root"
       style={{
         minHeight: '100vh',
-        backgroundColor: '#edf4f0',
-        color: '#13281e',
+        backgroundColor: '#f8faf9',
+        color: '#0f172a',
         fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-        paddingBottom: '4rem',
       }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .irv-client-tiket-root {
+          padding-bottom: 4rem;
+        }
         .irv-client-tiket-root,
         .irv-client-tiket-root h1,
         .irv-client-tiket-root h2,
@@ -522,9 +526,68 @@ export default function ClientTicketingPage() {
           width: 100%;
           max-width: 1720px;
           margin: 0 auto;
-          padding-left: clamp(1.25rem, 3.2vw, 3rem);
-          padding-right: clamp(1.25rem, 3.2vw, 3rem);
+          padding-left: clamp(1rem, 3.2vw, 3rem);
+          padding-right: clamp(1rem, 3.2vw, 3rem);
           box-sizing: border-box;
+        }
+        /* Top Promo Bar Responsive */
+        .irv-top-bar-inner {
+          min-height: 42px;
+          padding-top: 0.4rem;
+          padding-bottom: 0.4rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }
+        .irv-top-bar-links {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 1.65rem;
+        }
+        /* Header Responsive */
+        .irv-header-inner {
+          padding-top: 0.85rem;
+          padding-bottom: 0.85rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.25rem;
+        }
+        .irv-header-search-form {
+          flex: 1 1 360px;
+          display: flex;
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid #dce3ea;
+          border-radius: 8px;
+          padding: 0.24rem 0.28rem 0.24rem 0.95rem;
+        }
+        .irv-header-right-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+          flex-shrink: 0;
+        }
+        /* 2 Side-by-Side Promo Banners (Tablet & Desktop = 2 cols, Mobile = 1 col Mini Apps) */
+        .irv-promo-banners-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1.25rem;
+          margin-bottom: 1.85rem;
+        }
+        /* Event Cards Grid: Desktop = 4 cols, Tablet = 2 cols, Mobile = 1 col */
+        .irv-event-catalog-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 1.25rem;
+        }
+        @media (max-width: 1180px) {
+          .irv-event-catalog-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
         .irv-my-ticket-grid {
           display: grid;
@@ -537,36 +600,73 @@ export default function ClientTicketingPage() {
             grid-template-columns: 1fr;
           }
         }
+        /* Mobile Bottom Nav (Hidden on Tablet & Desktop) */
+        .irv-mobile-bottom-nav {
+          display: none;
+        }
+        @media (max-width: 767px) {
+          .irv-client-tiket-root {
+            padding-bottom: 5.5rem;
+          }
+          .irv-top-bar-inner {
+            justify-content: center;
+          }
+          .irv-top-bar-sparkle,
+          .irv-top-bar-links {
+            display: none !important;
+          }
+          .irv-header-search-form,
+          .irv-header-right-actions {
+            display: none !important;
+          }
+          .irv-promo-banners-grid {
+            grid-template-columns: 1fr;
+            margin-left: -1rem;
+            margin-right: -1rem;
+            margin-bottom: 1.35rem;
+          }
+          .irv-promo-banner-social {
+            display: none !important;
+          }
+          .irv-promo-banner-miniapps {
+            border-radius: 0 !important;
+          }
+          .irv-event-catalog-grid {
+            grid-template-columns: 1fr;
+            gap: 1.1rem;
+          }
+          .irv-mobile-bottom-nav {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 0.45rem 0.25rem 0.55rem;
+            z-index: 9000;
+            box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+          }
+        }
       `}</style>
-      {/* 1. TOP UTILITY PROMO BAR (Daftarkan Eventmu Sekarang | Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan) */}
+
+      {/* 1. TOP UTILITY PROMO BAR */}
       <div
         style={{
           width: '100%',
           background: 'linear-gradient(90deg, #0f2419 0%, #1b3b2b 35%, #2d6a4f 52%, #1b3b2b 72%, #0f2419 100%)',
           color: '#ffffff',
-          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
-        <div
-          className="irv-tiket-container"
-          style={{
-            minHeight: '42px',
-            paddingTop: '0.4rem',
-            paddingBottom: '0.4rem',
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.75rem',
-          }}
-        >
-          {/* Left: Sparkle + Daftarkan Eventmu Sekarang */}
+        <div className="irv-tiket-container irv-top-bar-inner">
+          {/* Left (Desktop/Tablet) or Centered (Mobile): Daftarkan Eventmu Sekarang */}
           <Link
             href="/partnership"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.45rem',
               color: '#ffffff',
               textDecoration: 'none',
               fontSize: '0.84rem',
@@ -574,19 +674,14 @@ export default function ClientTicketingPage() {
               letterSpacing: '0.01em',
             }}
           >
-            <IconSparkleStar />
+            <span className="irv-top-bar-sparkle" style={{ display: 'inline-flex' }}>
+              <IconSparkleStar />
+            </span>
             <span>Daftarkan Eventmu Sekarang</span>
           </Link>
 
-          {/* Right: Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '1.5rem',
-            }}
-          >
+          {/* Right (Desktop & Tablet Only): Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan */}
+          <div className="irv-top-bar-links">
             {[
               { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
               { id: 'about' as ClientTab, label: 'Tentang Kami' },
@@ -608,7 +703,6 @@ export default function ClientTicketingPage() {
                     fontSize: '0.83rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'color 0.15s ease',
                   }}
                 >
                   {item.label}
@@ -619,33 +713,21 @@ export default function ClientTicketingPage() {
         </div>
       </div>
 
-      {/* 2. MAIN WHITE HEADER WITH WIDE SEARCH BAR ON TOP */}
+      {/* 2. MAIN WHITE HEADER BAR (Desktop/Tablet: Logo + Search + ID Flag + Masuk + Daftar; Mobile: Logo) */}
       <header
         style={{
           width: '100%',
           background: '#ffffff',
-          borderBottom: '1px solid #dce8e1',
-          boxShadow: '0 4px 18px rgba(19, 40, 30, 0.04)',
+          borderBottom: '1px solid #e2e8f0',
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          marginBottom: '1.25rem',
+          marginBottom: '1.15rem',
         }}
       >
-        <div
-          className="irv-tiket-container"
-          style={{
-            paddingTop: '0.9rem',
-            paddingBottom: '0.9rem',
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1.25rem',
-          }}
-        >
-          {/* Left: Brand Logo + Back to Gateway */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexShrink: 0 }}>
+        <div className="irv-tiket-container irv-header-inner">
+          {/* Left: Brand Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             <button
               type="button"
               onClick={() => setActiveTab('catalog')}
@@ -657,49 +739,23 @@ export default function ClientTicketingPage() {
                 alignItems: 'center',
                 cursor: 'pointer',
               }}
-              title="Katalog Tiket IRVITE.ID"
+              title="Beranda Tiket IRVITE.ID"
             >
               <img
                 src="/irvite-logo.png"
                 alt="IRVITE.ID"
-                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
               />
             </button>
-            <Link
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '0.36rem 0.75rem',
-                borderRadius: '999px',
-                background: '#edf4f0',
-                border: '1px solid #cfe0d6',
-                color: '#1b3b2b',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              Beranda
-            </Link>
           </div>
 
-          {/* Center: Full-Width Top Search Box (Matching Reference Screenshot) */}
+          {/* Center (Desktop & Tablet): Wide Search Bar */}
           <form
+            className="irv-header-search-form"
             onSubmit={(e) => {
               e.preventDefault();
               if (activeTab !== 'catalog') setActiveTab('catalog');
               fetchCatalog(selectedCategory, searchQuery);
-            }}
-            style={{
-              flex: '1 1 420px',
-              display: 'flex',
-              alignItems: 'center',
-              background: '#ffffff',
-              border: '1.5px solid #d5e4dc',
-              borderRadius: '10px',
-              padding: '0.28rem 0.32rem 0.28rem 1rem',
-              boxShadow: 'inset 0 1px 2px rgba(19, 40, 30, 0.03)',
             }}
           >
             <input
@@ -713,9 +769,9 @@ export default function ClientTicketingPage() {
               style={{
                 border: 'none',
                 outline: 'none',
-                fontSize: '0.88rem',
+                fontSize: '0.86rem',
                 flex: 1,
-                color: '#13281e',
+                color: '#0f172a',
                 background: 'transparent',
                 fontWeight: 500,
               }}
@@ -724,9 +780,9 @@ export default function ClientTicketingPage() {
               type="submit"
               aria-label="Cari Event"
               style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '8px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '6px',
                 border: 'none',
                 background: '#1b3b2b',
                 color: '#ffffff',
@@ -741,93 +797,33 @@ export default function ClientTicketingPage() {
             </button>
           </form>
 
-          {/* Right: Katalog Event, E-Ticket Pass Saya & Masuk / Daftar (Google / Email / Tamu) */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexShrink: 0,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setActiveTab('catalog')}
+          {/* Right (Desktop & Tablet): Flag ID ⌄ | Masuk | Daftar (or Active User Profile) */}
+          <div className="irv-header-right-actions">
+            {/* Language Flag Selector ID ⌄ */}
+            <div
               style={{
-                padding: '0.58rem 0.95rem',
-                borderRadius: '10px',
-                border: activeTab === 'catalog' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
-                background: activeTab === 'catalog' ? '#1b3b2b' : '#ffffff',
-                color: activeTab === 'catalog' ? '#ffffff' : '#1b3b2b',
-                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                paddingRight: '0.75rem',
+                borderRight: '1px solid #e2e8f0',
                 fontSize: '0.82rem',
-                cursor: 'pointer',
+                fontWeight: 700,
+                color: '#0f172a',
               }}
             >
-              Katalog Event ({events.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('my-ticket')}
-              style={{
-                padding: '0.58rem 0.95rem',
-                borderRadius: '10px',
-                border: activeTab === 'my-ticket' ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
-                background: activeTab === 'my-ticket' ? '#1b3b2b' : '#edf4f0',
-                color: activeTab === 'my-ticket' ? '#ffffff' : '#1b3b2b',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              E-Ticket Saya{accountTickets.length > 0 ? ` (${accountTickets.length})` : ''}
-            </button>
+              <svg width="20" height="14" viewBox="0 0 20 14" style={{ borderRadius: '2px', border: '1px solid #e2e8f0' }} aria-hidden="true">
+                <rect width="20" height="7" fill="#dc2626" />
+                <rect y="7" width="20" height="7" fill="#ffffff" />
+              </svg>
+              <span>ID</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
 
             {!authUser ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingCheckoutEvent(null);
-                  setAuthStep('welcome');
-                  setAuthError(null);
-                  setAuthModalOpen(true);
-                }}
-                style={{
-                  padding: '0.58rem 1.05rem',
-                  borderRadius: '10px',
-                  border: '1.5px solid #1b3b2b',
-                  background: '#ffffff',
-                  color: '#13281e',
-                  fontWeight: 800,
-                  fontSize: '0.82rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                }}
-              >
-                <span style={{ display: 'inline-flex', transform: 'scale(0.75)' }}>
-                  <IconGoogleColor />
-                </span>
-                <span>Masuk / Daftar</span>
-              </button>
-            ) : authUser.mode === 'guest' ? (
-              <div
-                style={{
-                  display: ' inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.35rem 0.45rem 0.35rem 0.75rem',
-                  borderRadius: '10px',
-                  background: '#f8faf9',
-                  border: '1.5px solid #d5e4dc',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  color: '#1b3b2b',
-                }}
-              >
-                <span>Mode Tamu</span>
+              <>
                 <button
                   type="button"
                   onClick={() => {
@@ -837,212 +833,453 @@ export default function ClientTicketingPage() {
                     setAuthModalOpen(true);
                   }}
                   style={{
-                    padding: '0.28rem 0.6rem',
-                    borderRadius: '7px',
+                    padding: '0.6rem 1.35rem',
+                    borderRadius: '8px',
                     border: 'none',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
+                    background: '#e8f0ec',
+                    color: '#1b3b2b',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
                     cursor: 'pointer',
                   }}
                 >
-                  Masuk Akun
+                  Masuk
                 </button>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.32rem 0.45rem 0.32rem 0.7rem',
-                  borderRadius: '10px',
-                  background: '#f2f8f5',
-                  border: '1.5px solid #bfd4c8',
-                }}
-              >
-                {authUser.mode === 'google' && (
-                  <span style={{ display: 'inline-flex', transform: 'scale(0.78)' }}>
-                    <IconGoogleColor />
-                  </span>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingCheckoutEvent(null);
+                    setAuthStep('register');
+                    setAuthError(null);
+                    setAuthModalOpen(true);
+                  }}
+                  style={{
+                    padding: '0.6rem 1.35rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#1b3b2b',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Daftar
+                </button>
+              </>
+            ) : authUser.mode === 'guest' ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                 <button
                   type="button"
                   onClick={() => setActiveTab('my-ticket')}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    textAlign: 'left',
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
                     cursor: 'pointer',
                   }}
-                  title={`Akun aktif: ${authUser.email}`}
                 >
-                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#13281e', lineHeight: 1.15 }}>
-                    {authUser.name}
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: '#4d6a5b', lineHeight: 1.15 }}>
-                    {authUser.email}
-                  </div>
+                  Cek Tiket (Tamu)
                 </button>
                 <button
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => {
+                    setPendingCheckoutEvent(null);
+                    setAuthStep('welcome');
+                    setAuthError(null);
+                    setAuthModalOpen(true);
+                  }}
                   style={{
-                    padding: '0.28rem 0.55rem',
-                    borderRadius: '7px',
-                    border: '1px solid #c5d9ce',
-                    background: '#ffffff',
-                    color: '#9b1c1c',
-                    fontSize: '0.7rem',
+                    padding: '0.58rem 1.15rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#1b3b2b',
+                    color: '#ffffff',
                     fontWeight: 700,
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                   }}
                 >
-                  Keluar
+                  Masuk
                 </button>
+              </div>
+            ) : (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('my-ticket')}
+                  style={{
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '8px',
+                    border: '1px solid #bfd4c8',
+                    background: '#edf4f0',
+                    color: '#1b3b2b',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Tiket Saya ({accountTickets.length})
+                </button>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.32rem 0.5rem 0.32rem 0.65rem',
+                    borderRadius: '8px',
+                    background: '#f8fafc',
+                    border: '1px solid #dce3ea',
+                  }}
+                >
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>{authUser.name}</div>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    style={{
+                      padding: '0.24rem 0.5rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      color: '#dc2626',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Keluar
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </header>
 
-      {/* Main Content Container (Full-Width Widescreen) */}
-      <main className="irv-tiket-container" style={{ paddingTop: '0.25rem', paddingBottom: '0.5rem' }}>
-        {activeTab === 'catalog' && (
-          <>
-            {/* Client Hero Banner (Full-Width Balanced 2-Column Layout) */}
-            <div
+        {/* Mobile Slide-Down Search Bar (Shown when "Cari" in Mobile Bottom Nav is tapped) */}
+        {mobileSearchOpen && (
+          <div style={{ padding: '0 1rem 0.85rem', borderTop: '1px solid #f1f5f9' }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setActiveTab('catalog');
+                fetchCatalog(selectedCategory, searchQuery);
+              }}
               style={{
-                background: 'linear-gradient(135deg, #1b3b2b 0%, #10241a 60%, #28523d 100%)',
-                borderRadius: '24px',
-                padding: '2.2rem 2.4rem',
-                color: '#ffffff',
-                marginBottom: '1.5rem',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                display: 'flex',
                 alignItems: 'center',
-                gap: '1.75rem',
-                boxShadow: '0 16px 38px rgba(19, 40, 30, 0.14)',
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: '10px',
+                padding: '0.28rem 0.32rem 0.28rem 0.85rem',
+                marginTop: '0.65rem',
               }}
             >
-              <div>
-                <div
-                  style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: '#e5c170',
-                    marginBottom: '0.45rem',
-                  }}
-                >
-                  IRVITE TICKETING &amp; PUBLIC EXPERIENCES
-                </div>
-                <h1
-                  style={{
-                    fontSize: 'clamp(1.6rem, 2.8vw, 2.25rem)',
-                    fontWeight: 800,
-                    margin: '0 0 0.55rem 0',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Cari &amp; Beli Tiket Event Favoritmu Secara Instan
-                </h1>
-                <p style={{ margin: 0, fontSize: '0.94rem', color: '#d2e3da', lineHeight: 1.6 }}>
-                  Pilih kategori tiket Presale, Reguler, atau VIP. E-Ticket QR Pass langsung terbit otomatis ke email dan WhatsApp Anda dengan biaya platform transparan Rp 3.000/tiket.
-                </p>
-              </div>
-              <div
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (activeTab !== 'catalog') setActiveTab('catalog');
+                }}
+                placeholder="Cari berdasarkan artis, acara, atau nama tempat"
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.86rem',
+                  flex: 1,
+                  color: '#0f172a',
+                  background: 'transparent',
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#1b3b2b',
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
+                <IconSearch />
+              </button>
+            </form>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content Container */}
+      <main className="irv-tiket-container" style={{ paddingTop: '0.15rem', paddingBottom: '0.5rem' }}>
+        {activeTab === 'catalog' && (
+          <>
+            {/* 2 Side-by-Side Promo Banners (Tablet & Desktop = 2 banners; Mobile = Mini Apps full-bleed banner) */}
+            <div className="irv-promo-banners-grid">
+              {/* Banner 1 (Left — Sosial Media @irvite.id, hidden on Mobile) */}
+              <div
+                className="irv-promo-banner-social"
+                onClick={() => setActiveTab('about')}
+                style={{
+                  background: 'linear-gradient(135deg, #0d261a 0%, #1b3b2b 52%, #295e44 100%)',
+                  borderRadius: '14px',
+                  padding: '1.5rem 1.75rem',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1.25rem',
+                  minHeight: '195px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '0 10px 28px rgba(15, 36, 25, 0.12)',
+                }}
+              >
+                {/* Left Phone Social Feed Illustration */}
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                    gap: '0.65rem',
-                    width: '100%',
+                    width: '115px',
+                    height: '155px',
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    border: '4px solid #0f172a',
+                    padding: '0.55rem',
+                    color: '#0f172a',
+                    flexShrink: 0,
+                    transform: 'rotate(-6deg)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.28)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
                   }}
                 >
-                  {[
-                    { label: 'Penerbitan QR', value: 'Instan 1 Detik' },
-                    { label: 'Biaya Layanan', value: 'Flat Rp 3.000' },
-                    { label: 'Metode Bayar', value: 'QRIS & VA Bank' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.08)',
-                        border: '1px solid rgba(255, 255, 255, 0.16)',
-                        borderRadius: '14px',
-                        padding: '0.75rem 0.9rem',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.68rem', color: '#cfe0d6', fontWeight: 700, textTransform: 'uppercase' }}>
-                        {item.label}
-                      </div>
-                      <div style={{ fontSize: '0.92rem', color: '#ffffff', fontWeight: 800, marginTop: '0.15rem' }}>
-                        {item.value}
-                      </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#1b3b2b' }} />
+                    <div>
+                      <div style={{ fontSize: '0.55rem', fontWeight: 800 }}>IRVITE.ID</div>
+                      <div style={{ fontSize: '0.45rem', color: '#64748b' }}>@irvite.id</div>
                     </div>
-                  ))}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                    <div style={{ height: '34px', borderRadius: '4px', background: '#d5e4dc' }} />
+                    <div style={{ height: '34px', borderRadius: '4px', background: '#e5c170' }} />
+                    <div style={{ height: '34px', borderRadius: '4px', background: '#1b3b2b' }} />
+                    <div style={{ height: '34px', borderRadius: '4px', background: '#cfe0d6' }} />
+                  </div>
+                  <div style={{ fontSize: '0.48rem', fontWeight: 700, textAlign: 'center', background: '#edf4f0', borderRadius: '4px', padding: '2px' }}>
+                    Follow Official
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', width: '100%', justifyContent: 'flex-end' }}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('my-ticket')}
+
+                {/* Center/Right Copywriting */}
+                <div style={{ flex: 1, textAlign: 'center', zIndex: 1 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#cfe0d6', marginBottom: '0.2rem' }}>
+                    Keep in touch with us!
+                  </div>
+                  <div
                     style={{
-                      padding: '0.82rem 1.35rem',
-                      borderRadius: '14px',
-                      border: 'none',
-                      background: '#d4af37',
-                      color: '#13281e',
-                      fontWeight: 800,
-                      fontSize: '0.86rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Cek E-Ticket Saya
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('wristband')}
-                    style={{
-                      padding: '0.82rem 1.35rem',
-                      borderRadius: '14px',
-                      border: '1px solid rgba(255,255,255,0.28)',
-                      background: 'rgba(255,255,255,0.1)',
+                      fontSize: 'clamp(1.55rem, 2.5vw, 2.2rem)',
+                      fontWeight: 900,
+                      letterSpacing: '-0.02em',
                       color: '#ffffff',
-                      fontWeight: 700,
-                      fontSize: '0.86rem',
-                      cursor: 'pointer',
+                      textShadow: '0 3px 0 #0a1911',
+                      lineHeight: 1.1,
                     }}
                   >
-                    Cetak Tiket Gelang
-                  </button>
+                    Sosial Media
+                  </div>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      marginTop: '0.55rem',
+                      padding: '0.3rem 0.75rem',
+                      borderRadius: '999px',
+                      background: 'rgba(255,255,255,0.14)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>@irvite.id</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner 2 (Right on Desktop/Tablet, Full-Bleed Hero on Mobile — Mini Apps) */}
+              <div
+                className="irv-promo-banner-miniapps"
+                onClick={() => setActiveTab('mini-apps')}
+                style={{
+                  background: 'linear-gradient(135deg, #102a1d 0%, #1b3b2b 50%, #2d6a4f 100%)',
+                  borderRadius: '14px',
+                  padding: '1.5rem 1.75rem',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  minHeight: '195px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  boxShadow: '0 10px 28px rgba(15, 36, 25, 0.12)',
+                }}
+              >
+                {/* Top-Right Yellow "Produk Baru" Badge */}
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '14px',
+                    right: '16px',
+                    background: '#facc15',
+                    color: '#0f172a',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '0.28rem 0.7rem',
+                    borderRadius: '999px',
+                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  Produk Baru
+                </span>
+
+                {/* Left Text Content */}
+                <div style={{ flex: '1 1 210px', zIndex: 1 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
+                    IRVITE.ID
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 'clamp(1.6rem, 2.6vw, 2.2rem)',
+                      fontWeight: 900,
+                      letterSpacing: '-0.02em',
+                      color: '#ffffff',
+                      textShadow: '0 3px 0 #0a1911',
+                      lineHeight: 1.1,
+                      marginBottom: '0.45rem',
+                    }}
+                  >
+                    Mini Apps
+                  </div>
+                  <p style={{ margin: '0 0 0.9rem 0', fontSize: '0.8rem', color: '#e2efe8', lineHeight: 1.45, maxWidth: '270px' }}>
+                    Puluhan tools gratis untuk kebutuhan event dan masih banyak lagi
+                  </p>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      borderRadius: '999px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.35)',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <span style={{ background: '#ffffff', color: '#0f172a', padding: '0.32rem 0.65rem' }}>
+                      Kunjungi
+                    </span>
+                    <span style={{ background: 'rgba(15, 23, 42, 0.35)', color: '#ffffff', padding: '0.32rem 0.75rem' }}>
+                      apps.irvite.id
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Laptop + Mobile Preview Illustration */}
+                <div
+                  style={{
+                    width: '155px',
+                    height: '115px',
+                    background: '#ffffff',
+                    borderRadius: '10px',
+                    border: '3px solid #1e293b',
+                    padding: '0.5rem',
+                    color: '#0f172a',
+                    flexShrink: 0,
+                    marginTop: '1.2rem',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.25)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#1b3b2b' }}>
+                    Tools Gratis untuk Event Organizer
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                    <div style={{ background: '#edf4f0', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
+                      QR Scanner
+                    </div>
+                    <div style={{ background: '#f8f4eb', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
+                      Kalkulator EO
+                    </div>
+                    <div style={{ background: '#edf4f0', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
+                      Gelang 300DPI
+                    </div>
+                    <div style={{ background: '#f1f5f9', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
+                      Fix Typo Email
+                    </div>
+                  </div>
+                  <div style={{ height: '6px', borderRadius: '999px', background: '#1b3b2b', width: '65%' }} />
                 </div>
               </div>
             </div>
 
-            {/* Category Filter Bar (Search is now in the Top Header) */}
+            {/* Section Header: "Event" (Left) & "Lihat Semua" (Right) — Matching Reference Screenshots */}
             <div
               style={{
                 display: 'flex',
-                flexWrap: 'wrap',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '1rem',
-                marginBottom: '1.35rem',
+                marginBottom: showCategoryFilters ? '0.85rem' : '1.15rem',
               }}
             >
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 'clamp(1.35rem, 2.2vw, 1.6rem)',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Event
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryFilters((prev) => !prev);
+                  if (selectedCategory !== 'Semua' || searchQuery) {
+                    setSelectedCategory('Semua');
+                    setSearchQuery('');
+                    fetchCatalog('Semua', '');
+                  }
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  color: '#1b3b2b',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Lihat Semua
+              </button>
+            </div>
+
+            {/* Optional Category Filter Pills */}
+            {showCategoryFilters && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.15rem' }}>
                 {CATEGORIES.map((cat) => {
                   const active = selectedCategory === cat;
                   return (
@@ -1051,13 +1288,13 @@ export default function ClientTicketingPage() {
                       type="button"
                       onClick={() => setSelectedCategory(cat)}
                       style={{
-                        padding: '0.52rem 1rem',
+                        padding: '0.45rem 0.95rem',
                         borderRadius: '999px',
-                        border: active ? '1.5px solid #1b3b2b' : '1.5px solid #d5e4dc',
+                        border: active ? '1.5px solid #1b3b2b' : '1px solid #cbd5e1',
                         background: active ? '#1b3b2b' : '#ffffff',
-                        color: active ? '#ffffff' : '#2d4b3c',
+                        color: active ? '#ffffff' : '#334155',
                         fontWeight: 700,
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
                         cursor: 'pointer',
                       }}
                     >
@@ -1066,43 +1303,38 @@ export default function ClientTicketingPage() {
                   );
                 })}
               </div>
+            )}
 
-              <div style={{ fontSize: '0.82rem', color: '#4d6a5b', fontWeight: 700 }}>
-                Menampilkan <strong>{events.length}</strong> event publik aktif
-                {searchQuery.trim() ? ` untuk pencarian "${searchQuery.trim()}"` : ''}
-              </div>
-            </div>
-
-            {/* Event Grid */}
+            {/* Event Catalog Grid (Desktop: 4 cols, Tablet: 2 cols, Mobile: 1 col) */}
             {loading ? (
               <div
                 style={{
                   background: '#ffffff',
-                  borderRadius: '20px',
+                  borderRadius: '14px',
                   padding: '3rem',
                   textAlign: 'center',
-                  border: '1px solid #d5e4dc',
-                  color: '#4d6a5b',
+                  border: '1px solid #e2e8f0',
+                  color: '#475569',
                   fontWeight: 600,
                 }}
               >
-                Memuat katalog event publik...
+                Memuat daftar event...
               </div>
             ) : events.length === 0 ? (
               <div
                 style={{
                   background: '#ffffff',
-                  borderRadius: '20px',
+                  borderRadius: '14px',
                   padding: '3rem',
                   textAlign: 'center',
-                  border: '1px solid #d5e4dc',
+                  border: '1px solid #e2e8f0',
                 }}
               >
-                <div style={{ fontWeight: 800, fontSize: '1.1rem', marginBottom: '0.35rem' }}>
+                <div style={{ fontWeight: 800, fontSize: '1.05rem', marginBottom: '0.35rem' }}>
                   Tidak ada event yang cocok dengan pencarian Anda
                 </div>
-                <p style={{ color: '#4d6a5b', fontSize: '0.88rem', marginBottom: '1rem' }}>
-                  Silakan ubah kata kunci atau pilih kategori Semua untuk melihat seluruh jadwal event.
+                <p style={{ color: '#64748b', fontSize: '0.86rem', marginBottom: '1rem' }}>
+                  Silakan ubah kata kunci atau klik tombol di bawah untuk menampilkan seluruh event.
                 </p>
                 <button
                   type="button"
@@ -1112,8 +1344,8 @@ export default function ClientTicketingPage() {
                     fetchCatalog('Semua', '');
                   }}
                   style={{
-                    padding: '0.65rem 1.2rem',
-                    borderRadius: '10px',
+                    padding: '0.62rem 1.2rem',
+                    borderRadius: '8px',
                     border: 'none',
                     background: '#1b3b2b',
                     color: '#ffffff',
@@ -1125,190 +1357,161 @@ export default function ClientTicketingPage() {
                 </button>
               </div>
             ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(295px, 1fr))',
-                  gap: '1.35rem',
-                }}
-              >
-                {events.map((event) => {
-                  const totalQuota = event.tiers.reduce((acc, t) => acc + t.quota, 0);
-                  const totalSold = event.tiers.reduce((acc, t) => acc + t.soldCount, 0);
-                  const soldPercent = totalQuota > 0 ? Math.min(100, Math.round((totalSold / totalQuota) * 100)) : 0;
-
-                  return (
-                    <article
-                      key={event.id}
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: '20px',
-                        border: '1.5px solid #d5e4dc',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 10px 26px rgba(19, 40, 30, 0.05)',
-                      }}
-                    >
-                      <div>
-                        {/* 16:9 Event Poster Banner */}
-                        <div
-                          style={{
-                            background: event.bannerGradient,
-                            padding: '1.35rem 1.35rem 1.15rem',
-                            color: '#ffffff',
-                            minHeight: '155px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.07em',
-                                padding: '0.28rem 0.65rem',
-                                borderRadius: '999px',
-                                background: 'rgba(255, 255, 255, 0.16)',
-                                backdropFilter: 'blur(4px)',
-                              }}
-                            >
-                              {event.category}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                fontWeight: 800,
-                                color: '#f3d486',
-                                letterSpacing: '0.06em',
-                              }}
-                            >
-                              {event.bannerTag}
-                            </span>
-                          </div>
-
-                          <div style={{ marginTop: '1.1rem' }}>
-                            <div style={{ fontSize: '0.74rem', color: '#cfe0d6', marginBottom: '0.2rem' }}>
-                              Oleh {event.organizerName}
-                            </div>
-                            <h2
-                              style={{
-                                margin: 0,
-                                fontSize: '1.08rem',
-                                fontWeight: 800,
-                                lineHeight: 1.3,
-                                letterSpacing: '-0.01em',
-                              }}
-                            >
-                              {event.title}
-                            </h2>
-                          </div>
-                        </div>
-
-                        {/* Event Body Details */}
-                        <div style={{ padding: '1.15rem 1.35rem' }}>
-                          <div style={{ display: 'grid', gap: '0.45rem', fontSize: '0.82rem', color: '#3b5949', marginBottom: '0.95rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                              <IconCalendar />
-                              <span>
-                                <strong>{event.eventDate}</strong> • {event.eventTime}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                              <IconMapPin />
-                              <span>
-                                {event.venueName}, <strong>{event.city}</strong>
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Tier Badges */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.9rem' }}>
-                            {event.tiers.map((tier) => (
-                              <span
-                                key={tier.id}
-                                style={{
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  padding: '0.24rem 0.55rem',
-                                  borderRadius: '8px',
-                                  background: tier.statusLabel === 'HAMPIR HABIS' ? '#fef5e7' : '#edf4f0',
-                                  color: tier.statusLabel === 'HAMPIR HABIS' ? '#9a6700' : '#1b3b2b',
-                                  border: `1px solid ${tier.statusLabel === 'HAMPIR HABIS' ? '#f5d9a6' : '#cfe0d6'}`,
-                                }}
-                              >
-                                {tier.name.split('—')[0].trim()} • Sisa {tier.remainingQuota}
-                              </span>
-                            ))}
-                          </div>
-
-                          {/* Quota Progress Bar */}
-                          <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', color: '#4d6a5b', marginBottom: '0.28rem' }}>
-                              <span>Tiket Terjual</span>
-                              <strong>
-                                {totalSold} / {totalQuota} ({soldPercent}%)
-                              </strong>
-                            </div>
-                            <div style={{ height: '6px', borderRadius: '999px', background: '#e4efe9', overflow: 'hidden' }}>
-                              <div
-                                style={{
-                                  width: `${soldPercent}%`,
-                                  height: '100%',
-                                  background: soldPercent > 80 ? '#b58d3d' : '#1b3b2b',
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer Price & CTA */}
+              <div className="irv-event-catalog-grid">
+                {events.map((event) => (
+                  <article
+                    key={event.id}
+                    onClick={() => openCheckoutModal(event)}
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                      transition: 'transform 0.16s ease, box-shadow 0.16s ease',
+                    }}
+                  >
+                    <div>
+                      {/* 16:9 Event Poster Artwork Banner */}
                       <div
                         style={{
-                          padding: '0.95rem 1.35rem',
-                          borderTop: '1px solid #e4efe9',
-                          background: '#fafcfb',
+                          background: event.bannerGradient,
+                          padding: '1.15rem 1.2rem',
+                          color: '#ffffff',
+                          aspectRatio: '16 / 9',
                           display: 'flex',
-                          alignItems: 'center',
+                          flexDirection: 'column',
                           justifyContent: 'space-between',
+                          position: 'relative',
+                          overflow: 'hidden',
                         }}
                       >
-                        <div>
-                          <div style={{ fontSize: '0.7rem', color: '#5a7667', textTransform: 'uppercase', fontWeight: 700 }}>
-                            Harga Mulai Dari
-                          </div>
-                          <div style={{ fontSize: '1.12rem', fontWeight: 800, color: '#1b3b2b' }}>
-                            {event.startingPriceLabel}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.4rem' }}>
+                          <span
+                            style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 800,
+                              padding: '0.22rem 0.55rem',
+                              borderRadius: '999px',
+                              background: 'rgba(15, 23, 42, 0.45)',
+                              color: '#ffffff',
+                              letterSpacing: '0.04em',
+                            }}
+                          >
+                            {event.eventDate}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '0.22rem 0.55rem',
+                              borderRadius: '999px',
+                              background: 'rgba(255, 255, 255, 0.18)',
+                              color: '#facc15',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            {event.category}
+                          </span>
+                        </div>
+
+                        <div style={{ textAlign: 'center', margin: 'auto 0' }}>
+                          <div
+                            style={{
+                              fontSize: 'clamp(1.05rem, 1.6vw, 1.28rem)',
+                              fontWeight: 900,
+                              lineHeight: 1.2,
+                              letterSpacing: '-0.01em',
+                              textShadow: '0 2px 10px rgba(0,0,0,0.35)',
+                            }}
+                          >
+                            {event.title}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => openCheckoutModal(event)}
+
+                        <div style={{ textAlign: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              padding: '0.18rem 0.6rem',
+                              borderRadius: '999px',
+                              background: 'rgba(0, 0, 0, 0.32)',
+                              color: '#e2efe8',
+                            }}
+                          >
+                            {event.organizerName}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Event Card Details (Title, Date/Time, Venue — Matching Reference Screenshots) */}
+                      <div style={{ padding: '0.95rem 1.05rem 0.85rem' }}>
+                        <h3
                           style={{
-                            padding: '0.68rem 1.15rem',
-                            borderRadius: '12px',
-                            border: 'none',
-                            background: '#1b3b2b',
-                            color: '#ffffff',
+                            margin: 0,
+                            fontSize: '0.92rem',
                             fontWeight: 800,
-                            fontSize: '0.84rem',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.4rem',
+                            color: '#0f172a',
+                            textTransform: 'uppercase',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={event.title}
+                        >
+                          {event.title}
+                        </h3>
+                        <div
+                          style={{
+                            fontSize: '0.82rem',
+                            fontWeight: 500,
+                            color: '#1e293b',
+                            marginTop: '0.28rem',
                           }}
                         >
-                          <IconTicketStub />
-                          Pilih Tiket
-                        </button>
+                          {event.eventDate}, {event.eventTime}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.78rem',
+                            color: '#64748b',
+                            marginTop: '0.22rem',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={`${event.venueName}, ${event.city}`}
+                        >
+                          {event.venueName}, {event.city.toUpperCase()}
+                        </div>
                       </div>
-                    </article>
-                  );
-                })}
+                    </div>
+
+                    {/* Bottom Divider + "Mulai Dari" | "Rp ..." */}
+                    <div
+                      style={{
+                        padding: '0.75rem 1.05rem',
+                        borderTop: '1px solid #edf2f7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+                        Mulai Dari
+                      </span>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                        {event.startingPriceLabel}
+                      </span>
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
           </>
@@ -2845,6 +3048,189 @@ export default function ClientTicketingPage() {
             </div>
           </div>
         )}
+
+        {/* TAB 7: TRANSAKSI SAYA (Mobile Bottom Nav & Order History) */}
+        {activeTab === 'transactions' && (
+          <div style={{ display: 'grid', gap: '1.25rem' }}>
+            <section
+              style={{
+                background: '#ffffff',
+                borderRadius: '20px',
+                padding: '1.6rem 1.85rem',
+                border: '1.5px solid #d9e6df',
+                boxShadow: '0 8px 24px rgba(17, 45, 32, 0.04)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <div>
+                  <h2 style={{ margin: '0 0 0.25rem 0', fontSize: '1.35rem', fontWeight: 800, color: '#0f172a' }}>
+                    Riwayat Transaksi Tiket
+                  </h2>
+                  <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569' }}>
+                    Daftar transaksi pembelian tiket event dan status pembayaran E-Ticket Anda.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('my-ticket')}
+                  style={{
+                    padding: '0.6rem 1.1rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#1b3b2b',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Lihat E-Ticket QR Pass →
+                </button>
+              </div>
+
+              {accountTickets.length > 0 ? (
+                <div style={{ display: 'grid', gap: '0.85rem' }}>
+                  {accountTickets.map((tx) => (
+                    <div
+                      key={tx.id}
+                      style={{
+                        padding: '1.15rem 1.35rem',
+                        borderRadius: '16px',
+                        border: '1.5px solid #d9e6df',
+                        background: '#f8fbf9',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                      }}
+                    >
+                      <div style={{ display: 'grid', gap: '0.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '999px',
+                              background: '#dcfce7',
+                              color: '#15803d',
+                            }}
+                          >
+                            LUNAS • {tx.status}
+                          </span>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569' }}>
+                            {tx.orderCode} • {tx.ticketCode}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0f172a' }}>{tx.eventTitle}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                          {tx.tierName} • {tx.eventDate} ({tx.eventTime})
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>Pemegang Tiket</div>
+                          <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#1b3b2b' }}>
+                            {tx.holderName}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTicket(tx);
+                            setTicketLookupInput(tx.ticketCode);
+                            setActiveTab('my-ticket');
+                          }}
+                          style={{
+                            padding: '0.62rem 1rem',
+                            borderRadius: '10px',
+                            border: '1.5px solid #1b3b2b',
+                            background: '#ffffff',
+                            color: '#1b3b2b',
+                            fontWeight: 800,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Buka E-Ticket
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: '2rem',
+                    borderRadius: '16px',
+                    background: '#f8fbf9',
+                    border: '1.5px dashed #cbd5e1',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
+                    {authUser
+                      ? 'Belum Ada Transaksi di Akun Ini'
+                      : 'Masuk untuk Melihat Riwayat Transaksi Anda'}
+                  </div>
+                  <p style={{ margin: '0 auto 1.1rem', maxWidth: '460px', fontSize: '0.85rem', color: '#475569' }}>
+                    Masuk dengan akun Google (Gmail) atau Email untuk menyinkronkan semua transaksi pembelian tiket Anda secara otomatis.
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                    {!authUser && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthError(null);
+                          setAuthStep('welcome');
+                          setAuthModalOpen(true);
+                        }}
+                        style={{
+                          padding: '0.68rem 1.2rem',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: '#1b3b2b',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Masuk / Daftar Sekarang
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('catalog')}
+                      style={{
+                        padding: '0.68rem 1.2rem',
+                        borderRadius: '10px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Jelajahi Event
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </main>
 
       {/* "Selamat Datang di IRVITE" Auth & Guest Modal (Matching Reference Screenshot) */}
@@ -3878,6 +4264,141 @@ export default function ClientTicketingPage() {
           </div>
         </div>
       )}
+
+      {/* Fixed Mobile Bottom Navigation Bar (5 Tabs: Beranda, Transaksi, Tiket, Cari, Profil) */}
+      <nav className="irv-mobile-bottom-nav" aria-label="Navigasi Utama Mobile">
+        {/* 1. Beranda */}
+        <button
+          type="button"
+          className={`irv-mobile-nav-item ${activeTab === 'catalog' && !mobileSearchOpen ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('catalog');
+            setMobileSearchOpen(false);
+          }}
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill={activeTab === 'catalog' && !mobileSearchOpen ? 'rgba(27, 59, 43, 0.14)' : 'none'}
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z" />
+          </svg>
+          <span>Beranda</span>
+        </button>
+
+        {/* 2. Transaksi */}
+        <button
+          type="button"
+          className={`irv-mobile-nav-item ${activeTab === 'transactions' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('transactions');
+            setMobileSearchOpen(false);
+          }}
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" />
+          </svg>
+          <span>Transaksi</span>
+        </button>
+
+        {/* 3. Tiket */}
+        <button
+          type="button"
+          className={`irv-mobile-nav-item ${activeTab === 'my-ticket' ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('my-ticket');
+            setMobileSearchOpen(false);
+          }}
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5V7z" />
+            <path d="M9.5 8.5v7M14.5 8.5v7" />
+          </svg>
+          <span>Tiket</span>
+        </button>
+
+        {/* 4. Cari */}
+        <button
+          type="button"
+          className={`irv-mobile-nav-item ${mobileSearchOpen ? 'is-active' : ''}`}
+          onClick={() => {
+            setActiveTab('catalog');
+            setMobileSearchOpen((prev) => !prev);
+          }}
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="20" y1="20" x2="16.2" y2="16.2" />
+          </svg>
+          <span>Cari</span>
+        </button>
+
+        {/* 5. Profil */}
+        <button
+          type="button"
+          className={`irv-mobile-nav-item ${authModalOpen ? 'is-active' : ''}`}
+          onClick={() => {
+            setMobileSearchOpen(false);
+            setAuthError(null);
+            setAuthStep('welcome');
+            setAuthModalOpen(true);
+          }}
+        >
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+            <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+          </svg>
+          <span>{authUser ? authUser.name.split(' ')[0] : 'Profil'}</span>
+        </button>
+      </nav>
     </div>
   );
 }
