@@ -253,6 +253,9 @@ export default function ClientTicketingPage() {
   const [accountTickets, setAccountTickets] = useState<IssuedTicketRecord[]>([]);
   const [mobileSearchOpen, setMobileSearchOpen] = useState<boolean>(false);
   const [showCategoryFilters, setShowCategoryFilters] = useState<boolean>(false);
+  const [heroSlideIndex, setHeroSlideIndex] = useState<number>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [searchFocused, setSearchFocused] = useState<boolean>(false);
 
   const fetchAccountTickets = useCallback(async (email: string) => {
     if (!email.trim()) {
@@ -530,53 +533,75 @@ export default function ClientTicketingPage() {
           padding-right: clamp(1rem, 3.2vw, 3rem);
           box-sizing: border-box;
         }
-        /* Top Promo Bar Responsive */
-        .irv-top-bar-inner {
-          min-height: 42px;
-          padding-top: 0.4rem;
-          padding-bottom: 0.4rem;
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 0.75rem;
-        }
-        .irv-top-bar-links {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 1.65rem;
-        }
-        /* Header Responsive */
-        .irv-header-inner {
-          padding-top: 0.85rem;
-          padding-bottom: 0.85rem;
+        /* Loket-Style Header Responsive */
+        .irv-loket-header-inner {
+          padding-top: 0.9rem;
+          padding-bottom: 0.9rem;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 1.25rem;
+          gap: 1.5rem;
         }
-        .irv-header-search-form {
-          flex: 1 1 360px;
+        .irv-loket-left-group {
           display: flex;
           align-items: center;
-          background: #ffffff;
-          border: 1px solid #dce3ea;
-          border-radius: 8px;
-          padding: 0.24rem 0.28rem 0.24rem 0.95rem;
-        }
-        .irv-header-right-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
+          gap: 1.75rem;
           flex-shrink: 0;
         }
-        /* 2 Side-by-Side Promo Banners (Tablet & Desktop = 2 cols, Mobile = 1 col Mini Apps) */
-        .irv-promo-banners-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 1.25rem;
-          margin-bottom: 1.85rem;
+        .irv-loket-search-wrap {
+          flex: 1 1 380px;
+          max-width: 780px;
+          position: relative;
+        }
+        .irv-loket-search-form {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          background: #f3f5f8;
+          border-radius: 10px;
+          padding: 0.62rem 0.95rem;
+          position: relative;
+          border: 1.5px solid transparent;
+          transition: border-color 0.16s ease, background 0.16s ease;
+        }
+        .irv-loket-search-form:focus-within {
+          background: #ffffff;
+          border-color: #1b3b2b;
+        }
+        .irv-loket-right-group {
+          display: flex;
+          align-items: center;
+          gap: 1.35rem;
+          flex-shrink: 0;
+        }
+        .irv-loket-mobile-hamburger {
+          display: none;
+        }
+        /* Full-Bleed Hero Banner Carousel */
+        .irv-hero-banner-section {
+          width: 100%;
+          position: relative;
+          overflow: hidden;
+          min-height: 360px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 2rem;
+          user-select: none;
+        }
+        .irv-hero-floating-cta {
+          position: absolute;
+          left: clamp(1.25rem, 3.2vw, 3rem);
+          bottom: 1.35rem;
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 0.85rem 1.25rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          z-index: 5;
+          max-width: min(640px, 68vw);
         }
         /* Event Cards Grid: Desktop = 4 cols, Tablet = 2 cols, Mobile = 1 col */
         .irv-event-catalog-grid {
@@ -587,6 +612,9 @@ export default function ClientTicketingPage() {
         @media (max-width: 1180px) {
           .irv-event-catalog-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .irv-loket-partner-link {
+            display: none !important;
           }
         }
         .irv-my-ticket-grid {
@@ -608,28 +636,44 @@ export default function ClientTicketingPage() {
           .irv-client-tiket-root {
             padding-bottom: 5.5rem;
           }
-          .irv-top-bar-inner {
+          /* Mobile Header: Row 1 = Logo + Hamburger; Row 2 = Full-Width Gray Search Bar */
+          .irv-loket-header-inner {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding-top: 0.75rem;
+            padding-bottom: 0.85rem;
+          }
+          .irv-loket-left-group {
+            width: auto;
+            gap: 0.75rem;
+          }
+          .irv-loket-kategori-btn,
+          .irv-loket-right-group {
+            display: none !important;
+          }
+          .irv-loket-mobile-hamburger {
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
+            background: transparent;
+            border: none;
+            padding: 0.25rem;
+            color: #0d253f;
+            cursor: pointer;
+            margin-left: auto;
           }
-          .irv-top-bar-sparkle,
-          .irv-top-bar-links {
-            display: none !important;
+          .irv-loket-search-wrap {
+            order: 3;
+            flex: 1 1 100%;
+            max-width: 100%;
+            width: 100%;
           }
-          .irv-header-search-form,
-          .irv-header-right-actions {
-            display: none !important;
-          }
-          .irv-promo-banners-grid {
-            grid-template-columns: 1fr;
-            margin-left: -1rem;
-            margin-right: -1rem;
+          .irv-hero-banner-section {
+            min-height: 220px;
             margin-bottom: 1.35rem;
           }
-          .irv-promo-banner-social {
+          .irv-hero-floating-cta {
             display: none !important;
-          }
-          .irv-promo-banner-miniapps {
-            border-radius: 0 !important;
           }
           .irv-event-catalog-grid {
             grid-template-columns: 1fr;
@@ -651,92 +695,33 @@ export default function ClientTicketingPage() {
         }
       `}</style>
 
-      {/* 1. TOP UTILITY PROMO BAR */}
-      <div
-        style={{
-          width: '100%',
-          background: 'linear-gradient(90deg, #0f2419 0%, #1b3b2b 35%, #2d6a4f 52%, #1b3b2b 72%, #0f2419 100%)',
-          color: '#ffffff',
-        }}
-      >
-        <div className="irv-tiket-container irv-top-bar-inner">
-          {/* Left (Desktop/Tablet) or Centered (Mobile): Daftarkan Eventmu Sekarang */}
-          <Link
-            href="/partnership"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              color: '#ffffff',
-              textDecoration: 'none',
-              fontSize: '0.84rem',
-              fontWeight: 700,
-              letterSpacing: '0.01em',
-            }}
-          >
-            <span className="irv-top-bar-sparkle" style={{ display: 'inline-flex' }}>
-              <IconSparkleStar />
-            </span>
-            <span>Daftarkan Eventmu Sekarang</span>
-          </Link>
-
-          {/* Right (Desktop & Tablet Only): Mini Apps | Tentang Kami | Cetak Tiket Gelang | Layanan Pelanggan */}
-          <div className="irv-top-bar-links">
-            {[
-              { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
-              { id: 'about' as ClientTab, label: 'Tentang Kami' },
-              { id: 'wristband' as ClientTab, label: 'Cetak Tiket Gelang' },
-              { id: 'support' as ClientTab, label: 'Layanan Pelanggan' },
-            ].map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: isActive ? '2px solid #f5c443' : '2px solid transparent',
-                    padding: '0.2rem 0',
-                    color: isActive ? '#f5c443' : '#ffffff',
-                    fontSize: '0.83rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* 2. MAIN WHITE HEADER BAR (Desktop/Tablet: Logo + Search + ID Flag + Masuk + Daftar; Mobile: Logo) */}
+      {/* 1. LOKET-STYLE SINGLE WHITE HEADER BAR (Desktop: Logo + Kategori + Search + Kerjasama dengan Kami + ID + Akun; Mobile: Row 1 Logo + Hamburger ☰, Row 2 Full-Width Search) */}
       <header
         style={{
           width: '100%',
           background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid #e8edf3',
           position: 'sticky',
           top: 0,
-          zIndex: 50,
-          marginBottom: '1.15rem',
+          zIndex: 60,
         }}
       >
-        <div className="irv-tiket-container irv-header-inner">
-          {/* Left: Brand Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+        <div className="irv-tiket-container irv-loket-header-inner">
+          {/* Left Group: Brand Logo + "Kategori" Button */}
+          <div className="irv-loket-left-group">
             <button
               type="button"
-              onClick={() => setActiveTab('catalog')}
+              onClick={() => {
+                setActiveTab('catalog');
+                setMobileMenuOpen(false);
+              }}
               style={{
                 background: 'transparent',
                 border: 'none',
                 padding: 0,
                 display: 'inline-flex',
                 alignItems: 'center',
+                gap: '0.5rem',
                 cursor: 'pointer',
               }}
               title="Beranda Tiket IRVITE.ID"
@@ -744,496 +729,673 @@ export default function ClientTicketingPage() {
               <img
                 src="/irvite-logo.png"
                 alt="IRVITE.ID"
-                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
               />
             </button>
-          </div>
 
-          {/* Center (Desktop & Tablet): Wide Search Bar */}
-          <form
-            className="irv-header-search-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (activeTab !== 'catalog') setActiveTab('catalog');
-              fetchCatalog(selectedCategory, searchQuery);
-            }}
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                if (activeTab !== 'catalog') setActiveTab('catalog');
-              }}
-              placeholder="Cari berdasarkan artis, acara, atau nama tempat"
-              style={{
-                border: 'none',
-                outline: 'none',
-                fontSize: '0.86rem',
-                flex: 1,
-                color: '#0f172a',
-                background: 'transparent',
-                fontWeight: 500,
-              }}
-            />
+            {/* "Kategori" Button with Geometric Shapes Icon (Desktop/Tablet) */}
             <button
-              type="submit"
-              aria-label="Cari Event"
+              type="button"
+              className="irv-loket-kategori-btn"
+              onClick={() => setShowCategoryFilters((prev) => !prev)}
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: 'transparent',
                 border: 'none',
-                background: '#1b3b2b',
-                color: '#ffffff',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              <IconSearch />
-            </button>
-          </form>
-
-          {/* Right (Desktop & Tablet): Flag ID ⌄ | Masuk | Daftar (or Active User Profile) */}
-          <div className="irv-header-right-actions">
-            {/* Language Flag Selector ID ⌄ */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                paddingRight: '0.75rem',
-                borderRight: '1px solid #e2e8f0',
-                fontSize: '0.82rem',
+                padding: '0.4rem 0.5rem',
+                color: '#0d253f',
+                fontSize: '0.92rem',
                 fontWeight: 700,
-                color: '#0f172a',
+                cursor: 'pointer',
               }}
             >
-              <svg width="20" height="14" viewBox="0 0 20 14" style={{ borderRadius: '2px', border: '1px solid #e2e8f0' }} aria-hidden="true">
-                <rect width="20" height="7" fill="#dc2626" />
-                <rect y="7" width="20" height="7" fill="#ffffff" />
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0d253f"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="12 3 16.5 10.5 7.5 10.5 12 3" />
+                <circle cx="7.5" cy="17.5" r="3.5" />
+                <rect x="13.5" y="14" width="7" height="7" rx="1" />
               </svg>
-              <span>ID</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-
-            {!authUser ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingCheckoutEvent(null);
-                    setAuthStep('welcome');
-                    setAuthError(null);
-                    setAuthModalOpen(true);
-                  }}
-                  style={{
-                    padding: '0.6rem 1.35rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#e8f0ec',
-                    color: '#1b3b2b',
-                    fontWeight: 700,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Masuk
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingCheckoutEvent(null);
-                    setAuthStep('register');
-                    setAuthError(null);
-                    setAuthModalOpen(true);
-                  }}
-                  style={{
-                    padding: '0.6rem 1.35rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Daftar
-                </button>
-              </>
-            ) : authUser.mode === 'guest' ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('my-ticket')}
-                  style={{
-                    padding: '0.55rem 0.95rem',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                    fontWeight: 700,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cek Tiket (Tamu)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingCheckoutEvent(null);
-                    setAuthStep('welcome');
-                    setAuthError(null);
-                    setAuthModalOpen(true);
-                  }}
-                  style={{
-                    padding: '0.58rem 1.15rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Masuk
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('my-ticket')}
-                  style={{
-                    padding: '0.55rem 0.95rem',
-                    borderRadius: '8px',
-                    border: '1px solid #bfd4c8',
-                    background: '#edf4f0',
-                    color: '#1b3b2b',
-                    fontWeight: 800,
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Tiket Saya ({accountTickets.length})
-                </button>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    padding: '0.32rem 0.5rem 0.32rem 0.65rem',
-                    borderRadius: '8px',
-                    background: '#f8fafc',
-                    border: '1px solid #dce3ea',
-                  }}
-                >
-                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a' }}>{authUser.name}</div>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    style={{
-                      padding: '0.24rem 0.5rem',
-                      borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      background: '#ffffff',
-                      color: '#dc2626',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Keluar
-                  </button>
-                </div>
-              </div>
-            )}
+              <span>Kategori</span>
+            </button>
           </div>
-        </div>
 
-        {/* Mobile Slide-Down Search Bar (Shown when "Cari" in Mobile Bottom Nav is tapped) */}
-        {mobileSearchOpen && (
-          <div style={{ padding: '0 1rem 0.85rem', borderTop: '1px solid #f1f5f9' }}>
+          {/* Mobile Hamburger Menu Button (☰ — Top-Right on Mobile) */}
+          <button
+            type="button"
+            className="irv-loket-mobile-hamburger"
+            aria-label="Menu Navigasi"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+          >
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#0d253f"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {mobileMenuOpen ? (
+                <>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </>
+              ) : (
+                <>
+                  <line x1="4" y1="6.5" x2="20" y2="6.5" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17.5" x2="20" y2="17.5" />
+                </>
+              )}
+            </svg>
+          </button>
+
+          {/* Center (Desktop/Tablet) or Row 2 (Mobile): Soft Gray Rounded Search Bar ("Cari event ...") */}
+          <div className="irv-loket-search-wrap">
             <form
+              className="irv-loket-search-form"
               onSubmit={(e) => {
                 e.preventDefault();
-                setActiveTab('catalog');
+                if (activeTab !== 'catalog') setActiveTab('catalog');
                 fetchCatalog(selectedCategory, searchQuery);
               }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: '#f8fafc',
-                border: '1.5px solid #cbd5e1',
-                borderRadius: '10px',
-                padding: '0.28rem 0.32rem 0.28rem 0.85rem',
-                marginTop: '0.65rem',
-              }}
             >
+              {/* Two-Tone Visual Placeholder ("Cari event " + Bold Event Name) when input is empty & unfocused */}
+              {!searchQuery && !searchFocused && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: '0.95rem',
+                    right: '2.6rem',
+                    pointerEvents: 'none',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontSize: '0.88rem',
+                    color: '#8e9aaf',
+                    fontWeight: 500,
+                  }}
+                >
+                  Cari event{' '}
+                  <strong style={{ color: '#0d253f', fontWeight: 800 }}>
+                    {(events[heroSlideIndex % Math.max(events.length, 1)] || INITIAL_EVENTS[0]).title}
+                  </strong>
+                </div>
+              )}
+
               <input
                 type="text"
-                autoFocus
                 value={searchQuery}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   if (activeTab !== 'catalog') setActiveTab('catalog');
                 }}
-                placeholder="Cari berdasarkan artis, acara, atau nama tempat"
+                aria-label="Cari event"
                 style={{
                   border: 'none',
                   outline: 'none',
-                  fontSize: '0.86rem',
+                  fontSize: '0.88rem',
                   flex: 1,
-                  color: '#0f172a',
+                  color: '#0d253f',
                   background: 'transparent',
+                  fontWeight: 600,
+                  width: '100%',
+                  zIndex: 1,
                 }}
               />
+
               <button
                 type="submit"
+                aria-label="Cari Event"
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '8px',
+                  background: 'transparent',
                   border: 'none',
-                  background: '#1b3b2b',
-                  color: '#ffffff',
+                  padding: '0 0 0 0.5rem',
+                  color: '#0d253f',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  zIndex: 1,
                 }}
               >
                 <IconSearch />
               </button>
             </form>
           </div>
+
+          {/* Right Group (Desktop & Tablet): "Kerjasama dengan Kami" + Globe "ID ⌄" + Pill Button "Akun" */}
+          <div className="irv-loket-right-group">
+            {/* Kerjasama dengan Kami */}
+            <Link
+              href="/partnership"
+              className="irv-loket-partner-link"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                color: '#0d253f',
+                textDecoration: 'none',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0d253f"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="12 2 19 6 19 14 12 22 5 14 5 6 12 2" />
+                <polygon points="12 7.5 13.4 10.3 16.5 10.8 14.2 13 14.8 16 12 14.5 9.2 16 9.8 13 7.5 10.8 10.6 10.3 12 7.5" />
+              </svg>
+              <span>Kerjasama dengan Kami</span>
+            </Link>
+
+            {/* Globe Language Selector: 🌐 ID ⌄ */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: '#0d253f',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0d253f"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <path d="M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18" />
+              </svg>
+              <span>ID</span>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0d253f"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+
+            {/* Dark Rounded Pill Button: "Akun" */}
+            <button
+              type="button"
+              onClick={() => {
+                setPendingCheckoutEvent(null);
+                setAuthStep('welcome');
+                setAuthError(null);
+                setAuthModalOpen(true);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.54rem 1.15rem',
+                borderRadius: '999px',
+                border: 'none',
+                background: '#0d253f',
+                color: '#ffffff',
+                fontSize: '0.86rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(13, 37, 63, 0.16)',
+              }}
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <circle cx="12" cy="9.5" r="3" />
+                <path d="M6.8 18.2c1.2-2 3.1-3.2 5.2-3.2s4 1.2 5.2 3.2" />
+              </svg>
+              <span>{authUser ? authUser.name.split(' ')[0] : 'Akun'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop "Kategori" & Quick Menu Bar (Shown when "Kategori" is clicked) */}
+        {showCategoryFilters && (
+          <div
+            style={{
+              background: '#f8fafc',
+              borderTop: '1px solid #e8edf3',
+              padding: '0.75rem 0',
+            }}
+          >
+            <div
+              className="irv-tiket-container"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.45rem' }}>
+                {CATEGORIES.map((cat) => {
+                  const active = selectedCategory === cat && activeTab === 'catalog';
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        setActiveTab('catalog');
+                      }}
+                      style={{
+                        padding: '0.42rem 0.9rem',
+                        borderRadius: '999px',
+                        border: active ? '1.5px solid #0d253f' : '1px solid #cbd5e1',
+                        background: active ? '#0d253f' : '#ffffff',
+                        color: active ? '#ffffff' : '#334155',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem' }}>
+                {[
+                  { id: 'my-ticket' as ClientTab, label: 'E-Ticket Saya' },
+                  { id: 'transactions' as ClientTab, label: 'Riwayat Transaksi' },
+                  { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
+                  { id: 'wristband' as ClientTab, label: 'Cetak Tiket Gelang' },
+                  { id: 'about' as ClientTab, label: 'Tentang Kami' },
+                  { id: 'support' as ClientTab, label: 'Layanan Pelanggan' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActiveTab(item.id)}
+                    style={{
+                      background: activeTab === item.id ? '#e2e8f0' : 'transparent',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.35rem 0.65rem',
+                      color: '#0d253f',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Hamburger Menu Drawer (Shown when ☰ is tapped on Mobile) */}
+        {mobileMenuOpen && (
+          <div
+            style={{
+              background: '#ffffff',
+              borderTop: '1px solid #e8edf3',
+              padding: '1rem',
+              display: 'grid',
+              gap: '0.65rem',
+              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)',
+            }}
+          >
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setAuthStep('welcome');
+                  setAuthModalOpen(true);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.68rem 1rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  background: '#0d253f',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {authUser ? `Akun: ${authUser.name}` : 'Masuk / Daftar / Tamu'}
+              </button>
+              <Link
+                href="/partnership"
+                style={{
+                  padding: '0.68rem 1rem',
+                  borderRadius: '999px',
+                  border: '1.5px solid #0d253f',
+                  color: '#0d253f',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                }}
+              >
+                Kerjasama EO
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', paddingTop: '0.25rem' }}>
+              {[
+                { id: 'catalog' as ClientTab, label: 'Katalog Event' },
+                { id: 'my-ticket' as ClientTab, label: 'E-Ticket Saya' },
+                { id: 'transactions' as ClientTab, label: 'Transaksi' },
+                { id: 'mini-apps' as ClientTab, label: 'Mini Apps' },
+                { id: 'wristband' as ClientTab, label: 'Tiket Gelang' },
+                { id: 'support' as ClientTab, label: 'Layanan Pelanggan' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  style={{
+                    padding: '0.42rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: activeTab === item.id ? '#0d253f' : '#f8fafc',
+                    color: activeTab === item.id ? '#ffffff' : '#0d253f',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </header>
 
-      {/* Main Content Container */}
-      <main className="irv-tiket-container" style={{ paddingTop: '0.15rem', paddingBottom: '0.5rem' }}>
-        {activeTab === 'catalog' && (
-          <>
-            {/* 2 Side-by-Side Promo Banners (Tablet & Desktop = 2 banners; Mobile = Mini Apps full-bleed banner) */}
-            <div className="irv-promo-banners-grid">
-              {/* Banner 1 (Left — Sosial Media @irvite.id, hidden on Mobile) */}
+      {/* 2. FULL-BLEED HERO BANNER CAROUSEL (Matching Both Desktop & Mobile Loket Screenshots) */}
+      {activeTab === 'catalog' && (() => {
+        const heroEvents = events.length > 0 ? events : INITIAL_EVENTS;
+        const activeHeroEvent = heroEvents[heroSlideIndex % heroEvents.length] || INITIAL_EVENTS[0];
+        const heroPalettes = [
+          'linear-gradient(120deg, #4b4d3e 0%, #656853 45%, #3d4032 100%)',
+          'linear-gradient(120deg, #1b3b2b 0%, #2d5a43 48%, #0f2419 100%)',
+          'linear-gradient(120deg, #1e293b 0%, #334155 50%, #0f172a 100%)',
+          'linear-gradient(120deg, #3b1d2e 0%, #5c2d46 50%, #24101c 100%)',
+        ];
+        const currentBg = heroPalettes[heroSlideIndex % heroPalettes.length];
+
+        return (
+          <section className="irv-hero-banner-section" style={{ background: currentBg }}>
+            {/* Subtle Atmospheric Stage Foliage / Concert Rays Overlay */}
+            <div
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'radial-gradient(circle at 65% 22%, rgba(255, 248, 220, 0.22) 0%, transparent 55%), radial-gradient(circle at 25% 75%, rgba(0, 0, 0, 0.35) 0%, transparent 60%)',
+                pointerEvents: 'none',
+              }}
+            />
+
+            {/* Center Stage Typography ("into REM- / 2027 LIVE & CON5" Style) */}
+            <div
+              onClick={() => openCheckoutModal(activeHeroEvent)}
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                textAlign: 'center',
+                padding: '2.2rem 1.25rem 3.2rem',
+                cursor: 'pointer',
+                maxWidth: '920px',
+              }}
+            >
               <div
-                className="irv-promo-banner-social"
-                onClick={() => setActiveTab('about')}
                 style={{
-                  background: 'linear-gradient(135deg, #0d261a 0%, #1b3b2b 52%, #295e44 100%)',
-                  borderRadius: '14px',
-                  padding: '1.5rem 1.75rem',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '1.25rem',
-                  minHeight: '195px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  boxShadow: '0 10px 28px rgba(15, 36, 25, 0.12)',
+                  fontFamily: 'Georgia, serif',
+                  fontStyle: 'italic',
+                  fontSize: 'clamp(1.25rem, 2.5vw, 2rem)',
+                  color: '#9be7e2',
+                  marginBottom: '-0.25rem',
+                  letterSpacing: '0.04em',
                 }}
               >
-                {/* Left Phone Social Feed Illustration */}
-                <div
-                  style={{
-                    width: '115px',
-                    height: '155px',
-                    background: '#ffffff',
-                    borderRadius: '16px',
-                    border: '4px solid #0f172a',
-                    padding: '0.55rem',
-                    color: '#0f172a',
-                    flexShrink: 0,
-                    transform: 'rotate(-6deg)',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.28)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#1b3b2b' }} />
-                    <div>
-                      <div style={{ fontSize: '0.55rem', fontWeight: 800 }}>IRVITE.ID</div>
-                      <div style={{ fontSize: '0.45rem', color: '#64748b' }}>@irvite.id</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                    <div style={{ height: '34px', borderRadius: '4px', background: '#d5e4dc' }} />
-                    <div style={{ height: '34px', borderRadius: '4px', background: '#e5c170' }} />
-                    <div style={{ height: '34px', borderRadius: '4px', background: '#1b3b2b' }} />
-                    <div style={{ height: '34px', borderRadius: '4px', background: '#cfe0d6' }} />
-                  </div>
-                  <div style={{ fontSize: '0.48rem', fontWeight: 700, textAlign: 'center', background: '#edf4f0', borderRadius: '4px', padding: '2px' }}>
-                    Follow Official
-                  </div>
-                </div>
-
-                {/* Center/Right Copywriting */}
-                <div style={{ flex: 1, textAlign: 'center', zIndex: 1 }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#cfe0d6', marginBottom: '0.2rem' }}>
-                    Keep in touch with us!
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'clamp(1.55rem, 2.5vw, 2.2rem)',
-                      fontWeight: 900,
-                      letterSpacing: '-0.02em',
-                      color: '#ffffff',
-                      textShadow: '0 3px 0 #0a1911',
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    Sosial Media
-                  </div>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      marginTop: '0.55rem',
-                      padding: '0.3rem 0.75rem',
-                      borderRadius: '999px',
-                      background: 'rgba(255,255,255,0.14)',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    <span>@irvite.id</span>
-                  </div>
-                </div>
+                into
               </div>
-
-              {/* Banner 2 (Right on Desktop/Tablet, Full-Bleed Hero on Mobile — Mini Apps) */}
               <div
-                className="irv-promo-banner-miniapps"
-                onClick={() => setActiveTab('mini-apps')}
                 style={{
-                  background: 'linear-gradient(135deg, #102a1d 0%, #1b3b2b 50%, #2d6a4f 100%)',
-                  borderRadius: '14px',
-                  padding: '1.5rem 1.75rem',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '1rem',
-                  minHeight: '195px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  boxShadow: '0 10px 28px rgba(15, 36, 25, 0.12)',
+                  fontSize: 'clamp(2.35rem, 6vw, 4.75rem)',
+                  fontWeight: 900,
+                  letterSpacing: '0.08em',
+                  color: '#e6f7f6',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.02,
+                  textShadow: '0 0 24px rgba(155, 231, 226, 0.38)',
+                  borderTop: '3px solid rgba(155, 231, 226, 0.65)',
+                  borderBottom: '3px solid rgba(155, 231, 226, 0.65)',
+                  padding: '0.25rem 0.85rem',
+                  display: 'inline-block',
+                  margin: '0.35rem 0 0.6rem',
                 }}
               >
-                {/* Top-Right Yellow "Produk Baru" Badge */}
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '14px',
-                    right: '16px',
-                    background: '#facc15',
-                    color: '#0f172a',
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '0.28rem 0.7rem',
-                    borderRadius: '999px',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                  }}
-                >
-                  Produk Baru
-                </span>
-
-                {/* Left Text Content */}
-                <div style={{ flex: '1 1 210px', zIndex: 1 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#e5c170', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
-                    IRVITE.ID
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 'clamp(1.6rem, 2.6vw, 2.2rem)',
-                      fontWeight: 900,
-                      letterSpacing: '-0.02em',
-                      color: '#ffffff',
-                      textShadow: '0 3px 0 #0a1911',
-                      lineHeight: 1.1,
-                      marginBottom: '0.45rem',
-                    }}
-                  >
-                    Mini Apps
-                  </div>
-                  <p style={{ margin: '0 0 0.9rem 0', fontSize: '0.8rem', color: '#e2efe8', lineHeight: 1.45, maxWidth: '270px' }}>
-                    Puluhan tools gratis untuk kebutuhan event dan masih banyak lagi
-                  </p>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      borderRadius: '999px',
-                      overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.35)',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                    }}
-                  >
-                    <span style={{ background: '#ffffff', color: '#0f172a', padding: '0.32rem 0.65rem' }}>
-                      Kunjungi
-                    </span>
-                    <span style={{ background: 'rgba(15, 23, 42, 0.35)', color: '#ffffff', padding: '0.32rem 0.75rem' }}>
-                      apps.irvite.id
-                    </span>
-                  </div>
-                </div>
-
-                {/* Right Laptop + Mobile Preview Illustration */}
-                <div
-                  style={{
-                    width: '155px',
-                    height: '115px',
-                    background: '#ffffff',
-                    borderRadius: '10px',
-                    border: '3px solid #1e293b',
-                    padding: '0.5rem',
-                    color: '#0f172a',
-                    flexShrink: 0,
-                    marginTop: '1.2rem',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.25)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div style={{ fontSize: '0.55rem', fontWeight: 800, color: '#1b3b2b' }}>
-                    Tools Gratis untuk Event Organizer
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                    <div style={{ background: '#edf4f0', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
-                      QR Scanner
-                    </div>
-                    <div style={{ background: '#f8f4eb', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
-                      Kalkulator EO
-                    </div>
-                    <div style={{ background: '#edf4f0', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
-                      Gelang 300DPI
-                    </div>
-                    <div style={{ background: '#f1f5f9', borderRadius: '4px', padding: '4px', fontSize: '0.48rem', fontWeight: 700 }}>
-                      Fix Typo Email
-                    </div>
-                  </div>
-                  <div style={{ height: '6px', borderRadius: '999px', background: '#1b3b2b', width: '65%' }} />
-                </div>
+                {activeHeroEvent.title.split(' ').slice(0, 2).join(' ')}
+              </div>
+              <div
+                style={{
+                  fontSize: 'clamp(0.88rem, 1.6vw, 1.35rem)',
+                  fontWeight: 600,
+                  color: '#9be7e2',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                {activeHeroEvent.eventDate} • {activeHeroEvent.organizerName.toUpperCase()}
               </div>
             </div>
 
-            {/* Section Header: "Event" (Left) & "Lihat Semua" (Right) — Matching Reference Screenshots */}
+            {/* Bottom-Left City & Venue Watermark (Visible on Mobile & behind Desktop card) */}
+            <div
+              style={{
+                position: 'absolute',
+                left: 'clamp(1rem, 3.2vw, 3rem)',
+                bottom: '0.85rem',
+                zIndex: 2,
+                color: '#ffffff',
+                pointerEvents: 'none',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 'clamp(1rem, 2vw, 1.55rem)',
+                  fontWeight: 900,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  lineHeight: 1.1,
+                }}
+              >
+                {activeHeroEvent.city}
+              </div>
+              <div
+                style={{
+                  fontSize: 'clamp(0.62rem, 1vw, 0.78rem)',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  opacity: 0.9,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {activeHeroEvent.eventDate} | {activeHeroEvent.eventTime} | {activeHeroEvent.venueName}
+              </div>
+            </div>
+
+            {/* Desktop Floating White CTA Pill Card (Bottom-Left — Exact Match to Screenshot 1) */}
+            <div className="irv-hero-floating-cta">
+              <span
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  lineHeight: 1.35,
+                }}
+              >
+                Penantian Berakhir! {activeHeroEvent.title} Akhirnya Hadir di {activeHeroEvent.city}
+              </span>
+              <button
+                type="button"
+                onClick={() => openCheckoutModal(activeHeroEvent)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  color: '#1d4ed8',
+                  fontSize: '0.88rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                <span>Beli Tiket di Sini</span>
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#1d4ed8"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.5a2.5 2.5 0 0 0 0 5V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.5a2.5 2.5 0 0 0 0-5V7z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Bottom-Center Carousel Pagination Dots */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '0.95rem',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                zIndex: 5,
+              }}
+            >
+              {heroEvents.map((ev, idx) => {
+                const isCurrent = idx === heroSlideIndex % heroEvents.length;
+                return (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    aria-label={`Slide ${idx + 1}: ${ev.title}`}
+                    onClick={() => setHeroSlideIndex(idx)}
+                    style={{
+                      width: isCurrent ? '9px' : '6px',
+                      height: isCurrent ? '9px' : '6px',
+                      borderRadius: '999px',
+                      border: 'none',
+                      padding: 0,
+                      background: isCurrent ? '#ffffff' : 'rgba(255, 255, 255, 0.45)',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Bottom-Right Promoter & IRVITE Watermark Logos */}
+            <div
+              style={{
+                position: 'absolute',
+                right: 'clamp(1rem, 3.2vw, 3rem)',
+                bottom: '0.95rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                color: 'rgba(255, 255, 255, 0.85)',
+                fontSize: 'clamp(0.6rem, 0.9vw, 0.78rem)',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                zIndex: 3,
+                pointerEvents: 'none',
+              }}
+            >
+              <span>LIVE STAGE</span>
+              <span>&amp;CON</span>
+              <span style={{ border: '1px solid rgba(255,255,255,0.6)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                IRVITE.ID
+              </span>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Main Content Container */}
+      <main className="irv-tiket-container" style={{ paddingTop: '0.25rem', paddingBottom: '0.5rem' }}>
+        {activeTab === 'catalog' && (
+          <>
+            {/* Section Header: "Event" (Left) & "Lihat Semua" (Right) */}
             <div
               style={{
                 display: 'flex',
