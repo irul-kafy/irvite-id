@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatRupiah, PLATFORM_FEE_PER_TICKET } from '@/lib/ticketing-store';
+import { isTicketingEnabled } from '@/config/features';
 
 const SOLUTIONS_TEXT = {
   ID: {
@@ -210,6 +211,12 @@ const SOLUTIONS_TEXT = {
 };
 
 export default function PartnershipSolusiPage() {
+  useEffect(() => {
+    if (!isTicketingEnabled()) {
+      window.location.replace('/');
+    }
+  }, []);
+
   const [currentLang, setCurrentLang] = useState<'ID' | 'EN'>('ID');
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);

@@ -11,6 +11,7 @@ import {
   PublicTicketTier,
   TicketOrderRecord,
 } from '@/lib/ticketing-store';
+import { isTicketingEnabled } from '@/config/features';
 
 type ClientTab = 'catalog' | 'my-ticket' | 'transactions' | 'mini-apps' | 'about' | 'wristband' | 'support';
 type AuthModalStep = 'welcome' | 'google' | 'email-login' | 'register';
@@ -270,6 +271,12 @@ const TIKET_I18N = {
 };
 
 export default function ClientTicketingPage() {
+  useEffect(() => {
+    if (!isTicketingEnabled()) {
+      window.location.replace('/');
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState<ClientTab>('catalog');
   // Pre-populated with INITIAL_EVENTS so Katalog Event is NEVER 0
   const [events, setEvents] = useState<PublicTicketingEvent[]>(INITIAL_EVENTS);

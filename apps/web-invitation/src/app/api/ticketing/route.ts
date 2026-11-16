@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInternalApiBaseUrl } from '@/api/client';
+import { isTicketingEnabled } from '@/config/features';
 import {
   checkoutLocalOrder,
   correctLocalOrderEmail,
@@ -99,6 +100,13 @@ function normalizeUpstreamEvent(raw: Record<string, unknown>): PublicTicketingEv
 }
 
 export async function GET(request: NextRequest) {
+  if (!isTicketingEnabled()) {
+    return NextResponse.json(
+      { message: 'Layanan tiket saat ini tidak aktif di lingkungan ini.' },
+      { status: 404 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get('mode') || 'events';
   const category = searchParams.get('category') || undefined;
@@ -187,6 +195,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isTicketingEnabled()) {
+    return NextResponse.json(
+      { message: 'Layanan tiket saat ini tidak aktif di lingkungan ini.' },
+      { status: 404 }
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const action = body?.action as string | undefined;
   const apiBase = getInternalApiBaseUrl();

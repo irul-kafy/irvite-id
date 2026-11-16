@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { isTicketingEnabled } from '@/config/features';
 
 const PARTNERSHIP_TEXT = {
   ID: {
@@ -173,6 +174,12 @@ const PARTNERSHIP_TEXT = {
 };
 
 export default function ClientPartnershipPage() {
+  useEffect(() => {
+    if (!isTicketingEnabled()) {
+      window.location.replace('/');
+    }
+  }, []);
+
   const [currentLang, setCurrentLang] = useState<'ID' | 'EN'>('ID');
   const [langMenuOpen, setLangMenuOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);

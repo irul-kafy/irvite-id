@@ -7,7 +7,7 @@ import { TemplateConfigV1 } from '../../utils/template-studio-model';
 import '../../template-studio.css';
 
 interface EditTemplatePageProps {
-  params: Promise<{ templateId: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 interface TemplateDetail {
@@ -19,7 +19,7 @@ interface TemplateDetail {
 }
 
 export default function EditTemplatePage({ params }: EditTemplatePageProps) {
-  const { templateId } = use(params);
+  const { slug: templateId } = use(params);
   const router = useRouter();
 
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
