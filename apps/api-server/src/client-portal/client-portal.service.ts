@@ -154,67 +154,52 @@ export class ClientPortalService {
     return { event, validKey };
   }
 
+  /**
+   * Batch generates missing invitations for guests in a separate write operation
+   * rather than mutating DB state inside GET /client-portal/:eventId.
+   */
+  async syncMissingInvitations(eventId: string, key?: string) {
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
+
+    const guestsWithoutInvitation = await this.prisma.guest.findMany({
+      where: {
+        eventId,
+        invitation: null,
+      },
+      select: { id: true },
+    });
+
+    if (guestsWithoutInvitation.length === 0) {
+      return { createdCount: 0 };
+    }
+
+    let createdCount = 0;
+    for (const g of guestsWithoutInvitation) {
+      try {
+        const uniqueCode = crypto.randomBytes(16).toString('base64url');
+        await this.prisma.invitation.create({
+          data: {
+            eventId,
+            guestId: g.id,
+            uniqueCode,
+            status: InvitationStatus.PENDING,
+          },
+        });
+        createdCount++;
+      } catch {
+        // ignore transient duplicate
+      }
+    }
+
+    return { createdCount };
+  }
+
   async getPortalData(eventId: string, key?: string) {
     const { event, validKey } = await this.validateAccess(eventId, key);
 
-    // Auto-heal: Ensure all existing guests have invitations generated
-    try {
-      const guestsWithoutInvitation = await this.prisma.guest.findMany({
-        where: {
-          eventId,
-          invitation: null,
-        },
-        select: { id: true },
-      });
-
-      if (guestsWithoutInvitation.length > 0) {
-        for (const g of guestsWithoutInvitation) {
-          try {
-            const uniqueCode = crypto.randomBytes(16).toString('base64url');
-            await this.prisma.invitation.create({
-              data: {
-                eventId,
-                guestId: g.id,
-                uniqueCode,
-                status: InvitationStatus.PENDING,
-              },
-            });
-          } catch {
-            // ignore transient duplicate
-          }
-        }
-      }
-    } catch (err: unknown) {
-      this.logger.warn(
-        `Auto-heal invitations error: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-
-    let rawGuests: Array<{
-      id: string;
-      name: string;
-      category: string;
-      phoneNumber: string | null;
-      email: string | null;
-      tableNumber?: string | null;
-      maxPax: number;
-      customGreeting: string | null;
-      createdAt: Date | string;
-      invitation: {
-        id: string;
-        uniqueCode: string;
-        status: InvitationStatus;
-        rsvpPax: number | null;
-        updatedAt: Date | string;
-        attendances?: Array<{
-          scannedPax: number;
-          scannedAt: Date | string;
-        }>;
-      } | null;
-    }> = [];
-
-    try {
-      rawGuests = await this.prisma.guest.findMany({
+    const [rawGuests, wishesCount, rawWishes] = await Promise.all([
+      this.prisma.guest.findMany({
         where: { eventId },
         select: {
           id: true,
@@ -243,81 +228,15 @@ export class ClientPortalService {
           },
         },
         orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-      });
-    } catch {
-      // Fallback 1: if tableNumber column is missing
-      try {
-        const fallback = await this.prisma.guest.findMany({
-          where: { eventId },
-          select: {
-            id: true,
-            name: true,
-            category: true,
-            phoneNumber: true,
-            email: true,
-            maxPax: true,
-            customGreeting: true,
-            createdAt: true,
-            invitation: {
-              select: {
-                id: true,
-                uniqueCode: true,
-                status: true,
-                rsvpPax: true,
-                updatedAt: true,
-                attendances: {
-                  select: {
-                    scannedPax: true,
-                    scannedAt: true,
-                  },
-                },
-              },
-            },
-          },
-          orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-        });
-        rawGuests = fallback.map((g) => ({ ...g, tableNumber: null }));
-      } catch {
-        // Fallback 2: minimal guest query without attendances relation
-        try {
-          const minimal = await this.prisma.guest.findMany({
-            where: { eventId },
-            select: {
-              id: true,
-              name: true,
-              category: true,
-              phoneNumber: true,
-              email: true,
-              maxPax: true,
-              customGreeting: true,
-              createdAt: true,
-              invitation: {
-                select: {
-                  id: true,
-                  uniqueCode: true,
-                  status: true,
-                  rsvpPax: true,
-                  updatedAt: true,
-                },
-              },
-            },
-            orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-          });
-          rawGuests = minimal.map((g) => ({
-            ...g,
-            tableNumber: null,
-            invitation: g.invitation
-              ? { ...g.invitation, attendances: [] }
-              : null,
-          }));
-        } catch (err: unknown) {
-          this.logger.error(
-            `Critical error reading guests: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          rawGuests = [];
-        }
-      }
-    }
+      }),
+      this.prisma.wish.count({ where: { eventId } }),
+      this.prisma.wish.findMany({
+        where: { eventId },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        select: { id: true, name: true, message: true, createdAt: true },
+      }),
+    ]);
 
     let totalPax = 0;
     let waSentCount = 0;
@@ -386,38 +305,7 @@ export class ClientPortalService {
       };
     });
 
-    let wishesCount = 0;
-    let rawWishes: Array<{
-      id: string;
-      name: string;
-      message: string;
-      createdAt: Date | string;
-    }> = [];
-    try {
-      if (this.prisma.wish) {
-        const [wCount, wList] = await Promise.all([
-          this.prisma.wish.count({ where: { eventId } }).catch(() => 0),
-          this.prisma.wish
-            .findMany({
-              where: { eventId },
-              orderBy: { createdAt: 'desc' },
-              take: 100,
-              select: { id: true, name: true, message: true, createdAt: true },
-            })
-            .catch(() => []),
-        ]);
-        wishesCount = typeof wCount === 'number' ? wCount : 0;
-        rawWishes = Array.isArray(wList) ? wList : [];
-      }
-    } catch (err: unknown) {
-      this.logger.warn(
-        `Failed reading wishes in client-portal: ${err instanceof Error ? err.message : String(err)}`,
-      );
-      wishesCount = 0;
-      rawWishes = [];
-    }
-
-    const wishes = rawWishes.map((w) => ({
+    const wishes = (Array.isArray(rawWishes) ? rawWishes : []).map((w) => ({
       id: w.id,
       name: w.name,
       message: w.message,

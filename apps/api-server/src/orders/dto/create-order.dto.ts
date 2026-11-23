@@ -43,4 +43,3 @@ export class CreateOrderDto {
   @MaxLength(2000)
   notes?: string;
 }
-

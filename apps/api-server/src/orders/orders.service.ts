@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
@@ -12,10 +13,7 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import {
-  calculateActiveUntil,
-  getPackageDefinition,
-} from './packages';
+import { calculateActiveUntil, getPackageDefinition } from './packages';
 
 // Valid transitions mapping
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -63,6 +61,8 @@ const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly activityLogs?: ActivityLogsService,
@@ -92,21 +92,15 @@ export class OrdersService {
       ];
     }
 
-    // Proactively clean up any orphaned order records whose event no longer exists
-    try {
-      await this.prisma.$executeRawUnsafe(
-        'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-      );
-    } catch {
-      // Non-fatal if table not created or database dialect differs
-    }
-
     let total = 0;
-    let orders: any[] = [];
-    let counts: any[] = [];
+    let orders: unknown[] = [];
+    let counts: Array<{
+      status?: string;
+      _count?: { _all?: number } | number;
+    }> = [];
 
     try {
-      [total, orders, counts] = await Promise.all([
+      const [fetchedTotal, fetchedOrders, fetchedCounts] = await Promise.all([
         this.prisma.order.count({ where }),
         this.prisma.order.findMany({
           where,
@@ -140,50 +134,19 @@ export class OrdersService {
           })
           .catch(() => []),
       ]);
+      total = fetchedTotal;
+      orders = fetchedOrders;
+      counts = fetchedCounts as Array<{
+        status?: string;
+        _count?: { _all?: number } | number;
+      }>;
     } catch (queryErr) {
-      console.warn('[OrdersService.listOrders] Recovering from query error:', queryErr);
-      try {
-        await this.prisma.$executeRawUnsafe(
-          'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-        );
-        total = await this.prisma.order.count({ where });
-        orders = await this.prisma.order.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            event: {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                eventDate: true,
-                activeUntil: true,
-                status: true,
-                template: {
-                  select: {
-                    id: true,
-                    name: true,
-                    themeCode: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-        counts = await this.prisma.order
-          .groupBy({
-            by: ['status'],
-            _count: { _all: true },
-          })
-          .catch(() => []);
-      } catch (retryErr) {
-        console.error('[OrdersService.listOrders] Recovery failed:', retryErr);
-        total = 0;
-        orders = [];
-        counts = [];
-      }
+      this.logger.warn(
+        `[OrdersService.listOrders] Query error: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`,
+      );
+      total = 0;
+      orders = [];
+      counts = [];
     }
 
     const statusCounts: Record<string, number> = {
@@ -199,8 +162,10 @@ export class OrdersService {
 
     if (Array.isArray(counts)) {
       counts.forEach((c) => {
-        if (c && c.status && c._count) {
+        if (c && typeof c.status === 'string' && c._count !== undefined) {
           const cnt =
+            typeof c._count === 'object' &&
+            c._count !== null &&
             typeof c._count._all === 'number'
               ? c._count._all
               : typeof c._count === 'number'
@@ -212,7 +177,7 @@ export class OrdersService {
       });
     }
 
-    const sanitizedOrders = (orders || []).filter((o) => Boolean(o && o.event));
+    const sanitizedOrders = (orders || []).filter(Boolean);
 
     return {
       data: sanitizedOrders,
@@ -313,7 +278,7 @@ export class OrdersService {
       },
     });
 
-    this.activityLogs?.record({
+    void this.activityLogs?.record({
       action: 'ORDER_CREATE',
       entityType: 'Order',
       entityId: createdOrder.id,
@@ -370,7 +335,12 @@ export class OrdersService {
       }
 
       // If marked LIVE, also ensure event status is PUBLISHED
-      if (dto.status === OrderStatus.LIVE && order.event.status !== 'PUBLISHED') {
+      if (
+        dto.status === OrderStatus.LIVE &&
+        order.event &&
+        order.eventId &&
+        order.event.status !== 'PUBLISHED'
+      ) {
         await this.prisma.event.update({
           where: { id: order.eventId },
           data: { status: 'PUBLISHED' },
@@ -403,18 +373,27 @@ export class OrdersService {
     }
 
     // Update activeUntil on event if requested
-    if (dto.activeUntil && !isNaN(Date.parse(dto.activeUntil))) {
+    if (
+      order.eventId &&
+      dto.activeUntil &&
+      !isNaN(Date.parse(dto.activeUntil))
+    ) {
       await this.prisma.event.update({
         where: { id: order.eventId },
         data: { activeUntil: new Date(dto.activeUntil) },
       });
     } else if (
+      order.event &&
+      order.eventId &&
       (dto.status === OrderStatus.PAID || dto.status === OrderStatus.LIVE) &&
       !order.event.activeUntil
     ) {
       // Auto-set activeUntil on payment if not present
       const pkgCode = dto.packageCode || order.packageCode;
-      const computedExpiry = calculateActiveUntil(order.event.eventDate, pkgCode);
+      const computedExpiry = calculateActiveUntil(
+        order.event.eventDate,
+        pkgCode,
+      );
       await this.prisma.event.update({
         where: { id: order.eventId },
         data: { activeUntil: computedExpiry },
@@ -438,7 +417,7 @@ export class OrdersService {
       },
     });
 
-    this.activityLogs?.record({
+    void this.activityLogs?.record({
       action: 'ORDER_UPDATE',
       entityType: 'Order',
       entityId: updated.id,
@@ -511,7 +490,7 @@ export class OrdersService {
       },
     });
 
-    this.activityLogs?.record({
+    void this.activityLogs?.record({
       action: 'CRON_EXPIRE_EVENTS',
       entityType: 'Event',
       entityId: 'SYSTEM',
@@ -528,4 +507,3 @@ export class OrdersService {
     };
   }
 }
-

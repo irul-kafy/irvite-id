@@ -271,7 +271,7 @@ model OfflineSyncOp {
 
 model Order {
   id                  String      @id @default(uuid())
-  eventId             String      @unique @map("event_id")
+  eventId             String?     @unique @map("event_id")
   referenceCode       String      @unique @map("reference_code")
   clientName          String      @map("client_name")
   clientWhatsapp      String      @map("client_whatsapp")
@@ -284,7 +284,7 @@ model Order {
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([referenceCode])
@@ -304,7 +304,7 @@ model ActivityLog {
   createdAt   DateTime @default(now()) @map("created_at")
 
   actorUser User?  @relation("UserActivityLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
-  event     Event? @relation("EventActivityLogs", fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event? @relation("EventActivityLogs", fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([eventId, createdAt])
   @@index([actorUserId, createdAt])

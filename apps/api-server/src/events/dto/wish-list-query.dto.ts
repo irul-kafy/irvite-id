@@ -6,4 +6,3 @@ export class WishListQueryDto extends PaginationQueryDto {
   @IsString()
   search?: string;
 }
-

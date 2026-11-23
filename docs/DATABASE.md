@@ -1,43 +1,57 @@
 # Database Design & Roles
 
-Dokumen ini menjelaskan struktur data, peran (role), dan hubungan antar entitas. Skema aktual diimplementasikan dengan **Prisma** di `packages/database/prisma/schema.prisma`.
+Dokumen ini menjelaskan struktur data, peran (`Role`), integritas referensial, dan hubungan antar entitas. Skema aktual diimplementasikan dengan **Prisma** di `packages/database/prisma/schema.prisma`.
 
-## 1. Pengguna dan Peran (Role)
+## 1. Pengguna dan Peran (`Role`)
 
-Terdapat 3 peran (Role) utama pengguna sistem:
-1. **SUPER_ADMIN**: Akses penuh ke platform. Bisa mengelola semua event, melihat seluruh user, dan mengelola *Template* global sistem.
-2. **ADMIN**: Pengguna umum (seperti Event Organizer atau individu). Bisa membuat Event, mengunggah daftar tamu, mengelola undangan acaranya, dan melihat analitik dari event miliknya sendiri.
-3. **STAFF**: Petugas operasional di lapangan. Tugas utamanya hanya memindai QR Code pengunjung untuk acara tertentu dan melihat status kehadiran tamu saat hari-H.
+Terdapat 3 peran (`Role`) utama pengguna sistem:
+1. **`SUPER_ADMIN`**: Operator global platform. Memiliki akses penuh ke seluruh event, pesanan (`Order`), log aktivitas (`ActivityLog`), manajemen akun (`User`), dan katalog *Template* global.
+2. **`ADMIN`**: Pemilik acara (*tenant* terisolasi). Hanya dapat membuat, membaca, memperbarui, mengimpor tamu, memoderasi ucapan, dan melihat analitik dari **Event miliknya sendiri (`userId`)**.
+3. **`STAFF`**: Petugas operasional di lapangan. Hanya dapat mengakses pemindaian QR, check-in/walk-in/undo, dan pantauan kehadiran langsung pada `Event` yang ditugaskan kepadanya melalui tabel `StaffEvent`. `STAFF` tidak memiliki akses ke konfigurasi maupun URL Webhook Google Sheets.
 
-## 2. Hubungan Antar Entitas & Pax Model
+## 2. Hubungan Antar Entitas, Pax Model & Retensi Data Keuangan
 
-Sistem mendefinisikan alur: **User → Event → Guest → Invitation → QR → Attendance**
+Alur utama undangan pernikahan & buku tamu:
+**`User` → `Event` → `Guest` → `Invitation` → `Attendance` → `AttendanceCheckIn`**
 
-- **User (Admin)** memiliki relasi One-to-Many (1:N) dengan **Event**. Aturan penghapusan: **RESTRICT** (mencegah akun admin dihapus tak sengaja membawa seluruh acara).
-- **Event** memiliki relasi One-to-Many (1:N) dengan **Guest**, **Invitation**, **Attendance**, dan **Media**. Aturan penghapusan: **CASCADE** (jika event dihapus, seluruh data operasionalnya ikut bersih).
-- **Guest** yang diundang ke suatu event akan memiliki entitas **Invitation** (Relasi 1:1 antara Tamu dan Undangan). Aturan penghapusan: **CASCADE** (jika tamu dihapus, undangannya ikut terhapus).
-- **Pax Model**: Sistem menggunakan pendekatan undangan rombongan (keluarga/pasangan). 
-  - `Guest` memiliki `maxPax` (kuota tamu maksimal).
-  - `Invitation` memiliki `rsvpPax` (berapa orang yang janji hadir).
-  - `Attendance` mencatat `scannedPax` (berapa fisik orang yang datang saat tiket di-*scan*).
-- **Invitation** memegang atribut `uniqueCode`. Atribut inilah yang diproses menjadi **QR Code** unik. (Satu keluarga = 1 QR = 1 Invitation).
-- Ketika **QR Code** discan, sistem mencatat riwayat masuk ke tabel **Attendance**. Aturan penghapusan: **CASCADE** terhadap Invitation (jika undangan dihapus, riwayat kehadirannya ikut terhapus).
+- **`User` → `Event` (1:N)**: Menggunakan `onDelete: Restrict` untuk mencegah penghapusan akun menghilangkan acara aktif secara tidak sengaja.
+- **`Template` → `Event` (1:N) & `Template` → `TemplateAsset` (1:N)**: Menggunakan `onDelete: Restrict` agar template atau aset yang sedang dipakai acara tidak dapat dihapus paksa.
+- **`Event` → Entitas Operasional (`Guest`, `Invitation`, `Attendance`, `Media`, `StaffEvent`, `Wish`, `OfflineSyncOp`)**: Menggunakan `onDelete: Cascade` (dan dibersihkan secara bottom-up saat `permanentDelete` pada acara yang sudah berstatus `ARCHIVED`).
+- **`Event` → Data Keuangan & Audit (`Order`, `ActivityLog`)**:
+  - `Order.eventId` dan `ActivityLog.eventId` bersifat **nullable (`String?`)** dengan **`onDelete: SetNull`**.
+  - Saat sebuah `Event` dihapus permanen (`permanentDelete`), baris `Order` dan `ActivityLog` **tidak ikut dihapus** melainkan dipertahankan (`eventId = null`) demi integritas pembukuan keuangan dan jejak audit.
+- **Pax Model & Audit Bertahap**:
+  - `Guest` memiliki `maxPax` (kuota maksimum tamu) dan `tableNumber` (nomor meja).
+  - `Invitation` memiliki `uniqueCode` (token QR unik), `status` (`PENDING`, `SENT`, `OPENED`, `RSVP_YES`, `RSVP_NO`), `rsvpPax`, serta statistik buka undangan (`firstOpenedAt`, `lastOpenedAt`, `openCount`).
+  - `Attendance` mencatat total kumulatif `scannedPax` per undangan, sedangkan setiap pemindaian parsial maupun *walk-in* dicatat sebagai baris jejak audit di `AttendanceCheckIn`.
 
-## 3. Entitas Database Utama
+## 3. Daftar Model Database (`schema.prisma`)
 
-1. **`User`**: Menyimpan data akun pengelola (SUPER_ADMIN, ADMIN, STAFF).
-2. **`Event`**: Menyimpan detail acara.
-3. **`Template`**: Menyimpan definisi desain berbasis konfigurasi (tidak menyimpan raw HTML/CSS, melainkan `themeCode` dan `config` JSON).
-4. **`Guest`**: Menyimpan data identitas tamu (Nama, Email, No HP, `customGreeting`, dan `maxPax`).
-5. **`Invitation`**: Menyambungkan `Guest` dan `Event`. Menyimpan `uniqueCode`, `status` RSVP, dan `rsvpPax`.
-6. **`Attendance`**: Tabel log transaksi. Merekam waktu tamu check-in, staf yang memindai (`scannedById`), waktu (`scannedAt`), dan jumlah orang yang dibawa (`scannedPax`).
-7. **`Media`**: Entitas terpisah untuk skalabilitas tinggi. Menyimpan metadata foto, video, atau audio yang dilampirkan ke sebuah `Event`, beserta atribut `order` untuk kebutuhan galeri.
+1. **`User` (`users`)**: Akun pengelola (`SUPER_ADMIN`, `ADMIN`, `STAFF`).
+2. **`Template` (`templates`)**: Definisi desain undangan (`themeCode`, `renderer`, `status`, `config` JSON, `previewImageUrl`).
+3. **`TemplateAsset` (`template_assets`)**: Aset visual/dekorasi milik template (`templateId`, `slot`, `storageKey`, `mimeType`, `order`).
+4. **`Event` (`events`)**: Acara utama (`userId`, `templateId`, `title`, `slug`, `eventDate`, `activeUntil`, `locationDetails`, `content` JSON, `status`).
+5. **`Guest` (`guests`)**: Data tamu (`eventId`, `name`, `customGreeting`, `email`, `phoneNumber`, `category`, `maxPax`, `tableNumber`).
+6. **`Invitation` (`invitations`)**: Undangan personal 1:1 dengan `Guest` (`uniqueCode`, `status`, `rsvpPax`, `firstOpenedAt`, `lastOpenedAt`, `openCount`).
+7. **`Attendance` (`attendances`)**: Status kehadiran teragregasi per `Invitation` (`scannedPax`, `scannedAt`, `scannedById`, `status`).
+8. **`AttendanceCheckIn` (`attendance_check_ins`)**: Log audit setiap kejadian check-in bertahap maupun *walk-in* (`attendanceId`, `scannedById`, `scannedPax`, `scannedAt`).
+9. **`Media` (`medias`)**: Metadata file foto/audio/video acara yang disimpan melalui `MediaStorageService` (`eventId`, `slot`, `url`, `type`, `order`).
+10. **`StaffEvent` (`staff_events`)**: Penugasan akun `STAFF` ke `Event` tertentu (`@@unique([eventId, userId])`).
+11. **`Wish` (`wishes`)**: Ucapan dan doa tamu pada undangan publik (`eventId`, `name`, `message`, `createdAt`).
+12. **`OfflineSyncOp` (`offline_sync_ops`)**: Tabel idempotensi operasi sinkronisasi scanner PWA luring (`id` = `opId`, `eventId`, `opType`, `status`, `deviceId`, `clientTimestamp`).
+13. **`Order` (`orders`)**: Data pesanan paket undangan (`eventId` nullable dengan `onDelete: SetNull`, `referenceCode`, `clientName`, `clientWhatsapp`, `packageCode`, `priceAmount`, `status`, `paidAt`).
+14. **`ActivityLog` (`activity_logs`)**: Jejak audit aktivitas sistem (`actorUserId`, `actorRole`, `action`, `entityType`, `entityId`, `eventId` nullable dengan `onDelete: SetNull`, `metadata`, `ip`).
 
 ## 4. Indexing & Optimization
 
-Indeks database (`@@index`) dibuat pada field-field relasi yang sering dipanggil:
-- `Event`: `userId`
-- `Guest`: `eventId`
-- `Invitation`: `eventId` (kolom `uniqueCode` dan `guestId` sudah diindeks otomatis via `@unique`)
-- `Attendance`: `invitationId`, `eventId`, `scannedById`
-- `Media`: `eventId`
+Indeks database (`@@index` dan `@unique`) diterapkan pada jalur kueri utama:
+- `Event`: `@@index([userId])`, `@unique([slug])`
+- `Guest`: `@@index([eventId])`
+- `Invitation`: `@@index([eventId])`, `@unique([guestId])`, `@unique([uniqueCode])`
+- `Attendance`: `@@index([eventId])`, `@@index([scannedById])`, `@unique([invitationId])`
+- `AttendanceCheckIn`: `@@index([attendanceId])`, `@@index([scannedById])`, `@@index([scannedAt])`
+- `Media`: `@@index([eventId])`, `@@index([eventId, slot])`
+- `Wish`: `@@index([eventId])`, `@@index([eventId, createdAt])`
+- `OfflineSyncOp`: `@@index([eventId])`, `@@index([eventId, createdAt])`
+- `Order`: `@@index([status])`, `@@index([referenceCode])`
+- `ActivityLog`: `@@index([eventId, createdAt])`, `@@index([actorUserId, createdAt])`, `@@index([action])`

@@ -41,10 +41,7 @@ export class OrdersController {
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get(':id')
-  getOrder(
-    @CurrentUser() _user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  getOrder(@CurrentUser() _user: AuthenticatedUser, @Param('id') id: string) {
     return this.ordersService.getOrder(id);
   }
 
@@ -87,7 +84,8 @@ export class OrdersController {
     @Headers('authorization') authHeader?: string,
     @Headers('x-cron-secret') cronSecretHeader?: string,
   ) {
-    const configuredSecret = process.env.CRON_SECRET || 'irvite-cron-default-secret';
+    const configuredSecret =
+      process.env.CRON_SECRET || 'irvite-cron-default-secret';
     const bearerSecret = authHeader?.replace(/^Bearer\s+/i, '').trim();
     const providedSecret = cronSecretHeader?.trim() || bearerSecret;
 
@@ -98,4 +96,3 @@ export class OrdersController {
     return this.ordersService.expireEventsCron();
   }
 }
-

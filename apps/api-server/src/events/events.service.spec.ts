@@ -3,7 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../database/prisma.service';
 import { MediaStorageService } from '../media/media-storage.service';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Role, Prisma } from 'database';
 
 describe('EventsService', () => {
@@ -38,8 +42,8 @@ describe('EventsService', () => {
             },
             wish: {
               create: jest.fn(),
-              findMany: jest.fn(),
-              count: jest.fn(),
+              findMany: jest.fn().mockResolvedValue([]),
+              count: jest.fn().mockResolvedValue(0),
               findFirst: jest.fn(),
               delete: jest.fn(),
             },
