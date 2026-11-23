@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   ConflictException,
@@ -7,7 +8,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus } from 'database';
 import { PrismaService } from '../database/prisma.service';
 import { OrdersService } from './orders.service';
-import { PACKAGES } from './packages';
 
 describe('OrdersService', () => {
   let service: OrdersService;

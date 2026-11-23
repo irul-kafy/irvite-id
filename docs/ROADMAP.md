@@ -1,78 +1,42 @@
 # Development Roadmap
 
-## Status terkini — 4 Oktober 2026
+## Status Terkini — Arsitektur Web-Only
 
-Keputusan user: platform sepenuhnya web. Tidak ada rencana aplikasi Android/iOS.
-Scanner ada di dashboard staff, melalui kamera browser atau input manual.
+Platform **IRVITE.ID** berjalan sepenuhnya berbasis web (Next.js `web-admin`, Next.js `web-invitation`, NestJS `api-server`, dan Prisma + MySQL). Seluruh aktivitas pemindaian QR (*scanner*) dan buku tamu (*check-in*, *walk-in*, *undo*, serta sinkronisasi luring PWA) diakses langsung melalui browser tanpa aplikasi mobile native Android/iOS.
 
-Fitur yang sudah ada di kode: auth/RBAC/ownership, event & lifecycle,
-guest import, invitation personal, RSVP, attendance bertahap, scanner web,
-guest export & attendance report, staff management, content/media editor,
-template catalog, renderer dan preview.
+---
 
-Pengerjaan operasional saat ini: cookie sesuai expiry JWT, endpoint versi dengan
-alias kompatibilitas, konfigurasi media saat startup, upgrade dependency,
-CI untuk test/build/E2E disposable, dan halaman admin Pengecekan Sistem.
-Lihat WEB-OPERATIONS.md untuk konfigurasi dan langkah verifikasi.
+## Ringkasan Fase yang Telah Selesai
 
-Sebelum launch: jalankan E2E dengan MySQL disposable, uji browser HP nyata,
-tetapkan hosting/domain HTTPS dan disk persisten, lalu uji backup/restore.
-CI belum terbukti di GitHub sampai workflow dipush dan run selesai.
-S3/R2, refresh token, pencabutan bearer token dan self-service reset password
-masih pekerjaan lanjutan; bukan fitur yang sudah tersedia.
+### Fase 1: Foundation & Database Architecture (Selesai)
+- [x] Struktur monorepo Turborepo (`apps/api-server`, `apps/web-admin`, `apps/web-invitation`, `packages/database`, `packages/ui`).
+- [x] Skema Prisma & MySQL dengan integritas referensial (`onDelete: Restrict` untuk `User`/`Template`, `onDelete: SetNull` untuk retensi `Order`/`ActivityLog`, `onDelete: Cascade` untuk entitas operasional acara).
+- [x] Validasi variabel lingkungan saat startup (`validateEnvironment`) dan endpoint pemeriksaan kesehatan (`/health`, `/health/db`).
 
-## Arsip rencana awal
+### Fase 2: Authentication, RBAC & Tenant Isolation (Selesai)
+- [x] Autentikasi JWT dengan kuki sesi dan guard RBAC (`SUPER_ADMIN`, `ADMIN`, `STAFF`).
+- [x] Isolasi kepemilikan (*tenant isolation*): `ADMIN` hanya dapat mengakses acara miliknya sendiri (`userId`), `STAFF` hanya mengakses acara yang ditugaskan (`StaffEvent`), dan `SUPER_ADMIN` mengelola seluruh platform.
+- [x] Portal Klien (`/kelola/[token]`) dengan kunci acak kriptografis tersimpan, validasi waktu konstan (`crypto.timingSafeEqual`), dan pengiriman kunci melalui header `x-client-portal-key`.
 
-Checklist berikut disimpan sebagai riwayat, bukan status implementasi terkini.
-Rencana mobile dalam arsip sudah dibatalkan oleh keputusan web-only di atas.
+### Fase 3: Admin & Staff Dashboard (`apps/web-admin`) (Selesai)
+- [x] Manajemen siklus hidup acara (`DRAFT`, `PUBLISHED`, `ARCHIVED`, *restore*, dan *permanent delete* dengan retensi data keuangan `Order` & `ActivityLog`).
+- [x] Impor daftar tamu massal (CSV/Excel/Google Sheets) dengan deteksi duplikat, normalisasi nomor telepon, dan sanitasi formula.
+- [x] Manajemen staf lapangan, moderasi ucapan & doa, ekspor laporan kehadiran, dan halaman pemeriksaan sistem (`/dashboard/system-check`).
 
-Berikut adalah peta jalan pengembangan sistem mulai dari fase arsitektur awal hingga mencapai fase *Production Ready*.
+### Fase 4: Digital Invitation Engine (`apps/web-invitation`) (Selesai)
+- [x] Katalog template undangan pernikahan multi-tema dengan editor konten dan slot media tervalidasi (`MediaStorageService`).
+- [x] Halaman undangan personal berbasis `uniqueCode` dengan pelacakan statistik buka undangan, formulir RSVP, kirim ucapan & doa, dan kode QR tamu.
+- [x] Penyeragaman aturan kedaluwarsa acara (`isPublicInvitationExpired` berdasarkan `activeUntil` atau `eventDate + 30 hari`).
 
-## Fase 1: Foundation & Architecture (Selesai)
-- [x] Mendefinisikan arsitektur utama (Client-Server Monorepo).
-- [x] Mendefinisikan Tech Stack (Next.js, NestJS, Prisma, React Native).
-- [x] Membuat rancangan struktur folder dan *file guidelines* (`AGENTS.md`).
-- [x] Merancang Entity Relationship Database (`docs/DATABASE.md`).
-- [x] Menginisialisasi dan memvalidasi final skema `schema.prisma` (Clean Architecture).
-- [x] Database Foundation
-- [x] Turborepo Foundation
-- [x] NestJS API Foundation
-- [x] MySQL Initialization
-- [x] Prisma Client
-- [x] Environment Loading
-- [x] GET `/health`
-- [x] GET `/health/db`
+### Fase 5: Web QR Scanner, Offline PWA Sync & Google Sheets Webhook (Selesai)
+- [x] Pemindaian QR via kamera browser dan input manual dengan dukungan check-in bertahap (*partial pax*), tamu dadakan (*walk-in* `ON_THE_SPOT`), dan pembatalan (*undo check-in*).
+- [x] Sinkronisasi luring (*offline snapshot* & `syncAttendance` via `OfflineSyncOp`) yang membedakan kegagalan validasi permanen vs kegagalan jaringan/DB sementara (*retryable*).
+- [x] Integrasi Webhook Google Sheets terproteksi SSRF (hanya `https://script.google.com/macros/s/.../exec`, khusus `SUPER_ADMIN`/`ADMIN`, dan sinkronisasi latar belakang *fire-and-forget* / *batched resync*).
 
-## Fase 2: Authentication + JWT + RBAC (Selesai)
-- [x] Implementasi Autentikasi JWT dan Role-Based Access Control (RBAC).
+---
 
-## NEXT TARGET: API Core (Users, Events, Guests, Templates)
-- [ ] Pembuatan CRUD REST API untuk `User`, `Event`, `Guest`, dan `Template`.
-- [ ] Implementasi otorisasi kepemilikan Event (Event Ownership Authorization).
+## Pekerjaan Lanjutan Sebelum Peluncuran Produksi Skala Penuh
 
-## Fase 3: Admin & Staff Dashboard (Web Frontend)
-- [ ] Inisialisasi Next.js (`apps/web-admin`).
-- [ ] Konfigurasi Tailwind CSS dan pembuatan desain sistem (UI Components).
-- [ ] Integrasi Login Admin/Staff ke API.
-- [ ] Pengembangan modul Manajemen Event dan Upload Tamu (CSV).
-- [ ] Pembuatan visualisasi data (Dashboard Chart).
-
-## Fase 4: Digital Invitation Engine
-- [ ] Inisialisasi Next.js (`apps/web-invitation`).
-- [ ] Logika *routing* unik per tamu (berdasarkan `unique_code`).
-- [ ] Mekanisme pemanggilan template dan injeksi data dinamis ke UI undangan.
-- [ ] Pembuatan form RSVP.
-- [ ] Generasi visual QR Code (Base64/SVG) yang siap ditampilkan di web.
-
-## Fase 5: Check-in System & Mobile App
-- [ ] Inisialisasi React Native / Expo (`apps/mobile-scanner`).
-- [ ] Desain dan fungsionalitas UI Camera Scanner.
-- [ ] Integrasi endpoint API `Check-in/Attendance`.
-- [ ] Penanganan *error response* (contoh: QR palsu, QR ganda).
-
-## Fase 6: Polish, Testing & Production Launch
-- [ ] QA, Unit Testing (Jest), & End-to-End Testing (Cypress/Playwright).
-- [ ] Integrasi AWS S3 / Cloudflare R2 untuk aset media.
-- [ ] Optimasi Animasi Web Invitation & SEO Metadata.
-- [ ] CI/CD Pipeline (GitHub Actions).
-- [ ] Deployment ke Production (Vercel untuk Frontend, Railway/Render/AWS untuk Backend & DB).
+- [ ] Integrasi penyimpanan objek eksternal (S3 / Cloudflare R2) untuk menggantikan penyimpanan disk lokal pada lingkungan multi-instance.
+- [ ] Mekanisme *refresh token* / pencabutan sesi dan fitur atur ulang kata sandi mandiri (*self-service password reset*).
+- [ ] Uji beban dan latihan pencadangan serta pemulihan (*backup & restore drill*) basis data produksi.

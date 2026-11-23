@@ -111,6 +111,17 @@ export class ClientPortalController {
 
   @Public()
   @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(':eventId/invitations/sync')
+  @Header('Cache-Control', 'no-store')
+  async syncMissingInvitations(
+    @Param('eventId') eventId: string,
+    @Headers('x-client-portal-key') headerKey?: string,
+  ) {
+    return this.clientPortalService.syncMissingInvitations(eventId, headerKey);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
   @Delete(':eventId/wishes/:wishId')
   @Header('Cache-Control', 'no-store')
   async deleteWish(

@@ -134,7 +134,10 @@ export class AttendanceService {
       throw new ConflictException('Event is not PUBLISHED');
     }
 
-    if (event.eventDate && isPublicInvitationExpired(event.eventDate)) {
+    if (
+      event.eventDate &&
+      isPublicInvitationExpired(event.eventDate, new Date(), event.activeUntil)
+    ) {
       throw new ConflictException('Event has expired');
     }
 
@@ -253,81 +256,19 @@ export class AttendanceService {
   async resolve(eventId: string, userId: string, _role: Role, code: string) {
     const authorizedEvent = await this.authorizeEvent(eventId, userId);
 
-    let invitation: {
-      id: string;
-      status: string;
-      rsvpPax: number | null;
-      uniqueCode: string;
-      guest: {
-        id: string;
-        eventId: string;
-        name: string;
-        maxPax: number;
-        category: string;
-        customGreeting: string | null;
-        tableNumber?: string | null;
-      } | null;
-      attendances?: Array<{
-        scannedPax: number;
-        scannedAt: Date;
-        checkIns?: Array<{
-          id: string;
-          scannedPax: number;
-          scannedAt: Date;
-          scannedById: string;
-        }>;
-      }>;
-    } | null = null;
-    try {
-      invitation = await this.db.invitation.findUnique({
-        where: { uniqueCode: code },
-        include: {
-          guest: true,
-          attendances: {
-            include: {
-              checkIns: {
-                orderBy: { scannedAt: 'desc' },
-              },
+    const invitation = await this.db.invitation.findUnique({
+      where: { uniqueCode: code },
+      include: {
+        guest: true,
+        attendances: {
+          include: {
+            checkIns: {
+              orderBy: { scannedAt: 'desc' },
             },
           },
         },
-      });
-    } catch (err: unknown) {
-      const isMissingCol =
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        (err.code === 'P2022' || String(err.message).includes('table_number'));
-
-      if (isMissingCol) {
-        invitation = await this.db.invitation.findUnique({
-          where: { uniqueCode: code },
-          select: {
-            id: true,
-            status: true,
-            rsvpPax: true,
-            uniqueCode: true,
-            guest: {
-              select: {
-                id: true,
-                eventId: true,
-                name: true,
-                maxPax: true,
-                category: true,
-                customGreeting: true,
-              },
-            },
-            attendances: {
-              include: {
-                checkIns: {
-                  orderBy: { scannedAt: 'desc' },
-                },
-              },
-            },
-          },
-        });
-      } else {
-        throw err;
-      }
-    }
+      },
+    });
 
     if (
       !invitation ||
@@ -406,52 +347,10 @@ export class AttendanceService {
       throw new BadRequestException('Pax must be at least 1');
     }
 
-    let invitation: {
-      id: string;
-      status: string;
-      rsvpPax: number | null;
-      uniqueCode: string;
-      guest: {
-        id: string;
-        eventId: string;
-        name: string;
-        maxPax: number;
-        category?: string;
-        tableNumber?: string | null;
-      } | null;
-    } | null = null;
-    try {
-      invitation = await this.db.invitation.findUnique({
-        where: { uniqueCode: code },
-        include: { guest: true },
-      });
-    } catch (err: unknown) {
-      const isMissingCol =
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        (err.code === 'P2022' || String(err.message).includes('table_number'));
-
-      if (isMissingCol) {
-        invitation = await this.db.invitation.findUnique({
-          where: { uniqueCode: code },
-          select: {
-            id: true,
-            status: true,
-            rsvpPax: true,
-            uniqueCode: true,
-            guest: {
-              select: {
-                id: true,
-                eventId: true,
-                name: true,
-                maxPax: true,
-              },
-            },
-          },
-        });
-      } else {
-        throw err;
-      }
-    }
+    const invitation = await this.db.invitation.findUnique({
+      where: { uniqueCode: code },
+      include: { guest: true },
+    });
 
     if (
       !invitation ||
@@ -1405,7 +1304,7 @@ export class AttendanceService {
       const batch = validAttendances.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(
         batch.map(async (att) => {
-          const guest = att.invitation!.guest!;
+          const guest = att.invitation.guest;
           const payload = {
             event: 'GUEST_CHECK_IN',
             eventId: event.id,

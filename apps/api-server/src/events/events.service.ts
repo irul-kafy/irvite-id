@@ -632,17 +632,13 @@ export class EventsService {
     }
 
     const [wishesCount, wishesList] = await Promise.all([
-      this.prisma.wish
-        ? this.prisma.wish.count({ where: { eventId: event.id } })
-        : Promise.resolve(0),
-      this.prisma.wish
-        ? this.prisma.wish.findMany({
-            where: { eventId: event.id },
-            orderBy: { createdAt: 'desc' },
-            take: 30,
-            select: { id: true, name: true, message: true, createdAt: true },
-          })
-        : Promise.resolve([]),
+      this.prisma.wish.count({ where: { eventId: event.id } }),
+      this.prisma.wish.findMany({
+        where: { eventId: event.id },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        select: { id: true, name: true, message: true, createdAt: true },
+      }),
     ]);
 
     const safeWishesList = Array.isArray(wishesList) ? wishesList : [];
@@ -701,27 +697,29 @@ export class EventsService {
 
     const event = await this.prisma.event.findUnique({
       where: { slug },
-      select: { id: true, status: true, eventDate: true },
+      select: { id: true, status: true, eventDate: true, activeUntil: true },
     });
 
     if (!event || event.status !== 'PUBLISHED') {
       throw new NotFoundException('Event not found');
     }
 
+    if (
+      isPublicInvitationExpired(event.eventDate, new Date(), event.activeUntil)
+    ) {
+      throw new NotFoundException('Event not found');
+    }
+
     const safeLimit = Math.min(Math.max(1, limit), 100);
 
     const [total, items] = await Promise.all([
-      this.prisma.wish
-        ? this.prisma.wish.count({ where: { eventId: event.id } })
-        : Promise.resolve(0),
-      this.prisma.wish
-        ? this.prisma.wish.findMany({
-            where: { eventId: event.id },
-            orderBy: { createdAt: 'desc' },
-            take: safeLimit,
-            select: { id: true, name: true, message: true, createdAt: true },
-          })
-        : Promise.resolve([]),
+      this.prisma.wish.count({ where: { eventId: event.id } }),
+      this.prisma.wish.findMany({
+        where: { eventId: event.id },
+        orderBy: { createdAt: 'desc' },
+        take: safeLimit,
+        select: { id: true, name: true, message: true, createdAt: true },
+      }),
     ]);
 
     const safeItems = Array.isArray(items) ? items : [];
@@ -748,7 +746,7 @@ export class EventsService {
 
     const event = await this.prisma.event.findUnique({
       where: { slug },
-      select: { id: true, status: true, eventDate: true },
+      select: { id: true, status: true, eventDate: true, activeUntil: true },
     });
 
     if (!event || event.status !== 'PUBLISHED') {
@@ -756,8 +754,7 @@ export class EventsService {
     }
 
     const now = new Date();
-    const expiryAtMs = event.eventDate.getTime() + 30 * 24 * 60 * 60 * 1000;
-    if (now.getTime() >= expiryAtMs) {
+    if (isPublicInvitationExpired(event.eventDate, now, event.activeUntil)) {
       throw new BadRequestException('Event has expired');
     }
 
@@ -832,35 +829,18 @@ export class EventsService {
         : {}),
     };
 
-    let total = 0;
-    let items: Array<{
-      id: string;
-      name: string;
-      message: string;
-      createdAt: Date | string;
-    }> = [];
-
-    try {
-      if (this.prisma.wish) {
-        const [wCount, wList] = await Promise.all([
-          this.prisma.wish.count({ where }).catch(() => 0),
-          this.prisma.wish
-            .findMany({
-              where,
-              orderBy: { createdAt: 'desc' },
-              skip,
-              take: limit,
-              select: { id: true, name: true, message: true, createdAt: true },
-            })
-            .catch(() => []),
-        ]);
-        total = typeof wCount === 'number' ? wCount : 0;
-        items = Array.isArray(wList) ? wList : [];
-      }
-    } catch {
-      total = 0;
-      items = [];
-    }
+    const [wCount, wList] = await Promise.all([
+      this.prisma.wish.count({ where }),
+      this.prisma.wish.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: { id: true, name: true, message: true, createdAt: true },
+      }),
+    ]);
+    const total = typeof wCount === 'number' ? wCount : 0;
+    const items = Array.isArray(wList) ? wList : [];
 
     return {
       total,
@@ -1043,10 +1023,11 @@ export class EventsService {
         where: { eventId: id },
       });
 
-      // 7. orders (prevent orphaned orders when events are deleted)
+      // 7. orders (retain financial records by detaching eventId = null)
       const orders = await tx.order
-        .deleteMany({
+        .updateMany({
           where: { eventId: id },
+          data: { eventId: null },
         })
         .catch(() => ({ count: 0 }));
 
@@ -1064,10 +1045,11 @@ export class EventsService {
         })
         .catch(() => ({ count: 0 }));
 
-      // 10. activity_logs
+      // 10. activity_logs (retain audit trail by detaching eventId = null)
       const activityLogs = await tx.activityLog
-        .deleteMany({
+        .updateMany({
           where: { eventId: id },
+          data: { eventId: null },
         })
         .catch(() => ({ count: 0 }));
 
@@ -1458,9 +1440,8 @@ export class EventsService {
       );
     }
 
-    // Save optional compressed client preview photos into event media slots
+    // Save optional compressed client preview photos into event media slots via MediaStorageService + Media table (no base64 in Event.content)
     let savedPhotosCount = 0;
-    const mediaFallbackMap: Record<string, string> = {};
     const slotCounts = new Map<string, number>();
     const definition = getTemplateDefinition(template.themeCode);
     if (definition && Array.isArray(dto.photos) && dto.photos.length > 0) {
@@ -1504,11 +1485,7 @@ export class EventsService {
             continue;
           }
           const key = this.mediaStorageService.generateKey(sig.extension);
-          try {
-            await this.mediaStorageService.writeFile(key, buffer);
-          } catch {
-            // Serverless ephemeral FS error; persisted in _mediaFallback below
-          }
+          await this.mediaStorageService.writeFile(key, buffer);
           await this.prisma.media.create({
             data: {
               eventId: newEvent.id,
@@ -1521,7 +1498,6 @@ export class EventsService {
                   : currentSlotCount,
             },
           });
-          mediaFallbackMap[key] = base64Clean;
           slotCounts.set(slotKey, currentSlotCount + 1);
           savedPhotosCount++;
         } catch (err) {
@@ -1529,33 +1505,6 @@ export class EventsService {
             `Failed to persist client draft photo for event ${newEvent.id}: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
-      }
-    }
-
-    if (
-      Object.keys(mediaFallbackMap).length > 0 &&
-      typeof this.prisma.event?.update === 'function'
-    ) {
-      try {
-        const baseContent =
-          contentWithClientKey &&
-          typeof contentWithClientKey === 'object' &&
-          !Array.isArray(contentWithClientKey)
-            ? contentWithClientKey
-            : {};
-        await this.prisma.event.update({
-          where: { id: newEvent.id },
-          data: {
-            content: {
-              ...baseContent,
-              _mediaFallback: mediaFallbackMap,
-            },
-          },
-        });
-      } catch (err) {
-        this.logger.warn(
-          `Failed to persist _mediaFallback for event ${newEvent.id}: ${err instanceof Error ? err.message : String(err)}`,
-        );
       }
     }
 

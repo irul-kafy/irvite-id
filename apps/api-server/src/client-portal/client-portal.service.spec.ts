@@ -164,10 +164,10 @@ describe('ClientPortalService', () => {
   });
 
   describe('Portal Data & Stats', () => {
-    it('retrieves event info and accurate guest statistics', async () => {
+    it('retrieves event info and accurate guest statistics without mutating invitations on GET', async () => {
       prisma.event.findUnique.mockResolvedValue(mockEvent);
 
-      prisma.guest.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      prisma.guest.findMany.mockResolvedValueOnce([
         {
           id: 'g-1',
           name: 'Budi Santoso',
@@ -222,6 +222,23 @@ describe('ClientPortalService', () => {
       expect(data.guests[0].hasAttended).toBe(true);
       expect(data.guests[1].isWaSent).toBe(false);
       expect(data.guests[1].hasAttended).toBe(false);
+      expect(prisma.invitation.create).not.toHaveBeenCalled();
+    });
+
+    it('syncMissingInvitations generates missing invitations in a dedicated write operation', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.guest.findMany.mockResolvedValueOnce([
+        { id: 'g-missing-1' },
+        { id: 'g-missing-2' },
+      ]);
+      prisma.invitation.create.mockResolvedValue({ id: 'inv-gen' });
+
+      const res = await service.syncMissingInvitations(
+        mockEvent.id,
+        storedClientKey,
+      );
+      expect(res.createdCount).toBe(2);
+      expect(prisma.invitation.create).toHaveBeenCalledTimes(2);
     });
   });
 
