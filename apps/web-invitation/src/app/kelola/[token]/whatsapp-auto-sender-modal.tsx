@@ -97,10 +97,13 @@ export function WhatsAppAutoSenderModal({
       onGuestStatusUpdated(guestId, true);
       try {
         await fetch(
-          `/api-proxy/api/v1/client-portal/${event.id}/guests/${guestId}/wa-status?key=${accessKey}`,
+          `/api-proxy/api/v1/client-portal/${event.id}/guests/${guestId}/wa-status`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-client-portal-key': accessKey,
+            },
             body: JSON.stringify({ isSent: true }),
           },
         );

@@ -23,7 +23,7 @@ import {
   getTemplateDefinition,
   validateEventContent,
 } from '../templates/definitions';
-import { computeDefaultClientKey } from '../client-portal/client-portal.service';
+import { generateClientPortalKey } from '../client-portal/client-portal.service';
 
 export function stripPublicDraftTag(title: string | null | undefined): string {
   if (!title || typeof title !== 'string') return '';
@@ -96,6 +96,20 @@ export class EventsService {
 
     const { content, ...eventData } = createEventDto;
     const validatedContent = validateEventContent(content, themeCode);
+    const contentWithClientKey =
+      validatedContent &&
+      typeof validatedContent === 'object' &&
+      !Array.isArray(validatedContent)
+        ? {
+            ...validatedContent,
+            clientKey:
+              typeof (validatedContent as { clientKey?: unknown }).clientKey ===
+                'string' &&
+              (validatedContent as { clientKey: string }).clientKey.trim()
+                ? (validatedContent as { clientKey: string }).clientKey.trim()
+                : generateClientPortalKey(),
+          }
+        : validatedContent;
 
     const eventDateParsed = new Date(eventData.eventDate);
     const activeUntilParsed =
@@ -109,7 +123,7 @@ export class EventsService {
           ...eventData,
           eventDate: eventDateParsed,
           activeUntil: activeUntilParsed,
-          content: validatedContent as Prisma.InputJsonValue,
+          content: contentWithClientKey as Prisma.InputJsonValue,
           userId, // Ownership forced from JWT context
         },
         select: this.selectSafeEvent(),
@@ -131,7 +145,7 @@ export class EventsService {
     const skip = (page - 1) * limit;
 
     const whereScope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? {} : { userId };
+      role === Role.SUPER_ADMIN ? {} : { userId };
     if (query.filter === 'active')
       whereScope.status = { in: ['DRAFT', 'PUBLISHED'] };
     if (query.filter === 'archived') whereScope.status = 'ARCHIVED';
@@ -177,7 +191,7 @@ export class EventsService {
 
   async summary(userId: string, role: Role) {
     const scope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? {} : { userId };
+      role === Role.SUPER_ADMIN ? {} : { userId };
     const upcoming = {
       ...scope,
       status: { not: 'ARCHIVED' },
@@ -246,8 +260,7 @@ export class EventsService {
   }
 
   async findOne(id: string, userId: string, role: Role) {
-    const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -265,9 +278,25 @@ export class EventsService {
         ? (event.content as Record<string, unknown>)
         : {};
 
-    const clientKey =
-      (typeof content.clientKey === 'string' ? content.clientKey : undefined) ||
-      computeDefaultClientKey(event.id, event.createdAt);
+    let clientKey =
+      typeof content.clientKey === 'string' && content.clientKey.trim()
+        ? content.clientKey.trim()
+        : undefined;
+
+    if (!clientKey) {
+      clientKey = generateClientPortalKey();
+      const backfilledContent = { ...content, clientKey };
+      if (typeof this.prisma.event.update === 'function') {
+        await Promise.resolve(
+          this.prisma.event.update({
+            where: { id: event.id },
+            data: {
+              content: backfilledContent,
+            },
+          }),
+        ).catch(() => null);
+      }
+    }
 
     const clientPortalEnabled = content.clientPortalEnabled !== false;
 
@@ -292,8 +321,7 @@ export class EventsService {
     role: Role,
     updateEventDto: UpdateEventDto,
   ) {
-    const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -449,7 +477,7 @@ export class EventsService {
       if (!contentToUpdateObj) {
         contentToUpdateObj = { ...existingContentObj };
       }
-      contentToUpdateObj.clientKey = crypto.randomBytes(12).toString('hex');
+      contentToUpdateObj.clientKey = generateClientPortalKey();
     }
 
     if (contentToUpdateObj) {
@@ -485,10 +513,9 @@ export class EventsService {
           : {};
 
       const clientKey =
-        (typeof updatedContent.clientKey === 'string'
+        typeof updatedContent.clientKey === 'string'
           ? updatedContent.clientKey
-          : undefined) ||
-        computeDefaultClientKey(updatedEvent.id, updatedEvent.createdAt);
+          : undefined;
 
       const clientPortalEnabled = updatedContent.clientPortalEnabled !== false;
 
@@ -777,9 +804,7 @@ export class EventsService {
     query: WishListQueryDto,
   ) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN
-        ? { id: eventId }
-        : { id: eventId, userId };
+      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -861,9 +886,7 @@ export class EventsService {
     role: Role,
   ) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN
-        ? { id: eventId }
-        : { id: eventId, userId };
+      role === Role.SUPER_ADMIN ? { id: eventId } : { id: eventId, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -900,8 +923,7 @@ export class EventsService {
     };
   }
   async archive(id: string, userId: string, role: Role) {
-    const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -925,8 +947,7 @@ export class EventsService {
   }
 
   async restore(id: string, userId: string, role: Role) {
-    const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+    const whereScope = role === Role.SUPER_ADMIN ? { id } : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -1324,6 +1345,14 @@ export class EventsService {
       sanitizedContent,
       template.themeCode,
     );
+    const contentWithClientKey = {
+      ...(validatedContent &&
+      typeof validatedContent === 'object' &&
+      !Array.isArray(validatedContent)
+        ? validatedContent
+        : {}),
+      clientKey: generateClientPortalKey(),
+    };
 
     const p1 =
       typeof sanitizedContent.partnerOneName === 'string' &&
@@ -1396,7 +1425,7 @@ export class EventsService {
         eventDate: parsedDate,
         activeUntil,
         locationDetails: resolvedLocation.slice(0, 255),
-        content: validatedContent as Prisma.InputJsonValue,
+        content: contentWithClientKey,
         status: EVENT_STATUS.DRAFT,
       },
       select: this.selectSafeEvent(),
@@ -1501,10 +1530,10 @@ export class EventsService {
     ) {
       try {
         const baseContent =
-          validatedContent &&
-          typeof validatedContent === 'object' &&
-          !Array.isArray(validatedContent)
-            ? validatedContent
+          contentWithClientKey &&
+          typeof contentWithClientKey === 'object' &&
+          !Array.isArray(contentWithClientKey)
+            ? contentWithClientKey
             : {};
         await this.prisma.event.update({
           where: { id: newEvent.id },

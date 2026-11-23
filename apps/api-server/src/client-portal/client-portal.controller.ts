@@ -5,9 +5,9 @@ import {
   Patch,
   Delete,
   Param,
-  Query,
   Body,
   Header,
+  Headers,
   HttpException,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -32,10 +32,10 @@ export class ClientPortalController {
   @Header('Cache-Control', 'no-store')
   async getPortalData(
     @Param('eventId') eventId: string,
-    @Query('key') key?: string,
+    @Headers('x-client-portal-key') headerKey?: string,
   ) {
     try {
-      return await this.clientPortalService.getPortalData(eventId, key);
+      return await this.clientPortalService.getPortalData(eventId, headerKey);
     } catch (err: unknown) {
       if (err instanceof HttpException) {
         throw err;
@@ -57,10 +57,10 @@ export class ClientPortalController {
   @Header('Cache-Control', 'no-store')
   async addGuest(
     @Param('eventId') eventId: string,
-    @Query('key') key: string | undefined,
+    @Headers('x-client-portal-key') headerKey: string | undefined,
     @Body() dto: CreatePortalGuestDto,
   ) {
-    return this.clientPortalService.addGuest(eventId, key, dto);
+    return this.clientPortalService.addGuest(eventId, headerKey, dto);
   }
 
   @Public()
@@ -70,10 +70,15 @@ export class ClientPortalController {
   async updateGuest(
     @Param('eventId') eventId: string,
     @Param('guestId') guestId: string,
-    @Query('key') key: string | undefined,
+    @Headers('x-client-portal-key') headerKey: string | undefined,
     @Body() dto: UpdatePortalGuestDto,
   ) {
-    return this.clientPortalService.updateGuest(eventId, guestId, key, dto);
+    return this.clientPortalService.updateGuest(
+      eventId,
+      guestId,
+      headerKey,
+      dto,
+    );
   }
 
   @Public()
@@ -83,9 +88,9 @@ export class ClientPortalController {
   async deleteGuest(
     @Param('eventId') eventId: string,
     @Param('guestId') guestId: string,
-    @Query('key') key?: string,
+    @Headers('x-client-portal-key') headerKey?: string,
   ) {
-    return this.clientPortalService.deleteGuest(eventId, guestId, key);
+    return this.clientPortalService.deleteGuest(eventId, guestId, headerKey);
   }
 
   @Public()
@@ -95,13 +100,13 @@ export class ClientPortalController {
   async setGuestWaStatus(
     @Param('eventId') eventId: string,
     @Param('guestId') guestId: string,
-    @Query('key') key: string | undefined,
+    @Headers('x-client-portal-key') headerKey: string | undefined,
     @Body() dto: SetPortalWaStatusDto,
   ) {
     return this.clientPortalService.setGuestWaStatus(
       eventId,
       guestId,
-      key,
+      headerKey,
       dto.isSent,
     );
   }
@@ -113,8 +118,8 @@ export class ClientPortalController {
   async deleteWish(
     @Param('eventId') eventId: string,
     @Param('wishId') wishId: string,
-    @Query('key') key: string | undefined,
+    @Headers('x-client-portal-key') headerKey?: string,
   ) {
-    return this.clientPortalService.deleteWish(eventId, wishId, key);
+    return this.clientPortalService.deleteWish(eventId, wishId, headerKey);
   }
 }

@@ -24,6 +24,65 @@ type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
 export type AttendanceCheckInStatus = 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
 
+const GOOGLE_APPS_SCRIPT_EXEC_PATH_REGEX =
+  /^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
+
+export function validateGoogleSheetWebhookUrl(rawUrl: string): string {
+  const trimmed = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+  if (!trimmed) {
+    throw new BadRequestException(
+      'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
+    );
+  }
+
+  if (trimmed.includes('docs.google.com/spreadsheets')) {
+    throw new BadRequestException(
+      'Tautan yang dimasukkan adalah link dokumen Google Sheets biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan pembuatan Web App di modal integrasi.',
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new BadRequestException(
+      'Format URL Webhook Google Sheets tidak valid.',
+    );
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new BadRequestException(
+      'URL Webhook Google Sheets wajib menggunakan protokol HTTPS.',
+    );
+  }
+
+  if (parsed.username || parsed.password || parsed.port) {
+    throw new BadRequestException(
+      'URL Webhook Google Sheets tidak boleh menyertakan kredensial atau port khusus.',
+    );
+  }
+
+  if (parsed.hostname.toLowerCase() !== 'script.google.com') {
+    throw new BadRequestException(
+      'Host URL Webhook tidak diizinkan. Hanya domain resmi script.google.com yang diperbolehkan.',
+    );
+  }
+
+  if (parsed.pathname.endsWith('/dev') || trimmed.includes('/dev')) {
+    throw new BadRequestException(
+      'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL Deployment resmi yang berakhiran ".../exec". (Buka Apps Script > Deploy > New deployment > Web app > Who has access: Anyone > Deploy).',
+    );
+  }
+
+  if (!GOOGLE_APPS_SCRIPT_EXEC_PATH_REGEX.test(parsed.pathname)) {
+    throw new BadRequestException(
+      'Path URL Webhook Google Sheets tidak valid. Gunakan URL Web App resmi dengan format https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec.',
+    );
+  }
+
+  return parsed.toString();
+}
+
 @Injectable()
 export class AttendanceService {
   private readonly logger = new Logger(AttendanceService.name);
@@ -59,7 +118,9 @@ export class AttendanceService {
     }
 
     let authorized = false;
-    if (user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN) {
+    if (user.role === Role.SUPER_ADMIN) {
+      authorized = true;
+    } else if (user.role === Role.ADMIN && event.userId === userId) {
       authorized = true;
     } else if (user.role === Role.STAFF && event.staffEvents.length > 0) {
       authorized = true;
@@ -93,7 +154,7 @@ export class AttendanceService {
     }
 
     const whereScope: Prisma.EventWhereInput =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN
+      role === Role.SUPER_ADMIN
         ? { id: eventId }
         : { id: eventId, userId: currentUserId };
 
@@ -136,7 +197,10 @@ export class AttendanceService {
       throw new NotFoundException('Event not found');
     }
 
-    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN) {
+    if (
+      role !== Role.SUPER_ADMIN &&
+      !(role === Role.ADMIN && event.userId === currentUserId)
+    ) {
       throw new ForbiddenException(
         'You are not authorized to export reports for this event',
       );
@@ -889,9 +953,14 @@ export class AttendanceService {
   private async authorizeEventOperator(
     eventId: string,
     userId: string,
-    _role: Role,
+    role: Role,
   ) {
-    void _role;
+    if (role === Role.STAFF) {
+      throw new ForbiddenException(
+        'Staff tidak memiliki izin untuk mengelola integrasi Google Sheets',
+      );
+    }
+
     const user = await this.db.user.findUnique({
       where: { id: userId },
     });
@@ -899,37 +968,36 @@ export class AttendanceService {
       throw new NotFoundException('Event not found');
     }
 
-    if (user.role === Role.SUPER_ADMIN || user.role === Role.ADMIN) {
+    if (user.role === Role.STAFF) {
+      throw new ForbiddenException(
+        'Staff tidak memiliki izin untuk mengelola integrasi Google Sheets',
+      );
+    }
+
+    if (user.role === Role.SUPER_ADMIN) {
       const event = await this.db.event.findUnique({
         where: { id: eventId },
-        select: { id: true, title: true, content: true },
+        select: { id: true, userId: true, title: true, content: true },
       });
       if (!event) throw new NotFoundException('Event not found');
       return event;
     }
 
-    const event = await this.db.event.findUnique({
-      where: { id: eventId },
-      include: {
-        staffEvents: {
-          where: { userId },
-        },
-      },
-    });
-    if (!event) throw new NotFoundException('Event not found');
-
-    const isOwner = event.userId === userId;
-    const isAssignedStaff = event.staffEvents && event.staffEvents.length > 0;
-
-    if (!isOwner && !isAssignedStaff) {
-      throw new ForbiddenException('Anda tidak memiliki akses ke acara ini');
+    if (user.role === Role.ADMIN) {
+      const event = await this.db.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, userId: true, title: true, content: true },
+      });
+      if (!event || event.userId !== userId) {
+        throw new NotFoundException('Event not found');
+      }
+      return event;
     }
 
-    return event;
+    throw new ForbiddenException('Anda tidak memiliki akses ke acara ini');
   }
 
-  async getLiveAttendance(eventId: string, userId: string, _role: Role) {
-    void _role;
+  async getLiveAttendance(eventId: string, userId: string, role: Role) {
     const event = await this.authorizeEvent(eventId, userId);
 
     const [guests, recentAudits] = await Promise.all([
@@ -941,6 +1009,7 @@ export class AttendanceService {
           category: true,
           maxPax: true,
           customGreeting: true,
+          tableNumber: true,
           invitation: {
             select: {
               uniqueCode: true,
@@ -1037,7 +1106,7 @@ export class AttendanceService {
         category: cat,
         customGreeting: g.customGreeting,
         maxPax: g.maxPax,
-        tableNumber: (g as any).tableNumber ?? null,
+        tableNumber: g.tableNumber ?? null,
         code: g.invitation?.uniqueCode || null,
         isCheckedIn,
         scannedPax: att?.scannedPax || 0,
@@ -1118,7 +1187,7 @@ export class AttendanceService {
       guests: guestList,
       googleSheet: {
         connected: Boolean(googleSheetWebhookUrl),
-        webhookUrl: googleSheetWebhookUrl,
+        webhookUrl: role === Role.STAFF ? null : googleSheetWebhookUrl,
         lastUpdatedAt: googleSheetUpdatedAt,
       },
     };
@@ -1167,19 +1236,10 @@ export class AttendanceService {
         ? { ...(currentContent.integrations as Record<string, unknown>) }
         : {};
 
-    const cleanUrl = webhookUrl ? webhookUrl.trim() : null;
-    if (cleanUrl) {
-      if (cleanUrl.includes('/dev')) {
-        throw new BadRequestException(
-          'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL Deployment resmi yang berakhiran ".../exec". (Buka Apps Script > Deploy > New deployment > Web app > Who has access: Anyone > Deploy).',
-        );
-      }
-      if (cleanUrl.includes('docs.google.com/spreadsheets')) {
-        throw new BadRequestException(
-          'Tautan yang dimasukkan adalah link dokumen Google Sheets biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan pembuatan Web App di modal integrasi.',
-        );
-      }
-    }
+    const cleanUrl =
+      webhookUrl && webhookUrl.trim()
+        ? validateGoogleSheetWebhookUrl(webhookUrl)
+        : null;
     integrations.googleSheetWebhookUrl = cleanUrl || null;
     integrations.googleSheetUpdatedAt = new Date().toISOString();
     currentContent.integrations = integrations;
@@ -1208,29 +1268,8 @@ export class AttendanceService {
             integrations?: { googleSheetWebhookUrl?: string | null };
           })
         : {};
-    const webhookUrl = content.integrations?.googleSheetWebhookUrl;
-
-    if (
-      !webhookUrl ||
-      typeof webhookUrl !== 'string' ||
-      !webhookUrl.startsWith('http')
-    ) {
-      throw new BadRequestException(
-        'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
-      );
-    }
-
-    if (webhookUrl.includes('/dev')) {
-      throw new BadRequestException(
-        'URL yang Anda masukkan adalah URL pengujian internal Google (.../dev) yang selalu meminta login (HTTP 401). Silakan gunakan URL Deployment resmi yang berakhiran ".../exec". (Buka Apps Script > Deploy > New deployment > Web app > Who has access: Anyone > Deploy).',
-      );
-    }
-
-    if (webhookUrl.includes('docs.google.com/spreadsheets')) {
-      throw new BadRequestException(
-        'Tautan yang dimasukkan adalah link dokumen Google Sheets biasa, bukan URL Webhook Apps Script. Silakan ikuti panduan pembuatan Web App di modal integrasi.',
-      );
-    }
+    const rawWebhookUrl = content.integrations?.googleSheetWebhookUrl;
+    const webhookUrl = validateGoogleSheetWebhookUrl(rawWebhookUrl || '');
 
     const user = await this.db.user.findUnique({
       where: { id: userId },
@@ -1307,17 +1346,8 @@ export class AttendanceService {
             integrations?: { googleSheetWebhookUrl?: string | null };
           })
         : {};
-    const webhookUrl = content.integrations?.googleSheetWebhookUrl;
-
-    if (
-      !webhookUrl ||
-      typeof webhookUrl !== 'string' ||
-      !webhookUrl.startsWith('http')
-    ) {
-      throw new BadRequestException(
-        'Tautan Webhook Google Sheets belum diatur atau tidak valid. Silakan simpan tautan terlebih dahulu.',
-      );
-    }
+    const rawWebhookUrl = content.integrations?.googleSheetWebhookUrl;
+    const webhookUrl = validateGoogleSheetWebhookUrl(rawWebhookUrl || '');
 
     const attendances = await this.db.attendance.findMany({
       where: { eventId },
@@ -1405,14 +1435,11 @@ export class AttendanceService {
               integrations?: { googleSheetWebhookUrl?: string | null };
             })
           : {};
-      const webhookUrl = content.integrations?.googleSheetWebhookUrl;
-      if (
-        !webhookUrl ||
-        typeof webhookUrl !== 'string' ||
-        !webhookUrl.startsWith('http')
-      ) {
+      const rawWebhookUrl = content.integrations?.googleSheetWebhookUrl;
+      if (!rawWebhookUrl || typeof rawWebhookUrl !== 'string') {
         return;
       }
+      const webhookUrl = validateGoogleSheetWebhookUrl(rawWebhookUrl);
 
       const staff = await this.db.user.findUnique({
         where: { id: userId },
@@ -1455,6 +1482,7 @@ export class AttendanceService {
     userId: string,
     _role: Role,
   ): Promise<OfflineSnapshotResponse> {
+    void _role;
     const event = await this.authorizeEvent(eventId, userId);
 
     const guests = await this.db.guest.findMany({
@@ -1544,7 +1572,7 @@ export class AttendanceService {
       status: 'APPLIED' | 'DUPLICATE' | 'FAILED';
       type: string;
       message?: string;
-      data?: any;
+      data?: unknown;
     }> = [];
 
     for (const op of dto.operations || []) {
@@ -1565,7 +1593,7 @@ export class AttendanceService {
 
       // 2. Process operation
       try {
-        let opResultData: any = null;
+        let opResultData: unknown = null;
 
         if (op.type === 'CHECK_IN') {
           if (!op.code) {
@@ -1599,7 +1627,7 @@ export class AttendanceService {
           );
         } else {
           throw new BadRequestException(
-            `Unsupported operation type: ${op.type}`,
+            `Unsupported operation type: ${String(op.type)}`,
           );
         }
 
@@ -1623,8 +1651,11 @@ export class AttendanceService {
           type: op.type,
           data: opResultData,
         });
-      } catch (err: any) {
-        const errorMsg = err?.message || 'Sync operation failed';
+      } catch (err: unknown) {
+        const errorMsg =
+          err instanceof Error && err.message
+            ? err.message
+            : 'Sync operation failed';
 
         // Record failed sync op so it's not repeatedly retried in an infinite loop
         try {

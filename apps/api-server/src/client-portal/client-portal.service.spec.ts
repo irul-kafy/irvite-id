@@ -9,7 +9,7 @@ import { InvitationStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import {
   ClientPortalService,
-  computeDefaultClientKey,
+  generateClientPortalKey,
   isClientKeyValid,
 } from './client-portal.service';
 
@@ -40,6 +40,7 @@ describe('ClientPortalService', () => {
   };
 
   const mockCreatedAt = new Date('2026-06-01T10:00:00.000Z');
+  const storedClientKey = 'a1b2c3d4e5f60718293a4b5c';
   const mockEvent = {
     id: 'evt-test-123',
     title: 'Pernikahan Romeo & Juliet',
@@ -47,7 +48,7 @@ describe('ClientPortalService', () => {
     eventDate: new Date('2026-07-20T08:00:00.000Z'),
     locationDetails: 'Grand Ballroom Hotel Mulia',
     status: 'PUBLISHED',
-    content: {},
+    content: { clientKey: storedClientKey },
     createdAt: mockCreatedAt,
   };
 
@@ -86,32 +87,38 @@ describe('ClientPortalService', () => {
     service = module.get<ClientPortalService>(ClientPortalService);
   });
 
-  describe('Key Computation & Validation', () => {
-    it('computes deterministic default key for event and creation date', () => {
-      const key1 = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
-      const key2 = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
-      expect(key1).toBeDefined();
-      expect(key1.length).toBe(16);
-      expect(key1).toBe(key2);
+  describe('Key Generation & Timing-Safe Validation', () => {
+    it('generates random 24-hex-character portal key without relying on JWT_SECRET or eventId', () => {
+      const key1 = generateClientPortalKey();
+      const key2 = generateClientPortalKey();
+      expect(key1).toMatch(/^[a-f0-9]{24}$/);
+      expect(key2).toMatch(/^[a-f0-9]{24}$/);
+      expect(key1).not.toBe(key2);
     });
 
-    it('validates default key correctly', () => {
-      const validKey = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
-      expect(isClientKeyValid(mockEvent, validKey)).toBe(true);
+    it('validates stored clientKey using timingSafeEqual and rejects events without stored key', () => {
+      expect(isClientKeyValid(mockEvent, storedClientKey)).toBe(true);
       expect(isClientKeyValid(mockEvent, 'wrong-key-value')).toBe(false);
+      expect(isClientKeyValid(mockEvent, 'a1b2c3d4e5f60718293a4b5d')).toBe(
+        false,
+      );
       expect(isClientKeyValid(mockEvent, '')).toBe(false);
+      expect(
+        isClientKeyValid({ ...mockEvent, content: {} }, storedClientKey),
+      ).toBe(false);
     });
 
-    it('respects custom clientKey in content if present', () => {
-      const customEvent = {
+    it('immediately invalidates old key after regeneration', () => {
+      const oldKey = generateClientPortalKey();
+      const newKey = generateClientPortalKey();
+      const regeneratedEvent = {
         ...mockEvent,
-        content: { clientKey: 'custom-secret-key-123' },
+        content: { clientKey: newKey },
       };
-      expect(isClientKeyValid(customEvent, 'custom-secret-key-123')).toBe(true);
-      // Fallback key also accepted
-      const defaultKey = computeDefaultClientKey(customEvent.id, mockCreatedAt);
-      expect(isClientKeyValid(customEvent, defaultKey)).toBe(true);
-      expect(isClientKeyValid(customEvent, 'invalid-key')).toBe(false);
+
+      expect(isClientKeyValid(regeneratedEvent, newKey)).toBe(true);
+      expect(isClientKeyValid(regeneratedEvent, oldKey)).toBe(false);
+      expect(isClientKeyValid(regeneratedEvent, storedClientKey)).toBe(false);
     });
   });
 
@@ -123,76 +130,79 @@ describe('ClientPortalService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws UnauthorizedException if key is invalid', async () => {
+    it('throws UnauthorizedException if key is invalid or not stored', async () => {
       prisma.event.findUnique.mockResolvedValue(mockEvent);
       await expect(
         service.getPortalData(mockEvent.id, 'invalid-key'),
+      ).rejects.toThrow(UnauthorizedException);
+
+      prisma.event.findUnique.mockResolvedValue({
+        ...mockEvent,
+        content: {},
+      });
+      await expect(
+        service.getPortalData(mockEvent.id, storedClientKey),
       ).rejects.toThrow(UnauthorizedException);
     });
 
     it('throws ForbiddenException if client portal is disabled by admin', async () => {
       const disabledEvent = {
         ...mockEvent,
-        content: { clientPortalEnabled: false },
+        content: { clientKey: storedClientKey, clientPortalEnabled: false },
       };
       prisma.event.findUnique.mockResolvedValue(disabledEvent);
-      const validKey = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
       await expect(
-        service.getPortalData(mockEvent.id, validKey),
+        service.getPortalData(mockEvent.id, storedClientKey),
       ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('Portal Data & Stats', () => {
     it('retrieves event info and accurate guest statistics', async () => {
-      const validKey = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
       prisma.event.findUnique.mockResolvedValue(mockEvent);
 
-      // 1. guestsWithoutInvitation check: none
-      prisma.guest.findMany
-        .mockResolvedValueOnce([]) // for auto-heal check
-        .mockResolvedValueOnce([
-          {
-            id: 'g-1',
-            name: 'Budi Santoso',
-            category: 'VIP',
-            phoneNumber: '081234567890',
-            email: 'budi@example.com',
-            tableNumber: 'A1',
-            maxPax: 2,
-            customGreeting: null,
-            createdAt: new Date('2026-06-01T11:00:00Z'),
-            invitation: {
-              id: 'inv-1',
-              uniqueCode: 'code-budi',
-              status: InvitationStatus.SENT,
-              rsvpPax: 2,
-              updatedAt: new Date(),
-              attendances: [{ scannedPax: 2, scannedAt: new Date() }],
-            },
+      prisma.guest.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        {
+          id: 'g-1',
+          name: 'Budi Santoso',
+          category: 'VIP',
+          phoneNumber: '081234567890',
+          email: 'budi@example.com',
+          tableNumber: 'A1',
+          maxPax: 2,
+          customGreeting: null,
+          createdAt: new Date('2026-06-01T11:00:00Z'),
+          invitation: {
+            id: 'inv-1',
+            uniqueCode: 'code-budi',
+            status: InvitationStatus.SENT,
+            rsvpPax: 2,
+            updatedAt: new Date(),
+            attendances: [{ scannedPax: 2, scannedAt: new Date() }],
           },
-          {
-            id: 'g-2',
-            name: 'Siti Aminah',
-            category: 'REGULAR',
-            phoneNumber: '081987654321',
-            email: null,
-            tableNumber: 'B2',
-            maxPax: 1,
-            customGreeting: null,
-            createdAt: new Date('2026-06-01T12:00:00Z'),
-            invitation: {
-              id: 'inv-2',
-              uniqueCode: 'code-siti',
-              status: InvitationStatus.PENDING,
-              rsvpPax: null,
-              updatedAt: new Date(),
-              attendances: [],
-            },
+        },
+        {
+          id: 'g-2',
+          name: 'Siti Aminah',
+          category: 'REGULAR',
+          phoneNumber: '081987654321',
+          email: null,
+          tableNumber: 'B2',
+          maxPax: 1,
+          customGreeting: null,
+          createdAt: new Date('2026-06-01T12:00:00Z'),
+          invitation: {
+            id: 'inv-2',
+            uniqueCode: 'code-siti',
+            status: InvitationStatus.PENDING,
+            rsvpPax: null,
+            updatedAt: new Date(),
+            attendances: [],
           },
-        ]);
+        },
+      ]);
 
-      const data = await service.getPortalData(mockEvent.id, validKey);
+      const data = await service.getPortalData(mockEvent.id, storedClientKey);
 
       expect(data.event.id).toBe(mockEvent.id);
       expect(data.event.title).toBe(mockEvent.title);
@@ -210,8 +220,6 @@ describe('ClientPortalService', () => {
   });
 
   describe('Guest CRUD Operations', () => {
-    const validKey = computeDefaultClientKey(mockEvent.id, mockCreatedAt);
-
     it('adds a new guest with automatic invitation generation', async () => {
       prisma.event.findUnique.mockResolvedValue(mockEvent);
       prisma.guest.create.mockResolvedValue({
@@ -233,7 +241,7 @@ describe('ClientPortalService', () => {
         updatedAt: new Date(),
       });
 
-      const res = await service.addGuest(mockEvent.id, validKey, {
+      const res = await service.addGuest(mockEvent.id, storedClientKey, {
         name: 'Ahmad Dahlan',
         category: 'FAMILY',
         phoneNumber: '0812333444',
@@ -250,7 +258,7 @@ describe('ClientPortalService', () => {
     it('validates guest name cannot be empty', async () => {
       prisma.event.findUnique.mockResolvedValue(mockEvent);
       await expect(
-        service.addGuest(mockEvent.id, validKey, { name: '   ' }),
+        service.addGuest(mockEvent.id, storedClientKey, { name: '   ' }),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -279,10 +287,15 @@ describe('ClientPortalService', () => {
         },
       });
 
-      const res = await service.updateGuest(mockEvent.id, 'g-1', validKey, {
-        name: 'Budi Santoso Update',
-        maxPax: 3,
-      });
+      const res = await service.updateGuest(
+        mockEvent.id,
+        'g-1',
+        storedClientKey,
+        {
+          name: 'Budi Santoso Update',
+          maxPax: 3,
+        },
+      );
 
       expect(res.name).toBe('Budi Santoso Update');
       expect(res.maxPax).toBe(3);
@@ -297,7 +310,11 @@ describe('ClientPortalService', () => {
       });
       prisma.guest.delete.mockResolvedValue({ id: 'g-1' });
 
-      const res = await service.deleteGuest(mockEvent.id, 'g-1', validKey);
+      const res = await service.deleteGuest(
+        mockEvent.id,
+        'g-1',
+        storedClientKey,
+      );
       expect(res.success).toBe(true);
     });
 
@@ -315,7 +332,7 @@ describe('ClientPortalService', () => {
       const res = await service.setGuestWaStatus(
         mockEvent.id,
         'g-1',
-        validKey,
+        storedClientKey,
         true,
       );
       expect(res.isWaSent).toBe(true);
@@ -330,7 +347,11 @@ describe('ClientPortalService', () => {
       });
       prisma.wish.delete.mockResolvedValue({ id: 'wish-1' });
 
-      const res = await service.deleteWish(mockEvent.id, 'wish-1', validKey);
+      const res = await service.deleteWish(
+        mockEvent.id,
+        'wish-1',
+        storedClientKey,
+      );
       expect(res.success).toBe(true);
       expect(prisma.wish.delete).toHaveBeenCalledWith({
         where: { id: 'wish-1' },
@@ -342,7 +363,7 @@ describe('ClientPortalService', () => {
       prisma.wish.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.deleteWish(mockEvent.id, 'wish-x', validKey),
+        service.deleteWish(mockEvent.id, 'wish-x', storedClientKey),
       ).rejects.toThrow(NotFoundException);
     });
   });

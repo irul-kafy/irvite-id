@@ -84,7 +84,7 @@ describe('AttendanceService', () => {
       expect(event).toBeDefined();
     });
 
-    it('ADMIN other event -> authorized', async () => {
+    it('ADMIN other event -> 404 (tenant isolated)', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'u1',
         isActive: true,
@@ -96,8 +96,9 @@ describe('AttendanceService', () => {
         status: 'PUBLISHED',
       });
 
-      const event = await (service as any).authorizeEvent('e1', 'u1');
-      expect(event).toBeDefined();
+      await expect((service as any).authorizeEvent('e1', 'u1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('inactive user -> 404', async () => {
@@ -1042,6 +1043,122 @@ describe('AttendanceService', () => {
       await expect(
         service.testGoogleSheetWebhook('e1', 'u1', Role.SUPER_ADMIN),
       ).rejects.toThrow('pengujian internal Google (.../dev)');
+    });
+
+    it.each([
+      'http://script.google.com/macros/s/abc/exec',
+      'ftp://script.google.com/macros/s/abc/exec',
+      'https://localhost/macros/s/abc/exec',
+      'https://127.0.0.1/macros/s/abc/exec',
+      'https://169.254.169.254/latest/meta-data/',
+      'https://169.254.169.254/macros/s/abc/exec',
+      'https://10.0.0.1/macros/s/abc/exec',
+      'https://192.168.1.1/macros/s/abc/exec',
+      'https://172.16.0.1/macros/s/abc/exec',
+      'https://evil.example.com/macros/s/abc/exec',
+      'https://script.google.com:8443/macros/s/abc/exec',
+      'https://user:pass@script.google.com/macros/s/abc/exec',
+      'https://script.google.com/macros/s/../exec',
+      'https://script.google.com/other/path',
+    ])(
+      'rejects dangerous or non-conforming webhook URL: %s',
+      async (dangerousUrl) => {
+        (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+          id: 'u1',
+          isActive: true,
+          role: Role.SUPER_ADMIN,
+        });
+        (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+          id: 'e1',
+          title: 'Wedding Test',
+          content: {},
+        });
+
+        await expect(
+          service.updateGoogleSheetConfig(
+            'e1',
+            'u1',
+            Role.SUPER_ADMIN,
+            dangerousUrl,
+          ),
+        ).rejects.toThrow(BadRequestException);
+      },
+    );
+
+    it('forbids STAFF from getting, updating, testing, or resyncing Google Sheet config', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'staff-1',
+        isActive: true,
+        role: Role.STAFF,
+      });
+
+      await expect(
+        service.getGoogleSheetConfig('e1', 'staff-1', Role.STAFF),
+      ).rejects.toThrow('Staff tidak memiliki izin');
+      await expect(
+        service.updateGoogleSheetConfig(
+          'e1',
+          'staff-1',
+          Role.STAFF,
+          'https://script.google.com/macros/s/abc/exec',
+        ),
+      ).rejects.toThrow('Staff tidak memiliki izin');
+      await expect(
+        service.testGoogleSheetWebhook('e1', 'staff-1', Role.STAFF),
+      ).rejects.toThrow('Staff tidak memiliki izin');
+      await expect(
+        service.resyncGoogleSheet('e1', 'staff-1', Role.STAFF),
+      ).rejects.toThrow('Staff tidak memiliki izin');
+    });
+
+    it('redacts googleSheet.webhookUrl in getLiveAttendance for STAFF while preserving it for ADMIN', async () => {
+      const eventWithSheet = {
+        id: 'e1',
+        userId: 'admin-1',
+        title: 'Wedding Test',
+        slug: 'wedding-test',
+        eventDate: new Date('2026-12-01'),
+        status: 'PUBLISHED',
+        staffEvents: [{ userId: 'staff-1' }],
+        content: {
+          integrations: {
+            googleSheetWebhookUrl:
+              'https://script.google.com/macros/s/secret-id/exec',
+            googleSheetUpdatedAt: '2026-11-01T00:00:00.000Z',
+          },
+        },
+      };
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue(eventWithSheet);
+      (prisma.guest.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue([]);
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: 'staff-1',
+        isActive: true,
+        role: Role.STAFF,
+      });
+      const staffView = await service.getLiveAttendance(
+        'e1',
+        'staff-1',
+        Role.STAFF,
+      );
+      expect(staffView.googleSheet.connected).toBe(true);
+      expect(staffView.googleSheet.webhookUrl).toBeNull();
+
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: 'admin-1',
+        isActive: true,
+        role: Role.ADMIN,
+      });
+      const adminView = await service.getLiveAttendance(
+        'e1',
+        'admin-1',
+        Role.ADMIN,
+      );
+      expect(adminView.googleSheet.connected).toBe(true);
+      expect(adminView.googleSheet.webhookUrl).toBe(
+        'https://script.google.com/macros/s/secret-id/exec',
+      );
     });
   });
 

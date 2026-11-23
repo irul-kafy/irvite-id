@@ -43,7 +43,7 @@ export class AttendanceController {
   }
 
   @Get('google-sheet')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Header('Cache-Control', 'no-store')
   getGoogleSheetConfig(
     @Param('eventId', ParseUUIDPipe) eventId: string,
@@ -57,7 +57,7 @@ export class AttendanceController {
   }
 
   @Post('google-sheet')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   updateGoogleSheetConfig(
@@ -74,7 +74,7 @@ export class AttendanceController {
   }
 
   @Post('google-sheet/test')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   testGoogleSheetWebhook(
@@ -89,7 +89,7 @@ export class AttendanceController {
   }
 
   @Post('google-sheet/resync')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   resyncGoogleSheet(
