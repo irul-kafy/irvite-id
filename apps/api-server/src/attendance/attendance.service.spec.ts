@@ -1361,13 +1361,24 @@ describe('AttendanceService', () => {
         scannedAt: new Date(),
       };
 
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        return callback({
-          guest: { create: jest.fn().mockResolvedValue(fakeGuest) },
-          invitation: { create: jest.fn().mockResolvedValue(fakeInvitation) },
-          attendance: { create: jest.fn().mockResolvedValue(fakeAttendance) },
-        });
+      const txGuestCreate = jest.fn().mockResolvedValue(fakeGuest);
+      const txInvitationCreate = jest.fn().mockResolvedValue(fakeInvitation);
+      const txAttendanceCreate = jest.fn().mockResolvedValue(fakeAttendance);
+      const txCheckInCreate = jest.fn().mockResolvedValue({
+        id: 'ci-walkin-1',
+        attendanceId: fakeAttendance.id,
       });
+
+      (prisma.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return callback({
+            guest: { create: txGuestCreate },
+            invitation: { create: txInvitationCreate },
+            attendance: { create: txAttendanceCreate },
+            attendanceCheckIn: { create: txCheckInCreate },
+          });
+        },
+      );
 
       const res = await service.walkInCheckIn('e1', 'u1', Role.STAFF, {
         name: '  Tamu Dadakan Bpk. Joko  ',
@@ -1382,6 +1393,81 @@ describe('AttendanceService', () => {
       expect(res.guest.name).toBe('Tamu Dadakan Bpk. Joko');
       expect(res.guest.category).toBe('ON_THE_SPOT');
       expect(res.guest.tableNumber).toBe('10');
+      expect(txInvitationCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'PENDING',
+            rsvpPax: null,
+          }),
+        }),
+      );
+      expect(txCheckInCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            attendanceId: fakeAttendance.id,
+            scannedPax: 2,
+          }),
+        }),
+      );
+    });
+
+    it('undoCheckIn deletes auto-created walk-in Guest and Invitation when ON_THE_SPOT attendance reaches 0', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2027-12-01'),
+        userId: 'u1',
+      });
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'inv-walkin-1',
+        uniqueCode: 'walkin-code-1',
+        guest: {
+          id: 'g-walkin-1',
+          name: 'Tamu Dadakan',
+          category: 'ON_THE_SPOT',
+          maxPax: 2,
+          eventId: 'e1',
+        },
+      });
+      (prisma.attendance.findUnique as jest.Mock).mockResolvedValue({
+        id: 'att-walkin-1',
+        scannedPax: 2,
+        scannedAt: new Date(),
+      });
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'ci-walkin-1',
+          attendanceId: 'att-walkin-1',
+          scannedPax: 2,
+          scannedAt: new Date(),
+          scannedById: 'u1',
+        },
+      ]);
+      (prisma.attendanceCheckIn.delete as jest.Mock).mockResolvedValue({});
+      (prisma.attendance.delete as jest.Mock).mockResolvedValue({});
+      (prisma.invitation as any).delete = jest.fn().mockResolvedValue({});
+      (prisma.guest as any).delete = jest.fn().mockResolvedValue({});
+
+      const result = await service.undoCheckIn(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+        'walkin-code-1',
+      );
+
+      expect(result.result).toBe('UNDONE');
+      expect((result as any).walkInDeleted).toBe(true);
+      expect((prisma.invitation as any).delete).toHaveBeenCalledWith({
+        where: { id: 'inv-walkin-1' },
+      });
+      expect((prisma.guest as any).delete).toHaveBeenCalledWith({
+        where: { id: 'g-walkin-1' },
+      });
     });
 
     it('throws BadRequestException if name is empty', async () => {

@@ -22,9 +22,7 @@ import {
 
 @Controller(['api/v1/client-portal', 'client-portal'])
 export class ClientPortalController {
-  constructor(
-    private readonly clientPortalService: ClientPortalService,
-  ) {}
+  constructor(private readonly clientPortalService: ClientPortalService) {}
 
   @Public()
   @Throttle({ default: { limit: 120, ttl: seconds(60) } })

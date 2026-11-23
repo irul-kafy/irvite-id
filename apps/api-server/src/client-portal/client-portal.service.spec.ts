@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InvitationStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
@@ -11,6 +12,8 @@ import {
   ClientPortalService,
   generateClientPortalKey,
   isClientKeyValid,
+  MAX_PORTAL_GUESTS_PER_EVENT,
+  MAX_PORTAL_PAX_PER_GUEST,
 } from './client-portal.service';
 
 describe('ClientPortalService', () => {
@@ -22,6 +25,7 @@ describe('ClientPortalService', () => {
     guest: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
+      count: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
       delete: jest.Mock;
@@ -45,7 +49,8 @@ describe('ClientPortalService', () => {
     id: 'evt-test-123',
     title: 'Pernikahan Romeo & Juliet',
     slug: 'romeo-juliet',
-    eventDate: new Date('2026-07-20T08:00:00.000Z'),
+    eventDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    activeUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
     locationDetails: 'Grand Ballroom Hotel Mulia',
     status: 'PUBLISHED',
     content: { clientKey: storedClientKey },
@@ -60,6 +65,7 @@ describe('ClientPortalService', () => {
       guest: {
         findMany: jest.fn(),
         findFirst: jest.fn(),
+        count: jest.fn().mockResolvedValue(0),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -365,6 +371,63 @@ describe('ClientPortalService', () => {
       await expect(
         service.deleteWish(mockEvent.id, 'wish-x', storedClientKey),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects deleteGuest when guest already has attendance history', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+      prisma.guest.findFirst.mockResolvedValue({
+        id: 'g-attended',
+        eventId: mockEvent.id,
+        invitation: {
+          id: 'inv-attended',
+          attendances: [{ id: 'att-1', scannedPax: 2 }],
+        },
+      });
+
+      await expect(
+        service.deleteGuest(mockEvent.id, 'g-attended', storedClientKey),
+      ).rejects.toThrow(ConflictException);
+      expect(prisma.guest.delete).not.toHaveBeenCalled();
+    });
+
+    it('enforces maxPax and max guests per event limits', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, {
+          name: 'Tamu Kuota Berlebih',
+          maxPax: MAX_PORTAL_PAX_PER_GUEST + 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      prisma.guest.count.mockResolvedValue(MAX_PORTAL_GUESTS_PER_EVENT);
+
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, {
+          name: 'Tamu Melebihi Kapasitas Event',
+          maxPax: 1,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects write operations when event is ARCHIVED or expired', async () => {
+      prisma.event.findUnique.mockResolvedValueOnce({
+        ...mockEvent,
+        status: 'ARCHIVED',
+      });
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, { name: 'Tamu Baru' }),
+      ).rejects.toThrow(ConflictException);
+
+      const pastDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+      prisma.event.findUnique.mockResolvedValueOnce({
+        ...mockEvent,
+        eventDate: pastDate,
+        activeUntil: pastDate,
+      });
+      await expect(
+        service.deleteGuest(mockEvent.id, 'g-1', storedClientKey),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });

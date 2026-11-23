@@ -1,4 +1,12 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class WalkInCheckInDto {
@@ -23,4 +31,3 @@ export class WalkInCheckInDto {
   @MaxLength(50)
   tableNumber?: string;
 }
-

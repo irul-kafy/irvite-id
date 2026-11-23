@@ -177,11 +177,7 @@ export class AttendanceService {
     return this.reportsService.exportAttendanceReport(eventId, event, query);
   }
 
-  async getPostEventReport(
-    eventId: string,
-    currentUserId: string,
-    role: Role,
-  ) {
+  async getPostEventReport(eventId: string, currentUserId: string, role: Role) {
     if (role === Role.STAFF) {
       throw new ForbiddenException(
         'Staff is not authorized to export post-event reports',
@@ -479,7 +475,7 @@ export class AttendanceService {
     );
 
     if (result.result === 'CHECKED_IN') {
-      await this.dispatchGoogleSheetSync(
+      void this.dispatchGoogleSheetSync(
         eventId,
         {
           id: invitation.guest.id,
@@ -493,7 +489,7 @@ export class AttendanceService {
         result.remainingPax,
         result.status,
         userId,
-      );
+      ).catch(() => {});
     }
 
     return {
@@ -523,7 +519,7 @@ export class AttendanceService {
     const category = (dto.category && dto.category.trim()) || 'ON_THE_SPOT';
     const tableNumber = dto.tableNumber ? dto.tableNumber.trim() : null;
 
-    return this.db.$transaction(async (tx) => {
+    const txResult = await this.db.$transaction(async (tx) => {
       const guest = await tx.guest.create({
         data: {
           eventId,
@@ -540,13 +536,13 @@ export class AttendanceService {
           eventId,
           guestId: guest.id,
           uniqueCode,
-          status: 'RSVP_YES',
-          rsvpPax: pax,
+          status: 'PENDING',
+          rsvpPax: null,
         },
       });
 
       const now = new Date();
-      await tx.attendance.create({
+      const createdAttendance = await tx.attendance.create({
         data: {
           invitationId: invitation.id,
           eventId,
@@ -557,21 +553,14 @@ export class AttendanceService {
         },
       });
 
-      this.dispatchGoogleSheetSync(
-        eventId,
-        {
-          id: guest.id,
-          name: guest.name,
-          category: guest.category || 'ON_THE_SPOT',
-          maxPax: guest.maxPax,
+      await tx.attendanceCheckIn.create({
+        data: {
+          attendanceId: createdAttendance.id,
+          scannedById: userId,
+          scannedPax: pax,
+          scannedAt: now,
         },
-        pax,
-        pax,
-        pax,
-        0,
-        'COMPLETE',
-        userId,
-      ).catch(() => {});
+      });
 
       return {
         result: 'CHECKED_IN' as const,
@@ -593,6 +582,24 @@ export class AttendanceService {
         },
       };
     });
+
+    void this.dispatchGoogleSheetSync(
+      eventId,
+      {
+        id: txResult.guest.id,
+        name: txResult.guest.name,
+        category: txResult.guest.category || 'ON_THE_SPOT',
+        maxPax: txResult.guest.maxPax,
+      },
+      pax,
+      pax,
+      pax,
+      0,
+      'COMPLETE',
+      userId,
+    ).catch(() => {});
+
+    return txResult;
   }
 
   async undoCheckIn(
@@ -663,6 +670,8 @@ export class AttendanceService {
     }
 
     const maxPax = invitation.guest.maxPax;
+    const isWalkInGuest =
+      (invitation.guest.category || '').toUpperCase() === 'ON_THE_SPOT';
 
     const rollbackResult = await this.db.$transaction(async (tx) => {
       const checkIns = await tx.attendanceCheckIn.findMany({
@@ -688,12 +697,21 @@ export class AttendanceService {
           await tx.attendance.delete({
             where: { id: attendance.id },
           });
+          if (isWalkInGuest) {
+            await tx.invitation?.delete?.({
+              where: { id: invitation.id },
+            });
+            await tx.guest?.delete?.({
+              where: { id: invitation.guest.id },
+            });
+          }
           return {
             result: 'UNDONE' as const,
             rolledBackPax,
             scannedPax: 0,
             remainingPax: maxPax,
             status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+            walkInDeleted: isWalkInGuest,
           };
         } else {
           const prevLatest = remainingCheckIns[0];
@@ -711,6 +729,7 @@ export class AttendanceService {
             scannedPax: newScannedPax,
             remainingPax: Math.max(0, maxPax - newScannedPax),
             status: 'PARTIAL' as AttendanceCheckInStatus,
+            walkInDeleted: false,
           };
         }
       } else {
@@ -718,18 +737,27 @@ export class AttendanceService {
         await tx.attendance.delete({
           where: { id: attendance.id },
         });
+        if (isWalkInGuest) {
+          await tx.invitation?.delete?.({
+            where: { id: invitation.id },
+          });
+          await tx.guest?.delete?.({
+            where: { id: invitation.guest.id },
+          });
+        }
         return {
           result: 'UNDONE' as const,
           rolledBackPax,
           scannedPax: 0,
           remainingPax: maxPax,
           status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+          walkInDeleted: isWalkInGuest,
         };
       }
     });
 
-    // Notify Google Sheets webhook if connected
-    await this.dispatchGoogleSheetSync(
+    // Notify Google Sheets webhook if connected (fire-and-forget)
+    void this.dispatchGoogleSheetSync(
       eventId,
       invitation.guest,
       -rollbackResult.rolledBackPax,
@@ -738,7 +766,7 @@ export class AttendanceService {
       rollbackResult.remainingPax,
       rollbackResult.status,
       userId,
-    );
+    ).catch(() => {});
 
     return {
       ...rollbackResult,
@@ -1367,42 +1395,52 @@ export class AttendanceService {
       };
     }
 
+    const validAttendances = attendances.filter((att) =>
+      Boolean(att.invitation?.guest),
+    );
     let syncedCount = 0;
-    for (const att of attendances) {
-      const guest = att.invitation?.guest;
-      if (!guest) continue;
+    const BATCH_SIZE = 5;
 
-      const payload = {
-        event: 'GUEST_CHECK_IN',
-        eventId: event.id,
-        eventTitle: event.title,
-        guestId: guest.id,
-        guestName: guest.name,
-        category: guest.category || 'REGULAR',
-        scannedPax: att.scannedPax,
-        totalScannedPax: att.scannedPax,
-        maxPax: guest.maxPax,
-        remainingPax: Math.max(0, guest.maxPax - att.scannedPax),
-        status: att.scannedPax >= guest.maxPax ? 'COMPLETE' : 'PARTIAL',
-        scannedAt: att.scannedAt.toISOString(),
-        scannedBy: att.staff?.email || 'Staff Scanner',
-        isTest: false,
-      };
+    for (let i = 0; i < validAttendances.length; i += BATCH_SIZE) {
+      const batch = validAttendances.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (att) => {
+          const guest = att.invitation!.guest!;
+          const payload = {
+            event: 'GUEST_CHECK_IN',
+            eventId: event.id,
+            eventTitle: event.title,
+            guestId: guest.id,
+            guestName: guest.name,
+            category: guest.category || 'REGULAR',
+            scannedPax: att.scannedPax,
+            totalScannedPax: att.scannedPax,
+            maxPax: guest.maxPax,
+            remainingPax: Math.max(0, guest.maxPax - att.scannedPax),
+            status: att.scannedPax >= guest.maxPax ? 'COMPLETE' : 'PARTIAL',
+            scannedAt: att.scannedAt.toISOString(),
+            scannedBy: att.staff?.email || 'Staff Scanner',
+            isTest: false,
+          };
 
-      try {
-        await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(6000),
-        });
-        syncedCount++;
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(
-          `Failed to resync check-in for guest ${guest.name} to Google Sheet: ${errMsg}`,
-        );
-      }
+          try {
+            await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: AbortSignal.timeout(6000),
+            });
+            return 1;
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(
+              `Failed to resync check-in for guest ${guest.name} to Google Sheet: ${errMsg}`,
+            );
+            return 0;
+          }
+        }),
+      );
+      syncedCount += batchResults.reduce<number>((sum, val) => sum + val, 0);
     }
 
     return {
@@ -1508,7 +1546,8 @@ export class AttendanceService {
       const att = inv?.attendances?.[0];
       const scannedPax = att?.scannedPax || 0;
       const maxPax = g.maxPax || 1;
-      let status: 'CHECKED_IN' | 'PARTIAL' | 'NOT_CHECKED_IN' = 'NOT_CHECKED_IN';
+      let status: 'CHECKED_IN' | 'PARTIAL' | 'NOT_CHECKED_IN' =
+        'NOT_CHECKED_IN';
       if (scannedPax >= maxPax) {
         status = 'CHECKED_IN';
       } else if (scannedPax > 0) {
@@ -1559,6 +1598,23 @@ export class AttendanceService {
     };
   }
 
+  private isPermanentSyncError(err: unknown): boolean {
+    if (
+      err instanceof BadRequestException ||
+      err instanceof NotFoundException ||
+      err instanceof ForbiddenException
+    ) {
+      return true;
+    }
+    if (err instanceof ConflictException) {
+      // Transient concurrency conflicts should be retryable; business state conflicts are permanent
+      return !/concurrent check-in conflict|kapasitas tamu telah terisi oleh proses scan lain/i.test(
+        err.message,
+      );
+    }
+    return false;
+  }
+
   async syncAttendance(
     eventId: string,
     userId: string,
@@ -1570,6 +1626,7 @@ export class AttendanceService {
     const results: Array<{
       opId: string;
       status: 'APPLIED' | 'DUPLICATE' | 'FAILED';
+      retryable?: boolean;
       type: string;
       message?: string;
       data?: unknown;
@@ -1656,28 +1713,32 @@ export class AttendanceService {
           err instanceof Error && err.message
             ? err.message
             : 'Sync operation failed';
+        const isPermanent = this.isPermanentSyncError(err);
 
-        // Record failed sync op so it's not repeatedly retried in an infinite loop
-        try {
-          await this.db.offlineSyncOp.create({
-            data: {
-              id: op.opId,
-              eventId,
-              opType: op.type,
-              status: 'FAILED',
-              deviceId: op.deviceId || null,
-              scannedById: userId,
-              clientTimestamp: new Date(op.clientTimestamp || Date.now()),
-              details: errorMsg,
-            },
-          });
-        } catch {
-          // Ignore error logging op
+        // Only record permanent validation/business failures in offlineSyncOp so transient DB/network errors can be retried with the same opId
+        if (isPermanent) {
+          try {
+            await this.db.offlineSyncOp.create({
+              data: {
+                id: op.opId,
+                eventId,
+                opType: op.type,
+                status: 'FAILED',
+                deviceId: op.deviceId || null,
+                scannedById: userId,
+                clientTimestamp: new Date(op.clientTimestamp || Date.now()),
+                details: errorMsg,
+              },
+            });
+          } catch {
+            // Ignore error logging op
+          }
         }
 
         results.push({
           opId: op.opId,
           status: 'FAILED',
+          retryable: !isPermanent,
           type: op.type,
           message: errorMsg,
         });
