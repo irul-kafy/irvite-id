@@ -43,11 +43,12 @@ async function fetchPortalData(eventId: string, clientKey: string) {
       : 'http://127.0.0.1:3000');
 
   try {
-    const url = `${apiBase.replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '')}/api/v1/client-portal/${encodeURIComponent(eventId)}?key=${encodeURIComponent(clientKey)}`;
+    const url = `${apiBase.replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '')}/api/v1/client-portal/${encodeURIComponent(eventId)}`;
     const res = await fetch(url, {
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
+        'x-client-portal-key': clientKey,
       },
     });
 

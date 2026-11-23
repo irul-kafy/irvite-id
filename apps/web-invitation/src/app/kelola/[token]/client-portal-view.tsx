@@ -343,10 +343,13 @@ export function ClientPortalView({
     // Persist to backend
     try {
       await fetch(
-        `/api-proxy/api/v1/client-portal/${event.id}/guests/${guest.id}/wa-status?key=${accessKey}`,
+        `/api-proxy/api/v1/client-portal/${event.id}/guests/${guest.id}/wa-status`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-client-portal-key': accessKey,
+          },
           body: JSON.stringify({ isSent: true }),
         },
       );
@@ -459,10 +462,13 @@ export function ClientPortalView({
       if (editingGuest) {
         // PATCH
         const res = await fetch(
-          `/api-proxy/api/v1/client-portal/${event.id}/guests/${editingGuest.id}?key=${accessKey}`,
+          `/api-proxy/api/v1/client-portal/${event.id}/guests/${editingGuest.id}`,
           {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-client-portal-key': accessKey,
+            },
             body: JSON.stringify({
               name: formData.name.trim(),
               category: formData.category,
@@ -488,10 +494,13 @@ export function ClientPortalView({
       } else {
         // POST
         const res = await fetch(
-          `/api-proxy/api/v1/client-portal/${event.id}/guests?key=${accessKey}`,
+          `/api-proxy/api/v1/client-portal/${event.id}/guests`,
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-client-portal-key': accessKey,
+            },
             body: JSON.stringify({
               name: formData.name.trim(),
               category: formData.category,
@@ -527,9 +536,12 @@ export function ClientPortalView({
 
     try {
       const res = await fetch(
-        `/api-proxy/api/v1/client-portal/${event.id}/guests/${deletingGuest.id}?key=${accessKey}`,
+        `/api-proxy/api/v1/client-portal/${event.id}/guests/${deletingGuest.id}`,
         {
           method: 'DELETE',
+          headers: {
+            'x-client-portal-key': accessKey,
+          },
         },
       );
 
@@ -554,9 +566,12 @@ export function ClientPortalView({
     setIsDeletingWish(true);
     try {
       const res = await fetch(
-        `/api-proxy/api/v1/client-portal/${event.id}/wishes/${deletingWish.id}?key=${accessKey}`,
+        `/api-proxy/api/v1/client-portal/${event.id}/wishes/${deletingWish.id}`,
         {
           method: 'DELETE',
+          headers: {
+            'x-client-portal-key': accessKey,
+          },
         },
       );
 

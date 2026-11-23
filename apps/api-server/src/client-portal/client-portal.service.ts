@@ -25,47 +25,40 @@ function toIsoSafe(val: unknown): string {
   return new Date().toISOString();
 }
 
-export function computeDefaultClientKey(
-  eventId: string,
-  createdAt?: Date | string | null,
-): string {
-  const secret =
-    process.env.JWT_SECRET || 'irvite-client-portal-secret-key-2026';
-  const dateStr =
-    createdAt instanceof Date
-      ? createdAt.toISOString()
-      : typeof createdAt === 'string'
-        ? createdAt
-        : '2026-01-01T00:00:00.000Z';
-  return crypto
-    .createHmac('sha256', secret)
-    .update(`${eventId}:${dateStr}`)
-    .digest('hex')
-    .slice(0, 16);
+export function generateClientPortalKey(): string {
+  return crypto.randomBytes(12).toString('hex');
 }
 
 export function isClientKeyValid(
-  event: { id: string; createdAt?: Date | string | null; content?: unknown },
+  event: { id?: string; createdAt?: Date | string | null; content?: unknown },
   inputKey: string,
 ): boolean {
   if (!inputKey || typeof inputKey !== 'string') return false;
   const cleanInput = inputKey.trim();
-  const defaultKey = computeDefaultClientKey(event.id, event.createdAt);
+  if (!cleanInput) return false;
 
   let storedKey: string | undefined;
   if (
     event.content &&
     typeof event.content === 'object' &&
+    !Array.isArray(event.content) &&
     'clientKey' in event.content &&
     typeof (event.content as { clientKey?: unknown }).clientKey === 'string'
   ) {
     storedKey = (event.content as { clientKey: string }).clientKey.trim();
   }
 
-  if (storedKey && storedKey === cleanInput) {
-    return true;
+  if (!storedKey) {
+    return false;
   }
-  return defaultKey === cleanInput;
+
+  const inputBuffer = Buffer.from(cleanInput, 'utf8');
+  const storedBuffer = Buffer.from(storedKey, 'utf8');
+  if (inputBuffer.length !== storedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(inputBuffer, storedBuffer);
 }
 
 @Injectable()
@@ -118,8 +111,7 @@ export class ClientPortalService {
     }
 
     const validKey =
-      (typeof content.clientKey === 'string' ? content.clientKey : undefined) ||
-      computeDefaultClientKey(event.id, event.createdAt);
+      typeof content.clientKey === 'string' ? content.clientKey.trim() : '';
 
     return { event, validKey };
   }

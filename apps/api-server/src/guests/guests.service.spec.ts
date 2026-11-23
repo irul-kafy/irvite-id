@@ -39,7 +39,7 @@ describe('GuestsService', () => {
   });
 
   describe('Authorization', () => {
-    it('throws NotFoundException if Event does not exist', async () => {
+    it('scopes Event lookup to userId for ADMIN and throws NotFoundException if Event is not owned', async () => {
       mockPrisma.event.findFirst.mockResolvedValue(null);
 
       await expect(
@@ -47,7 +47,7 @@ describe('GuestsService', () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(mockPrisma.event.findFirst).toHaveBeenCalledWith({
-        where: { id: 'event-id' },
+        where: { id: 'event-id', userId: 'user-id' },
         select: { id: true },
       });
     });
