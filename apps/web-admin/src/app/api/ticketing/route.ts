@@ -1,217 +1,205 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getInternalApiBaseUrl } from '@/utils/url';
-import {
-  checkInLocalTicket,
-  checkoutLocalOrder,
-  correctLocalOrderEmail,
-  createLocalPublicEvent,
-  findLocalOrderOrTicket,
-  getLocalTicketingSummary,
-  listLocalEvents,
-  PublicTicketingEvent,
-} from '@/lib/ticketing-store';
+import { isValidAdminOrigin } from '@/utils/origin';
+
+const UPSTREAM_ERROR_MESSAGE =
+  'Server API tiket sedang tidak dapat dihubungi (502). Periksa koneksi lalu coba lagi.';
 
 export async function GET(request: NextRequest) {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  if (!token) {
+    return NextResponse.json(
+      { message: 'Sesi masuk diperlukan untuk mengakses layanan tiket admin.' },
+      { status: 401 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get('mode') || 'events';
   const category = searchParams.get('category') || undefined;
-  const search = searchParams.get('search') || undefined;
-  const code = searchParams.get('code') || undefined;
-
+  const search =
+    searchParams.get('q') || searchParams.get('search') || undefined;
+  const eventId = searchParams.get('eventId') || undefined;
   const apiBase = getInternalApiBaseUrl();
 
+  const authHeaders: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+
   try {
+    let targetUrl: string;
+
     if (mode === 'summary') {
-      const localSummary = getLocalTicketingSummary();
-      const upstream = await fetch(`${apiBase}/api/v1/ticketing/summary`, {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(1800),
-      });
-      if (upstream.ok) {
-        const json = await upstream.json();
-        const raw = json.data ?? json;
-        return NextResponse.json({
-          ...localSummary,
-          ...raw,
-          totalPublicEvents: Number(raw.totalPublicEvents ?? raw.totalTicketingEvents ?? localSummary.totalPublicEvents),
-          totalTicketsSold: Math.max(localSummary.totalTicketsSold, Number(raw.totalTicketsSold ?? 0)),
-          grossTicketRevenue: Math.max(localSummary.grossTicketRevenue, Number(raw.grossTicketRevenue ?? 0)),
-          grossTicketRevenueLabel:
-            raw.grossTicketRevenueLabel || localSummary.grossTicketRevenueLabel,
-          platformFeeRevenue: Math.max(
-            localSummary.platformFeeRevenue,
-            Number(raw.platformFeeRevenue ?? raw.platformServiceFeeRevenue ?? 0),
-          ),
-          platformFeeRevenueLabel:
-            raw.platformFeeRevenueLabel || localSummary.platformFeeRevenueLabel,
-        });
-      }
-      return NextResponse.json(localSummary);
+      targetUrl = `${apiBase}/api/v1/ticketing/summary`;
+    } else if (mode === 'inquiries') {
+      targetUrl = `${apiBase}/api/v1/ticketing/inquiries`;
+    } else if (mode === 'orders' && eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/orders`;
+    } else {
+      const query = new URLSearchParams();
+      if (category) query.set('category', category);
+      if (search) query.set('q', search);
+      targetUrl = `${apiBase}/api/v1/ticketing/events${query.size ? `?${query.toString()}` : ''}`;
     }
 
-    if (mode === 'lookup' && code) {
-      const upstream = await fetch(`${apiBase}/api/v1/ticketing/orders/${encodeURIComponent(code)}`, {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(1800),
-      });
-      if (upstream.ok) {
-        const json = await upstream.json();
-        return NextResponse.json(json.data ?? json);
-      }
-      const found = findLocalOrderOrTicket(code);
-      if (!found) {
-        return NextResponse.json({ message: `Kode "${code}" tidak ditemukan.` }, { status: 404 });
-      }
-      return NextResponse.json(found);
+    const upstream = await fetch(targetUrl, {
+      method: 'GET',
+      headers: authHeaders,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (upstream.status === 401) {
+      const response = NextResponse.json(
+        { message: 'Sesi admin telah berakhir. Silakan masuk kembali.' },
+        { status: 401 },
+      );
+      response.cookies.delete('auth_token');
+      return response;
     }
 
-    const query = new URLSearchParams();
-    if (category) query.set('category', category);
-    if (search) query.set('search', search);
-    const upstream = await fetch(
-      `${apiBase}/api/v1/ticketing/events${query.toString() ? `?${query.toString()}` : ''}`,
-      {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(1800),
-      },
-    );
-    if (upstream.ok) {
-      const json = await upstream.json();
-      return NextResponse.json(json.data ?? json);
+    const json = await upstream.json().catch(() => null);
+    if (!upstream.ok) {
+      const status = upstream.status >= 500 ? 502 : upstream.status;
+      return NextResponse.json(
+        {
+          message:
+            json?.message ||
+            (status === 502
+              ? UPSTREAM_ERROR_MESSAGE
+              : 'Gagal memuat data tiket dari server.'),
+        },
+        { status },
+      );
     }
+
+    if (!json) {
+      return NextResponse.json(
+        { message: UPSTREAM_ERROR_MESSAGE },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(json.data ?? json, { status: 200 });
   } catch {
-    // Fallback to local ticketing store when api-server is offline
+    return NextResponse.json(
+      { message: UPSTREAM_ERROR_MESSAGE },
+      { status: 502 },
+    );
   }
-
-  if (mode === 'summary') {
-    return NextResponse.json(getLocalTicketingSummary());
-  }
-  if (mode === 'lookup' && code) {
-    const found = findLocalOrderOrTicket(code);
-    if (!found) {
-      return NextResponse.json({ message: `Kode "${code}" tidak ditemukan.` }, { status: 404 });
-    }
-    return NextResponse.json(found);
-  }
-
-  return NextResponse.json(listLocalEvents({ category, search }));
 }
 
 export async function POST(request: NextRequest) {
+  if (!isValidAdminOrigin(request)) {
+    return NextResponse.json(
+      { message: 'Asal permintaan tidak diizinkan.' },
+      { status: 403 },
+    );
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  if (!token) {
+    return NextResponse.json(
+      { message: 'Sesi masuk diperlukan untuk melakukan tindakan ini.' },
+      { status: 401 },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
   const action = body?.action as string | undefined;
   const apiBase = getInternalApiBaseUrl();
 
-  try {
-    if (action === 'correct-email') {
-      try {
-        const upstream = await fetch(`${apiBase}/api/v1/ticketing/cs/correct-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lookupCode: body.lookupCode,
-            newEmail: body.newEmail,
-            correctedBy: body.correctedBy,
-          }),
-          signal: AbortSignal.timeout(2000),
-        });
-        if (upstream.ok) {
-          const json = await upstream.json();
-          return NextResponse.json(json.data ?? json);
-        }
-      } catch {
-        // Fallback to local store
-      }
-      const result = correctLocalOrderEmail({
-        lookupCode: String(body.lookupCode || ''),
-        newEmail: String(body.newEmail || ''),
-        correctedBy: body.correctedBy,
-      });
-      return NextResponse.json(result);
-    }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
 
-    if (action === 'checkout') {
-      try {
-        const upstream = await fetch(`${apiBase}/api/v1/ticketing/orders/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(2000),
-        });
-        if (upstream.ok) {
-          const json = await upstream.json();
-          return NextResponse.json(json.data ?? json, { status: 201 });
-        }
-      } catch {
-        // Fallback to local store
-      }
-      const result = checkoutLocalOrder({
-        eventSlug: String(body.eventSlug || ''),
-        tierId: String(body.tierId || ''),
-        quantity: Number(body.quantity) || 1,
-        buyerName: String(body.buyerName || ''),
-        buyerEmail: String(body.buyerEmail || ''),
-        buyerWhatsapp: String(body.buyerWhatsapp || ''),
-        paymentMethod: body.paymentMethod,
-      });
-      return NextResponse.json(result, { status: 201 });
-    }
+  try {
+    let targetUrl: string;
+    let method = 'POST';
+    let payload: Record<string, unknown>;
 
     if (action === 'check-in') {
-      try {
-        const upstream = await fetch(`${apiBase}/api/v1/ticketing/check-in`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(2000),
-        });
-        if (upstream.ok) {
-          const json = await upstream.json();
-          return NextResponse.json(json.data ?? json);
-        }
-      } catch {
-        // Fallback to local store
-      }
-      const result = checkInLocalTicket({
-        ticketCode: String(body.ticketCode || ''),
+      targetUrl = `${apiBase}/api/v1/ticketing/check-in`;
+      payload = {
+        qrToken: body.qrToken || body.ticketCode,
         gateName: body.gateName,
-      });
-      return NextResponse.json(result);
+      };
+    } else if (action === 'publish-event' && body.eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(String(body.eventId))}/publish`;
+      payload = {};
+    } else if (action === 'update-event' && body.eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(String(body.eventId))}`;
+      method = 'PATCH';
+      payload = body;
+    } else if (action === 'create-event') {
+      targetUrl = `${apiBase}/api/v1/ticketing/events`;
+      payload = {
+        title: body.title,
+        category: body.category,
+        organizerName: body.organizerName,
+        eventDate: body.eventDate,
+        eventTime: body.eventTime,
+        venueName: body.venueName,
+        city: body.city,
+        description: body.description,
+        tiers: body.tiers,
+      };
+    } else {
+      return NextResponse.json(
+        { message: 'Tindakan layanan tiket tidak dikenali.' },
+        { status: 400 },
+      );
     }
 
-    if (action === 'create-event') {
-      try {
-        const upstream = await fetch(`${apiBase}/api/v1/ticketing/events`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: AbortSignal.timeout(2000),
-        });
-        if (upstream.ok) {
-          const json = await upstream.json();
-          return NextResponse.json(json.data ?? json, { status: 201 });
-        }
-      } catch {
-        // Fallback to local store
-      }
-      const created = createLocalPublicEvent({
-        title: String(body.title || ''),
-        category: (body.category as PublicTicketingEvent['category']) || 'Konser Musik',
-        organizerName: String(body.organizerName || 'IRVITE Official Partner'),
-        eventDate: String(body.eventDate || '30 Okt 2026'),
-        eventTime: String(body.eventTime || '19:00 - 22:30 WIB'),
-        venueName: String(body.venueName || 'Jakarta Convention Center'),
-        city: String(body.city || 'Jakarta Pusat'),
-        tierName: String(body.tierName || 'Reguler Pass'),
-        tierPrice: Number(body.tierPrice) || 0,
-        tierQuota: Number(body.tierQuota) || 100,
-      });
-      return NextResponse.json(created, { status: 201 });
+    const upstream = await fetch(targetUrl, {
+      method,
+      headers,
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (upstream.status === 401) {
+      const response = NextResponse.json(
+        { message: 'Sesi admin telah berakhir. Silakan masuk kembali.' },
+        { status: 401 },
+      );
+      response.cookies.delete('auth_token');
+      return response;
     }
 
-    return NextResponse.json({ message: 'Action tidak dikenali.' }, { status: 400 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Terjadi kesalahan pada layanan tiket.';
-    return NextResponse.json({ message }, { status: 400 });
+    const json = await upstream.json().catch(() => null);
+    if (!upstream.ok) {
+      const status = upstream.status >= 500 ? 502 : upstream.status;
+      return NextResponse.json(
+        {
+          message:
+            json?.message ||
+            (status === 502
+              ? UPSTREAM_ERROR_MESSAGE
+              : 'Gagal memproses tindakan tiket di server.'),
+        },
+        { status },
+      );
+    }
+
+    if (!json) {
+      return NextResponse.json(
+        { message: UPSTREAM_ERROR_MESSAGE },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(json.data ?? json, {
+      status: action === 'create-event' ? 201 : 200,
+    });
+  } catch {
+    return NextResponse.json(
+      { message: UPSTREAM_ERROR_MESSAGE },
+      { status: 502 },
+    );
   }
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent } from '@/lib/ticketing-store';
+import { type PublicTicketingEvent } from '@/types/ticketing';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -176,16 +176,17 @@ export default function DashboardPage() {
   const [publishedEventsCount, setPublishedEventsCount] = useState(0);
   const [upcomingEventsCount, setUpcomingEventsCount] = useState(0);
   const [ticketingSummary, setTicketingSummary] = useState<TicketingDashboardSummary>({
-    totalPublicEvents: 4,
-    totalTicketsSold: 1634,
-    grossTicketRevenue: 256800000,
-    grossTicketRevenueLabel: 'Rp 270.215.000',
-    platformFeeRevenue: 4902000,
-    platformFeeRevenueLabel: 'Rp 4.902.000',
+    totalPublicEvents: 0,
+    totalTicketsSold: 0,
+    grossTicketRevenue: 0,
+    grossTicketRevenueLabel: 'Rp 0',
+    platformFeeRevenue: 0,
+    platformFeeRevenueLabel: 'Rp 0',
   });
-  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>(PUBLIC_TICKETING_EVENTS);
-  const [csLookupCode, setCsLookupCode] = useState('ORD-IRV-2026-8821');
-  const [csNewEmail, setCsNewEmail] = useState('rizky.pratama@gmail.com');
+  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>([]);
+  const [ticketingError, setTicketingError] = useState<string | null>(null);
+  const [csLookupCode, setCsLookupCode] = useState('');
+  const [csNewEmail, setCsNewEmail] = useState('');
   const [csLoading, setCsLoading] = useState(false);
   const [csFeedback, setCsFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [dashFilter, setDashFilter] = useState<'all' | 'wedding' | 'tickets'>('all');
@@ -231,7 +232,7 @@ export default function DashboardPage() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [router]);
 
   const toggleGuide = () => {
@@ -285,27 +286,48 @@ export default function DashboardPage() {
     loadDashboardData();
 
     fetch('/api/ticketing?mode=summary', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(data?.message || 'Gagal memuat ringkasan tiket dari server.');
+        }
         if (isMounted && data && typeof data.totalTicketsSold === 'number') {
           setTicketingSummary(data);
+          setTicketingError(null);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (isMounted) {
+          setTicketingError(
+            err instanceof Error ? err.message : 'Gagal memuat ringkasan tiket dari server.',
+          );
+        }
+      });
 
     fetch('/api/ticketing', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(data?.message || 'Gagal memuat daftar acara tiket dari server.');
+        }
         if (isMounted && data) {
           const list = Array.isArray(data.items)
             ? data.items
             : Array.isArray(data.events)
               ? data.events
-              : [];
+              : Array.isArray(data.data)
+                ? data.data
+                : [];
           setTicketingEvents(list);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (isMounted) {
+          setTicketingError(
+            err instanceof Error ? err.message : 'Gagal memuat daftar acara tiket dari server.',
+          );
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -629,7 +651,7 @@ export default function DashboardPage() {
               </div>
               <div className="dash-kpi__value">{loading ? '…' : totalEventsCount}</div>
               <div className="dash-kpi__meta">
-                {loading ? '…' : `${publishedEventsCount} PUBLISHED • ${ totalGuestsCount } Tamu`}
+                {loading ? '…' : `${publishedEventsCount} PUBLISHED • ${totalGuestsCount} Tamu`}
               </div>
             </div>
 
@@ -880,13 +902,12 @@ export default function DashboardPage() {
                               {event.title}
                             </span>
                             <span
-                              className={`badge ${
-                                event.status === 'PUBLISHED'
-                                  ? 'badge--success'
-                                  : event.status === 'COMPLETED'
+                              className={`badge ${event.status === 'PUBLISHED'
+                                ? 'badge--success'
+                                : event.status === 'COMPLETED'
                                   ? 'badge--info'
                                   : 'badge--neutral'
-                              }`}
+                                }`}
                             >
                               {event.status}
                             </span>
@@ -972,6 +993,33 @@ export default function DashboardPage() {
               </div>
 
               <div className="dash-panel__body dash-panel__body--flush">
+                {ticketingError && (
+                  <div
+                    role="alert"
+                    style={{
+                      margin: '0.75rem 1.25rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--status-danger-bg)',
+                      color: 'var(--status-danger)',
+                      fontSize: '0.84rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span>{ticketingError}</span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setRefresh((v) => v + 1)}
+                    >
+                      Coba lagi
+                    </button>
+                  </div>
+                )}
                 {wristbandExportNotice && (
                   <div
                     style={{

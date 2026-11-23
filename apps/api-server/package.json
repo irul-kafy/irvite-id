@@ -24,6 +24,7 @@
     "test:e2e:local": "node --env-file=../../.env scripts/verify-local.cjs",
     "admin:create": "node --env-file=../../.env -r ts-node/register scripts/create-super-admin.ts",
     "templates:sync": "node --env-file=../../.env -r ts-node/register scripts/sync-templates.ts",
+    "seed:ticketing": "node --env-file=../../.env -r ts-node/register ../../packages/database/scripts/seed-ticketing.ts",
     "media:migrate:blob": "node -r ts-node/register scripts/migrate-media-to-blob.ts"
   },
   "dependencies": {

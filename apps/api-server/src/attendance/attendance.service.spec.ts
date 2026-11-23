@@ -1244,13 +1244,15 @@ describe('AttendanceService', () => {
         scannedAt: new Date(),
       };
 
-      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => {
-        return callback({
-          guest: { create: jest.fn().mockResolvedValue(fakeGuest) },
-          invitation: { create: jest.fn().mockResolvedValue(fakeInvitation) },
-          attendance: { create: jest.fn().mockResolvedValue(fakeAttendance) },
-        });
-      });
+      (prisma.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          return callback({
+            guest: { create: jest.fn().mockResolvedValue(fakeGuest) },
+            invitation: { create: jest.fn().mockResolvedValue(fakeInvitation) },
+            attendance: { create: jest.fn().mockResolvedValue(fakeAttendance) },
+          });
+        },
+      );
 
       const res = await service.walkInCheckIn('e1', 'u1', Role.STAFF, {
         name: '  Tamu Dadakan Bpk. Joko  ',

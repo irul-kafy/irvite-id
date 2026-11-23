@@ -247,7 +247,9 @@ export class EventsService {
 
   async findOne(id: string, userId: string, role: Role) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id }
+        : { id, userId };
 
     const event = await this.prisma.event.findFirst({
       where: whereScope,
@@ -293,7 +295,9 @@ export class EventsService {
     updateEventDto: UpdateEventDto,
   ) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id }
+        : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -901,7 +905,9 @@ export class EventsService {
   }
   async archive(id: string, userId: string, role: Role) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id }
+        : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -926,7 +932,9 @@ export class EventsService {
 
   async restore(id: string, userId: string, role: Role) {
     const whereScope =
-      role === Role.SUPER_ADMIN || role === Role.ADMIN ? { id } : { id, userId };
+      role === Role.SUPER_ADMIN || role === Role.ADMIN
+        ? { id }
+        : { id, userId };
 
     const existingEvent = await this.prisma.event.findFirst({
       where: whereScope,
@@ -1023,24 +1031,32 @@ export class EventsService {
       });
 
       // 7. orders (prevent orphaned orders when events are deleted)
-      const orders = await tx.order.deleteMany({
-        where: { eventId: id },
-      }).catch(() => ({ count: 0 }));
+      const orders = await tx.order
+        .deleteMany({
+          where: { eventId: id },
+        })
+        .catch(() => ({ count: 0 }));
 
       // 8. wishes
-      const wishes = await tx.wish.deleteMany({
-        where: { eventId: id },
-      }).catch(() => ({ count: 0 }));
+      const wishes = await tx.wish
+        .deleteMany({
+          where: { eventId: id },
+        })
+        .catch(() => ({ count: 0 }));
 
       // 9. offline_sync_ops
-      const offlineOps = await tx.offlineSyncOp.deleteMany({
-        where: { eventId: id },
-      }).catch(() => ({ count: 0 }));
+      const offlineOps = await tx.offlineSyncOp
+        .deleteMany({
+          where: { eventId: id },
+        })
+        .catch(() => ({ count: 0 }));
 
       // 10. activity_logs
-      const activityLogs = await tx.activityLog.deleteMany({
-        where: { eventId: id },
-      }).catch(() => ({ count: 0 }));
+      const activityLogs = await tx.activityLog
+        .deleteMany({
+          where: { eventId: id },
+        })
+        .catch(() => ({ count: 0 }));
 
       // 11. event
       await tx.event.delete({

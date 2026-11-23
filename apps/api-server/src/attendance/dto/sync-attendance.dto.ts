@@ -75,4 +75,3 @@ export class SyncAttendanceBatchDto {
   @Type(() => OfflineSyncOperationItemDto)
   operations: OfflineSyncOperationItemDto[];
 }
-

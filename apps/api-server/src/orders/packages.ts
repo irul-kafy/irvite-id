@@ -13,7 +13,8 @@ export const PACKAGES: Record<string, PackageDefinition> = {
     name: 'Paket Silver',
     priceAmount: 99000,
     durationDays: 90, // 3 bulan
-    description: 'Solusi undangan esensial nan elegan untuk momen istimewa Anda.',
+    description:
+      'Solusi undangan esensial nan elegan untuk momen istimewa Anda.',
     features: [
       'Masa aktif 3 bulan setelah acara',
       'Desain responsif semua template',
@@ -28,7 +29,8 @@ export const PACKAGES: Record<string, PackageDefinition> = {
     name: 'Paket Gold',
     priceAmount: 199000,
     durationDays: 180, // 6 bulan
-    description: 'Pilihan terfavorit dengan fitur lengkap dan scanner kehadiran offline.',
+    description:
+      'Pilihan terfavorit dengan fitur lengkap dan scanner kehadiran offline.',
     features: [
       'Masa aktif 6 bulan setelah acara',
       'Semua fitur Paket Silver',
@@ -44,7 +46,8 @@ export const PACKAGES: Record<string, PackageDefinition> = {
     name: 'Paket Platinum',
     priceAmount: 349000,
     durationDays: 365, // 1 tahun
-    description: 'Pengalaman premium eksklusif dengan masa aktif 1 tahun & dukungan prioritas.',
+    description:
+      'Pengalaman premium eksklusif dengan masa aktif 1 tahun & dukungan prioritas.',
     features: [
       'Masa aktif 12 bulan (1 tahun) setelah acara',
       'Semua fitur Paket Gold',
@@ -71,4 +74,3 @@ export function calculateActiveUntil(
   const pkg = getPackageDefinition(packageCode);
   return new Date(eventDate.getTime() + pkg.durationDays * 24 * 60 * 60 * 1000);
 }
-

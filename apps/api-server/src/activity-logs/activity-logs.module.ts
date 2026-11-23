@@ -11,4 +11,3 @@ import { ActivityLogsService } from './activity-logs.service';
   exports: [ActivityLogsService],
 })
 export class ActivityLogsModule {}
-

@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { ExportQueryDto } from './dto/export-query.dto';
 import {
@@ -283,7 +287,9 @@ export class ReportsService {
       if (validAtt) {
         totalAttendedGuests++;
         totalAttendedPax += validAtt.scannedPax;
-        const isVip = g.category.toUpperCase() === 'VIP' || g.category.toUpperCase() === 'VVIP';
+        const isVip =
+          g.category.toUpperCase() === 'VIP' ||
+          g.category.toUpperCase() === 'VVIP';
         if (isVip) {
           vipAttendedCount++;
           vipAttendees.push({
@@ -299,7 +305,9 @@ export class ReportsService {
 
     for (const att of attendances) {
       const guestName = att.invitation?.guest?.name || '';
-      const isWalkIn = guestName.toLowerCase().startsWith('walk-in') || att.invitation?.guest?.category === 'WALK_IN';
+      const isWalkIn =
+        guestName.toLowerCase().startsWith('walk-in') ||
+        att.invitation?.guest?.category === 'WALK_IN';
       if (isWalkIn) {
         walkInCount++;
         walkInAttendees.push({
@@ -322,13 +330,18 @@ export class ReportsService {
       hourlyMap.set(slot, existing);
     }
 
-    const hourlyDistribution = Array.from(hourlyMap.entries()).map(([hourSlot, val]) => ({
-      hourSlot,
-      count: val.count,
-      pax: val.pax,
-    }));
+    const hourlyDistribution = Array.from(hourlyMap.entries()).map(
+      ([hourSlot, val]) => ({
+        hourSlot,
+        count: val.count,
+        pax: val.pax,
+      }),
+    );
 
-    const attendanceRatePercent = totalGuests > 0 ? Math.round((totalAttendedGuests / totalGuests) * 100) : 0;
+    const attendanceRatePercent =
+      totalGuests > 0
+        ? Math.round((totalAttendedGuests / totalGuests) * 100)
+        : 0;
 
     const data: PostEventData = {
       event,

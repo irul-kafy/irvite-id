@@ -33,4 +33,3 @@ export class OrderQueryDto {
   @Max(100)
   limit?: number = 20;
 }
-

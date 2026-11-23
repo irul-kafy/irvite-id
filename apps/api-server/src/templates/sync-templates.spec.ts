@@ -86,9 +86,7 @@ describe('syncTemplateIdentities', () => {
     );
     expect(rv).toBeDefined();
     expect(rv?.name).toBe('Royal Velvet Nocturne');
-    expect(rv?.previewImageUrl).toBe(
-      '/templates/royal-velvet/thumbnail.webp',
-    );
+    expect(rv?.previewImageUrl).toBe('/templates/royal-velvet/thumbnail.webp');
   });
 
   it('creates Template records when 0 matching records exist', async () => {

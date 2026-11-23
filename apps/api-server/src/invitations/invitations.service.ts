@@ -756,11 +756,7 @@ export class InvitationsService {
     };
   }
 
-  async getInvitationStats(
-    eventId: string,
-    currentUserId: string,
-    role: Role,
-  ) {
+  async getInvitationStats(eventId: string, currentUserId: string, role: Role) {
     await this.assertEventAccessible(eventId, currentUserId, role);
 
     const invitations = await this.prisma.invitation.findMany({

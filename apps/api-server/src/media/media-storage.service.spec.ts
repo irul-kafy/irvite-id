@@ -6,9 +6,14 @@ import { InternalServerErrorException } from '@nestjs/common';
 import * as vercelBlob from '@vercel/blob';
 
 jest.mock('@vercel/blob', () => ({
-  put: jest.fn().mockResolvedValue({ url: 'https://blob.vercel-storage.com/test.png' }),
+  put: jest
+    .fn()
+    .mockResolvedValue({ url: 'https://blob.vercel-storage.com/test.png' }),
   del: jest.fn().mockResolvedValue(undefined),
-  head: jest.fn().mockResolvedValue({ downloadUrl: 'https://blob.vercel-storage.com/test.png', size: 4 }),
+  head: jest.fn().mockResolvedValue({
+    downloadUrl: 'https://blob.vercel-storage.com/test.png',
+    size: 4,
+  }),
 }));
 
 describe('MediaStorageService', () => {
@@ -31,7 +36,8 @@ describe('MediaStorageService', () => {
     if (originalEnv === undefined) delete process.env.MEDIA_STORAGE_PATH;
     else process.env.MEDIA_STORAGE_PATH = originalEnv;
 
-    if (originalBlobToken === undefined) delete process.env.BLOB_READ_WRITE_TOKEN;
+    if (originalBlobToken === undefined)
+      delete process.env.BLOB_READ_WRITE_TOKEN;
     else process.env.BLOB_READ_WRITE_TOKEN = originalBlobToken;
 
     const testDir = path.join(__dirname, 'test-storage');

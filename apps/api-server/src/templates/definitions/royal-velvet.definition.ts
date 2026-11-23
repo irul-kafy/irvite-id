@@ -277,4 +277,3 @@ export const ROYAL_VELVET_DEFINITION: TemplateDefinition = {
     },
   ],
 };
-

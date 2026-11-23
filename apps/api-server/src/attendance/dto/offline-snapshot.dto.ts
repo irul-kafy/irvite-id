@@ -23,4 +23,3 @@ export interface OfflineSnapshotResponse {
   totalCheckedInPax: number;
   guests: OfflineGuestSnapshotItem[];
 }
-

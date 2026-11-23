@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -32,9 +36,13 @@ export class MediaStorageService {
     }
 
     if (this.isBlobConfigured) {
-      this.logger.log('Vercel Blob storage driver initialized for persistent media.');
+      this.logger.log(
+        'Vercel Blob storage driver initialized for persistent media.',
+      );
     } else {
-      this.logger.log(`Local disk storage driver initialized at: ${this.storageRoot}`);
+      this.logger.log(
+        `Local disk storage driver initialized at: ${this.storageRoot}`,
+      );
     }
   }
 
@@ -91,7 +99,9 @@ export class MediaStorageService {
       } catch (blobErr) {
         this.logger.error(`Vercel Blob put failed for ${key}:`, blobErr);
         if (!fs.existsSync(target)) {
-          throw new InternalServerErrorException('Failed to write media to permanent storage');
+          throw new InternalServerErrorException(
+            'Failed to write media to permanent storage',
+          );
         }
       }
     }
@@ -107,7 +117,9 @@ export class MediaStorageService {
     } catch (error: unknown) {
       const err = error as NodeJS.ErrnoException;
       if (err.code !== 'ENOENT') {
-        this.logger.warn(`Failed to unlink local file ${target}: ${err.message}`);
+        this.logger.warn(
+          `Failed to unlink local file ${target}: ${err.message}`,
+        );
       }
     }
 
@@ -139,12 +151,16 @@ export class MediaStorageService {
               await fs.promises.mkdir(dir, { recursive: true });
             }
             await fs.promises.writeFile(target, buf);
-            this.logger.debug(`Rehydrated missing local file from Vercel Blob: ${key}`);
+            this.logger.debug(
+              `Rehydrated missing local file from Vercel Blob: ${key}`,
+            );
             return target;
           }
         }
       } catch (blobErr) {
-        this.logger.debug(`Could not rehydrate from Vercel Blob for key ${key}: ${blobErr}`);
+        this.logger.debug(
+          `Could not rehydrate from Vercel Blob for key ${key}: ${blobErr}`,
+        );
       }
     }
 

@@ -87,7 +87,8 @@ describe('ROYAL_VELVET TemplateDefinition & Validation', () => {
         timeZone: 'Asia/Jakarta',
         openingText:
           'Dengan segala kerendahan hati dan rasa syukur ke hadirat Tuhan Yang Maha Esa...',
-        quote: 'Two souls with but a single thought, two hearts that beat as one.',
+        quote:
+          'Two souls with but a single thought, two hearts that beat as one.',
         prayer:
           'Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu...',
         prayerSource: 'Surah Ar-Rum: 21',
@@ -130,4 +131,3 @@ describe('ROYAL_VELVET TemplateDefinition & Validation', () => {
     });
   });
 });
-

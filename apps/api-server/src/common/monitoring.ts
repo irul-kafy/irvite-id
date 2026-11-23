@@ -10,13 +10,15 @@ export function scrubPii<T>(data: T): T {
   if (data === null || data === undefined) return data;
 
   if (typeof data === 'string') {
-    return data
-      // Mask Indonesian phone numbers
-      .replace(/(\+?62|0)8[0-9]{8,12}/g, '$18********')
-      // Redact Bearer tokens
-      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
-      // Redact passwords in query/body strings
-      .replace(/(password(?:Hash)?)=[^&]+/gi, '$1=[REDACTED]') as unknown as T;
+    return (
+      data
+        // Mask Indonesian phone numbers
+        .replace(/(\+?62|0)8[0-9]{8,12}/g, '$18********')
+        // Redact Bearer tokens
+        .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
+        // Redact passwords in query/body strings
+        .replace(/(password(?:Hash)?)=[^&]+/gi, '$1=[REDACTED]') as unknown as T
+    );
   }
 
   if (Array.isArray(data)) {
@@ -54,18 +56,25 @@ export function scrubPii<T>(data: T): T {
 export function initMonitoring(serviceName = 'api-server') {
   const dsn = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
   if (!dsn) {
-    logger.log(`[Monitoring] SENTRY_DSN not configured for ${serviceName}. Falling back to internal structured logging.`);
+    logger.log(
+      `[Monitoring] SENTRY_DSN not configured for ${serviceName}. Falling back to internal structured logging.`,
+    );
     return false;
   }
 
-  logger.log(`[Monitoring] Initialized monitoring for ${serviceName} with Sentry DSN.`);
+  logger.log(
+    `[Monitoring] Initialized monitoring for ${serviceName} with Sentry DSN.`,
+  );
   return true;
 }
 
 /**
  * Captures an exception, scrubbing any sensitive PII.
  */
-export function captureException(error: unknown, context?: Record<string, unknown>) {
+export function captureException(
+  error: unknown,
+  context?: Record<string, unknown>,
+) {
   const sanitizedContext = context ? scrubPii(context) : undefined;
   const errMessage = error instanceof Error ? error.message : String(error);
   const scrubbedMessage = scrubPii(errMessage);
@@ -84,4 +93,3 @@ export function captureException(error: unknown, context?: Record<string, unknow
     sanitizedContext ? JSON.stringify(sanitizedContext) : undefined,
   );
 }
-

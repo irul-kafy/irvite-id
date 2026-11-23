@@ -41,13 +41,23 @@ export interface PostEventData {
 }
 
 export function generatePostEventHtmlReport(data: PostEventData): string {
-  const { event, metrics, hourlyDistribution, vipAttendees, walkInAttendees, wishes } = data;
-  const eventDateFormatted = new Date(event.eventDate).toLocaleDateString('id-ID', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const {
+    event,
+    metrics,
+    hourlyDistribution,
+    vipAttendees,
+    walkInAttendees,
+    wishes,
+  } = data;
+  const eventDateFormatted = new Date(event.eventDate).toLocaleDateString(
+    'id-ID',
+    {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    },
+  );
 
   return `<!DOCTYPE html>
 <html lang="id">
@@ -135,13 +145,21 @@ export function generatePostEventHtmlReport(data: PostEventData): string {
       </tr>
     </thead>
     <tbody>
-      ${hourlyDistribution.length === 0 ? '<tr><td colspan="3" style="text-align: center; color: #9ca3af;">Belum ada tamu hadir</td></tr>' : hourlyDistribution.map(h => `
+      ${
+        hourlyDistribution.length === 0
+          ? '<tr><td colspan="3" style="text-align: center; color: #9ca3af;">Belum ada tamu hadir</td></tr>'
+          : hourlyDistribution
+              .map(
+                (h) => `
         <tr>
           <td>${h.hourSlot}</td>
           <td>${h.count} undangan</td>
           <td><strong>${h.pax} pax</strong></td>
         </tr>
-      `).join('')}
+      `,
+              )
+              .join('')
+      }
     </tbody>
   </table>
 
@@ -157,7 +175,12 @@ export function generatePostEventHtmlReport(data: PostEventData): string {
       </tr>
     </thead>
     <tbody>
-      ${vipAttendees.length === 0 ? '<tr><td colspan="5" style="text-align: center; color: #9ca3af;">Tidak ada tamu VIP yang tercatat</td></tr>' : vipAttendees.map(v => `
+      ${
+        vipAttendees.length === 0
+          ? '<tr><td colspan="5" style="text-align: center; color: #9ca3af;">Tidak ada tamu VIP yang tercatat</td></tr>'
+          : vipAttendees
+              .map(
+                (v) => `
         <tr>
           <td><strong>${v.name}</strong></td>
           <td><span class="badge-vip">${v.category}</span></td>
@@ -165,11 +188,16 @@ export function generatePostEventHtmlReport(data: PostEventData): string {
           <td>${v.scannedPax} pax</td>
           <td>${new Date(v.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</td>
         </tr>
-      `).join('')}
+      `,
+              )
+              .join('')
+      }
     </tbody>
   </table>
 
-  ${walkInAttendees.length > 0 ? `
+  ${
+    walkInAttendees.length > 0
+      ? `
     <div class="section-title">Daftar Tamu Dadakan / Walk-In (${walkInAttendees.length})</div>
     <table>
       <thead>
@@ -181,29 +209,43 @@ export function generatePostEventHtmlReport(data: PostEventData): string {
         </tr>
       </thead>
       <tbody>
-        ${walkInAttendees.map(w => `
+        ${walkInAttendees
+          .map(
+            (w) => `
           <tr>
             <td><strong>${w.name}</strong> <span class="badge-walkin">WALK-IN</span></td>
             <td>${w.scannedPax} pax</td>
             <td>${new Date(w.scannedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</td>
             <td>${w.scannedByName}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${wishes.length > 0 ? `
+  ${
+    wishes.length > 0
+      ? `
     <div class="section-title page-break">Buku Ucapan & Doa Tamu (${wishes.length})</div>
     <div class="wishes-list">
-      ${wishes.map(w => `
+      ${wishes
+        .map(
+          (w) => `
         <div class="wish-box">
           <div class="wish-author">${w.name}</div>
           <div class="wish-text">“${w.message}”</div>
         </div>
-      `).join('')}
+      `,
+        )
+        .join('')}
     </div>
-  ` : ''}
+  `
+      : ''
+  }
 
   <div style="margin-top: 32px; padding-top: 12px; border-top: 1px solid #e5e7eb; font-size: 10px; color: #9ca3af; text-align: center;">
     IRVITE Digital Invitation Platform — Laporan ini di-generate secara otomatis dan sah.
@@ -211,4 +253,3 @@ export function generatePostEventHtmlReport(data: PostEventData): string {
 </body>
 </html>`;
 }
-

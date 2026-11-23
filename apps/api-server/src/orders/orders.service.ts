@@ -12,10 +12,7 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import {
-  calculateActiveUntil,
-  getPackageDefinition,
-} from './packages';
+import { calculateActiveUntil, getPackageDefinition } from './packages';
 
 // Valid transitions mapping
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -141,7 +138,10 @@ export class OrdersService {
           .catch(() => []),
       ]);
     } catch (queryErr) {
-      console.warn('[OrdersService.listOrders] Recovering from query error:', queryErr);
+      console.warn(
+        '[OrdersService.listOrders] Recovering from query error:',
+        queryErr,
+      );
       try {
         await this.prisma.$executeRawUnsafe(
           'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
@@ -370,7 +370,10 @@ export class OrdersService {
       }
 
       // If marked LIVE, also ensure event status is PUBLISHED
-      if (dto.status === OrderStatus.LIVE && order.event.status !== 'PUBLISHED') {
+      if (
+        dto.status === OrderStatus.LIVE &&
+        order.event.status !== 'PUBLISHED'
+      ) {
         await this.prisma.event.update({
           where: { id: order.eventId },
           data: { status: 'PUBLISHED' },
@@ -414,7 +417,10 @@ export class OrdersService {
     ) {
       // Auto-set activeUntil on payment if not present
       const pkgCode = dto.packageCode || order.packageCode;
-      const computedExpiry = calculateActiveUntil(order.event.eventDate, pkgCode);
+      const computedExpiry = calculateActiveUntil(
+        order.event.eventDate,
+        pkgCode,
+      );
       await this.prisma.event.update({
         where: { id: order.eventId },
         data: { activeUntil: computedExpiry },
@@ -528,4 +534,3 @@ export class OrdersService {
     };
   }
 }
-

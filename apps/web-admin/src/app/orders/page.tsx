@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { EmptyState } from '@/components/empty-state';
-import { PUBLIC_TICKETING_ORDERS, type TicketOrderRecord } from '@/lib/ticketing-store';
+import { type TicketOrderRecord } from '@/types/ticketing';
 
 export interface OrderItem {
   id: string;
@@ -103,7 +103,8 @@ export function getStatusBadgeStyle(status: string) {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [ticketOrders, setTicketOrders] = useState<TicketOrderRecord[]>(PUBLIC_TICKETING_ORDERS);
+  const [ticketOrders, setTicketOrders] = useState<TicketOrderRecord[]>([]);
+  const [ticketOrdersError, setTicketOrdersError] = useState<string | null>(null);
   const [orderCategoryTab, setOrderCategoryTab] = useState<'wedding' | 'tickets'>('wedding');
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -127,6 +128,7 @@ export default function OrdersPage() {
       if (selectedStatus !== 'ALL') query.set('status', selectedStatus);
       if (searchQuery.trim()) query.set('search', searchQuery.trim());
 
+      setTicketOrdersError(null);
       const [res, tktRes] = await Promise.all([
         fetch(`/api/orders?${query.toString()}`),
         fetch('/api/ticketing?mode=summary', { cache: 'no-store' }).catch(() => null),
@@ -134,9 +136,13 @@ export default function OrdersPage() {
 
       if (tktRes && tktRes.ok) {
         const tktJson = await tktRes.json().catch(() => null);
-        if (tktJson && Array.isArray(tktJson.recentOrders) && tktJson.recentOrders.length > 0) {
-          setTicketOrders(tktJson.recentOrders);
-        }
+        setTicketOrders(Array.isArray(tktJson?.recentOrders) ? tktJson.recentOrders : []);
+      } else {
+        const tktErr = tktRes ? await tktRes.json().catch(() => null) : null;
+        setTicketOrders([]);
+        setTicketOrdersError(
+          tktErr?.message || 'Gagal memuat daftar pesanan tiket dari server.',
+        );
       }
       if (res.status === 401) {
         window.location.href = '/login';
@@ -281,6 +287,32 @@ export default function OrdersPage() {
 
       {orderCategoryTab === 'tickets' ? (
         <>
+          {ticketOrdersError && (
+            <div
+              role="alert"
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--status-danger-bg)',
+                color: 'var(--status-danger)',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span>{ticketOrdersError}</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => void fetchOrders()}
+              >
+                Coba lagi
+              </button>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '10px', padding: '1rem' }}>
               <div style={{ fontSize: '0.8125rem', color: '#78716c', fontWeight: 500 }}>Total Pesanan Tiket</div>
@@ -309,8 +341,8 @@ export default function OrdersPage() {
                       acc +
                       Number(
                         o.serviceFeeAmount ??
-                          (o as unknown as { serviceFee?: number }).serviceFee ??
-                          (o.quantity ? o.quantity * 3000 : 3000)
+                        (o as unknown as { serviceFee?: number }).serviceFee ??
+                        (o.quantity ? o.quantity * 3000 : 3000)
                       ),
                     0
                   )
@@ -413,60 +445,60 @@ export default function OrdersPage() {
                     }
 
                     return filtered.map((tOrder) => (
-                    <tr key={tOrder.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
-                        <code>{tOrder.orderCode}</code>
-                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginTop: '2px' }}>
-                          {tOrder.paymentMethod}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#111814' }}>{tOrder.buyerName}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#475569' }}>{tOrder.buyerEmail}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#059669' }}>{tOrder.buyerWhatsapp}</div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#0f766e' }}>{tOrder.eventTitle}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                          Kode E-Ticket: {tOrder.tickets.map((t) => t.ticketCode).join(', ')}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
-                          {tOrder.quantity} Tiket
-                        </span>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
-                          {formatRupiah(tOrder.totalAmount)}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            background: '#ecfdf5',
-                            color: '#065f46',
-                            border: '1px solid #a7f3d0',
-                          }}
-                        >
-                          Lunas ({tOrder.status})
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <Link
-                          href="/dashboard"
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem' }}
-                        >
-                          Koreksi Email CS
-                        </Link>
-                      </td>
-                    </tr>
-                  ));
-                })()}
+                      <tr key={tOrder.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
+                          <code>{tOrder.orderCode}</code>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500, marginTop: '2px' }}>
+                            {tOrder.paymentMethod}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ fontWeight: 600, color: '#111814' }}>{tOrder.buyerName}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#475569' }}>{tOrder.buyerEmail}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#059669' }}>{tOrder.buyerWhatsapp}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ fontWeight: 600, color: '#0f766e' }}>{tOrder.eventTitle}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                            Kode E-Ticket: {tOrder.tickets.map((t) => t.ticketCode).join(', ')}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
+                            {tOrder.quantity} Tiket
+                          </span>
+                          <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
+                            {formatRupiah(tOrder.totalAmount)}
+                          </div>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 8px',
+                              borderRadius: '12px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              background: '#ecfdf5',
+                              color: '#065f46',
+                              border: '1px solid #a7f3d0',
+                            }}
+                          >
+                            Lunas ({tOrder.status})
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                          <Link
+                            href="/dashboard"
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            Koreksi Email CS
+                          </Link>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -475,246 +507,246 @@ export default function OrdersPage() {
       ) : (
         <>
 
-      {/* ── KPI Stats Summary ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '10px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8125rem', color: '#78716c', fontWeight: 500 }}>Total Pesanan</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111814', marginTop: '0.25rem' }}>
-            {counts.TOTAL ?? 0}
-          </div>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #fde68a', borderRadius: '10px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8125rem', color: '#92400e', fontWeight: 500 }}>Menunggu Bayar</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#b45309', marginTop: '0.25rem' }}>
-            {counts.AWAITING_PAYMENT ?? 0}
-          </div>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8125rem', color: '#065f46', fontWeight: 500 }}>Lunas & Aktif</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.25rem' }}>
-            {(counts.PAID ?? 0) + (counts.LIVE ?? 0)}
-          </div>
-        </div>
-        <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1rem' }}>
-          <div style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: 500 }}>Selesai / Arsip</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#334155', marginTop: '0.25rem' }}>
-            {counts.COMPLETED ?? 0}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Status Tabs & Search Filter ── */}
-      <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', marginBottom: '1rem' }}>
-          {statusTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setSelectedStatus(tab.key)}
-              style={{
-                padding: '0.4rem 0.85rem',
-                borderRadius: '6px',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                border: selectedStatus === tab.key ? '1px solid var(--admin-brand, #111814)' : '1px solid transparent',
-                background: selectedStatus === tab.key ? 'var(--admin-brand, #111814)' : '#f8fafc',
-                color: selectedStatus === tab.key ? '#fff' : '#64748b',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', maxWidth: '480px' }}>
-          <input
-            type="text"
-            placeholder="Cari Ref Code / Nama Klien / WhatsApp..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '0.5rem 0.75rem',
-              borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              fontSize: '0.875rem',
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              background: '#111814',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
-          >
-            Cari
-          </button>
-        </form>
-      </div>
-
-      {/* ── Table Container ── */}
-      <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', overflow: 'hidden' }}>
-        {loading ? (
-          <TableSkeleton rows={5} columns={7} label="Memuat daftar pesanan..." />
-        ) : error ? (
-          <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
-            <div style={{ color: '#dc2626', fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.95rem' }}>
-              {error === 'Internal server error' || error === 'Internal Server Error'
-                ? 'Terjadi kendala saat memuat data pesanan dari server.'
-                : error}
+          {/* ── KPI Stats Summary ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#78716c', fontWeight: 500 }}>Total Pesanan</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111814', marginTop: '0.25rem' }}>
+                {counts.TOTAL ?? 0}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={fetchOrders}
-              className="btn-sm-action"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 16px',
-                borderRadius: '8px',
-                background: '#fdfaf5',
-                color: '#9c7333',
-                border: '1px solid #e0c89e',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              🔄 Coba Muat Ulang Pesanan
-            </button>
+            <div style={{ background: '#fff', border: '1px solid #fde68a', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#92400e', fontWeight: 500 }}>Menunggu Bayar</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#b45309', marginTop: '0.25rem' }}>
+                {counts.AWAITING_PAYMENT ?? 0}
+              </div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#065f46', fontWeight: 500 }}>Lunas & Aktif</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '0.25rem' }}>
+                {(counts.PAID ?? 0) + (counts.LIVE ?? 0)}
+              </div>
+            </div>
+            <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '1rem' }}>
+              <div style={{ fontSize: '0.8125rem', color: '#475569', fontWeight: 500 }}>Selesai / Arsip</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#334155', marginTop: '0.25rem' }}>
+                {counts.COMPLETED ?? 0}
+              </div>
+            </div>
           </div>
-        ) : orders.length === 0 ? (
-          <EmptyState
-            icon="📦"
-            title="Tidak Ada Pesanan Ditemukan"
-            description={
-              searchQuery.trim()
-                ? `Tidak ada pesanan yang sesuai dengan kata kunci "${searchQuery}". Coba kata kunci lain atau bersihkan pencarian.`
-                : 'Belum ada pesanan yang tercatat pada filter status ini.'
-            }
-          />
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '0.85rem 1rem' }}>Ref Code</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Klien</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Acara</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Paket & Harga</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Status</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Masa Aktif</th>
-                  <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const badge = getStatusBadgeStyle(order.status);
-                  const expiry = getExpiryStatus(order.event?.activeUntil);
-                  const cleanWa = order.clientWhatsapp?.replace(/[^0-9]/g, '');
 
-                  return (
-                    <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
-                        <code>{order.referenceCode}</code>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 600, color: '#111814' }}>{order.clientName}</div>
-                        {cleanWa && (
-                          <a
-                            href={`https://wa.me/${cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ fontSize: '0.75rem', color: '#059669', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}
-                          >
-                            📱 {order.clientWhatsapp}
-                          </a>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <Link
-                          href={`/events/${order.event.id}`}
-                          style={{ color: '#0f766e', fontWeight: 600, textDecoration: 'none' }}
-                        >
-                          {order.event.title}
-                        </Link>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                          📅 {formatSimpleDate(order.event.eventDate)}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
-                          {order.packageCode}
-                        </span>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
-                          {formatRupiah(order.priceAmount)}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            background: badge.bg,
-                            color: badge.color,
-                            border: `1px solid ${badge.border}`,
-                          }}
-                        >
-                          {badge.label}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontSize: '0.8125rem', color: '#334155' }}>
-                          {formatSimpleDate(order.event.activeUntil)}
-                        </div>
-                        {expiry.variant === 'warning' && (
-                          <span style={{ display: 'inline-block', fontSize: '0.6875rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', marginTop: '2px' }}>
-                            ⚠️ {expiry.label}
-                          </span>
-                        )}
-                        {expiry.variant === 'expired' && (
-                          <span style={{ display: 'inline-block', fontSize: '0.6875rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', marginTop: '2px' }}>
-                            ⛔ {expiry.label}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <button
-                          onClick={() => openUpdateModal(order)}
-                          style={{
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            background: '#fff',
-                            color: '#0f172a',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Ubah Status
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* ── Status Tabs & Search Filter ── */}
+          <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.75rem', borderBottom: '1px solid #f1f5f9', marginBottom: '1rem' }}>
+              {statusTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedStatus(tab.key)}
+                  style={{
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: '6px',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    border: selectedStatus === tab.key ? '1px solid var(--admin-brand, #111814)' : '1px solid transparent',
+                    background: selectedStatus === tab.key ? 'var(--admin-brand, #111814)' : '#f8fafc',
+                    color: selectedStatus === tab.key ? '#fff' : '#64748b',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {tab.label} ({tab.count})
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', maxWidth: '480px' }}>
+              <input
+                type="text"
+                placeholder="Cari Ref Code / Nama Klien / WhatsApp..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  fontSize: '0.875rem',
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  background: '#111814',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Cari
+              </button>
+            </form>
           </div>
-        )}
-      </div>
+
+          {/* ── Table Container ── */}
+          <div style={{ background: '#fff', border: '1px solid var(--admin-border, rgba(17,24,20,0.1))', borderRadius: '12px', overflow: 'hidden' }}>
+            {loading ? (
+              <TableSkeleton rows={5} columns={7} label="Memuat daftar pesanan..." />
+            ) : error ? (
+              <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
+                <div style={{ color: '#dc2626', fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.95rem' }}>
+                  {error === 'Internal server error' || error === 'Internal Server Error'
+                    ? 'Terjadi kendala saat memuat data pesanan dari server.'
+                    : error}
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchOrders}
+                  className="btn-sm-action"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 16px',
+                    borderRadius: '8px',
+                    background: '#fdfaf5',
+                    color: '#9c7333',
+                    border: '1px solid #e0c89e',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔄 Coba Muat Ulang Pesanan
+                </button>
+              </div>
+            ) : orders.length === 0 ? (
+              <EmptyState
+                icon="📦"
+                title="Tidak Ada Pesanan Ditemukan"
+                description={
+                  searchQuery.trim()
+                    ? `Tidak ada pesanan yang sesuai dengan kata kunci "${searchQuery}". Coba kata kunci lain atau bersihkan pencarian.`
+                    : 'Belum ada pesanan yang tercatat pada filter status ini.'
+                }
+              />
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <th style={{ padding: '0.85rem 1rem' }}>Ref Code</th>
+                      <th style={{ padding: '0.85rem 1rem' }}>Klien</th>
+                      <th style={{ padding: '0.85rem 1rem' }}>Acara</th>
+                      <th style={{ padding: '0.85rem 1rem' }}>Paket & Harga</th>
+                      <th style={{ padding: '0.85rem 1rem' }}>Status</th>
+                      <th style={{ padding: '0.85rem 1rem' }}>Masa Aktif</th>
+                      <th style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => {
+                      const badge = getStatusBadgeStyle(order.status);
+                      const expiry = getExpiryStatus(order.event?.activeUntil);
+                      const cleanWa = order.clientWhatsapp?.replace(/[^0-9]/g, '');
+
+                      return (
+                        <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '0.85rem 1rem', fontWeight: 700, color: '#111814' }}>
+                            <code>{order.referenceCode}</code>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <div style={{ fontWeight: 600, color: '#111814' }}>{order.clientName}</div>
+                            {cleanWa && (
+                              <a
+                                href={`https://wa.me/${cleanWa.startsWith('0') ? '62' + cleanWa.slice(1) : cleanWa}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: '0.75rem', color: '#059669', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}
+                              >
+                                📱 {order.clientWhatsapp}
+                              </a>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <Link
+                              href={`/events/${order.event.id}`}
+                              style={{ color: '#0f766e', fontWeight: 600, textDecoration: 'none' }}
+                            >
+                              {order.event.title}
+                            </Link>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                              📅 {formatSimpleDate(order.event.eventDate)}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
+                              {order.packageCode}
+                            </span>
+                            <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
+                              {formatRupiah(order.priceAmount)}
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                background: badge.bg,
+                                color: badge.color,
+                                border: `1px solid ${badge.border}`,
+                              }}
+                            >
+                              {badge.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem' }}>
+                            <div style={{ fontSize: '0.8125rem', color: '#334155' }}>
+                              {formatSimpleDate(order.event.activeUntil)}
+                            </div>
+                            {expiry.variant === 'warning' && (
+                              <span style={{ display: 'inline-block', fontSize: '0.6875rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', marginTop: '2px' }}>
+                                ⚠️ {expiry.label}
+                              </span>
+                            )}
+                            {expiry.variant === 'expired' && (
+                              <span style={{ display: 'inline-block', fontSize: '0.6875rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', marginTop: '2px' }}>
+                                ⛔ {expiry.label}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                            <button
+                              onClick={() => openUpdateModal(order)}
+                              style={{
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '6px',
+                                border: '1px solid #cbd5e1',
+                                background: '#fff',
+                                color: '#0f172a',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Ubah Status
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </>
       )}
 

@@ -116,11 +116,7 @@ export class AttendanceService {
     return this.reportsService.exportAttendanceReport(eventId, event, query);
   }
 
-  async getPostEventReport(
-    eventId: string,
-    currentUserId: string,
-    role: Role,
-  ) {
+  async getPostEventReport(eventId: string, currentUserId: string, role: Role) {
     if (role === Role.STAFF) {
       throw new ForbiddenException(
         'Staff is not authorized to export post-event reports',
@@ -1480,7 +1476,8 @@ export class AttendanceService {
       const att = inv?.attendances?.[0];
       const scannedPax = att?.scannedPax || 0;
       const maxPax = g.maxPax || 1;
-      let status: 'CHECKED_IN' | 'PARTIAL' | 'NOT_CHECKED_IN' = 'NOT_CHECKED_IN';
+      let status: 'CHECKED_IN' | 'PARTIAL' | 'NOT_CHECKED_IN' =
+        'NOT_CHECKED_IN';
       if (scannedPax >= maxPax) {
         status = 'CHECKED_IN';
       } else if (scannedPax > 0) {

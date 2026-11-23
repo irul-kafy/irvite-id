@@ -34,4 +34,3 @@ export function isBotUserAgent(userAgent?: string | null): boolean {
   }
   return BOT_USER_AGENT_PATTERNS.some((pattern) => pattern.test(userAgent));
 }
-

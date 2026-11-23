@@ -245,4 +245,3 @@ export const SWARGA_DEWATA_DEFINITION: TemplateDefinition = {
     },
   ],
 };
-

@@ -17,7 +17,7 @@ import { Public } from '../auth/decorators/public.decorator';
 
 @Controller(['api/v1/invitations/public', 'invitations/public'])
 export class PublicInvitationsController {
-  constructor(private readonly invitationsService: InvitationsService) { }
+  constructor(private readonly invitationsService: InvitationsService) {}
 
   @Public()
   @Throttle({ default: { limit: 60, ttl: seconds(60) } })

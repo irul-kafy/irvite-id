@@ -95,7 +95,9 @@ describe('ActivityLogsService', () => {
     });
 
     it('fails safely and returns null without throwing if DB error occurs', async () => {
-      prisma.activityLog.create.mockRejectedValue(new Error('DB connection lost'));
+      prisma.activityLog.create.mockRejectedValue(
+        new Error('DB connection lost'),
+      );
 
       const res = await service.record({
         action: 'AUTH_LOGIN_FAILED',
@@ -120,7 +122,10 @@ describe('ActivityLogsService', () => {
         { id: 'log-1', action: 'EVENT_UPDATE' },
       ]);
 
-      const res = await service.listLogs({ page: 1, limit: 10 }, superAdminUser);
+      const res = await service.listLogs(
+        { page: 1, limit: 10 },
+        superAdminUser,
+      );
 
       expect(prisma.activityLog.count).toHaveBeenCalledWith({ where: {} });
       expect(res.data).toHaveLength(1);
@@ -164,4 +169,3 @@ describe('ActivityLogsService', () => {
     });
   });
 });
-

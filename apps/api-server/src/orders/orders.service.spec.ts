@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus } from 'database';
 import { PrismaService } from '../database/prisma.service';
@@ -84,7 +88,10 @@ describe('OrdersService', () => {
 
   describe('createOrder', () => {
     it('creates an order and sets activeUntil on event if missing', async () => {
-      prisma.event.findUnique.mockResolvedValue({ ...mockEvent, activeUntil: null });
+      prisma.event.findUnique.mockResolvedValue({
+        ...mockEvent,
+        activeUntil: null,
+      });
       prisma.event.update.mockResolvedValue({ ...mockEvent });
       prisma.order.create.mockResolvedValue({
         ...mockOrder,
@@ -167,7 +174,9 @@ describe('OrdersService', () => {
     it('throws NotFoundException if order not found', async () => {
       prisma.order.findFirst.mockResolvedValue(null);
 
-      await expect(service.getOrder('unknown')).rejects.toThrow(NotFoundException);
+      await expect(service.getOrder('unknown')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -205,7 +214,10 @@ describe('OrdersService', () => {
         status: OrderStatus.PAID,
         event: { ...mockEvent, status: 'DRAFT' },
       });
-      prisma.event.update.mockResolvedValue({ ...mockEvent, status: 'PUBLISHED' });
+      prisma.event.update.mockResolvedValue({
+        ...mockEvent,
+        status: 'PUBLISHED',
+      });
       prisma.order.update.mockResolvedValue({
         ...mockOrder,
         status: OrderStatus.LIVE,
@@ -270,4 +282,3 @@ describe('OrdersService', () => {
     });
   });
 });
-

@@ -42,4 +42,3 @@ export class ActivityLogQueryDto {
   @Max(100)
   limit?: number = 25;
 }
-

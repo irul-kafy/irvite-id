@@ -37,7 +37,8 @@ export class ActivityLogsController {
     @Headers('authorization') authHeader?: string,
     @Headers('x-cron-secret') cronSecretHeader?: string,
   ) {
-    const configuredSecret = process.env.CRON_SECRET || 'irvite-cron-default-secret';
+    const configuredSecret =
+      process.env.CRON_SECRET || 'irvite-cron-default-secret';
     const bearerSecret = authHeader?.replace(/^Bearer\s+/i, '').trim();
     const providedSecret = cronSecretHeader?.trim() || bearerSecret;
 
@@ -48,4 +49,3 @@ export class ActivityLogsController {
     return this.activityLogsService.cleanupOldLogs(180);
   }
 }
-

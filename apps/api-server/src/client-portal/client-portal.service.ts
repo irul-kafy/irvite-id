@@ -155,7 +155,9 @@ export class ClientPortalService {
         }
       }
     } catch (err: unknown) {
-      this.logger.warn(`Auto-heal invitations error: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Auto-heal invitations error: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
     let rawGuests: Array<{
@@ -274,10 +276,14 @@ export class ClientPortalService {
           rawGuests = minimal.map((g) => ({
             ...g,
             tableNumber: null,
-            invitation: g.invitation ? { ...g.invitation, attendances: [] } : null,
+            invitation: g.invitation
+              ? { ...g.invitation, attendances: [] }
+              : null,
           }));
         } catch (err: unknown) {
-          this.logger.error(`Critical error reading guests: ${err instanceof Error ? err.message : String(err)}`);
+          this.logger.error(
+            `Critical error reading guests: ${err instanceof Error ? err.message : String(err)}`,
+          );
           rawGuests = [];
         }
       }
@@ -348,23 +354,32 @@ export class ClientPortalService {
     });
 
     let wishesCount = 0;
-    let rawWishes: Array<{ id: string; name: string; message: string; createdAt: Date | string }> = [];
+    let rawWishes: Array<{
+      id: string;
+      name: string;
+      message: string;
+      createdAt: Date | string;
+    }> = [];
     try {
       if (this.prisma.wish) {
         const [wCount, wList] = await Promise.all([
           this.prisma.wish.count({ where: { eventId } }).catch(() => 0),
-          this.prisma.wish.findMany({
-            where: { eventId },
-            orderBy: { createdAt: 'desc' },
-            take: 100,
-            select: { id: true, name: true, message: true, createdAt: true },
-          }).catch(() => []),
+          this.prisma.wish
+            .findMany({
+              where: { eventId },
+              orderBy: { createdAt: 'desc' },
+              take: 100,
+              select: { id: true, name: true, message: true, createdAt: true },
+            })
+            .catch(() => []),
         ]);
         wishesCount = typeof wCount === 'number' ? wCount : 0;
         rawWishes = Array.isArray(wList) ? wList : [];
       }
     } catch (err: unknown) {
-      this.logger.warn(`Failed reading wishes in client-portal: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `Failed reading wishes in client-portal: ${err instanceof Error ? err.message : String(err)}`,
+      );
       wishesCount = 0;
       rawWishes = [];
     }
@@ -385,7 +400,9 @@ export class ClientPortalService {
               /\s*\((?:Draf Klien|PENGAJUAN KLIEN)\s*#[A-Za-z0-9-]+\)/gi,
               '',
             )
-            .trim() || event.title || '',
+            .trim() ||
+          event.title ||
+          '',
         slug: event.slug,
         eventDate: toIsoSafe(event.eventDate),
         status: event.status,

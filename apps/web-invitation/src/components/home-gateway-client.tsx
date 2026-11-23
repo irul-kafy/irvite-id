@@ -55,8 +55,8 @@ export function HomeGatewayClient() {
   const router = useRouter();
   const [csModalOpen, setCsModalOpen] = useState(false);
 
-  const [lookupCode, setLookupCode] = useState('IRV-TKT-2026-8821');
-  const [newEmail, setNewEmail] = useState('');
+  const [lookupCode, setLookupCode] = useState('');
+  const [verifyEmail, setVerifyEmail] = useState('');
   const [csSubmitting, setCsSubmitting] = useState(false);
   const [csFeedback, setCsFeedback] = useState<{
     type: 'success' | 'error';
@@ -72,9 +72,9 @@ export function HomeGatewayClient() {
     }
   }, [router]);
 
-  async function handleEmailCorrection(e: React.FormEvent) {
+  async function handleVerifyOrder(e: React.FormEvent) {
     e.preventDefault();
-    if (!lookupCode.trim() || !newEmail.trim()) return;
+    if (!lookupCode.trim() || !verifyEmail.trim()) return;
     setCsSubmitting(true);
     setCsFeedback(null);
     try {
@@ -82,31 +82,30 @@ export function HomeGatewayClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'correct-email',
-          lookupCode: lookupCode.trim(),
-          newEmail: newEmail.trim(),
-          correctedBy: 'Self-Service Buyer Portal',
+          action: 'verify-order',
+          code: lookupCode.trim(),
+          email: verifyEmail.trim(),
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setCsFeedback({
           type: 'error',
-          text: data?.message || 'Gagal memperbarui email pesanan.',
-        });
-      } else {
-        setCsFeedback({
-          type: 'success',
           text:
             data?.message ||
-            'Email berhasil diperbarui dan E-Ticket telah dikirim ulang secara instan.',
+            'Verifikasi pesanan gagal. Pastikan kode pesanan dan alamat email sesuai.',
         });
-        setNewEmail('');
+      } else {
+        const ord = data?.order;
+        setCsFeedback({
+          type: 'success',
+          text: `Pesanan ${ord?.orderCode || lookupCode.trim()} ditemukan dengan status ${ord?.status || 'PENDING'} untuk acara ${ord?.eventTitle || '-'}.`,
+        });
       }
     } catch {
       setCsFeedback({
         type: 'error',
-        text: 'Terjadi gangguan jaringan saat menghubungi server.',
+        text: 'Terjadi gangguan jaringan saat menghubungi server. Silakan coba lagi.',
       });
     } finally {
       setCsSubmitting(false);
@@ -116,18 +115,16 @@ export function HomeGatewayClient() {
   return (
     <div className="irv-gw-root">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .irv-gw-root {
           min-height: 100vh;
           width: 100%;
-          background-color: #edf4f0 !important;
-          color: #13281e !important;
+          background-color: var(--tkt-surface-subtle);
+          color: var(--tkt-text-primary);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           padding: 2.25rem 1.25rem;
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
           box-sizing: border-box;
         }
         .irv-gw-shell {
@@ -155,22 +152,20 @@ export function HomeGatewayClient() {
           display: block;
         }
         .irv-gw-title {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: clamp(1.85rem, 3.2vw, 2.55rem) !important;
-          font-weight: 800 !important;
-          color: #13281e !important;
-          letter-spacing: -0.025em !important;
-          margin: 0 0 0.55rem 0 !important;
-          line-height: 1.2 !important;
+          font-size: clamp(1.85rem, 3.2vw, 2.55rem);
+          font-weight: 800;
+          color: var(--tkt-text-primary);
+          letter-spacing: -0.025em;
+          margin: 0 0 0.55rem 0;
+          line-height: 1.2;
         }
         .irv-gw-subtitle {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: clamp(0.95rem, 1.6vw, 1.06rem) !important;
-          font-weight: 500 !important;
-          color: #4a6658 !important;
+          font-size: clamp(0.95rem, 1.6vw, 1.06rem);
+          font-weight: 500;
+          color: var(--tkt-text-secondary);
           max-width: 640px;
-          margin: 0 !important;
-          line-height: 1.55 !important;
+          margin: 0;
+          line-height: 1.55;
         }
         .irv-gw-grid {
           display: grid;
@@ -184,62 +179,59 @@ export function HomeGatewayClient() {
           }
         }
         .irv-gw-card {
-          background: #ffffff !important;
-          border: 1.5px solid #d5e4dc !important;
-          border-radius: 22px !important;
-          padding: 1.65rem 1.85rem !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          gap: 1.25rem !important;
-          text-decoration: none !important;
-          color: #13281e !important;
-          box-shadow: 0 10px 26px rgba(19, 40, 30, 0.045) !important;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease !important;
-          cursor: pointer !important;
-          text-align: left !important;
-          width: 100% !important;
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
+          background: var(--tkt-surface);
+          border: 1.5px solid var(--tkt-border);
+          border-radius: var(--tkt-radius-lg);
+          padding: 1.65rem 1.85rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.25rem;
+          text-decoration: none;
+          color: var(--tkt-text-primary);
+          box-shadow: var(--tkt-shadow-sm);
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          cursor: pointer;
+          text-align: left;
+          width: 100%;
         }
         .irv-gw-card:hover {
           transform: translateY(-3px);
-          border-color: #1b3b2b !important;
-          box-shadow: 0 16px 34px rgba(27, 59, 43, 0.1) !important;
+          border-color: var(--tkt-primary);
+          box-shadow: var(--tkt-shadow-md);
         }
         .irv-gw-icon-box {
           width: 52px;
           height: 52px;
-          border-radius: 15px;
-          background: #edf4f0;
-          border: 1px solid #cfe0d6;
+          border-radius: var(--tkt-radius-md);
+          background: var(--tkt-surface-subtle);
+          border: 1px solid var(--tkt-border);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #1b3b2b;
+          color: var(--tkt-primary);
           flex-shrink: 0;
         }
         .irv-gw-card-title {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: 1.12rem !important;
-          font-weight: 800 !important;
-          color: #13281e !important;
-          margin: 0 0 0.22rem 0 !important;
-          line-height: 1.25 !important;
+          font-size: 1.12rem;
+          font-weight: 800;
+          color: var(--tkt-text-primary);
+          margin: 0 0 0.22rem 0;
+          line-height: 1.25;
         }
         .irv-gw-card-desc {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          font-size: 0.86rem !important;
-          font-weight: 500 !important;
-          color: #4d6a5b !important;
-          line-height: 1.45 !important;
-          margin: 0 !important;
+          font-size: 0.86rem;
+          font-weight: 500;
+          color: var(--tkt-text-secondary);
+          line-height: 1.45;
+          margin: 0;
         }
         .irv-gw-arrow {
           width: 38px;
           height: 38px;
-          border-radius: 12px;
-          background: #1b3b2b;
-          color: #ffffff;
+          border-radius: var(--tkt-radius-md);
+          background: var(--tkt-primary);
+          color: var(--tkt-surface);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -247,40 +239,36 @@ export function HomeGatewayClient() {
           transition: background-color 0.18s ease, transform 0.18s ease;
         }
         .irv-gw-card:hover .irv-gw-arrow {
-          background: #b58d3d;
+          background: var(--tkt-accent);
           transform: translate(2px, -2px);
         }
       `}</style>
 
       <div className="irv-gw-shell">
-        {/* Top Centered Logo & Welcome Heading (Zero Top Navbar, Zero Bottom Black Bar) */}
         <div className="irv-gw-header">
           <img
             src="/irvite-logo.png"
-            alt="IRVITE.ID Official Logo"
+            alt="Logo resmi IRVITE"
             className="irv-gw-logo"
           />
           <div role="heading" aria-level={1} className="irv-gw-title">
-            Selamat Datang di IRVITE
+            Selamat datang di IRVITE
           </div>
           <div className="irv-gw-subtitle">
-            Platform tiket event dan undangan digital untuk berbagai tipe acara.
-            Silakan pilih menu yang ingin kamu kunjungi.
+            Layanan penjualan tiket acara dan undangan digital terpadu. Silakan pilih menu layanan yang ingin dikunjungi.
           </div>
         </div>
 
-        {/* 2x2 Symmetrical Action Grid (2 Top, 2 Bottom) */}
-        <div className="irv-gw-grid" role="navigation" aria-label="Menu Utama IRVITE">
-          {/* 1. Top-Left: Beli Tiket */}
+        <div className="irv-gw-grid" role="navigation" aria-label="Menu utama IRVITE">
           <Link href="/tiket" className="irv-gw-card" id="gw-card-beli-tiket">
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div className="irv-gw-icon-box">
                 <IconTicketCard />
               </div>
               <div>
-                <div className="irv-gw-card-title">Beli Tiket</div>
+                <div className="irv-gw-card-title">Beli tiket acara</div>
                 <div className="irv-gw-card-desc">
-                  Cari event yang ingin kamu tonton.
+                  Temukan acara publik dan pesan tiket tanpa wajib membuat akun.
                 </div>
               </div>
             </div>
@@ -289,19 +277,22 @@ export function HomeGatewayClient() {
             </div>
           </Link>
 
-          {/* 2. Top-Right: Undangan Pernikahan */}
           <Link href="/undangan" className="irv-gw-card" id="gw-card-undangan">
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div
                 className="irv-gw-icon-box"
-                style={{ color: '#9a7328', background: '#f8f4eb', borderColor: '#e8dec5' }}
+                style={{
+                  color: 'var(--tkt-accent)',
+                  background: 'var(--tkt-accent-soft)',
+                  borderColor: 'var(--tkt-border)',
+                }}
               >
                 <IconWeddingRings />
               </div>
               <div>
-                <div className="irv-gw-card-title">Undangan Pernikahan</div>
+                <div className="irv-gw-card-title">Undangan pernikahan</div>
                 <div className="irv-gw-card-desc">
-                  Buat undangan digital impianmu dengan tema eksklusif.
+                  Buat undangan digital dengan koleksi desain eksklusif.
                 </div>
               </div>
             </div>
@@ -310,16 +301,15 @@ export function HomeGatewayClient() {
             </div>
           </Link>
 
-          {/* 3. Bottom-Left: Partnership */}
           <Link href="/partnership" className="irv-gw-card" id="gw-card-partnership">
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div className="irv-gw-icon-box">
                 <IconPartnershipBriefcase />
               </div>
               <div>
-                <div className="irv-gw-card-title">Partnership</div>
+                <div className="irv-gw-card-title">Kerja sama penyelenggara</div>
                 <div className="irv-gw-card-desc">
-                  Daftarkan eventmu di IRVITE.
+                  Ajukan acara Anda untuk dikelola secara terima beres oleh tim IRVITE.
                 </div>
               </div>
             </div>
@@ -328,7 +318,6 @@ export function HomeGatewayClient() {
             </div>
           </Link>
 
-          {/* 4. Bottom-Right: Customer Services */}
           <button
             type="button"
             onClick={() => setCsModalOpen(true)}
@@ -340,9 +329,9 @@ export function HomeGatewayClient() {
                 <IconCustomerSupport />
               </div>
               <div>
-                <div className="irv-gw-card-title">Customer Services</div>
+                <div className="irv-gw-card-title">Bantuan pesanan tiket</div>
                 <div className="irv-gw-card-desc">
-                  Pengaduan jika ada kendala pembelian.
+                  Periksa status pesanan tiket dengan verifikasi email pemesan.
                 </div>
               </div>
             </div>
@@ -353,7 +342,6 @@ export function HomeGatewayClient() {
         </div>
       </div>
 
-      {/* Customer Services Modal */}
       {csModalOpen && (
         <div
           role="dialog"
@@ -374,13 +362,13 @@ export function HomeGatewayClient() {
         >
           <div
             style={{
-              background: '#ffffff',
-              borderRadius: '22px',
+              background: 'var(--tkt-surface)',
+              borderRadius: 'var(--tkt-radius-lg)',
               maxWidth: '520px',
               width: '100%',
               padding: '1.75rem',
-              border: '1px solid #d5e4dc',
-              boxShadow: '0 24px 60px rgba(0, 0, 0, 0.18)',
+              border: '1px solid var(--tkt-border)',
+              boxShadow: 'var(--tkt-shadow-md)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -389,93 +377,88 @@ export function HomeGatewayClient() {
                 <span
                   style={{
                     display: 'inline-block',
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: '#1b3b2b',
-                    background: '#edf4f0',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--tkt-primary)',
+                    background: 'var(--tkt-surface-subtle)',
                     padding: '0.28rem 0.65rem',
-                    borderRadius: '999px',
+                    borderRadius: 'var(--tkt-radius-sm)',
                     marginBottom: '0.45rem',
                   }}
                 >
-                  PUSAT BANTUAN PEMBELI TIKET &amp; UNDANGAN
+                  Pusat bantuan pembeli tiket
                 </span>
-                <div id="modal-cs-title" style={{ fontSize: '1.28rem', fontWeight: 800, color: '#13281e' }}>
-                  Customer Services IRVITE
+                <div id="modal-cs-title" style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--tkt-text-primary)' }}>
+                  Verifikasi status pesanan
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setCsModalOpen(false)}
+                aria-label="Tutup dialog bantuan"
                 style={{
-                  background: '#edf4f0',
-                  border: 'none',
-                  borderRadius: '10px',
-                  width: '34px',
-                  height: '34px',
+                  background: 'var(--tkt-surface-subtle)',
+                  border: '1px solid var(--tkt-border)',
+                  borderRadius: 'var(--tkt-radius-sm)',
+                  padding: '0.35rem 0.65rem',
                   cursor: 'pointer',
                   fontWeight: 700,
-                  color: '#1b3b2b',
+                  color: 'var(--tkt-primary)',
                 }}
               >
-                ✕
+                Tutup
               </button>
             </div>
 
-            <div style={{ fontSize: '0.88rem', color: '#4d6a5b', lineHeight: 1.55, margin: '0.65rem 0 1.1rem' }}>
-              Salah ketik alamat email saat membeli tiket atau belum menerima E-Ticket QR Pass? Perbaiki email pesanan Anda secara instan di bawah ini atau hubungi tim CS WhatsApp kami.
+            <div style={{ fontSize: '0.88rem', color: 'var(--tkt-text-secondary)', lineHeight: 1.55, margin: '0.65rem 0 1.1rem' }}>
+              Masukkan kode pesanan beserta alamat email yang digunakan saat pemesanan untuk memeriksa status pembayaran dan tiket Anda.
             </div>
 
             <form
-              onSubmit={handleEmailCorrection}
+              onSubmit={handleVerifyOrder}
               style={{
-                background: '#f6faf8',
-                border: '1px solid #d5e4dc',
-                borderRadius: '16px',
+                background: 'var(--tkt-bg)',
+                border: '1px solid var(--tkt-border)',
+                borderRadius: 'var(--tkt-radius-md)',
                 padding: '1.1rem',
                 marginBottom: '1.1rem',
               }}
             >
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#13281e', marginBottom: '0.65rem' }}>
-                Koreksi Typo Email &amp; Kirim Ulang E-Ticket Instan
-              </div>
-              <div style={{ display: 'grid', gap: '0.65rem' }}>
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#436052', marginBottom: '0.25rem' }}>
-                    Kode Tiket / Kode Order (Contoh: IRV-TKT-2026-8821)
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--tkt-text-secondary)', marginBottom: '0.25rem' }}>
+                    Kode pesanan atau kode tiket
                   </label>
                   <input
                     type="text"
                     value={lookupCode}
                     onChange={(e) => setLookupCode(e.target.value)}
-                    placeholder="Masukkan Kode Tiket atau Order"
+                    placeholder="Masukkan kode pesanan (minimal 10 karakter)"
                     required
                     style={{
                       width: '100%',
                       padding: '0.6rem 0.8rem',
-                      borderRadius: '10px',
-                      border: '1px solid #c7dbd0',
+                      borderRadius: 'var(--tkt-radius-sm)',
+                      border: '1px solid var(--tkt-border-strong)',
                       fontSize: '0.85rem',
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#436052', marginBottom: '0.25rem' }}>
-                    Alamat Email Baru yang Benar
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--tkt-text-secondary)', marginBottom: '0.25rem' }}>
+                    Alamat email pemesan
                   </label>
                   <input
                     type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="nama.anda@gmail.com"
+                    value={verifyEmail}
+                    onChange={(e) => setVerifyEmail(e.target.value)}
+                    placeholder="nama@domain.com"
                     required
                     style={{
                       width: '100%',
                       padding: '0.6rem 0.8rem',
-                      borderRadius: '10px',
-                      border: '1px solid #c7dbd0',
+                      borderRadius: 'var(--tkt-radius-sm)',
+                      border: '1px solid var(--tkt-border-strong)',
                       fontSize: '0.85rem',
                     }}
                   />
@@ -485,16 +468,16 @@ export function HomeGatewayClient() {
                   disabled={csSubmitting}
                   style={{
                     padding: '0.7rem 1rem',
-                    borderRadius: '10px',
+                    borderRadius: 'var(--tkt-radius-sm)',
                     border: 'none',
-                    background: '#1b3b2b',
-                    color: '#ffffff',
+                    background: 'var(--tkt-primary)',
+                    color: 'var(--tkt-surface)',
                     fontWeight: 700,
                     fontSize: '0.85rem',
                     cursor: csSubmitting ? 'wait' : 'pointer',
                   }}
                 >
-                  {csSubmitting ? 'Memproses & Mengirim Ulang...' : 'Perbarui Email & Kirim Ulang E-Ticket'}
+                  {csSubmitting ? 'Memverifikasi pesanan...' : 'Verifikasi pesanan'}
                 </button>
               </div>
 
@@ -503,54 +486,66 @@ export function HomeGatewayClient() {
                   style={{
                     marginTop: '0.75rem',
                     padding: '0.65rem 0.8rem',
-                    borderRadius: '10px',
+                    borderRadius: 'var(--tkt-radius-sm)',
                     fontSize: '0.8rem',
                     fontWeight: 600,
-                    background: csFeedback.type === 'success' ? '#e6f4ec' : '#fdecec',
-                    color: csFeedback.type === 'success' ? '#155734' : '#9b1c1c',
-                    border: `1px solid ${csFeedback.type === 'success' ? '#b7e1c9' : '#f5c2c2'}`,
+                    background:
+                      csFeedback.type === 'success'
+                        ? 'var(--tkt-success-bg)'
+                        : 'var(--tkt-danger-bg)',
+                    color:
+                      csFeedback.type === 'success'
+                        ? 'var(--tkt-success)'
+                        : 'var(--tkt-danger)',
+                    border: `1px solid ${
+                      csFeedback.type === 'success'
+                        ? 'var(--tkt-success-border)'
+                        : 'var(--tkt-danger-border)'
+                    }`,
                   }}
                 >
-                  {csFeedback.text}
+                  <div>{csFeedback.text}</div>
+                  {csFeedback.type === 'error' && (
+                    <button
+                      type="button"
+                      onClick={(e) => void handleVerifyOrder(e as unknown as React.FormEvent)}
+                      style={{
+                        marginTop: '0.5rem',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 'var(--tkt-radius-sm)',
+                        border: '1px solid var(--tkt-danger-border)',
+                        background: 'var(--tkt-surface)',
+                        color: 'var(--tkt-danger)',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Coba lagi
+                    </button>
+                  )}
                 </div>
               )}
             </form>
 
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <a
-                href="https://wa.me/6281234567890?text=Halo%20CS%20IRVITE.ID,%20saya%20membutuhkan%20bantuan%20terkait%20pembelian%20tiket%20/%20undangan."
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/tiket"
+                onClick={() => setCsModalOpen(false)}
                 style={{
                   flex: 1,
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  background: '#edf4f0',
-                  color: '#1b3b2b',
-                  border: '1px solid #c8ddd1',
+                  padding: '0.75rem 1.1rem',
+                  borderRadius: 'var(--tkt-radius-sm)',
+                  background: 'var(--tkt-surface-subtle)',
+                  color: 'var(--tkt-text-primary)',
+                  border: '1px solid var(--tkt-border)',
                   fontWeight: 700,
                   fontSize: '0.85rem',
                   textDecoration: 'none',
                   textAlign: 'center',
                 }}
               >
-                Chat WhatsApp Helpdesk CS
-              </a>
-              <Link
-                href="/tiket?tab=my-ticket"
-                onClick={() => setCsModalOpen(false)}
-                style={{
-                  padding: '0.75rem 1.1rem',
-                  borderRadius: '12px',
-                  background: '#ffffff',
-                  color: '#13281e',
-                  border: '1px solid #d5e4dc',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  textDecoration: 'none',
-                }}
-              >
-                Cek E-Ticket Saya
+                Buka halaman tiket
               </Link>
             </div>
           </div>

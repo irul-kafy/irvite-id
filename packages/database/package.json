@@ -12,6 +12,7 @@
     "@types/node": "^20.0.0"
   },
   "scripts": {
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "seed:ticketing": "tsx scripts/seed-ticketing.ts"
   }
 }

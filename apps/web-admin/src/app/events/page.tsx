@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCanonicalPublicEventUrl } from '@/utils/url';
-import { PUBLIC_TICKETING_EVENTS, type PublicTicketingEvent, type PublicTicketTier } from '@/lib/ticketing-store';
+import { type PublicTicketingEvent } from '@/types/ticketing';
 
 type EventData = {
   id: string;
@@ -24,7 +24,7 @@ type EventData = {
 function IconPlus() {
   return (
     <svg className="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -32,8 +32,8 @@ function IconPlus() {
 function IconCalendar() {
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <path d="M3 8h14M7 2v3M13 2v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+      <rect x="3" y="4" width="14" height="13" rx="2" stroke="currentColor" strokeWidth="1.6" fill="none" />
+      <path d="M3 8h14M7 2v3M13 2v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -41,8 +41,8 @@ function IconCalendar() {
 function IconLocation() {
   return (
     <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10 18C10 18 4 12.5 4 8a6 6 0 1 1 12 0c0 4.5-6 10-6 10z" stroke="currentColor" strokeWidth="1.6" fill="none"/>
-      <circle cx="10" cy="8" r="2" stroke="currentColor" strokeWidth="1.4"/>
+      <path d="M10 18C10 18 4 12.5 4 8a6 6 0 1 1 12 0c0 4.5-6 10-6 10z" stroke="currentColor" strokeWidth="1.6" fill="none" />
+      <circle cx="10" cy="8" r="2" stroke="currentColor" strokeWidth="1.4" />
     </svg>
   );
 }
@@ -50,8 +50,8 @@ function IconLocation() {
 function IconScan() {
   return (
     <svg className="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 6V4.5A1.5 1.5 0 0 1 3.5 3H5M15 3h1.5A1.5 1.5 0 0 1 18 4.5V6M2 14v1.5A1.5 1.5 0 0 0 3.5 17H5M15 17h1.5A1.5 1.5 0 0 0 18 15.5V14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M2 6V4.5A1.5 1.5 0 0 1 3.5 3H5M15 3h1.5A1.5 1.5 0 0 1 18 4.5V6M2 14v1.5A1.5 1.5 0 0 0 3.5 17H5M15 17h1.5A1.5 1.5 0 0 0 18 15.5V14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -59,10 +59,10 @@ function IconScan() {
 function IconUsers() {
   return (
     <svg className="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.6"/>
-      <path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-      <path d="M14 3.5c1.5.5 2.5 1.8 2.5 3.5s-1 3-2.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      <path d="M18 18c0-2.5-1.5-4.5-4-5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="8" cy="6" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M2 18c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M14 3.5c1.5.5 2.5 1.8 2.5 3.5s-1 3-2.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M18 18c0-2.5-1.5-4.5-4-5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -70,7 +70,7 @@ function IconUsers() {
 function IconEdit() {
   return (
     <svg className="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none"/>
+      <path d="M13.5 3.5l3 3L6 17H3v-3L13.5 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }
@@ -78,7 +78,7 @@ function IconEdit() {
 function IconExternal() {
   return (
     <svg className="btn-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11 3h6v6M17 3l-9 9M8 5H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -86,9 +86,9 @@ function IconExternal() {
 function IconEmpty() {
   return (
     <svg className="empty-state__icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: 56, height: 56, color: 'var(--text-tertiary)', margin: '0 auto 1rem' }}>
-      <rect x="6" y="10" width="36" height="32" rx="4" stroke="currentColor" strokeWidth="2" fill="none"/>
-      <path d="M6 18h36M16 6v8M32 6v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M16 28h8M16 34h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4"/>
+      <rect x="6" y="10" width="36" height="32" rx="4" stroke="currentColor" strokeWidth="2" fill="none" />
+      <path d="M6 18h36M16 6v8M32 6v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 28h8M16 34h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
     </svg>
   );
 }
@@ -108,7 +108,9 @@ function statusBadgeClass(status?: string): string {
 
 export default function EventsPage() {
   const [events, setEvents] = useState<EventData[]>([]);
-  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>(PUBLIC_TICKETING_EVENTS);
+  const [ticketingEvents, setTicketingEvents] = useState<PublicTicketingEvent[]>([]);
+  const [ticketingError, setTicketingError] = useState<string | null>(null);
+  const [ticketRefresh, setTicketRefresh] = useState(0);
   const [eventCategoryTab, setEventCategoryTab] = useState<'wedding' | 'tickets'>('wedding');
   const [isCreateTicketModalOpen, setIsCreateTicketModalOpen] = useState(false);
   const [ticketActionSuccess, setTicketActionSuccess] = useState<string | null>(null);
@@ -146,6 +148,7 @@ export default function EventsPage() {
       try {
         setLoading(true);
         setError('');
+        setTicketingError(null);
         const [adminRes, tktRes] = await Promise.all([
           fetch(`/api/events?page=${page}&limit=10&filter=${filter}`, { signal: controller.signal, cache: 'no-store' }),
           fetch('/api/ticketing', { signal: controller.signal, cache: 'no-store' }).catch(() => null),
@@ -157,10 +160,16 @@ export default function EventsPage() {
             ? tktData.items
             : Array.isArray(tktData?.events)
               ? tktData.events
-              : null;
-          if (list) {
-            setTicketingEvents(list);
-          }
+              : Array.isArray(tktData?.data)
+                ? tktData.data
+                : [];
+          setTicketingEvents(list);
+        } else {
+          const tktErr = tktRes ? await tktRes.json().catch(() => null) : null;
+          setTicketingEvents([]);
+          setTicketingError(
+            tktErr?.message || 'Gagal memuat daftar acara tiket dari server.',
+          );
         }
 
         if (adminRes.status === 401) {
@@ -200,7 +209,7 @@ export default function EventsPage() {
 
     void fetchEvents();
     return () => controller.abort();
-  }, [router, page, filter]);
+  }, [router, page, filter, ticketRefresh]);
 
   const filteredEvents = events.filter((e) => {
     if (filter === 'active') {
@@ -212,77 +221,64 @@ export default function EventsPage() {
     return true;
   });
 
-  const handleCreateTicketSubmit = (e: React.FormEvent) => {
+  const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formTitle.trim()) {
-      alert('Nama acara/event wajib diisi.');
+      setTicketingError('Nama acara wajib diisi.');
       return;
     }
-    const newEventId = `tkt-${Date.now()}`;
-    const tiers: PublicTicketTier[] = [
+    const tiers: Array<{ name: string; price: number; quota: number }> = [
       {
-        id: `${newEventId}-tier-1`,
-        name: formTierName1.trim() || 'Reguler',
-        price: Number(formTierPrice1) || 100000,
-        quota: Number(formTierQuota1) || 500,
-        remainingQuota: Number(formTierQuota1) || 500,
-        soldCount: 0,
-        statusLabel: 'TERSEDIA',
-        description: 'Akses masuk resmi acara',
-        benefits: ['E-Ticket QR Resmi', 'Akses Masuk Gate Venue'],
+        name: formTierName1.trim() || 'Tiket reguler',
+        price: Number(formTierPrice1) || 0,
+        quota: Number(formTierQuota1) || 100,
       },
     ];
     if (formTierName2.trim()) {
       tiers.push({
-        id: `${newEventId}-tier-2`,
         name: formTierName2.trim(),
-        price: Number(formTierPrice2) || 250000,
-        quota: Number(formTierQuota2) || 150,
-        remainingQuota: Number(formTierQuota2) || 150,
-        soldCount: 0,
-        statusLabel: 'TERSEDIA',
-        description: 'Akses prioritas VIP acara',
-        benefits: ['VIP Pass & Akses Khusus', 'Tiket Gelang Eksklusif'],
+        price: Number(formTierPrice2) || 0,
+        quota: Number(formTierQuota2) || 100,
       });
     }
 
-    const lowestPrice = Math.min(...tiers.map((t) => t.price));
-    const startingPriceLabel = new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0,
-    }).format(lowestPrice);
-
-    const newEvent: PublicTicketingEvent = {
-      id: newEventId,
-      slug: formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      title: formTitle.trim(),
-      category: (formCategory === 'Workshop / Bootcamp' ? 'Workshop' : formCategory) as 'Konser Musik' | 'Seminar & Edukasi' | 'Workshop' | 'Standup Comedy',
-      organizerName: formOrganizer.trim() || 'Event Organizer',
-      eventDate: formDate,
-      eventTime: formTime,
-      venueName: formVenue,
-      city: formCity,
-      bannerGradient: 'linear-gradient(135deg, #1b3b2b 0%, #0d251e 100%)',
-      bannerTag: formCategory.toUpperCase(),
-      startingPrice: lowestPrice,
-      startingPriceLabel,
-      isFeaturedBanner: formIsFeatured,
-      bannerHeadline: formHeadline.trim() || undefined,
-      tiers,
-    };
-
-    setTicketingEvents((prev) => [newEvent, ...prev]);
-    setIsCreateTicketModalOpen(false);
-    setTicketActionSuccess(`Event Tiket "${formTitle}" berhasil dibuat dan diterbitkan!`);
-    setTimeout(() => setTicketActionSuccess(null), 5000);
-
-    // Reset form
-    setFormTitle('');
-    setFormOrganizer('');
-    setFormHeadline('');
-    setFormBannerUrl('');
-    setFormIsFeatured(false);
+    try {
+      setTicketingError(null);
+      const res = await fetch('/api/ticketing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-event',
+          title: formTitle.trim(),
+          category: formCategory === 'Workshop / Bootcamp' ? 'Workshop' : formCategory,
+          organizerName: formOrganizer.trim() || 'Mitra penyelenggara IRVITE',
+          eventDate: formDate,
+          eventTime: formTime,
+          venueName: formVenue,
+          city: formCity,
+          isFeaturedBanner: formIsFeatured,
+          bannerHeadline: formHeadline.trim() || undefined,
+          tiers,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || 'Gagal menerbitkan acara tiket baru di server.');
+      }
+      setIsCreateTicketModalOpen(false);
+      setTicketActionSuccess(`Acara tiket "${formTitle}" berhasil disimpan ke basis data.`);
+      setTicketRefresh((v) => v + 1);
+      setTimeout(() => setTicketActionSuccess(null), 5000);
+      setFormTitle('');
+      setFormOrganizer('');
+      setFormHeadline('');
+      setFormBannerUrl('');
+      setFormIsFeatured(false);
+    } catch (err) {
+      setTicketingError(
+        err instanceof Error ? err.message : 'Gagal menghubungi server untuk membuat acara tiket.',
+      );
+    }
   };
 
   return (
@@ -414,104 +410,132 @@ export default function EventsPage() {
       )}
 
       {eventCategoryTab === 'tickets' ? (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Acara &amp; Kategori</th>
-                <th>Tanggal &amp; Waktu</th>
-                <th>Lokasi</th>
-                <th>Tiket Terjual</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ticketingEvents.map((ev) => {
-                const sold = ev.tiers.reduce((acc, t) => acc + t.soldCount, 0);
-                const quota = ev.tiers.reduce((acc, t) => acc + t.quota, 0);
-                return (
-                  <tr key={ev.id}>
-                    <td>
-                      <div className="font-semibold" style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                        {ev.title}
-                      </div>
-                      <div className="text-xs text-muted mt-1 flex-center gap-2">
-                        <span style={{ color: 'var(--admin-accent)', fontWeight: 600 }}>{ev.category}</span>
-                        <span>•</span>
-                        <span>EO: {ev.organizerName}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        <IconCalendar />
-                        <span>{ev.eventDate}</span>
-                      </div>
-                      <div className="text-xs text-muted mt-1">{ev.eventTime}</div>
-                    </td>
-                    <td>
-                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        <IconLocation />
-                        <span>{ev.venueName}, {ev.city}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="font-semibold" style={{ fontSize: '0.875rem' }}>
-                        {sold.toLocaleString('id-ID')} / {quota.toLocaleString('id-ID')} Tiket
-                      </div>
-                      <div className="text-xs text-muted">
-                        Mulai {ev.startingPriceLabel}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge--success">PUBLISHED</span>
-                      {ev.isFeaturedBanner && (
-                        <div style={{ marginTop: '0.35rem' }}>
-                          <span
-                            style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              background: '#fef3c7',
-                              color: '#92400e',
-                              border: '1px solid #fde68a',
-                              padding: '0.15rem 0.45rem',
-                              borderRadius: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.2rem',
-                            }}
-                          >
-                            ★ Banner Depan
-                          </span>
+        <>
+          {ticketingError && (
+            <div
+              role="alert"
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--status-danger-bg)',
+                color: 'var(--status-danger)',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span>{ticketingError}</span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setTicketRefresh((v) => v + 1)}
+              >
+                Coba lagi
+              </button>
+            </div>
+          )}
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Acara &amp; Kategori</th>
+                  <th>Tanggal &amp; Waktu</th>
+                  <th>Lokasi</th>
+                  <th>Tiket Terjual</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ticketingEvents.map((ev) => {
+                  const sold = ev.tiers.reduce((acc, t) => acc + t.soldCount, 0);
+                  const quota = ev.tiers.reduce((acc, t) => acc + t.quota, 0);
+                  return (
+                    <tr key={ev.id}>
+                      <td>
+                        <div className="font-semibold" style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                          {ev.title}
                         </div>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => router.push('/orders')}
-                        >
-                          Pesanan Tiket
-                        </button>
-                        <a
-                          href="https://irvite-id.vercel.app/tiket"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-success btn-sm flex-center gap-1"
-                        >
-                          <IconExternal />
-                          Web Tiket
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        <div className="text-xs text-muted mt-1 flex-center gap-2">
+                          <span style={{ color: 'var(--admin-accent)', fontWeight: 600 }}>{ev.category}</span>
+                          <span>•</span>
+                          <span>EO: {ev.organizerName}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                          <IconCalendar />
+                          <span>{ev.eventDate}</span>
+                        </div>
+                        <div className="text-xs text-muted mt-1">{ev.eventTime}</div>
+                      </td>
+                      <td>
+                        <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                          <IconLocation />
+                          <span>{ev.venueName}, {ev.city}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="font-semibold" style={{ fontSize: '0.875rem' }}>
+                          {sold.toLocaleString('id-ID')} / {quota.toLocaleString('id-ID')} Tiket
+                        </div>
+                        <div className="text-xs text-muted">
+                          Mulai {ev.startingPriceLabel}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge badge--success">PUBLISHED</span>
+                        {ev.isFeaturedBanner && (
+                          <div style={{ marginTop: '0.35rem' }}>
+                            <span
+                              style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                border: '1px solid #fde68a',
+                                padding: '0.15rem 0.45rem',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.2rem',
+                              }}
+                            >
+                              ★ Banner Depan
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => router.push('/orders')}
+                          >
+                            Pesanan Tiket
+                          </button>
+                          <a
+                            href="https://irvite-id.vercel.app/tiket"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-success btn-sm flex-center gap-1"
+                          >
+                            <IconExternal />
+                            Web Tiket
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <>
           {isAdmin && !error && (
@@ -575,137 +599,309 @@ export default function EventsPage() {
             </div>
           )}
 
-      {/* Filtered Empty State */}
-      {!loading && !error && events.length > 0 && filteredEvents.length === 0 && (
-        <div className="card">
-          <div className="empty-state" style={{ padding: '2rem' }}>
-            <p className="text-sm text-muted" style={{ margin: 0 }}>
-              {filter === 'archived'
-                ? 'Tidak ada acara yang diarsipkan.'
-                : 'Tidak ada acara aktif saat ini.'}
-            </p>
-          </div>
-        </div>
-      )}
+          {/* Filtered Empty State */}
+          {!loading && !error && events.length > 0 && filteredEvents.length === 0 && (
+            <div className="card">
+              <div className="empty-state" style={{ padding: '2rem' }}>
+                <p className="text-sm text-muted" style={{ margin: 0 }}>
+                  {filter === 'archived'
+                    ? 'Tidak ada acara yang diarsipkan.'
+                    : 'Tidak ada acara aktif saat ini.'}
+                </p>
+              </div>
+            </div>
+          )}
 
-      {/* Events Table (Desktop) & Cards (Mobile) */}
-      {!loading && filteredEvents.length > 0 && (
-        <>
-          <div className="table-wrap events-desktop-table">
-            <table className="data-table">
-            <thead>
-              <tr>
-                <th>Acara</th>
-                <th>Tanggal & Waktu</th>
-                <th>Lokasi</th>
-                {isAdmin && <th>Status</th>}
-                <th style={{ textAlign: 'right' }}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEvents.map((event) => {
-                let canonicalPublicUrl = '';
-                if (event.slug) {
-                  try {
-                    canonicalPublicUrl = getCanonicalPublicEventUrl(event.slug);
-                  } catch {
-                    canonicalPublicUrl = `/e/${event.slug}`;
+          {/* Events Table (Desktop) & Cards (Mobile) */}
+          {!loading && filteredEvents.length > 0 && (
+            <>
+              <div className="table-wrap events-desktop-table">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Acara</th>
+                      <th>Tanggal & Waktu</th>
+                      <th>Lokasi</th>
+                      {isAdmin && <th>Status</th>}
+                      <th style={{ textAlign: 'right' }}>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredEvents.map((event) => {
+                      let canonicalPublicUrl = '';
+                      if (event.slug) {
+                        try {
+                          canonicalPublicUrl = getCanonicalPublicEventUrl(event.slug);
+                        } catch {
+                          canonicalPublicUrl = `/e/${event.slug}`;
+                        }
+                      }
+
+                      return (
+                        <tr key={event.id}>
+                          {/* Event Title & Slug */}
+                          <td>
+                            <div className="font-semibold" style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                              {event.title}
+                            </div>
+                            <div className="text-xs text-muted mt-1 flex-center gap-2">
+                              {event.slug && (
+                                <span style={{ color: 'var(--admin-accent)', fontWeight: 500 }}>
+                                  /e/{event.slug}
+                                </span>
+                              )}
+                              <span>•</span>
+                              <span>ID: {event.id.slice(0, 8)}...</span>
+                            </div>
+                          </td>
+
+                          {/* Event Date */}
+                          <td>
+                            <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                              <IconCalendar />
+                              <span>
+                                {new Date(event.eventDate).toLocaleDateString('id-ID', {
+                                  weekday: 'short',
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                            </div>
+                            {event.activeUntil && (() => {
+                              const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
+                              if (diffDays <= 0) {
+                                return (
+                                  <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
+                                    ⛔ Kedaluwarsa
+                                  </span>
+                                );
+                              }
+                              if (diffDays <= 7) {
+                                return (
+                                  <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
+                                    ⚠️ Berakhir dlm {diffDays} hr
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </td>
+
+                          {/* Location */}
+                          <td>
+                            <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                              <IconLocation />
+                              <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {event.locationDetails || '-'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Status Badge */}
+                          {isAdmin && (
+                            <td>
+                              <span className={statusBadgeClass(event.status)}>
+                                {event.status || 'DRAFT'}
+                              </span>
+                            </td>
+                          )}
+
+                          {/* Actions */}
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>
+                              {isAdmin && (
+                                <button
+                                  id={`events-manage-${event.id}`}
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => router.push(`/events/${event.id}`)}
+                                  type="button"
+                                  title="Buka Pusat Manajemen Event"
+                                  style={{ fontWeight: 600 }}
+                                >
+                                  Kelola
+                                </button>
+                              )}
+
+                              {/* Scanner button (visible to both admin and staff) */}
+                              <button
+                                id={`events-scan-${event.id}`}
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => router.push(`/events/${event.id}/scanner`)}
+                                type="button"
+                                title="Buka Scanner QR"
+                              >
+                                <IconScan />
+                                Scanner
+                              </button>
+
+                              {isAdmin && (
+                                <>
+                                  {/* Guests */}
+                                  <button
+                                    id={`events-guests-${event.id}`}
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => router.push(`/events/${event.id}/guests`)}
+                                    type="button"
+                                    title="Kelola Tamu & Undangan"
+                                  >
+                                    <IconUsers />
+                                    Tamu
+                                  </button>
+
+                                  {/* Edit */}
+                                  <button
+                                    id={`events-edit-${event.id}`}
+                                    className="btn btn-ghost btn-sm"
+                                    onClick={() => router.push(`/events/${event.id}/edit`)}
+                                    type="button"
+                                    title="Edit Detail Acara"
+                                  >
+                                    <IconEdit />
+                                    Edit
+                                  </button>
+
+                                  {/* Public Link (if published) */}
+                                  {event.status === 'PUBLISHED' && event.slug && (
+                                    <a
+                                      id={`events-public-${event.id}`}
+                                      href={canonicalPublicUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="btn btn-success btn-sm flex-center gap-1"
+                                      title="Buka Halaman Undangan Publik"
+                                    >
+                                      <IconExternal />
+                                      Publik
+                                    </a>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Events Cards */}
+              <div className="events-mobile-cards">
+                {filteredEvents.map((event) => {
+                  let canonicalPublicUrl = '';
+                  if (event.slug) {
+                    try {
+                      canonicalPublicUrl = getCanonicalPublicEventUrl(event.slug);
+                    } catch {
+                      canonicalPublicUrl = `/e/${event.slug}`;
+                    }
                   }
-                }
 
-                return (
-                  <tr key={event.id}>
-                    {/* Event Title & Slug */}
-                    <td>
-                      <div className="font-semibold" style={{ fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
-                        {event.title}
-                      </div>
-                      <div className="text-xs text-muted mt-1 flex-center gap-2">
-                        {event.slug && (
-                          <span style={{ color: 'var(--admin-accent)', fontWeight: 500 }}>
-                            /e/{event.slug}
+                  return (
+                    <div
+                      key={event.id}
+                      className="card"
+                      style={{
+                        padding: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.75rem',
+                        borderRadius: 'var(--radius-lg)',
+                      }}
+                    >
+                      {/* Header: Title & Status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                            {event.title}
+                          </h3>
+                          <div className="text-xs text-muted mt-1 flex-center gap-2" style={{ flexWrap: 'wrap' }}>
+                            {event.slug && (
+                              <span style={{ color: 'var(--admin-accent)', fontWeight: 500 }}>
+                                /e/{event.slug}
+                              </span>
+                            )}
+                            <span>•</span>
+                            <span>ID: {event.id.slice(0, 8)}...</span>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <span className={statusBadgeClass(event.status)} style={{ flexShrink: 0 }}>
+                            {event.status || 'DRAFT'}
                           </span>
                         )}
-                        <span>•</span>
-                        <span>ID: {event.id.slice(0, 8)}...</span>
                       </div>
-                    </td>
 
-                    {/* Event Date */}
-                    <td>
-                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        <IconCalendar />
-                        <span>
-                          {new Date(event.eventDate).toLocaleDateString('id-ID', {
-                            weekday: 'short',
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
+                      {/* Metadata */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        <div className="flex-center gap-2">
+                          <IconCalendar />
+                          <span>
+                            {new Date(event.eventDate).toLocaleDateString('id-ID', {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                        {event.activeUntil && (() => {
+                          const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
+                          if (diffDays <= 0) {
+                            return (
+                              <div>
+                                <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
+                                  ⛔ Kedaluwarsa
+                                </span>
+                              </div>
+                            );
+                          }
+                          if (diffDays <= 7) {
+                            return (
+                              <div>
+                                <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
+                                  ⚠️ Berakhir dlm {diffDays} hr
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                        {event.locationDetails && (
+                          <div className="flex-center gap-2">
+                            <IconLocation />
+                            <span style={{ wordBreak: 'break-word' }}>{event.locationDetails}</span>
+                          </div>
+                        )}
                       </div>
-                      {event.activeUntil && (() => {
-                        const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
-                        if (diffDays <= 0) {
-                          return (
-                            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
-                              ⛔ Kedaluwarsa
-                            </span>
-                          );
-                        }
-                        if (diffDays <= 7) {
-                          return (
-                            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', marginTop: '2px', display: 'inline-block' }}>
-                              ⚠️ Berakhir dlm {diffDays} hr
-                            </span>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </td>
 
-                    {/* Location */}
-                    <td>
-                      <div className="flex-center gap-2" style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                        <IconLocation />
-                        <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {event.locationDetails || '-'}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Status Badge */}
-                    {isAdmin && (
-                      <td>
-                        <span className={statusBadgeClass(event.status)}>
-                          {event.status || 'DRAFT'}
-                        </span>
-                      </td>
-                    )}
-
-                    {/* Actions */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'wrap' }}>
+                      {/* Actions Grid */}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isAdmin ? 'repeat(auto-fill, minmax(80px, 1fr))' : '1fr',
+                          gap: '0.375rem',
+                          paddingTop: '0.5rem',
+                          borderTop: '1px solid var(--admin-border)',
+                        }}
+                      >
                         {isAdmin && (
                           <button
-                            id={`events-manage-${event.id}`}
                             className="btn btn-secondary btn-sm"
                             onClick={() => router.push(`/events/${event.id}`)}
                             type="button"
-                            title="Buka Pusat Manajemen Event"
-                            style={{ fontWeight: 600 }}
+                            style={{ fontWeight: 600, justifyContent: 'center' }}
                           >
                             Kelola
                           </button>
                         )}
 
-                        {/* Scanner button (visible to both admin and staff) */}
                         <button
-                          id={`events-scan-${event.id}`}
                           className="btn btn-secondary btn-sm"
                           onClick={() => router.push(`/events/${event.id}/scanner`)}
                           type="button"
-                          title="Buka Scanner QR"
+                          style={{ justifyContent: 'center' }}
                         >
                           <IconScan />
                           Scanner
@@ -713,39 +909,33 @@ export default function EventsPage() {
 
                         {isAdmin && (
                           <>
-                            {/* Guests */}
                             <button
-                              id={`events-guests-${event.id}`}
                               className="btn btn-secondary btn-sm"
                               onClick={() => router.push(`/events/${event.id}/guests`)}
                               type="button"
-                              title="Kelola Tamu & Undangan"
+                              style={{ justifyContent: 'center' }}
                             >
                               <IconUsers />
                               Tamu
                             </button>
 
-                            {/* Edit */}
                             <button
-                              id={`events-edit-${event.id}`}
                               className="btn btn-ghost btn-sm"
                               onClick={() => router.push(`/events/${event.id}/edit`)}
                               type="button"
-                              title="Edit Detail Acara"
+                              style={{ justifyContent: 'center' }}
                             >
                               <IconEdit />
                               Edit
                             </button>
 
-                            {/* Public Link (if published) */}
                             {event.status === 'PUBLISHED' && event.slug && (
                               <a
-                                id={`events-public-${event.id}`}
                                 href={canonicalPublicUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn btn-success btn-sm flex-center gap-1"
-                                title="Buka Halaman Undangan Publik"
+                                style={{ justifyContent: 'center' }}
                               >
                                 <IconExternal />
                                 Publik
@@ -754,178 +944,12 @@ export default function EventsPage() {
                           </>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Events Cards */}
-        <div className="events-mobile-cards">
-          {filteredEvents.map((event) => {
-            let canonicalPublicUrl = '';
-            if (event.slug) {
-              try {
-                canonicalPublicUrl = getCanonicalPublicEventUrl(event.slug);
-              } catch {
-                canonicalPublicUrl = `/e/${event.slug}`;
-              }
-            }
-
-            return (
-              <div
-                key={event.id}
-                className="card"
-                style={{
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  borderRadius: 'var(--radius-lg)',
-                }}
-              >
-                {/* Header: Title & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-                      {event.title}
-                    </h3>
-                    <div className="text-xs text-muted mt-1 flex-center gap-2" style={{ flexWrap: 'wrap' }}>
-                      {event.slug && (
-                        <span style={{ color: 'var(--admin-accent)', fontWeight: 500 }}>
-                          /e/{event.slug}
-                        </span>
-                      )}
-                      <span>•</span>
-                      <span>ID: {event.id.slice(0, 8)}...</span>
                     </div>
-                  </div>
-                  {isAdmin && (
-                    <span className={statusBadgeClass(event.status)} style={{ flexShrink: 0 }}>
-                      {event.status || 'DRAFT'}
-                    </span>
-                  )}
-                </div>
-
-                {/* Metadata */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                  <div className="flex-center gap-2">
-                    <IconCalendar />
-                    <span>
-                      {new Date(event.eventDate).toLocaleDateString('id-ID', {
-                        weekday: 'short',
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  {event.activeUntil && (() => {
-                    const diffDays = Math.ceil((new Date(event.activeUntil).getTime() - Date.now()) / 86400000);
-                    if (diffDays <= 0) {
-                      return (
-                        <div>
-                          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#dc2626', background: '#fee2e2', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
-                            ⛔ Kedaluwarsa
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (diffDays <= 7) {
-                      return (
-                        <div>
-                          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#b45309', background: '#fef3c7', padding: '1px 5px', borderRadius: '4px', display: 'inline-block' }}>
-                            ⚠️ Berakhir dlm {diffDays} hr
-                          </span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {event.locationDetails && (
-                    <div className="flex-center gap-2">
-                      <IconLocation />
-                      <span style={{ wordBreak: 'break-word' }}>{event.locationDetails}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions Grid */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: isAdmin ? 'repeat(auto-fill, minmax(80px, 1fr))' : '1fr',
-                    gap: '0.375rem',
-                    paddingTop: '0.5rem',
-                    borderTop: '1px solid var(--admin-border)',
-                  }}
-                >
-                  {isAdmin && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => router.push(`/events/${event.id}`)}
-                      type="button"
-                      style={{ fontWeight: 600, justifyContent: 'center' }}
-                    >
-                      Kelola
-                    </button>
-                  )}
-
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => router.push(`/events/${event.id}/scanner`)}
-                    type="button"
-                    style={{ justifyContent: 'center' }}
-                  >
-                    <IconScan />
-                    Scanner
-                  </button>
-
-                  {isAdmin && (
-                    <>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => router.push(`/events/${event.id}/guests`)}
-                        type="button"
-                        style={{ justifyContent: 'center' }}
-                      >
-                        <IconUsers />
-                        Tamu
-                      </button>
-
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => router.push(`/events/${event.id}/edit`)}
-                        type="button"
-                        style={{ justifyContent: 'center' }}
-                      >
-                        <IconEdit />
-                        Edit
-                      </button>
-
-                      {event.status === 'PUBLISHED' && event.slug && (
-                        <a
-                          href={canonicalPublicUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-success btn-sm flex-center gap-1"
-                          style={{ justifyContent: 'center' }}
-                        >
-                          <IconExternal />
-                          Publik
-                        </a>
-                      )}
-                    </>
-                  )}
-                </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </>
-    )}
+            </>
+          )}
         </>
       )}
 

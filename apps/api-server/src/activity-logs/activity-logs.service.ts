@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { Prisma, Role } from 'database';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { PrismaService } from '../database/prisma.service';
@@ -40,7 +36,9 @@ export class ActivityLogsService {
           entityType: params.entityType,
           entityId: params.entityId,
           eventId: params.eventId || null,
-          metadata: params.metadata ? (params.metadata as Prisma.InputJsonValue) : Prisma.DbNull,
+          metadata: params.metadata
+            ? (params.metadata as Prisma.InputJsonValue)
+            : Prisma.DbNull,
           ip: params.ip || null,
         },
       });
@@ -70,10 +68,7 @@ export class ActivityLogsService {
 
     // Scoping: ADMIN only views logs for their own events or their own actions
     if (user.role === Role.ADMIN) {
-      where.OR = [
-        { actorUserId: user.id },
-        { event: { userId: user.id } },
-      ];
+      where.OR = [{ actorUserId: user.id }, { event: { userId: user.id } }];
     }
 
     if (query.eventId) {
@@ -148,7 +143,9 @@ export class ActivityLogsService {
    * Safe and idempotent.
    */
   async cleanupOldLogs(retentionDays = 180) {
-    const cutoffDate = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffDate = new Date(
+      Date.now() - retentionDays * 24 * 60 * 60 * 1000,
+    );
     const result = await this.prisma.activityLog.deleteMany({
       where: {
         createdAt: {
@@ -163,4 +160,3 @@ export class ActivityLogsService {
     };
   }
 }
-

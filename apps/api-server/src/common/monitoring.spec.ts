@@ -20,7 +20,8 @@ describe('Monitoring & PII Scrubbing', () => {
     });
 
     it('redacts Authorization bearer tokens', () => {
-      const input = 'Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secret';
+      const input =
+        'Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secret';
       const output = scrubPii(input);
       expect(output).toBe('Authorization header: Bearer [REDACTED]');
     });
@@ -76,4 +77,3 @@ describe('Monitoring & PII Scrubbing', () => {
     });
   });
 });
-

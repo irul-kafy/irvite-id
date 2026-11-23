@@ -42,4 +42,3 @@ export class UpdateOrderDto {
   @IsDateString()
   activeUntil?: string;
 }
-

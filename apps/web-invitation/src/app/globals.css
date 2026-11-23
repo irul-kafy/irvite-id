@@ -1,4 +1,3 @@
-
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -12,6 +11,32 @@ html, body {
 :root {
   --background: #fbfbf9;
   --foreground: #181e1b;
+  --tkt-bg: #f4f8f5;
+  --tkt-surface: #ffffff;
+  --tkt-surface-subtle: #edf4f0;
+  --tkt-border: #d5e4dc;
+  --tkt-border-strong: #b8cfc3;
+  --tkt-primary: #1b3b2b;
+  --tkt-primary-hover: #13281e;
+  --tkt-accent: #9a7328;
+  --tkt-accent-soft: #f8f4eb;
+  --tkt-text-primary: #13281e;
+  --tkt-text-secondary: #4a6658;
+  --tkt-text-muted: #647d70;
+  --tkt-success: #155734;
+  --tkt-success-bg: #e6f4ec;
+  --tkt-success-border: #b7e1c9;
+  --tkt-warning: #854d0e;
+  --tkt-warning-bg: #fef9c3;
+  --tkt-warning-border: #fde047;
+  --tkt-danger: #9b1c1c;
+  --tkt-danger-bg: #fdecec;
+  --tkt-danger-border: #f5c2c2;
+  --tkt-radius-sm: 8px;
+  --tkt-radius-md: 12px;
+  --tkt-radius-lg: 18px;
+  --tkt-shadow-sm: 0 4px 14px rgba(19, 40, 30, 0.05);
+  --tkt-shadow-md: 0 12px 30px rgba(19, 40, 30, 0.08);
 }
 
 body {
