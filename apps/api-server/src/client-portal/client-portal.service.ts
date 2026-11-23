@@ -4,15 +4,20 @@ import {
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { Prisma, InvitationStatus } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
 import {
   CreatePortalGuestDto,
   UpdatePortalGuestDto,
 } from './dto/client-portal.dto';
+
+export const MAX_PORTAL_GUESTS_PER_EVENT = 2000;
+export const MAX_PORTAL_PAX_PER_GUEST = 20;
 
 function toIsoSafe(val: unknown): string {
   if (val instanceof Date) {
@@ -75,6 +80,7 @@ export class ClientPortalService {
         title: true,
         slug: true,
         eventDate: true,
+        activeUntil: true,
         locationDetails: true,
         status: true,
         content: true,
@@ -87,6 +93,38 @@ export class ClientPortalService {
     }
 
     return event;
+  }
+
+  private assertEventWritable(event: {
+    status: string;
+    eventDate?: Date | string | null;
+    activeUntil?: Date | string | null;
+  }) {
+    if (event.status === 'ARCHIVED') {
+      throw new ConflictException(
+        'Acara telah diarsipkan dan tidak dapat menerima perubahan data.',
+      );
+    }
+    if (event.eventDate) {
+      const eventDateObj =
+        event.eventDate instanceof Date
+          ? event.eventDate
+          : new Date(event.eventDate);
+      const activeUntilObj =
+        event.activeUntil instanceof Date
+          ? event.activeUntil
+          : typeof event.activeUntil === 'string'
+            ? new Date(event.activeUntil)
+            : null;
+      if (
+        !isNaN(eventDateObj.getTime()) &&
+        isPublicInvitationExpired(eventDateObj, new Date(), activeUntilObj)
+      ) {
+        throw new ConflictException(
+          'Masa aktif undangan acara telah berakhir dan tidak dapat diubah.',
+        );
+      }
+    }
   }
 
   async validateAccess(eventId: string, key?: string) {
@@ -307,13 +345,16 @@ export class ClientPortalService {
         waPendingCount++;
       }
 
-      if (inv?.status === InvitationStatus.RSVP_YES) {
-        rsvpYesCount++;
-        rsvpYesPax += inv.rsvpPax || g.maxPax;
-      } else if (inv?.status === InvitationStatus.RSVP_NO) {
-        rsvpNoCount++;
-      } else {
-        rsvpPendingCount++;
+      const isWalkIn = (g.category || '').toUpperCase() === 'ON_THE_SPOT';
+      if (!isWalkIn) {
+        if (inv?.status === InvitationStatus.RSVP_YES) {
+          rsvpYesCount++;
+          rsvpYesPax += inv.rsvpPax || g.maxPax;
+        } else if (inv?.status === InvitationStatus.RSVP_NO) {
+          rsvpNoCount++;
+        } else {
+          rsvpPendingCount++;
+        }
       }
 
       const hasAttended = Boolean(
@@ -423,11 +464,32 @@ export class ClientPortalService {
     key: string | undefined,
     dto: CreatePortalGuestDto,
   ) {
-    await this.validateAccess(eventId, key);
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
 
     const cleanName = dto.name?.trim();
     if (!cleanName) {
       throw new BadRequestException('Nama tamu wajib diisi.');
+    }
+
+    if (
+      dto.maxPax !== undefined &&
+      (dto.maxPax < 1 || dto.maxPax > MAX_PORTAL_PAX_PER_GUEST)
+    ) {
+      throw new BadRequestException(
+        `Jumlah kuota kehadiran (maxPax) harus antara 1 hingga ${MAX_PORTAL_PAX_PER_GUEST}.`,
+      );
+    }
+
+    if (typeof this.prisma.guest.count === 'function') {
+      const currentGuestsCount = await this.prisma.guest.count({
+        where: { eventId },
+      });
+      if (currentGuestsCount >= MAX_PORTAL_GUESTS_PER_EVENT) {
+        throw new BadRequestException(
+          `Batas maksimum tamu per acara (${MAX_PORTAL_GUESTS_PER_EVENT} tamu) telah tercapai.`,
+        );
+      }
     }
 
     const maxPax = dto.maxPax && dto.maxPax > 0 ? dto.maxPax : 1;
@@ -507,7 +569,17 @@ export class ClientPortalService {
     key: string | undefined,
     dto: UpdatePortalGuestDto,
   ) {
-    await this.validateAccess(eventId, key);
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
+
+    if (
+      dto.maxPax !== undefined &&
+      (dto.maxPax < 1 || dto.maxPax > MAX_PORTAL_PAX_PER_GUEST)
+    ) {
+      throw new BadRequestException(
+        `Jumlah kuota kehadiran (maxPax) harus antara 1 hingga ${MAX_PORTAL_PAX_PER_GUEST}.`,
+      );
+    }
 
     const existing = await this.prisma.guest.findFirst({
       where: { id: guestId, eventId },
@@ -523,7 +595,7 @@ export class ClientPortalService {
     if (dto.phoneNumber !== undefined)
       data.phoneNumber = dto.phoneNumber?.trim() || null;
     if (dto.email !== undefined) data.email = dto.email?.trim() || null;
-    if (dto.maxPax !== undefined) data.maxPax = Math.max(1, dto.maxPax);
+    if (dto.maxPax !== undefined) data.maxPax = dto.maxPax;
     if (dto.customGreeting !== undefined)
       data.customGreeting = dto.customGreeting?.trim() || null;
     if (dto.tableNumber !== undefined)
@@ -584,13 +656,36 @@ export class ClientPortalService {
   }
 
   async deleteGuest(eventId: string, guestId: string, key: string | undefined) {
-    await this.validateAccess(eventId, key);
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
 
-    const existing = await this.prisma.guest.findFirst({
+    const existing = (await this.prisma.guest.findFirst({
       where: { id: guestId, eventId },
-    });
+      include: {
+        invitation: {
+          include: {
+            attendances: true,
+          },
+        },
+      },
+    })) as {
+      id: string;
+      invitation?: {
+        id: string;
+        attendances?: Array<{ id: string }>;
+      } | null;
+    } | null;
     if (!existing) {
       throw new NotFoundException('Data tamu tidak ditemukan.');
+    }
+
+    if (
+      existing.invitation?.attendances &&
+      existing.invitation.attendances.length > 0
+    ) {
+      throw new ConflictException(
+        'Tidak dapat menghapus tamu yang sudah memiliki riwayat kehadiran (check-in).',
+      );
     }
 
     await this.prisma.guest.delete({
@@ -606,7 +701,8 @@ export class ClientPortalService {
     key: string | undefined,
     isSent: boolean,
   ) {
-    await this.validateAccess(eventId, key);
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
 
     let invitation = await this.prisma.invitation.findFirst({
       where: { guestId, eventId },
@@ -653,7 +749,8 @@ export class ClientPortalService {
   }
 
   async deleteWish(eventId: string, wishId: string, key?: string) {
-    await this.validateAccess(eventId, key);
+    const { event } = await this.validateAccess(eventId, key);
+    this.assertEventWritable(event);
 
     if (!wishId || typeof wishId !== 'string') {
       throw new BadRequestException('ID ucapan tidak valid');

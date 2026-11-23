@@ -264,5 +264,68 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
         }),
       );
     });
+
+    it('records permanent validation errors as FAILED in offlineSyncOp but does NOT record transient DB errors so they can be retried', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(adminUser);
+      mockPrisma.event.findUnique.mockResolvedValue(validEvent);
+      mockPrisma.offlineSyncOp.findUnique.mockResolvedValue(null);
+
+      // Operation 1: Permanent validation error (missing code on CHECK_IN)
+      // Operation 2: Transient DB connection error on invitation lookup
+      mockPrisma.invitation.findUnique.mockRejectedValueOnce(
+        new Error('Connection lost: The server closed the connection.'),
+      );
+
+      const batch = {
+        operations: [
+          {
+            opId: 'op-permanent-err',
+            type: 'CHECK_IN' as const,
+            code: '',
+            pax: 1,
+          },
+          {
+            opId: 'op-transient-err',
+            type: 'CHECK_IN' as const,
+            code: 'VALID-CODE-1',
+            pax: 1,
+          },
+        ],
+      };
+
+      const result = await service.syncAttendance(
+        'evt-100',
+        'admin-1',
+        Role.ADMIN,
+        batch,
+      );
+
+      expect(result.failedCount).toBe(2);
+      expect(result.results[0]).toEqual(
+        expect.objectContaining({
+          opId: 'op-permanent-err',
+          status: 'FAILED',
+          retryable: false,
+        }),
+      );
+      expect(result.results[1]).toEqual(
+        expect.objectContaining({
+          opId: 'op-transient-err',
+          status: 'FAILED',
+          retryable: true,
+        }),
+      );
+
+      // Only the permanent error opId must be recorded in offlineSyncOp
+      expect(mockPrisma.offlineSyncOp.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.offlineSyncOp.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'op-permanent-err',
+            status: 'FAILED',
+          }),
+        }),
+      );
+    });
   });
 });
