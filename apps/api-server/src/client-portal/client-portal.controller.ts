@@ -10,6 +10,7 @@ import {
   Headers,
   HttpException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { Throttle, seconds } from '@nestjs/throttler';
 import { Public } from '../auth/decorators/public.decorator';
@@ -22,6 +23,8 @@ import {
 
 @Controller(['api/v1/client-portal', 'client-portal'])
 export class ClientPortalController {
+  private readonly logger = new Logger(ClientPortalController.name);
+
   constructor(private readonly clientPortalService: ClientPortalService) {}
 
   @Public()
@@ -40,12 +43,13 @@ export class ClientPortalController {
       }
       const msg = err instanceof Error ? err.message : String(err);
       const stack = err instanceof Error ? err.stack : undefined;
-      throw new InternalServerErrorException({
-        statusCode: 500,
-        message: 'Portal processing error: ' + msg,
-        details: msg,
+      this.logger.error(
+        `Failed to load client portal data for event ${eventId}: ${msg}`,
         stack,
-      });
+      );
+      throw new InternalServerErrorException(
+        'Terjadi kesalahan internal saat memuat data portal klien.',
+      );
     }
   }
 
