@@ -212,14 +212,21 @@ export async function POST(request: NextRequest) {
 
     const data = await upstream.json().catch(() => null);
     if (!upstream.ok) {
-      const status = upstream.status >= 500 ? 502 : upstream.status;
+      const status =
+        upstream.status === 503
+          ? 503
+          : upstream.status >= 500
+            ? 502
+            : upstream.status;
       return NextResponse.json(
         {
           message:
             data?.message ||
-            (status === 502
-              ? UPSTREAM_ERROR_MESSAGE
-              : 'Permintaan gagal diproses oleh server tiket.'),
+            (status === 503
+              ? 'Pembayaran belum tersedia.'
+              : status === 502
+                ? UPSTREAM_ERROR_MESSAGE
+                : 'Permintaan gagal diproses oleh server tiket.'),
         },
         { status },
       );

@@ -1,11 +1,13 @@
 import {
   Injectable,
   Inject,
+  Logger,
   NotFoundException,
   BadRequestException,
   ConflictException,
   UnauthorizedException,
   ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
@@ -59,7 +61,7 @@ export interface TicketTierView {
   salesEndAt: string | null;
   maxPerOrder: number;
   statusLabel:
-  'TERSEDIA' | 'HAMPIR HABIS' | 'HABIS' | 'BELUM DIBUKA' | 'DITUTUP';
+    'TERSEDIA' | 'HAMPIR HABIS' | 'HABIS' | 'BELUM DIBUKA' | 'DITUTUP';
   benefits: string[];
 }
 
@@ -151,12 +153,12 @@ export interface TicketOrderView {
   paymentRef: string | null;
   paymentReference: string | null;
   status:
-  | 'PENDING'
-  | 'PAID'
-  | 'EXPIRED'
-  | 'CANCELLED'
-  | 'REFUNDED'
-  | 'REFUND_PENDING';
+    | 'PENDING'
+    | 'PAID'
+    | 'EXPIRED'
+    | 'CANCELLED'
+    | 'REFUNDED'
+    | 'REFUND_PENDING';
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -184,10 +186,12 @@ function hashAccessToken(token: string): string {
 
 @Injectable()
 export class TicketingService {
+  private readonly logger = new Logger(TicketingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_SERVICE) private readonly paymentService: PaymentService,
-  ) { }
+  ) {}
 
   /**
    * Generates a unique cryptographically random code >= 10 characters.
@@ -477,31 +481,31 @@ export class TicketingService {
     const tickets: IssuedTicketView[] =
       rawOrder.status === TicketOrderStatus.PAID
         ? rawOrder.issuedTickets.map((t) => {
-          const qrPayload = this.signTicketQr(t.id);
-          return {
-            id: t.id,
-            orderId: t.orderId,
-            orderCode: rawOrder.orderCode,
-            eventId: t.eventId,
-            eventSlug: rawOrder.event.slug,
-            eventTitle: rawOrder.event.title,
-            eventDate: dateLabel,
-            eventTime: '19:00 - 22:00 WIB',
-            venueName,
-            tierId: t.tierId,
-            tierName: rawOrder.tier.name,
-            ticketCode: t.ticketCode,
-            qrPayload,
-            holderName: t.attendeeName,
-            holderEmail: t.attendeeEmail,
-            unitPrice: rawOrder.unitPrice,
-            status: t.status,
-            checkedInAt: t.checkedInAt ? t.checkedInAt.toISOString() : null,
-            checkedInBy: t.checkedInBy,
-            checkedInGate: t.checkedInGate,
-            createdAt: t.createdAt.toISOString(),
-          };
-        })
+            const qrPayload = this.signTicketQr(t.id);
+            return {
+              id: t.id,
+              orderId: t.orderId,
+              orderCode: rawOrder.orderCode,
+              eventId: t.eventId,
+              eventSlug: rawOrder.event.slug,
+              eventTitle: rawOrder.event.title,
+              eventDate: dateLabel,
+              eventTime: '19:00 - 22:00 WIB',
+              venueName,
+              tierId: t.tierId,
+              tierName: rawOrder.tier.name,
+              ticketCode: t.ticketCode,
+              qrPayload,
+              holderName: t.attendeeName,
+              holderEmail: t.attendeeEmail,
+              unitPrice: rawOrder.unitPrice,
+              status: t.status,
+              checkedInAt: t.checkedInAt ? t.checkedInAt.toISOString() : null,
+              checkedInBy: t.checkedInBy,
+              checkedInGate: t.checkedInGate,
+              createdAt: t.createdAt.toISOString(),
+            };
+          })
         : [];
 
     const subtotal =
@@ -956,15 +960,8 @@ export class TicketingService {
       ? null
       : new Date(now.getTime() + expiryMinutes * 60 * 1000);
 
-    const paymentIntent = isFreeOrder
-      ? null
-      : await this.paymentService.createPaymentIntent({
-        orderCode,
-        totalAmount,
-        paymentMethod,
-        expiresAt: expiresAt!,
-      });
-
+    // Step 1: In a single DB transaction, atomically reserve quota and create PENDING (or PAID if free) order.
+    // Never create a payment intent before the order exists in the database.
     const createdOrder = await this.prisma.$transaction(async (tx) => {
       // Atomic row-level quota reservation: prevents overselling under parallel requests
       const affectedRows = await tx.$executeRaw`
@@ -1000,7 +997,7 @@ export class TicketingService {
           taxAmount,
           totalAmount,
           paymentMethod,
-          paymentReference: paymentIntent?.paymentRef ?? null,
+          paymentReference: null,
           holderNames: holderNamesList,
           status: isFreeOrder
             ? TicketOrderStatus.PAID
@@ -1016,6 +1013,7 @@ export class TicketingService {
           await tx.issuedTicket.create({
             data: {
               orderId: order.id,
+              sequenceNumber: i + 1,
               eventId: rawEvent.id,
               tierId: tier.id,
               ticketCode: this.generateSecureCode('TKT'),
@@ -1039,12 +1037,76 @@ export class TicketingService {
       return fullOrder;
     });
 
-    const orderView = this.mapOrderToView(createdOrder);
+    if (isFreeOrder) {
+      const orderView = this.mapOrderToView(createdOrder);
+      return {
+        ...orderView,
+        accessToken,
+        paymentInstructions: null,
+        order: orderView,
+      };
+    }
+
+    // Step 2: AFTER the order creation transaction commits, create payment intent and store paymentReference.
+    // If intent creation fails: mark order CANCELLED, release reserved quota, and respond 503 honestly.
+    let paymentIntent: Awaited<
+      ReturnType<PaymentService['createPaymentIntent']>
+    >;
+    try {
+      paymentIntent = await this.paymentService.createPaymentIntent({
+        orderCode,
+        totalAmount,
+        paymentMethod,
+        expiresAt: expiresAt!,
+      });
+    } catch (error) {
+      await this.prisma.$transaction(async (tx) => {
+        const cancelled = await tx.ticketOrder.updateMany({
+          where: {
+            id: createdOrder.id,
+            status: TicketOrderStatus.PENDING,
+          },
+          data: {
+            status: TicketOrderStatus.CANCELLED,
+          },
+        });
+
+        if (cancelled.count === 1) {
+          await tx.$executeRaw`
+            UPDATE \`ticket_tiers\`
+            SET \`sold_count\` = GREATEST(0, \`sold_count\` - ${createdOrder.quantity}),
+                \`updated_at\` = NOW(3)
+            WHERE \`id\` = ${createdOrder.tierId}
+          `;
+        }
+      });
+
+      if (error instanceof ServiceUnavailableException) {
+        throw error;
+      }
+      throw new ServiceUnavailableException(
+        'Pembayaran belum tersedia. Pesanan dibatalkan dan kuota telah dikembalikan.',
+      );
+    }
+
+    const updatedOrder = await this.prisma.ticketOrder.update({
+      where: { id: createdOrder.id },
+      data: {
+        paymentReference: paymentIntent.paymentRef,
+      },
+      include: {
+        event: true,
+        tier: true,
+        issuedTickets: true,
+      },
+    });
+
+    const orderView = this.mapOrderToView(updatedOrder);
 
     return {
       ...orderView,
       accessToken,
-      paymentInstructions: paymentIntent?.instructions ?? null,
+      paymentInstructions: paymentIntent.instructions,
       order: orderView,
     };
   }
@@ -1113,155 +1175,581 @@ export class TicketingService {
     return this.mapOrderToView(freshOrder);
   }
 
+  private sanitizeJsonValue(
+    value: unknown,
+    depth = 0,
+  ): Prisma.InputJsonValue | null {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (typeof value === 'string' || typeof value === 'boolean') {
+      return value;
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (depth >= 4) {
+      return '[TRUNCATED]';
+    }
+    if (Array.isArray(value)) {
+      return value
+        .slice(0, 50)
+        .map((item) => this.sanitizeJsonValue(item, depth + 1));
+    }
+    if (typeof value === 'object') {
+      const sanitizedObj: Record<string, Prisma.InputJsonValue | null> = {};
+      for (const [key, entryVal] of Object.entries(
+        value as Record<string, unknown>,
+      )) {
+        if (
+          /secret|token|signature|password|authorization|credential|api[_-]?key|private[_-]?key/i.test(
+            key,
+          )
+        ) {
+          continue;
+        }
+        sanitizedObj[key] = this.sanitizeJsonValue(entryVal, depth + 1);
+      }
+      return sanitizedObj;
+    }
+    return null;
+  }
+
+  private sanitizeWebhookPayload(
+    rawInput: unknown,
+  ): Record<string, Prisma.InputJsonValue | null> {
+    if (!rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) {
+      return { rawType: typeof rawInput };
+    }
+    const cleaned = this.sanitizeJsonValue(rawInput, 0);
+    if (cleaned && typeof cleaned === 'object' && !Array.isArray(cleaned)) {
+      return cleaned as Record<string, Prisma.InputJsonValue | null>;
+    }
+    return {};
+  }
+
+  private async recordPaymentEvent(params: {
+    orderCode: string;
+    provider: string;
+    providerEventId?: string | null;
+    rawStatus: string;
+    grossAmount?: number | null;
+    signatureValid: boolean;
+    outcome: string;
+    payload: Record<string, Prisma.InputJsonValue | null>;
+  }): Promise<void> {
+    // Only claim the UNIQUE provider_event_id column when signatureValid === true
+    // so unauthenticated callers cannot poison legitimate providerEventIds.
+    const persistedProviderEventId =
+      params.signatureValid && params.providerEventId
+        ? params.providerEventId
+        : null;
+    const finalPayload: Record<string, Prisma.InputJsonValue | null> =
+      !params.signatureValid && params.providerEventId
+        ? {
+            ...params.payload,
+            unverifiedProviderEventId: params.providerEventId,
+          }
+        : params.payload;
+
+    try {
+      await this.prisma.paymentEvent.create({
+        data: {
+          orderCode: params.orderCode,
+          provider: params.provider,
+          providerEventId: persistedProviderEventId,
+          rawStatus: params.rawStatus,
+          grossAmount:
+            typeof params.grossAmount === 'number' &&
+            Number.isFinite(params.grossAmount)
+              ? Math.round(params.grossAmount)
+              : null,
+          signatureValid: params.signatureValid,
+          outcome: params.outcome,
+          payload: finalPayload,
+        },
+      });
+    } catch (err: unknown) {
+      // If providerEventId is duplicate (P2002), retry logging without providerEventId so every call is audited
+      const code = (err as { code?: string })?.code;
+      if (code === 'P2002' && persistedProviderEventId) {
+        await this.prisma.paymentEvent.create({
+          data: {
+            orderCode: params.orderCode,
+            provider: params.provider,
+            providerEventId: null,
+            rawStatus: params.rawStatus,
+            grossAmount:
+              typeof params.grossAmount === 'number' &&
+              Number.isFinite(params.grossAmount)
+                ? Math.round(params.grossAmount)
+                : null,
+            signatureValid: params.signatureValid,
+            outcome: params.outcome,
+            payload: {
+              ...finalPayload,
+              duplicateProviderEventId: persistedProviderEventId,
+            },
+          },
+        });
+        return;
+      }
+      this.logger.error(
+        `Failed to record payment_events for orderCode=${params.orderCode}: ${(err as Error)?.message ?? 'unknown error'}`,
+      );
+    }
+  }
+
+  private resolveOrderHolderNames(order: {
+    holderNames?: unknown;
+    quantity: number;
+    buyerName: string;
+  }): string[] {
+    const storedHolders = Array.isArray(order.holderNames)
+      ? order.holderNames
+          .filter((n): n is string => typeof n === 'string')
+          .map((n) => n.trim())
+          .filter(Boolean)
+      : [];
+    return Array.from({ length: order.quantity }, (_, i) => {
+      return (
+        storedHolders[i] ||
+        (order.quantity === 1
+          ? order.buyerName
+          : `${order.buyerName} (Tiket ${i + 1})`)
+      );
+    });
+  }
+
   /**
    * POST /ticketing/webhooks/payment
-   * Verifies webhook signature, marks order PAID, and creates IssuedTickets.
+   * Verifies webhook signature, logs every webhook to payment_events, normalizes status,
+   * validates grossAmount, and performs idempotent/atomic state transitions.
    */
   async handlePaymentWebhook(
     dto: PaymentWebhookDto,
     signatureHeader: string | undefined,
   ): Promise<TicketOrderView> {
+    const rawBody =
+      dto && typeof dto === 'object'
+        ? (dto as unknown as Record<string, unknown>)
+        : {};
+    const rawOrderCode =
+      typeof rawBody.orderCode === 'string' ? rawBody.orderCode : '';
+    const rawTransactionStatus =
+      typeof rawBody.transactionStatus === 'string'
+        ? rawBody.transactionStatus
+        : '';
+    const rawProvider =
+      typeof rawBody.provider === 'string' ? rawBody.provider : '';
+    const rawProviderEventId =
+      typeof rawBody.providerEventId === 'string'
+        ? rawBody.providerEventId
+        : '';
+    const rawPaymentReference =
+      typeof rawBody.paymentReference === 'string' &&
+      rawBody.paymentReference.trim()
+        ? rawBody.paymentReference.trim().slice(0, 120)
+        : undefined;
+    const parsedGrossAmount =
+      typeof rawBody.grossAmount === 'number'
+        ? rawBody.grossAmount
+        : typeof rawBody.grossAmount === 'string' &&
+            rawBody.grossAmount.trim() !== ''
+          ? Number(rawBody.grossAmount)
+          : undefined;
+
+    const cleanCode = rawOrderCode.trim().toUpperCase().slice(0, 64);
+    const rawStatus = rawTransactionStatus.trim().toUpperCase().slice(0, 40);
+    const provider = (rawProvider.trim().toLowerCase() || 'default').slice(
+      0,
+      40,
+    );
+    const providerEventId = rawProviderEventId.trim().slice(0, 191) || null;
+    const sanitizedPayload = this.sanitizeWebhookPayload(rawBody);
+
+    if (!cleanCode || !rawStatus) {
+      await this.recordPaymentEvent({
+        orderCode: cleanCode || 'UNKNOWN',
+        provider,
+        providerEventId,
+        rawStatus: rawStatus || 'UNKNOWN',
+        grossAmount:
+          typeof parsedGrossAmount === 'number' &&
+          Number.isFinite(parsedGrossAmount)
+            ? parsedGrossAmount
+            : null,
+        signatureValid: false,
+        outcome: 'REJECTED_INVALID_PAYLOAD',
+        payload: sanitizedPayload,
+      });
+      throw new BadRequestException(
+        'Payload webhook wajib menyertakan orderCode dan transactionStatus.',
+      );
+    }
+
     const isValidSig = this.paymentService.verifyWebhookSignature(
       {
-        orderCode: dto.orderCode,
-        transactionStatus: dto.transactionStatus,
-        grossAmount: dto.grossAmount,
+        orderCode: rawOrderCode,
+        transactionStatus: rawTransactionStatus,
+        grossAmount: parsedGrossAmount,
+        provider: rawProvider || undefined,
       },
       signatureHeader,
     );
 
     if (!isValidSig) {
+      await this.recordPaymentEvent({
+        orderCode: cleanCode || 'UNKNOWN',
+        provider,
+        providerEventId,
+        rawStatus: rawStatus || 'UNKNOWN',
+        grossAmount:
+          typeof parsedGrossAmount === 'number' &&
+          Number.isFinite(parsedGrossAmount)
+            ? parsedGrossAmount
+            : null,
+        signatureValid: false,
+        outcome: 'REJECTED_INVALID_SIGNATURE',
+        payload: sanitizedPayload,
+      });
       throw new UnauthorizedException(
         'Tanda tangan digital webhook pembayaran tidak valid.',
       );
     }
 
-    const cleanCode = dto.orderCode.trim().toUpperCase();
+    const existingOrder = await this.prisma.ticketOrder.findUnique({
+      where: { orderCode: cleanCode },
+      include: {
+        event: true,
+        tier: true,
+        issuedTickets: true,
+      },
+    });
 
-    return this.prisma.$transaction(async (tx) => {
-      const order = await tx.ticketOrder.findUnique({
-        where: { orderCode: cleanCode },
-        include: {
-          event: true,
-          tier: true,
-          issuedTickets: true,
+    if (!existingOrder) {
+      await this.recordPaymentEvent({
+        orderCode: cleanCode || 'UNKNOWN',
+        provider,
+        providerEventId,
+        rawStatus: rawStatus || 'UNKNOWN',
+        grossAmount:
+          typeof parsedGrossAmount === 'number' &&
+          Number.isFinite(parsedGrossAmount)
+            ? parsedGrossAmount
+            : null,
+        signatureValid: true,
+        outcome: 'REJECTED_ORDER_NOT_FOUND',
+        payload: sanitizedPayload,
+      });
+      throw new NotFoundException('Pesanan tidak ditemukan.');
+    }
+
+    // Mandatory grossAmount validation: must be present, non-negative integer, and match order.totalAmount
+    const grossAmountInt =
+      typeof parsedGrossAmount === 'number' &&
+      Number.isFinite(parsedGrossAmount) &&
+      Number.isInteger(parsedGrossAmount) &&
+      parsedGrossAmount >= 0
+        ? parsedGrossAmount
+        : NaN;
+    if (
+      !Number.isFinite(grossAmountInt) ||
+      grossAmountInt !== existingOrder.totalAmount
+    ) {
+      this.logger.warn(
+        `Webhook grossAmount mismatch for order ${cleanCode}: expected=${existingOrder.totalAmount}, received=${String(rawBody.grossAmount)}`,
+      );
+      await this.recordPaymentEvent({
+        orderCode: cleanCode,
+        provider,
+        providerEventId,
+        rawStatus: rawStatus || 'UNKNOWN',
+        grossAmount:
+          typeof parsedGrossAmount === 'number' &&
+          Number.isFinite(parsedGrossAmount)
+            ? Math.round(parsedGrossAmount)
+            : null,
+        signatureValid: true,
+        outcome: 'REJECTED_AMOUNT_MISMATCH',
+        payload: sanitizedPayload,
+      });
+      throw new BadRequestException(
+        'Nominal pembayaran webhook wajib diisi dan harus sesuai dengan total tagihan pesanan.',
+      );
+    }
+
+    // Explicit replay detection using UNIQUE provider_event_id
+    if (providerEventId) {
+      const priorEvent = await this.prisma.paymentEvent.findUnique({
+        where: { providerEventId },
+        select: { id: true },
+      });
+      if (priorEvent) {
+        await this.recordPaymentEvent({
+          orderCode: cleanCode,
+          provider,
+          providerEventId: null,
+          rawStatus,
+          grossAmount: grossAmountInt,
+          signatureValid: true,
+          outcome: 'REPLAY_IGNORED',
+          payload: {
+            ...sanitizedPayload,
+            replayedProviderEventId: providerEventId,
+          },
+        });
+        return this.mapOrderToView(existingOrder);
+      }
+    }
+
+    // Status normalization
+    const isSuccessStatus =
+      rawStatus === 'PAID' ||
+      rawStatus === 'SETTLEMENT' ||
+      rawStatus === 'CAPTURE';
+    const isReleaseStatus =
+      rawStatus === 'EXPIRED' ||
+      rawStatus === 'CANCELLED' ||
+      rawStatus === 'FAILED';
+
+    // Non-final statuses (e.g. PENDING, AUTHORIZE, CHALLENGE) are no-ops and return 200
+    if (!isSuccessStatus && !isReleaseStatus) {
+      await this.recordPaymentEvent({
+        orderCode: cleanCode,
+        provider,
+        providerEventId,
+        rawStatus,
+        grossAmount: grossAmountInt,
+        signatureValid: true,
+        outcome: 'IGNORED_NON_FINAL_STATUS',
+        payload: sanitizedPayload,
+      });
+      return this.mapOrderToView(existingOrder);
+    }
+
+    // Release statuses: EXPIRED, CANCELLED, FAILED release quota at most once from PENDING
+    if (isReleaseStatus) {
+      const targetStatus =
+        rawStatus === 'EXPIRED'
+          ? TicketOrderStatus.EXPIRED
+          : TicketOrderStatus.CANCELLED;
+
+      const { updatedOrder, outcome } = await this.prisma.$transaction(
+        async (tx) => {
+          const updated = await tx.ticketOrder.updateMany({
+            where: {
+              id: existingOrder.id,
+              status: TicketOrderStatus.PENDING,
+            },
+            data: {
+              status: targetStatus,
+              paymentReference:
+                rawPaymentReference || existingOrder.paymentReference,
+            },
+          });
+
+          if (updated.count === 1) {
+            await tx.$executeRaw`
+              UPDATE \`ticket_tiers\`
+              SET \`sold_count\` = GREATEST(0, \`sold_count\` - ${existingOrder.quantity}),
+                  \`updated_at\` = NOW(3)
+              WHERE \`id\` = ${existingOrder.tierId}
+            `;
+          }
+
+          const fresh = await tx.ticketOrder.findUniqueOrThrow({
+            where: { id: existingOrder.id },
+            include: { event: true, tier: true, issuedTickets: true },
+          });
+
+          return {
+            updatedOrder: fresh,
+            outcome: updated.count === 1 ? 'QUOTA_RELEASED' : 'IDEMPOTENT_NOOP',
+          };
         },
+      );
+
+      await this.recordPaymentEvent({
+        orderCode: cleanCode,
+        provider,
+        providerEventId,
+        rawStatus,
+        grossAmount: grossAmountInt,
+        signatureValid: true,
+        outcome,
+        payload: sanitizedPayload,
       });
 
-      if (!order) {
-        throw new NotFoundException(`Pesanan "${cleanCode}" tidak ditemukan.`);
-      }
+      return this.mapOrderToView(updatedOrder);
+    }
 
-      if (order.status === TicketOrderStatus.PAID) {
-        return this.mapOrderToView(order);
-      }
+    // Success statuses: PAID, SETTLEMENT, CAPTURE
+    // Fast-path idempotent check for terminal statuses: PAID, REFUND_PENDING, REFUNDED
+    if (
+      existingOrder.status === TicketOrderStatus.PAID ||
+      existingOrder.status === TicketOrderStatus.REFUND_PENDING ||
+      existingOrder.status === TicketOrderStatus.REFUNDED
+    ) {
+      await this.recordPaymentEvent({
+        orderCode: cleanCode,
+        provider,
+        providerEventId,
+        rawStatus,
+        grossAmount: grossAmountInt,
+        signatureValid: true,
+        outcome: 'IDEMPOTENT_NOOP',
+        payload: sanitizedPayload,
+      });
+      return this.mapOrderToView(existingOrder);
+    }
 
-      if (order.status !== TicketOrderStatus.PENDING) {
-        throw new ConflictException(
-          `Pesanan dengan status ${order.status} tidak dapat diproses.`,
-        );
-      }
+    const now = new Date();
+    const nextPaymentRef =
+      rawPaymentReference || existingOrder.paymentReference;
+    const holderNames = this.resolveOrderHolderNames(existingOrder);
 
-      const now = new Date();
-
-      // If webhook says EXPIRED or CANCELLED, or order is already past expiresAt
-      if (
-        dto.transactionStatus === 'EXPIRED' ||
-        dto.transactionStatus === 'CANCELLED' ||
-        (order.expiresAt && order.expiresAt <= now)
-      ) {
-        const targetStatus =
-          dto.transactionStatus === 'CANCELLED'
-            ? TicketOrderStatus.CANCELLED
-            : TicketOrderStatus.EXPIRED;
-
-        const updated = await tx.ticketOrder.updateMany({
+    const { finalOrder, outcome } = await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Try atomic transition from PENDING -> PAID.
+        // Note: A PENDING order whose expiresAt has passed but has NOT been swept by cron
+        // still holds its reserved quota. It MUST transition directly to PAID without releasing/re-reserving quota.
+        const claimedPending = await tx.ticketOrder.updateMany({
           where: {
-            id: order.id,
+            id: existingOrder.id,
             status: TicketOrderStatus.PENDING,
           },
           data: {
-            status: targetStatus,
-            paymentReference: dto.paymentReference || order.paymentReference,
+            status: TicketOrderStatus.PAID,
+            paidAt: now,
+            paymentReference: nextPaymentRef,
           },
         });
 
-        if (updated.count === 1) {
-          await tx.$executeRaw`
-            UPDATE \`ticket_tiers\`
-            SET \`sold_count\` = GREATEST(0, \`sold_count\` - ${order.quantity}),
-                \`updated_at\` = NOW(3)
-            WHERE \`id\` = ${order.tierId}
-          `;
+        if (claimedPending.count === 1) {
+          for (let i = 0; i < existingOrder.quantity; i++) {
+            await tx.issuedTicket.create({
+              data: {
+                orderId: existingOrder.id,
+                sequenceNumber: i + 1,
+                eventId: existingOrder.eventId,
+                tierId: existingOrder.tierId,
+                ticketCode: this.generateSecureCode('TKT'),
+                attendeeName: holderNames[i],
+                attendeeEmail: existingOrder.buyerEmail,
+                status: IssuedTicketStatus.ISSUED,
+              },
+            });
+          }
+
+          const paidOrder = await tx.ticketOrder.findUniqueOrThrow({
+            where: { id: existingOrder.id },
+            include: { event: true, tier: true, issuedTickets: true },
+          });
+          return { finalOrder: paidOrder, outcome: 'PAID_ISSUED' };
         }
 
-        if (
-          dto.transactionStatus === 'PAID' ||
-          dto.transactionStatus === 'SETTLEMENT'
-        ) {
-          throw new ConflictException(
-            'Pesanan telah melewati batas waktu pembayaran (EXPIRED).',
-          );
-        }
-
-        const expiredOrder = await tx.ticketOrder.findUniqueOrThrow({
-          where: { id: order.id },
+        // 2. If count === 0, re-read current order status.
+        const reread = await tx.ticketOrder.findUniqueOrThrow({
+          where: { id: existingOrder.id },
           include: { event: true, tier: true, issuedTickets: true },
         });
-        return this.mapOrderToView(expiredOrder);
-      }
 
-      if (
-        dto.grossAmount !== undefined &&
-        Math.round(Number(dto.grossAmount)) !== order.totalAmount
-      ) {
-        throw new BadRequestException(
-          'Nominal pembayaran webhook tidak sesuai dengan total tagihan pesanan.',
-        );
-      }
+        if (
+          reread.status === TicketOrderStatus.PAID ||
+          reread.status === TicketOrderStatus.REFUND_PENDING ||
+          reread.status === TicketOrderStatus.REFUNDED
+        ) {
+          return { finalOrder: reread, outcome: 'IDEMPOTENT_NOOP' };
+        }
 
-      // Issue tickets now that payment is confirmed using stored holderNames
-      const storedHolders = Array.isArray(order.holderNames)
-        ? order.holderNames
-          .filter((n): n is string => typeof n === 'string')
-          .map((n) => n.trim())
-          .filter(Boolean)
-        : [];
-      for (let i = 0; i < order.quantity; i++) {
-        const attendeeName =
-          storedHolders[i] ||
-          (order.quantity === 1
-            ? order.buyerName
-            : `${order.buyerName} (Tiket ${i + 1})`);
-        await tx.issuedTicket.create({
+        // 3. Late payment flow for orders already in EXPIRED or CANCELLED status:
+        // Claim transition from EXPIRED/CANCELLED -> REFUND_PENDING atomically so parallel webhooks cannot double-reserve.
+        const claimedLate = await tx.ticketOrder.updateMany({
+          where: {
+            id: existingOrder.id,
+            status: {
+              in: [TicketOrderStatus.EXPIRED, TicketOrderStatus.CANCELLED],
+            },
+          },
           data: {
-            orderId: order.id,
-            eventId: order.eventId,
-            tierId: order.tierId,
-            ticketCode: this.generateSecureCode('TKT'),
-            attendeeName,
-            attendeeEmail: order.buyerEmail,
-            status: IssuedTicketStatus.ISSUED,
+            status: TicketOrderStatus.REFUND_PENDING,
+            paymentReference: nextPaymentRef,
           },
         });
-      }
 
-      const paidOrder = await tx.ticketOrder.update({
-        where: { id: order.id },
-        data: {
-          status: TicketOrderStatus.PAID,
-          paidAt: now,
-          paymentReference: dto.paymentReference || order.paymentReference,
-        },
-        include: {
-          event: true,
-          tier: true,
-          issuedTickets: true,
-        },
-      });
+        if (claimedLate.count === 0) {
+          const afterRace = await tx.ticketOrder.findUniqueOrThrow({
+            where: { id: existingOrder.id },
+            include: { event: true, tier: true, issuedTickets: true },
+          });
+          return { finalOrder: afterRace, outcome: 'IDEMPOTENT_NOOP' };
+        }
 
-      return this.mapOrderToView(paidOrder);
+        // Try to re-reserve quota atomically
+        const reservedRows = await tx.$executeRaw`
+          UPDATE \`ticket_tiers\`
+          SET \`sold_count\` = \`sold_count\` + ${existingOrder.quantity},
+              \`updated_at\` = NOW(3)
+          WHERE \`id\` = ${existingOrder.tierId}
+            AND \`event_id\` = ${existingOrder.eventId}
+            AND (\`sold_count\` + ${existingOrder.quantity}) <= \`quota\`
+        `;
+
+        if (Number(reservedRows) === 1) {
+          for (let i = 0; i < existingOrder.quantity; i++) {
+            await tx.issuedTicket.create({
+              data: {
+                orderId: existingOrder.id,
+                sequenceNumber: i + 1,
+                eventId: existingOrder.eventId,
+                tierId: existingOrder.tierId,
+                ticketCode: this.generateSecureCode('TKT'),
+                attendeeName: holderNames[i],
+                attendeeEmail: existingOrder.buyerEmail,
+                status: IssuedTicketStatus.ISSUED,
+              },
+            });
+          }
+
+          const recoveredOrder = await tx.ticketOrder.update({
+            where: { id: existingOrder.id },
+            data: {
+              status: TicketOrderStatus.PAID,
+              paidAt: now,
+              paymentReference: nextPaymentRef,
+            },
+            include: { event: true, tier: true, issuedTickets: true },
+          });
+
+          return { finalOrder: recoveredOrder, outcome: 'LATE_PAID_ISSUED' };
+        }
+
+        // Quota exhausted: keep status as REFUND_PENDING and DO NOT throw inside transaction!
+        const refundPendingOrder = await tx.ticketOrder.findUniqueOrThrow({
+          where: { id: existingOrder.id },
+          include: { event: true, tier: true, issuedTickets: true },
+        });
+
+        return {
+          finalOrder: refundPendingOrder,
+          outcome: 'LATE_PAID_REFUND_PENDING',
+        };
+      },
+    );
+
+    await this.recordPaymentEvent({
+      orderCode: cleanCode,
+      provider,
+      providerEventId,
+      rawStatus,
+      grossAmount: grossAmountInt,
+      signatureValid: true,
+      outcome,
+      payload: sanitizedPayload,
     });
+
+    return this.mapOrderToView(finalOrder);
   }
 
   /**
@@ -1338,15 +1826,15 @@ export class TicketingService {
       dto.tiers && dto.tiers.length > 0
         ? dto.tiers
         : [
-          {
-            name: 'Tiket reguler',
-            description: 'Tiket masuk reguler dengan kode QR.',
-            price: 50000,
-            quota: 100,
-            maxPerOrder: 10,
-            benefits: ['Tiket digital kode QR'],
-          },
-        ];
+            {
+              name: 'Tiket reguler',
+              description: 'Tiket masuk reguler dengan kode QR.',
+              price: 50000,
+              quota: 100,
+              maxPerOrder: 10,
+              benefits: ['Tiket digital kode QR'],
+            },
+          ];
 
     const created = await this.prisma.event.create({
       data: {
@@ -1455,17 +1943,17 @@ export class TicketingService {
           : {}),
         ...(dto.promoEndsAt !== undefined
           ? {
-            promoEndsAt: dto.promoEndsAt ? new Date(dto.promoEndsAt) : null,
-          }
+              promoEndsAt: dto.promoEndsAt ? new Date(dto.promoEndsAt) : null,
+            }
           : {}),
         ...(ticketStatus !== undefined
           ? {
-            ticketStatus,
-            status:
-              ticketStatus === TicketEventStatus.PUBLISHED
-                ? 'PUBLISHED'
-                : 'DRAFT',
-          }
+              ticketStatus,
+              status:
+                ticketStatus === TicketEventStatus.PUBLISHED
+                  ? 'PUBLISHED'
+                  : 'DRAFT',
+            }
           : {}),
       },
       include: {
@@ -1568,10 +2056,10 @@ export class TicketingService {
         ...(dto.quota !== undefined ? { quota: dto.quota } : {}),
         ...(dto.salesStartAt !== undefined
           ? {
-            salesStartAt: dto.salesStartAt
-              ? new Date(dto.salesStartAt)
-              : null,
-          }
+              salesStartAt: dto.salesStartAt
+                ? new Date(dto.salesStartAt)
+                : null,
+            }
           : {}),
         ...(dto.salesEndAt !== undefined
           ? { salesEndAt: dto.salesEndAt ? new Date(dto.salesEndAt) : null }
@@ -1827,12 +2315,12 @@ export class TicketingService {
       message: `Check-in berhasil untuk ${ticket.attendeeName} (${ticket.order.tier.name}).`,
       ticket: ticketView
         ? {
-          ...ticketView,
-          status: 'CHECKED_IN' as const,
-          checkedInAt: now.toISOString(),
-          checkedInBy: scannedBy,
-          checkedInGate: gateName,
-        }
+            ...ticketView,
+            status: 'CHECKED_IN' as const,
+            checkedInAt: now.toISOString(),
+            checkedInBy: scannedBy,
+            checkedInGate: gateName,
+          }
         : null,
     };
   }

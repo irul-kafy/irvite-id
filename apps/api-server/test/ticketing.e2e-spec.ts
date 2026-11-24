@@ -25,6 +25,7 @@ describe('Ticketing Module (e2e MySQL)', () => {
 
   let adminUserId: string;
   let adminToken: string;
+  let publishedEventId: string;
   let draftEventId: string;
 
   let limitedTierId: string;
@@ -136,6 +137,7 @@ describe('Ticketing Module (e2e MySQL)', () => {
       },
       include: { ticketTiers: true },
     });
+    publishedEventId = pubEvent.id;
     limitedTierId = pubEvent.ticketTiers.find(
       (t) => t.name === 'Tiket kuota terbatas',
     )!.id;
@@ -439,7 +441,7 @@ describe('Ticketing Module (e2e MySQL)', () => {
         grossAmount: activePending.totalAmount,
         paymentReference: 'PAY-E2E-001',
       })
-      .expect(201);
+      .expect(200);
 
     const paidBody = webhookRes.body as {
       status: string;
@@ -600,5 +602,353 @@ describe('Ticketing Module (e2e MySQL)', () => {
     expect(promoQuote.totalAmount).toBe(220000); // ORGANIZER pays fee, buyer pays subtotal + tax
     expect(promoQuote.organizerNet).toBe(194000); // 200.000 - 6.000 (tax is separate)
     expect(promoQuote.allowedPaymentMethods).toContain('VA_BCA');
+  });
+
+  it('7. Money flow & webhook state machine: parallel PAID idempotency, overdue unswept PENDING -> PAID, EXPIRED/CANCELLED late payment -> PAID or REFUND_PENDING, grossAmount check, payment_events audit, and 503 checkout rollback', async () => {
+    // Create a dedicated tier with quota = 2 for testing parallel webhooks, overdue PENDING, and late payments
+    const tier2 = await prisma.ticketTier.create({
+      data: {
+        eventId: publishedEventId,
+        name: 'Tier Uji Alur Uang',
+        description: 'Kuota 2 tiket',
+        price: 100000,
+        quota: 2,
+        soldCount: 0,
+        maxPerOrder: 2,
+        sortOrder: 2,
+      },
+    });
+
+    // A. Checkout a 2-ticket order (reserves all 2 seats -> soldCount = 2) with custom holderNames
+    const order2Body = await ticketingService.checkoutTicket({
+      eventSlug: pubSlug,
+      tierId: tier2.id,
+      quantity: 2,
+      buyerName: 'Budi Santoso',
+      buyerEmail: 'budi@contoh-fiktif.id',
+      buyerWhatsapp: '081298765432',
+      paymentMethod: 'QRIS',
+      holderNames: ['Budi Satu', 'Budi Dua'],
+    });
+
+    // B. Non-final webhook status (PENDING) -> 200 OK, 0 tickets issued
+    const pendingSig = paymentService.computeWebhookSignature({
+      orderCode: order2Body.orderCode,
+      transactionStatus: 'PENDING',
+      grossAmount: order2Body.totalAmount,
+    });
+    const pendingRes = await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', pendingSig)
+      .send({
+        orderCode: order2Body.orderCode,
+        transactionStatus: 'PENDING',
+        grossAmount: order2Body.totalAmount,
+      })
+      .expect(200);
+    expect((pendingRes.body as { status: string }).status).toBe('PENDING');
+    expect(
+      await prisma.issuedTicket.count({ where: { orderId: order2Body.id } }),
+    ).toBe(0);
+
+    // C. Mismatched grossAmount -> 400 Bad Request, recorded in payment_events
+    const mismatchSig = paymentService.computeWebhookSignature({
+      orderCode: order2Body.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: order2Body.totalAmount - 1000,
+    });
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', mismatchSig)
+      .send({
+        orderCode: order2Body.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: order2Body.totalAmount - 1000,
+      })
+      .expect(400);
+
+    // D. Unknown orderCode -> 404 Not Found without leaking details, recorded in payment_events,
+    // and secret/signature/token keys in raw body must NEVER be stored in payment_events.payload!
+    const notFoundSig = paymentService.computeWebhookSignature({
+      orderCode: 'ORD-UNKNOWN9999',
+      transactionStatus: 'PAID',
+      grossAmount: 100000,
+    });
+    const secretProbeCode = `ORD-NOSECRET-${Date.now()}`;
+    const secretProbeSig = paymentService.computeWebhookSignature({
+      orderCode: secretProbeCode,
+      transactionStatus: 'PAID',
+      grossAmount: 100000,
+    });
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', notFoundSig)
+      .send({
+        orderCode: 'ORD-UNKNOWN9999',
+        transactionStatus: 'PAID',
+        grossAmount: 100000,
+      })
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', secretProbeSig)
+      .send({
+        orderCode: secretProbeCode,
+        transactionStatus: 'PAID',
+        grossAmount: 100000,
+        fraudStatus: 'accept',
+        signature_key: 'super-secret-sig-value',
+        apiSecret: 'do-not-save-me',
+        accessToken: 'do-not-save-token',
+      })
+      .expect(404);
+
+    const storedProbeEvent = await prisma.paymentEvent.findFirstOrThrow({
+      where: { orderCode: secretProbeCode },
+      orderBy: { createdAt: 'desc' },
+    });
+    const storedPayloadJson = JSON.stringify(storedProbeEvent.payload);
+    expect(storedPayloadJson).toContain('fraudStatus');
+    expect(storedPayloadJson).not.toContain('super-secret-sig-value');
+    expect(storedPayloadJson).not.toContain('do-not-save-me');
+    expect(storedPayloadJson).not.toContain('do-not-save-token');
+
+    // Invalid signature with providerEventId must be logged in payment_events WITHOUT poisoning provider_event_id
+    const targetProviderEventId = `evt-parallel-${order2Body.orderCode}`;
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', 'invalid-forged-signature')
+      .send({
+        orderCode: order2Body.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: order2Body.totalAmount,
+        providerEventId: targetProviderEventId,
+      })
+      .expect(401);
+
+    // E. Overdue PENDING order (expiresAt in the past, NOT yet swept by cron) + 2 parallel PAID webhooks:
+    // Even though remaining quota on tier2 is 0 (soldCount=2, quota=2), the unswept PENDING order still holds its 2 seats.
+    // Both parallel webhooks must return 200 PAID, and strictly 2 tickets (sequenceNumber 1 and 2) must be created (no duplicates).
+    await prisma.ticketOrder.update({
+      where: { id: order2Body.id },
+      data: { expiresAt: new Date(Date.now() - 120000) },
+    });
+
+    const paidSig = paymentService.computeWebhookSignature({
+      orderCode: order2Body.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: order2Body.totalAmount,
+    });
+
+    const [parallel1, parallel2] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/ticketing/webhooks/payment')
+        .set('x-payment-signature', paidSig)
+        .send({
+          orderCode: order2Body.orderCode,
+          transactionStatus: 'PAID',
+          grossAmount: order2Body.totalAmount,
+          providerEventId: `evt-parallel-${order2Body.orderCode}`,
+        }),
+      request(app.getHttpServer())
+        .post('/ticketing/webhooks/payment')
+        .set('x-payment-signature', paidSig)
+        .send({
+          orderCode: order2Body.orderCode,
+          transactionStatus: 'PAID',
+          grossAmount: order2Body.totalAmount,
+          providerEventId: `evt-parallel-${order2Body.orderCode}`,
+        }),
+    ]);
+
+    expect(parallel1.status).toBe(200);
+    expect(parallel2.status).toBe(200);
+    expect((parallel1.body as { status: string }).status).toBe('PAID');
+    expect((parallel2.body as { status: string }).status).toBe('PAID');
+
+    const issuedForOrder2 = await prisma.issuedTicket.findMany({
+      where: { orderId: order2Body.id },
+      orderBy: { sequenceNumber: 'asc' },
+    });
+    expect(issuedForOrder2).toHaveLength(2);
+    expect(issuedForOrder2.map((t) => t.sequenceNumber)).toEqual([1, 2]);
+    expect(issuedForOrder2.map((t) => t.attendeeName)).toEqual([
+      'Budi Satu',
+      'Budi Dua',
+    ]);
+
+    // Verify duplicate webhook produced only one PAID_ISSUED outcome in payment_events
+    const paidIssuedEvents = await prisma.paymentEvent.count({
+      where: {
+        orderCode: order2Body.orderCode,
+        outcome: 'PAID_ISSUED',
+      },
+    });
+    expect(paidIssuedEvents).toBe(1);
+
+    // F. Late payment on EXPIRED order:
+    // Expand tier2 quota to 3 so 1 seat is available (soldCount=2, quota=3).
+    await prisma.ticketTier.update({
+      where: { id: tier2.id },
+      data: { quota: 3 },
+    });
+
+    // Create two 1-ticket orders, then expire both so soldCount drops back to 2 (1 seat left).
+    const expOrderA = await ticketingService.checkoutTicket({
+      eventSlug: pubSlug,
+      tierId: tier2.id,
+      quantity: 1,
+      buyerName: 'Siti Terlambat A',
+      buyerEmail: 'siti.a@contoh-fiktif.id',
+      buyerWhatsapp: '081233334444',
+      paymentMethod: 'QRIS',
+    });
+
+    // Expire expOrderA via EXPIRED webhook -> releases 1 seat (soldCount = 2)
+    const expireASig = paymentService.computeWebhookSignature({
+      orderCode: expOrderA.orderCode,
+      transactionStatus: 'EXPIRED',
+      grossAmount: expOrderA.totalAmount,
+    });
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', expireASig)
+      .send({
+        orderCode: expOrderA.orderCode,
+        transactionStatus: 'EXPIRED',
+        grossAmount: expOrderA.totalAmount,
+      })
+      .expect(200);
+
+    // Create expOrderB (takes the 1 remaining seat -> soldCount = 3), then expire it too (soldCount = 2)
+    const expOrderB = await ticketingService.checkoutTicket({
+      eventSlug: pubSlug,
+      tierId: tier2.id,
+      quantity: 1,
+      buyerName: 'Siti Terlambat B',
+      buyerEmail: 'siti.b@contoh-fiktif.id',
+      buyerWhatsapp: '081233335555',
+      paymentMethod: 'QRIS',
+    });
+    const expireBSig = paymentService.computeWebhookSignature({
+      orderCode: expOrderB.orderCode,
+      transactionStatus: 'EXPIRED',
+      grossAmount: expOrderB.totalAmount,
+    });
+    await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', expireBSig)
+      .send({
+        orderCode: expOrderB.orderCode,
+        transactionStatus: 'EXPIRED',
+        grossAmount: expOrderB.totalAmount,
+      })
+      .expect(200);
+
+    // Late PAID webhook arrives for expOrderA while 1 seat is still free -> re-reserves seat, becomes PAID, issues 1 ticket!
+    const latePaidASig = paymentService.computeWebhookSignature({
+      orderCode: expOrderA.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: expOrderA.totalAmount,
+    });
+    const latePaidARes = await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', latePaidASig)
+      .send({
+        orderCode: expOrderA.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: expOrderA.totalAmount,
+      })
+      .expect(200);
+    expect((latePaidARes.body as { status: string }).status).toBe('PAID');
+    expect(
+      await prisma.issuedTicket.count({ where: { orderId: expOrderA.id } }),
+    ).toBe(1);
+
+    // Late PAID webhook arrives for expOrderB when quota is now full (soldCount=3, quota=3) -> becomes REFUND_PENDING in DB!
+    const latePaidBSig = paymentService.computeWebhookSignature({
+      orderCode: expOrderB.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: expOrderB.totalAmount,
+    });
+    const latePaidBRes = await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', latePaidBSig)
+      .send({
+        orderCode: expOrderB.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: expOrderB.totalAmount,
+      })
+      .expect(200);
+    expect((latePaidBRes.body as { status: string }).status).toBe(
+      'REFUND_PENDING',
+    );
+    const dbExpOrderB = await prisma.ticketOrder.findUniqueOrThrow({
+      where: { id: expOrderB.id },
+    });
+    expect(dbExpOrderB.status).toBe(TicketOrderStatus.REFUND_PENDING);
+
+    // G. Checkout when createPaymentIntent fails (503) -> marks order CANCELLED and releases quota,
+    // and subsequent late payment on CANCELLED order transitions to PAID (if quota available) or REFUND_PENDING (if quota full).
+    await prisma.ticketTier.update({
+      where: { id: tier2.id },
+      data: { quota: 4 }, // 1 seat available (soldCount=3, quota=4)
+    });
+
+    const intentSpy = jest
+      .spyOn(paymentService, 'createPaymentIntent')
+      .mockRejectedValueOnce(new Error('Gateway payment service down'));
+
+    await request(app.getHttpServer())
+      .post('/ticketing/checkout')
+      .send({
+        eventSlug: pubSlug,
+        tierId: tier2.id,
+        quantity: 1,
+        buyerName: 'Agus Gagal Intent',
+        buyerEmail: 'agus@contoh-fiktif.id',
+        buyerWhatsapp: '081277778888',
+        paymentMethod: 'QRIS',
+      })
+      .expect(503);
+
+    intentSpy.mockRestore();
+
+    // Verify order was saved as CANCELLED and quota was released back to soldCount = 3
+    const cancelledOrder = await prisma.ticketOrder.findFirstOrThrow({
+      where: {
+        tierId: tier2.id,
+        buyerEmail: 'agus@contoh-fiktif.id',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(cancelledOrder.status).toBe(TicketOrderStatus.CANCELLED);
+    const tierAfterFailedIntent = await prisma.ticketTier.findUniqueOrThrow({
+      where: { id: tier2.id },
+    });
+    expect(tierAfterFailedIntent.soldCount).toBe(3);
+
+    // Now buyer pays for the CANCELLED order while 1 seat is available -> transitions to PAID and issues ticket!
+    const cancelledPaidSig = paymentService.computeWebhookSignature({
+      orderCode: cancelledOrder.orderCode,
+      transactionStatus: 'CAPTURE',
+      grossAmount: cancelledOrder.totalAmount,
+    });
+    const cancelledPaidRes = await request(app.getHttpServer())
+      .post('/ticketing/webhooks/payment')
+      .set('x-payment-signature', cancelledPaidSig)
+      .send({
+        orderCode: cancelledOrder.orderCode,
+        transactionStatus: 'CAPTURE',
+        grossAmount: cancelledOrder.totalAmount,
+      })
+      .expect(200);
+    expect((cancelledPaidRes.body as { status: string }).status).toBe('PAID');
+    expect(
+      await prisma.issuedTicket.count({
+        where: { orderId: cancelledOrder.id },
+      }),
+    ).toBe(1);
   });
 });

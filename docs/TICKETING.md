@@ -99,10 +99,22 @@ apps/web-invitation (/tiket, /partnership)     apps/web-admin (/events, /orders)
 3. **Katalog Publik & Checkout Tanpa Wajib Akun**
    - Pembeli membuka `/tiket`, melihat daftar acara `PUBLISHED` dari `GET /api/v1/ticketing/events` (atau *empty state* jujur bila belum ada acara).
    - Pembeli memilih kategori tiket dan jumlah (`1..maxPerOrder`), mengisi nama, email, dan nomor WhatsApp Indonesia, lalu menekan **Buat pesanan tiket** (`POST /api/v1/ticketing/checkout`).
-   - Di dalam satu transaksi database (`prisma.$transaction`), server menahan kuota secara atomik (`sold_count + qty <= quota`), menghitung `subtotal`, `serviceFee`, `taxAmount`, dan `totalAmount` dalam **`Int` Rupiah**, menyimpan `accessTokenHash` (SHA-256), dan mengembalikan `orderCode` beserta `accessToken` satu kali kepada pembeli.
-4. **Konfirmasi Pembayaran & Penerbitan Tiket**
-   - Gateway pembayaran mengirimkan webhook ke `POST /api/v1/ticketing/webhooks/payment` dengan header `x-payment-signature`.
-   - Setelah signature HMAC terverifikasi, pesanan ditandai `PAID` dan `IssuedTicket` dibuat beserta payload QR `v1.<ticketId>.<hmac>`.
+   - **Urutan Checkout Aman**:
+     1. Di dalam satu transaksi database (`prisma.$transaction`), server menahan kuota secara atomik (`sold_count + qty <= quota`) dan membuat pesanan berstatus `PENDING` (atau langsung `PAID` + `IssuedTicket` dengan `sequence_number` `1..quantity` untuk pesanan gratis). Server tidak pernah memanggil gateway pembayaran sebelum baris pesanan tersimpan di database.
+     2. Setelah transaksi pesanan berhasil di-*commit*, server memanggil `paymentService.createPaymentIntent(...)` lalu menyimpan `paymentReference` ke pesanan.
+     3. Jika pembuatan *payment intent* gagal (mis. `GatewayPaymentService` belum terhubung ke gateway nyata sehingga menolak dengan **`503 ServiceUnavailableException`** `"Pembayaran belum tersedia"`), server menjalankan transaksi kompensasi untuk menandai pesanan `CANCELLED`, melepaskan kembali kuota yang sempat ditahan, dan mengembalikan respons **`503 Service Unavailable`** secara jujur.
+4. **Konfirmasi Pembayaran, State Machine Webhook, & Audit `payment_events`**
+   - Gateway pembayaran mengirimkan webhook ke `POST /api/v1/ticketing/webhooks/payment` (`200 OK`) dengan header `x-payment-signature`.
+   - **Audit Semua Webhook (`payment_events`)**: Setiap permintaan webhook yang masuk—termasuk yang ditolak karena signature tidak valid (`401`), `orderCode` tidak ditemukan (`404` tanpa membocorkan detail), atau `grossAmount` tidak sesuai (`400`)—dicatat ke tabel `payment_events` (`order_code`, `provider`, `provider_event_id`, `raw_status`, `gross_amount`, `signature_valid`, `outcome`, `payload` tanpa rahasia) untuk keperluan audit, deteksi *replay*, dan rekonsiliasi uang.
+   - **Validasi `grossAmount` & Normalisasi Status**:
+     - `grossAmount` wajib dikirim dan harus sama persis dengan `order.totalAmount`; jika tidak cocok, server mencatat peringatan di log, merekam `REJECTED_AMOUNT_MISMATCH` di `payment_events`, dan menolak dengan `400 Bad Request`.
+     - Hanya status sukses (`PAID`, `SETTLEMENT`, `CAPTURE`) yang menerbitkan tiket.
+     - Status kegagalan/pembatalan (`EXPIRED`, `CANCELLED`, `FAILED`) melepaskan kuota maksimal satu kali (`updateMany` dari `PENDING`).
+     - Status non-final lainnya (mis. `PENDING`) tidak mengubah data dan dibalas `200 OK`.
+     - Pesanan yang sudah berstatus `PAID`, `REFUND_PENDING`, atau `REFUNDED` bersifat idempoten dan langsung dibalas `200 OK` tanpa perubahan.
+   - **Idempotensi Paralel & Penanganan `PENDING` Lewat Waktu vs `EXPIRED`/`CANCELLED`**:
+     - Untuk pesanan yang masih berstatus `PENDING` (termasuk yang `expiresAt`-nya sudah lewat tetapi **belum** disapu oleh cron, sehingga kuotanya masih ditahan oleh pesanan tersebut), webhook pembayaran sukses melakukan klaim atomik `updateMany({ where: { id, status: 'PENDING' }, data: { status: 'PAID', paidAt, paymentReference } })`. Tiket (`IssuedTicket` dengan `sequence_number` `1..quantity` dan `UNIQUE(order_id, sequence_number)`) hanya diterbitkan oleh pekerja yang mendapatkan `count === 1`.
+     - Untuk pembayaran sukses yang datang terlambat ketika status pesanan sudah `EXPIRED` atau `CANCELLED` (kuota sudah dilepas), server mengklaim transisi secara atomik dan mencoba menahan ulang kuota (`sold_count + qty <= quota`). Jika kuota masih tersedia, pesanan menjadi `PAID` dan tiket diterbitkan; jika kuota sudah habis, status pesanan disimpan sebagai `REFUND_PENDING` tanpa melempar *exception* di dalam transaksi agar perubahan status tetap ter-*commit*.
 5. **Verifikasi Pesanan & Pemindaian Gerbang (Check-in)**
    - Pembeli memeriksa status pesanan dan kode QR tiket di tab **Cek pesanan dan tiket** (`/tiket`) menggunakan `orderCode` dan `accessToken` (`GET /api/v1/ticketing/orders/:orderCode?accessToken=...`).
    - Pada hari acara, petugas (`SUPER_ADMIN`, `ADMIN`, atau `STAFF`) memindai QR melalui `POST /api/v1/ticketing/check-in`. Server memverifikasi HMAC `v1.<ticketId>.<hmac>`, memastikan tiket berstatus `ISSUED`, menandai `CHECKED_IN`, dan mencatat log ke `ticket_check_in_logs`.

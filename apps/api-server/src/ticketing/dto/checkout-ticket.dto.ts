@@ -2,7 +2,6 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEmail,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -72,16 +71,28 @@ export class CheckoutTicketDto {
 export class PaymentWebhookDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(64)
   orderCode!: string;
 
   @IsString()
-  @IsIn(['PAID', 'SETTLEMENT', 'EXPIRED', 'CANCELLED'])
-  transactionStatus!: 'PAID' | 'SETTLEMENT' | 'EXPIRED' | 'CANCELLED';
+  @IsNotEmpty()
+  @MaxLength(40)
+  transactionStatus!: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
   paymentReference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  providerEventId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  provider?: string;
 
   @IsOptional()
   @Type(() => Number)

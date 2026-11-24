@@ -198,7 +198,15 @@ export function TicketOrderVerifySection({
                   ? 'Lunas'
                   : verifiedOrder.status === 'PENDING'
                     ? 'Menunggu pembayaran'
-                    : verifiedOrder.status}
+                    : verifiedOrder.status === 'EXPIRED'
+                      ? 'Kedaluwarsa'
+                      : verifiedOrder.status === 'CANCELLED'
+                        ? 'Dibatalkan'
+                        : verifiedOrder.status === 'REFUND_PENDING'
+                          ? 'Menunggu pengembalian dana'
+                          : verifiedOrder.status === 'REFUNDED'
+                            ? 'Dana dikembalikan'
+                            : verifiedOrder.status}
               </span>
             </div>
 
@@ -235,7 +243,15 @@ export function TicketOrderVerifySection({
                   fontSize: '0.84rem',
                 }}
               >
-                Pesanan ini masih berstatus menunggu konfirmasi pembayaran. Kode QR tiket akan otomatis diterbitkan setelah pembayaran terverifikasi oleh sistem.
+                {verifiedOrder.status === 'PENDING'
+                  ? 'Pesanan ini masih berstatus menunggu konfirmasi pembayaran. Kode QR tiket akan otomatis diterbitkan setelah pembayaran terverifikasi oleh sistem.'
+                  : verifiedOrder.status === 'REFUND_PENDING'
+                    ? 'Pembayaran diterima setelah kuota tiket habis. Pesanan sedang dalam antrean pengembalian dana (refund).'
+                    : verifiedOrder.status === 'REFUNDED'
+                      ? 'Dana pesanan ini telah dikembalikan.'
+                      : verifiedOrder.status === 'EXPIRED'
+                        ? 'Batas waktu pembayaran pesanan ini telah berakhir dan kuota tiket telah dilepaskan.'
+                        : 'Pesanan ini telah dibatalkan dan tidak menerbitkan tiket.'}
               </div>
             ) : (
               <div style={{ marginTop: '1rem' }}>

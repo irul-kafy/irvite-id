@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import {
@@ -60,6 +61,10 @@ interface MockPrisma {
     create: jest.Mock;
     findMany: jest.Mock;
     count: jest.Mock;
+  };
+  paymentEvent: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
   };
   $executeRaw: jest.Mock;
   $transaction: jest.Mock;
@@ -191,7 +196,25 @@ describe('TicketingService (Prisma single source of truth)', () => {
         findUnique: jest.fn(),
         findUniqueOrThrow: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
-        update: jest.fn(),
+        update: jest.fn((args: { data: Record<string, unknown> }) => {
+          const createCalls = mockPrisma.ticketOrder.create.mock.calls as Array<
+            Array<{ data: Record<string, unknown> }>
+          >;
+          const latestCreated =
+            createCalls.length > 0
+              ? createCalls[createCalls.length - 1][0].data
+              : {};
+          return Promise.resolve({
+            id: 'ord-uuid-001',
+            ...latestCreated,
+            ...args.data,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            event: sampleEventDb,
+            tier: sampleEventDb.ticketTiers[0],
+            issuedTickets: [],
+          });
+        }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         count: jest.fn().mockResolvedValue(0),
       },
@@ -220,12 +243,14 @@ describe('TicketingService (Prisma single source of truth)', () => {
         findMany: jest.fn().mockResolvedValue([]),
         count: jest.fn().mockResolvedValue(0),
       },
+      paymentEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'pe-001' }),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
       $executeRaw: jest.fn().mockResolvedValue(1),
       $transaction: jest.fn(
         (
-          arg:
-            | ((tx: MockPrisma) => Promise<unknown>)
-            | Array<Promise<unknown>>,
+          arg: ((tx: MockPrisma) => Promise<unknown>) | Array<Promise<unknown>>,
         ) => {
           if (typeof arg === 'function') {
             return arg(mockPrisma);
@@ -392,7 +417,7 @@ describe('TicketingService (Prisma single source of truth)', () => {
       'Isyana Sarasvati',
     ]);
 
-    // Simulate payment webhook confirming PAID -> tickets must use stored holderNames
+    // Simulate payment webhook confirming PAID -> tickets must use stored holderNames and sequenceNumber 1..N
     const createdData = (
       mockPrisma.ticketOrder.create.mock.calls[0] as Array<{
         data: Record<string, unknown>;
@@ -406,26 +431,26 @@ describe('TicketingService (Prisma single source of truth)', () => {
       tier: sampleEventDb.ticketTiers[0],
       issuedTickets: [],
     });
-    mockPrisma.ticketOrder.update.mockImplementation(
-      (args: { data: Record<string, unknown> }) =>
-        Promise.resolve({
-          id: 'ord-holders-001',
-          ...createdData,
-          ...args.data,
-          createdAt: new Date(),
-          event: sampleEventDb,
-          tier: sampleEventDb.ticketTiers[0],
-          issuedTickets: mockPrisma.issuedTicket.create.mock.calls.map(
-            (c: Array<{ data: Record<string, unknown> }>, idx: number) => ({
-              id: `tkt-issued-${idx + 1}`,
-              ...c[0].data,
-              checkedInAt: null,
-              checkedInBy: null,
-              checkedInGate: null,
-              createdAt: new Date(),
-            }),
-          ),
-        }),
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockImplementationOnce(() =>
+      Promise.resolve({
+        id: 'ord-holders-001',
+        ...createdData,
+        status: TicketOrderStatus.PAID,
+        paidAt: new Date(),
+        createdAt: new Date(),
+        event: sampleEventDb,
+        tier: sampleEventDb.ticketTiers[0],
+        issuedTickets: mockPrisma.issuedTicket.create.mock.calls.map(
+          (c: Array<{ data: Record<string, unknown> }>, idx: number) => ({
+            id: `tkt-issued-${idx + 1}`,
+            ...c[0].data,
+            checkedInAt: null,
+            checkedInBy: null,
+            checkedInGate: null,
+            createdAt: new Date(),
+          }),
+        ),
+      }),
     );
 
     const sig = paymentService.computeWebhookSignature({
@@ -448,6 +473,240 @@ describe('TicketingService (Prisma single source of truth)', () => {
       'Raisa Andriana',
       'Isyana Sarasvati',
     ]);
+    expect(
+      mockPrisma.issuedTicket.create.mock.calls.map(
+        (c: Array<{ data: { sequenceNumber: number } }>) =>
+          c[0].data.sequenceNumber,
+      ),
+    ).toEqual([1, 2]);
+  });
+
+  it('rejects GatewayPaymentService.createPaymentIntent with 503 and rolls back checkout order to CANCELLED + releases quota when intent fails', async () => {
+    const gatewayService = new GatewayPaymentService();
+    await expect(
+      gatewayService.createPaymentIntent({
+        orderCode: 'ORD-GW-TEST01',
+        totalAmount: 150000,
+        paymentMethod: 'QRIS',
+        expiresAt: new Date(Date.now() + 900000),
+      }),
+    ).rejects.toThrow(ServiceUnavailableException);
+
+    // Replace paymentService.createPaymentIntent with a failing gateway call AFTER order transaction commits
+    jest
+      .spyOn(paymentService, 'createPaymentIntent')
+      .mockRejectedValueOnce(
+        new ServiceUnavailableException('Pembayaran belum tersedia'),
+      );
+
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockImplementationOnce(() => {
+      const createCall = (
+        mockPrisma.ticketOrder.create.mock.calls[0] as Array<{
+          data: Record<string, unknown>;
+        }>
+      )[0].data;
+      return Promise.resolve({
+        id: 'ord-fail-intent-001',
+        ...createCall,
+        createdAt: new Date(),
+        event: sampleEventDb,
+        tier: sampleEventDb.ticketTiers[0],
+        issuedTickets: [],
+      });
+    });
+
+    await expect(
+      service.checkoutTicket({
+        eventSlug: 'panggung-senja-nusantara',
+        tierId: 'tier-fiktif-reg',
+        quantity: 2,
+        buyerName: 'Damar Wijaya',
+        buyerEmail: 'damar@contoh.id',
+        buyerWhatsapp: '081234567890',
+        paymentMethod: 'QRIS',
+      }),
+    ).rejects.toThrow(ServiceUnavailableException);
+
+    // Verify order was created first, then marked CANCELLED and quota released
+    expect(mockPrisma.ticketOrder.create).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.ticketOrder.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'ord-fail-intent-001',
+        status: TicketOrderStatus.PENDING,
+      },
+      data: {
+        status: TicketOrderStatus.CANCELLED,
+      },
+    });
+    // 1st $executeRaw reserves quota (+2), 2nd $executeRaw releases quota (-2)
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles webhook money & state rules: mandatory grossAmount, 404 unknown order, non-final PENDING no-op, overdue unswept PENDING -> PAID, and EXPIRED/CANCELLED late payment -> PAID or REFUND_PENDING', async () => {
+    const baseOrder = {
+      id: 'ord-webhook-001',
+      orderCode: 'ORD-WHK0012345',
+      eventId: sampleEventDb.id,
+      tierId: 'tier-fiktif-reg',
+      buyerName: 'Damar Wijaya',
+      buyerEmail: 'damar@contoh.id',
+      buyerWhatsapp: '6281234567890',
+      quantity: 1,
+      unitPrice: 100000,
+      subtotal: 100000,
+      serviceFee: 3500,
+      serviceFeeBps: 350,
+      feePayer: 'BUYER',
+      taxAmount: 10000,
+      totalAmount: 113500,
+      paymentMethod: 'QRIS',
+      paymentReference: 'MOCK-PAY-1',
+      holderNames: ['Damar Wijaya'],
+      status: TicketOrderStatus.PENDING,
+      expiresAt: new Date(Date.now() - 120000), // Already past expiresAt, but still PENDING (unswept by cron!)
+      paidAt: null,
+      createdAt: new Date(),
+      event: sampleEventDb,
+      tier: sampleEventDb.ticketTiers[0],
+      issuedTickets: [],
+    };
+
+    // 1. Unknown order_code -> 404 NotFoundException + payment_events logged
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce(null);
+    const unknownSig = paymentService.computeWebhookSignature({
+      orderCode: 'ORD-NOTFOUND99',
+      transactionStatus: 'PAID',
+      grossAmount: 113500,
+    });
+    await expect(
+      service.handlePaymentWebhook(
+        {
+          orderCode: 'ORD-NOTFOUND99',
+          transactionStatus: 'PAID',
+          grossAmount: 113500,
+        },
+        unknownSig,
+      ),
+    ).rejects.toThrow(NotFoundException);
+
+    // 2. Mismatched grossAmount -> 400 BadRequestException + payment_events logged
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce(baseOrder);
+    const wrongAmtSig = paymentService.computeWebhookSignature({
+      orderCode: baseOrder.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: 100000,
+    });
+    await expect(
+      service.handlePaymentWebhook(
+        {
+          orderCode: baseOrder.orderCode,
+          transactionStatus: 'PAID',
+          grossAmount: 100000,
+        },
+        wrongAmtSig,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    // 3. Non-final status (PENDING) -> 200 no-op, does not issue tickets
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce(baseOrder);
+    const pendingSig = paymentService.computeWebhookSignature({
+      orderCode: baseOrder.orderCode,
+      transactionStatus: 'PENDING',
+      grossAmount: 113500,
+    });
+    const pendingNoop = await service.handlePaymentWebhook(
+      {
+        orderCode: baseOrder.orderCode,
+        transactionStatus: 'PENDING',
+        grossAmount: 113500,
+      },
+      pendingSig,
+    );
+    expect(pendingNoop.status).toBe('PENDING');
+    expect(mockPrisma.issuedTicket.create).not.toHaveBeenCalled();
+
+    // 4. Overdue PENDING order (not yet swept by cron) receives PAID webhook -> transitions directly to PAID without re-reserving quota
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce(baseOrder);
+    mockPrisma.ticketOrder.updateMany.mockResolvedValueOnce({ count: 1 });
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockResolvedValueOnce({
+      ...baseOrder,
+      status: TicketOrderStatus.PAID,
+      paidAt: new Date(),
+      issuedTickets: [
+        {
+          id: 'tkt-overdue-pending-1',
+          orderId: baseOrder.id,
+          sequenceNumber: 1,
+          eventId: baseOrder.eventId,
+          tierId: baseOrder.tierId,
+          ticketCode: 'TKT-OVERDUE001',
+          attendeeName: 'Damar Wijaya',
+          attendeeEmail: baseOrder.buyerEmail,
+          status: IssuedTicketStatus.ISSUED,
+          checkedInAt: null,
+          checkedInBy: null,
+          checkedInGate: null,
+          createdAt: new Date(),
+        },
+      ],
+    });
+    const paidSig = paymentService.computeWebhookSignature({
+      orderCode: baseOrder.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: 113500,
+    });
+    const overduePaidView = await service.handlePaymentWebhook(
+      {
+        orderCode: baseOrder.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: 113500,
+      },
+      paidSig,
+    );
+    expect(overduePaidView.status).toBe('PAID');
+    expect(overduePaidView.tickets).toHaveLength(1);
+    // Must NOT have called $executeRaw to release or re-reserve quota because PENDING still held its quota
+    expect(mockPrisma.$executeRaw).not.toHaveBeenCalled();
+
+    // 5. Late payment for CANCELLED order when quota is exhausted -> becomes REFUND_PENDING without throwing
+    const cancelledOrder = {
+      ...baseOrder,
+      id: 'ord-cancelled-001',
+      orderCode: 'ORD-CANCEL0012',
+      status: TicketOrderStatus.CANCELLED,
+    };
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce(cancelledOrder);
+    // 1st updateMany (where status: PENDING) returns count: 0
+    mockPrisma.ticketOrder.updateMany.mockResolvedValueOnce({ count: 0 });
+    // Re-read returns CANCELLED
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockResolvedValueOnce(
+      cancelledOrder,
+    );
+    // 2nd updateMany (where status in [EXPIRED, CANCELLED]) claims transition -> count: 1
+    mockPrisma.ticketOrder.updateMany.mockResolvedValueOnce({ count: 1 });
+    // Quota re-reservation fails (0 rows affected)
+    mockPrisma.$executeRaw.mockResolvedValueOnce(0);
+    // Final read returns REFUND_PENDING
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockResolvedValueOnce({
+      ...cancelledOrder,
+      status: TicketOrderStatus.REFUND_PENDING,
+    });
+
+    const cancelSig = paymentService.computeWebhookSignature({
+      orderCode: cancelledOrder.orderCode,
+      transactionStatus: 'SETTLEMENT',
+      grossAmount: 113500,
+    });
+    const refundPendingView = await service.handlePaymentWebhook(
+      {
+        orderCode: cancelledOrder.orderCode,
+        transactionStatus: 'SETTLEMENT',
+        grossAmount: 113500,
+      },
+      cancelSig,
+    );
+    expect(refundPendingView.status).toBe('REFUND_PENDING');
+    expect(mockPrisma.paymentEvent.create).toHaveBeenCalledTimes(5);
   });
 
   it('allows free tier checkout to become PAID immediately and issues tickets', async () => {

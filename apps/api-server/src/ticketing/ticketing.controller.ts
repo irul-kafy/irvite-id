@@ -7,6 +7,8 @@ import {
   Param,
   Query,
   Headers,
+  HttpCode,
+  HttpStatus,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle, seconds } from '@nestjs/throttler';
@@ -78,12 +80,16 @@ export class TicketingController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post(['webhooks/payment', 'public/webhooks/payment'])
   handlePaymentWebhook(
-    @Body() dto: PaymentWebhookDto,
+    @Body() rawBody: Record<string, unknown>,
     @Headers('x-payment-signature') signature?: string,
   ) {
-    return this.ticketingService.handlePaymentWebhook(dto, signature);
+    return this.ticketingService.handlePaymentWebhook(
+      rawBody as unknown as PaymentWebhookDto,
+      signature,
+    );
   }
 
   @Public()
