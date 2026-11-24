@@ -24,6 +24,15 @@ type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
 export type AttendanceCheckInStatus = 'NOT_CHECKED_IN' | 'PARTIAL' | 'COMPLETE';
 
+export interface SyncOpTransactionMeta {
+  id: string;
+  eventId: string;
+  opType: string;
+  deviceId: string | null;
+  scannedById: string;
+  clientTimestamp: Date;
+}
+
 const GOOGLE_APPS_SCRIPT_EXEC_PATH_REGEX =
   /^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/;
 
@@ -340,6 +349,7 @@ export class AttendanceService {
     _role: Role,
     code: string,
     pax: number,
+    syncOp?: SyncOpTransactionMeta,
   ) {
     await this.authorizeEvent(eventId, userId);
 
@@ -371,6 +381,7 @@ export class AttendanceService {
       userId,
       pax,
       maxPax,
+      syncOp,
     );
 
     if (result.result === 'CHECKED_IN') {
@@ -407,6 +418,7 @@ export class AttendanceService {
     userId: string,
     _role: Role,
     dto: WalkInCheckInDto,
+    syncOp?: SyncOpTransactionMeta,
   ) {
     await this.authorizeEvent(eventId, userId);
 
@@ -462,7 +474,7 @@ export class AttendanceService {
         },
       });
 
-      return {
+      const walkInRes = {
         result: 'CHECKED_IN' as const,
         status: 'COMPLETE' as const,
         scannedPax: pax,
@@ -481,6 +493,23 @@ export class AttendanceService {
           scannedAt: now.toISOString(),
         },
       };
+
+      if (syncOp) {
+        await tx.offlineSyncOp.create({
+          data: {
+            id: syncOp.id,
+            eventId: syncOp.eventId,
+            opType: syncOp.opType,
+            status: 'APPLIED',
+            deviceId: syncOp.deviceId,
+            scannedById: syncOp.scannedById,
+            clientTimestamp: syncOp.clientTimestamp,
+            details: JSON.stringify(walkInRes),
+          },
+        });
+      }
+
+      return walkInRes;
     });
 
     void this.dispatchGoogleSheetSync(
@@ -509,6 +538,7 @@ export class AttendanceService {
     code?: string,
     invitationId?: string,
     guestId?: string,
+    syncOp?: SyncOpTransactionMeta,
   ) {
     await this.authorizeEvent(eventId, userId);
 
@@ -580,6 +610,15 @@ export class AttendanceService {
       });
 
       let rolledBackPax = 0;
+      let undoRes: {
+        result: 'UNDONE';
+        rolledBackPax: number;
+        scannedPax: number;
+        remainingPax: number;
+        status: AttendanceCheckInStatus;
+        walkInDeleted: boolean;
+      };
+
       if (checkIns.length > 0) {
         const latest = checkIns[0];
         rolledBackPax = latest.scannedPax;
@@ -605,7 +644,7 @@ export class AttendanceService {
               where: { id: invitation.guest.id },
             });
           }
-          return {
+          undoRes = {
             result: 'UNDONE' as const,
             rolledBackPax,
             scannedPax: 0,
@@ -623,7 +662,7 @@ export class AttendanceService {
               scannedById: prevLatest.scannedById,
             },
           });
-          return {
+          undoRes = {
             result: 'UNDONE' as const,
             rolledBackPax,
             scannedPax: newScannedPax,
@@ -645,7 +684,7 @@ export class AttendanceService {
             where: { id: invitation.guest.id },
           });
         }
-        return {
+        undoRes = {
           result: 'UNDONE' as const,
           rolledBackPax,
           scannedPax: 0,
@@ -654,6 +693,23 @@ export class AttendanceService {
           walkInDeleted: isWalkInGuest,
         };
       }
+
+      if (syncOp) {
+        await tx.offlineSyncOp.create({
+          data: {
+            id: syncOp.id,
+            eventId: syncOp.eventId,
+            opType: syncOp.opType,
+            status: 'APPLIED',
+            deviceId: syncOp.deviceId,
+            scannedById: syncOp.scannedById,
+            clientTimestamp: syncOp.clientTimestamp,
+            details: JSON.stringify(undoRes),
+          },
+        });
+      }
+
+      return undoRes;
     });
 
     // Notify Google Sheets webhook if connected (fire-and-forget)
@@ -686,6 +742,7 @@ export class AttendanceService {
     userId: string,
     pax: number,
     maxPax: number,
+    syncOp?: SyncOpTransactionMeta,
   ) {
     const maxRetries = 3;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -696,8 +753,21 @@ export class AttendanceService {
           userId,
           pax,
           maxPax,
+          syncOp,
         );
       } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002' &&
+          syncOp
+        ) {
+          const existingOp = await this.db.offlineSyncOp.findUnique({
+            where: { id: syncOp.id },
+          });
+          if (existingOp) {
+            throw error;
+          }
+        }
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
           (error.code === 'P2002' || error.code === 'P2034') &&
@@ -718,6 +788,7 @@ export class AttendanceService {
     userId: string,
     pax: number,
     maxPax: number,
+    syncOp?: SyncOpTransactionMeta,
   ) {
     return this.db.$transaction(async (tx) => {
       const existingAttendance = await tx.attendance.findUnique({
@@ -752,7 +823,7 @@ export class AttendanceService {
         const status: AttendanceCheckInStatus =
           remainingPax === 0 ? 'COMPLETE' : 'PARTIAL';
 
-        return {
+        const firstScanRes = {
           result: 'CHECKED_IN' as const,
           status,
           scannedPax: pax,
@@ -763,9 +834,26 @@ export class AttendanceService {
             scannedAt: now,
           },
         };
+
+        if (syncOp) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: syncOp.id,
+              eventId: syncOp.eventId,
+              opType: syncOp.opType,
+              status: 'APPLIED',
+              deviceId: syncOp.deviceId,
+              scannedById: syncOp.scannedById,
+              clientTimestamp: syncOp.clientTimestamp,
+              details: JSON.stringify(firstScanRes),
+            },
+          });
+        }
+
+        return firstScanRes;
       }
 
-      return this.applyIncrementalCheckIn(
+      const incrRes = await this.applyIncrementalCheckIn(
         tx,
         existingAttendance,
         userId,
@@ -773,6 +861,23 @@ export class AttendanceService {
         maxPax,
         now,
       );
+
+      if (syncOp) {
+        await tx.offlineSyncOp.create({
+          data: {
+            id: syncOp.id,
+            eventId: syncOp.eventId,
+            opType: syncOp.opType,
+            status: 'APPLIED',
+            deviceId: syncOp.deviceId,
+            scannedById: syncOp.scannedById,
+            clientTimestamp: syncOp.clientTimestamp,
+            details: JSON.stringify(incrRes),
+          },
+        });
+      }
+
+      return incrRes;
     });
   }
 
@@ -1548,7 +1653,16 @@ export class AttendanceService {
         continue;
       }
 
-      // 2. Process operation
+      // 2. Process operation and record OfflineSyncOp in the SAME transaction
+      const syncOpMeta: SyncOpTransactionMeta = {
+        id: op.opId,
+        eventId,
+        opType: op.type,
+        deviceId: op.deviceId || null,
+        scannedById: userId,
+        clientTimestamp: new Date(op.clientTimestamp || Date.now()),
+      };
+
       try {
         let opResultData: unknown = null;
 
@@ -1562,17 +1676,24 @@ export class AttendanceService {
             role,
             op.code,
             op.pax || 1,
+            syncOpMeta,
           );
         } else if (op.type === 'WALK_IN') {
           if (!op.walkInData || !op.walkInData.name) {
             throw new BadRequestException('Walk-in data is required');
           }
-          opResultData = await this.walkInCheckIn(eventId, userId, role, {
-            name: op.walkInData.name,
-            pax: op.walkInData.pax || 1,
-            category: op.walkInData.category,
-            tableNumber: op.walkInData.tableNumber,
-          });
+          opResultData = await this.walkInCheckIn(
+            eventId,
+            userId,
+            role,
+            {
+              name: op.walkInData.name,
+              pax: op.walkInData.pax || 1,
+              category: op.walkInData.category,
+              tableNumber: op.walkInData.tableNumber,
+            },
+            syncOpMeta,
+          );
         } else if (op.type === 'UNDO') {
           opResultData = await this.undoCheckIn(
             eventId,
@@ -1581,26 +1702,13 @@ export class AttendanceService {
             op.code,
             op.invitationId,
             op.guestId,
+            syncOpMeta,
           );
         } else {
           throw new BadRequestException(
             `Unsupported operation type: ${String(op.type)}`,
           );
         }
-
-        // Record successful sync op
-        await this.db.offlineSyncOp.create({
-          data: {
-            id: op.opId,
-            eventId,
-            opType: op.type,
-            status: 'APPLIED',
-            deviceId: op.deviceId || null,
-            scannedById: userId,
-            clientTimestamp: new Date(op.clientTimestamp || Date.now()),
-            details: JSON.stringify(opResultData || {}),
-          },
-        });
 
         results.push({
           opId: op.opId,
@@ -1609,6 +1717,24 @@ export class AttendanceService {
           data: opResultData,
         });
       } catch (err: unknown) {
+        if (
+          err instanceof Prisma.PrismaClientKnownRequestError &&
+          err.code === 'P2002'
+        ) {
+          const concurrentOp = await this.db.offlineSyncOp.findUnique({
+            where: { id: op.opId },
+          });
+          if (concurrentOp) {
+            results.push({
+              opId: op.opId,
+              status: 'DUPLICATE',
+              type: op.type,
+              message:
+                'Operation already processed previously (idempotent)',
+            });
+            continue;
+          }
+        }
         const errorMsg =
           err instanceof Error && err.message
             ? err.message

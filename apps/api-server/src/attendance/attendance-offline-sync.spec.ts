@@ -327,5 +327,158 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
         }),
       );
     });
+
+    it('records offlineSyncOp atomically inside the same transaction as walkInCheckIn so failure rolls back and retry does not create duplicate walk-in', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(adminUser);
+      mockPrisma.event.findUnique.mockResolvedValue(validEvent);
+      mockPrisma.offlineSyncOp.findUnique.mockResolvedValue(null);
+
+      let committedGuests = 0;
+      let shouldFailSyncOpCreate = true;
+
+      mockPrisma.$transaction.mockImplementationOnce(async (cb) => {
+        let txGuestsCreated = 0;
+        const txClient = {
+          ...mockPrisma,
+          guest: {
+            ...mockPrisma.guest,
+            create: jest.fn().mockImplementation(async () => {
+              txGuestsCreated += 1;
+              return {
+                id: 'g-atomic-1',
+                eventId: 'evt-100',
+                name: 'Atomic Walk-In',
+                category: 'ON_THE_SPOT',
+                maxPax: 2,
+              };
+            }),
+          },
+          invitation: {
+            ...mockPrisma.invitation,
+            create: jest.fn().mockResolvedValue({
+              id: 'inv-atomic-1',
+              guestId: 'g-atomic-1',
+              eventId: 'evt-100',
+              uniqueCode: 'code-atomic',
+            }),
+          },
+          attendance: {
+            ...mockPrisma.attendance,
+            create: jest.fn().mockResolvedValue({
+              id: 'att-atomic-1',
+              invitationId: 'inv-atomic-1',
+              scannedPax: 2,
+            }),
+          },
+          attendanceCheckIn: {
+            ...mockPrisma.attendanceCheckIn,
+            create: jest.fn().mockResolvedValue({
+              id: 'ci-atomic-1',
+              attendanceId: 'att-atomic-1',
+            }),
+          },
+          offlineSyncOp: {
+            ...mockPrisma.offlineSyncOp,
+            create: jest.fn().mockImplementation(async () => {
+              if (shouldFailSyncOpCreate) {
+                throw new Error('Transient DB error writing offline_sync_ops');
+              }
+              return { id: 'op-atomic-walkin' };
+            }),
+          },
+        };
+        const res = await cb(txClient);
+        committedGuests += txGuestsCreated;
+        return res;
+      });
+
+      const batch = {
+        operations: [
+          {
+            opId: 'op-atomic-walkin',
+            type: 'WALK_IN' as const,
+            walkInData: {
+              name: 'Atomic Walk-In',
+              pax: 2,
+              category: 'ON_THE_SPOT',
+            },
+            clientTimestamp: new Date().toISOString(),
+          },
+        ],
+      };
+
+      // First attempt: offlineSyncOp.create fails inside $transaction -> transaction rolls back -> 0 committed guests
+      const attempt1 = await service.syncAttendance(
+        'evt-100',
+        'admin-1',
+        Role.ADMIN,
+        batch,
+      );
+      expect(attempt1.failedCount).toBe(1);
+      expect(attempt1.results[0].retryable).toBe(true);
+      expect(committedGuests).toBe(0);
+
+      // Second attempt (retry with same opId): succeeds -> exactly 1 committed guest
+      shouldFailSyncOpCreate = false;
+      mockPrisma.$transaction.mockImplementationOnce(async (cb) => {
+        let txGuestsCreated = 0;
+        const txClient = {
+          ...mockPrisma,
+          guest: {
+            ...mockPrisma.guest,
+            create: jest.fn().mockImplementation(async () => {
+              txGuestsCreated += 1;
+              return {
+                id: 'g-atomic-1',
+                eventId: 'evt-100',
+                name: 'Atomic Walk-In',
+                category: 'ON_THE_SPOT',
+                maxPax: 2,
+              };
+            }),
+          },
+          invitation: {
+            ...mockPrisma.invitation,
+            create: jest.fn().mockResolvedValue({
+              id: 'inv-atomic-1',
+              guestId: 'g-atomic-1',
+              eventId: 'evt-100',
+              uniqueCode: 'code-atomic',
+            }),
+          },
+          attendance: {
+            ...mockPrisma.attendance,
+            create: jest.fn().mockResolvedValue({
+              id: 'att-atomic-1',
+              invitationId: 'inv-atomic-1',
+              scannedPax: 2,
+            }),
+          },
+          attendanceCheckIn: {
+            ...mockPrisma.attendanceCheckIn,
+            create: jest.fn().mockResolvedValue({
+              id: 'ci-atomic-1',
+              attendanceId: 'att-atomic-1',
+            }),
+          },
+          offlineSyncOp: {
+            ...mockPrisma.offlineSyncOp,
+            create: jest.fn().mockResolvedValue({ id: 'op-atomic-walkin' }),
+          },
+        };
+        const res = await cb(txClient);
+        committedGuests += txGuestsCreated;
+        return res;
+      });
+
+      const attempt2 = await service.syncAttendance(
+        'evt-100',
+        'admin-1',
+        Role.ADMIN,
+        batch,
+      );
+      expect(attempt2.appliedCount).toBe(1);
+      expect(committedGuests).toBe(1);
+    });
   });
 });
