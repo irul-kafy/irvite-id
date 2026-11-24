@@ -126,6 +126,20 @@ describe('ClientPortalService', () => {
       expect(isClientKeyValid(regeneratedEvent, oldKey)).toBe(false);
       expect(isClientKeyValid(regeneratedEvent, storedClientKey)).toBe(false);
     });
+
+    it('migration 20261124072000_rotate_uuid_client_portal_keys rotates UUID-based keys using LOWER(HEX(RANDOM_BYTES(12))) without editing prior migrations', () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs') as typeof import('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path') as typeof import('path');
+      const migrationPath = path.resolve(
+        __dirname,
+        '../../../../packages/database/prisma/migrations/20261124072000_rotate_uuid_client_portal_keys/migration.sql',
+      );
+      const sql = fs.readFileSync(migrationPath, 'utf8');
+      expect(sql).toContain('LOWER(HEX(RANDOM_BYTES(12)))');
+      expect(sql).toContain('^[0-9a-f]{12}1[0-9a-f]{3}[89ab][0-9a-f]{7}$');
+    });
   });
 
   describe('Access Control', () => {
