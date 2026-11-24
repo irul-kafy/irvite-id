@@ -471,14 +471,17 @@ model PaymentEvent {
 
 model TicketCheckInLog {
   id             String   @id @default(uuid())
-  issuedTicketId String   @map("issued_ticket_id")
+  issuedTicketId String?  @map("issued_ticket_id")
   eventId        String   @map("event_id")
+  actorUserId    String?  @map("actor_user_id") @db.VarChar(191)
   scannedBy      String?  @map("scanned_by")
   gateName       String   @default("Gerbang utama") @map("gate_name") @db.VarChar(80)
   result         String   @default("VALID") @db.VarChar(30)
+  reason         String?  @db.VarChar(300)
+  syncOpId       String?  @unique @map("sync_op_id") @db.VarChar(191)
   scannedAt      DateTime @default(now()) @map("scanned_at")
 
-  issuedTicket IssuedTicket @relation(fields: [issuedTicketId], references: [id], onDelete: Restrict)
+  issuedTicket IssuedTicket? @relation(fields: [issuedTicketId], references: [id], onDelete: SetNull)
 
   @@index([eventId, scannedAt])
   @@index([issuedTicketId])

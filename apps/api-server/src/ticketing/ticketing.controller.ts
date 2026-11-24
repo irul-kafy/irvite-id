@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle, seconds } from '@nestjs/throttler';
 import { Role } from 'database';
@@ -25,6 +26,9 @@ import {
   CreateTicketingEventDto,
   CreateTicketTierDto,
   ListEventOrdersQueryDto,
+  SearchEventTicketsQueryDto,
+  SyncOfflineTicketCheckInsDto,
+  UndoTicketCheckInDto,
   UpdateTicketingEventDto,
   UpdateTicketTierDto,
 } from './dto/admin-ticketing.dto';
@@ -32,7 +36,10 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { TicketingEnabledGuard } from './ticketing-enabled.middleware';
+import { getTicketingCronSecret, safeCompareSecret } from './ticketing-secrets';
 
+@UseGuards(TicketingEnabledGuard)
 @Controller(['api/v1/ticketing', 'ticketing'])
 export class TicketingController {
   constructor(private readonly ticketingService: TicketingService) {}
@@ -98,12 +105,11 @@ export class TicketingController {
     @Headers('authorization') authHeader?: string,
     @Headers('x-cron-secret') cronSecretHeader?: string,
   ) {
-    const configuredSecret =
-      process.env.CRON_SECRET || 'irvite-cron-default-secret';
+    const configuredSecret = getTicketingCronSecret();
     const bearerSecret = authHeader?.replace(/^Bearer\s+/i, '').trim();
     const providedSecret = cronSecretHeader?.trim() || bearerSecret;
 
-    if (!providedSecret || providedSecret !== configuredSecret) {
+    if (!safeCompareSecret(providedSecret, configuredSecret)) {
       throw new UnauthorizedException('Invalid or missing cron secret');
     }
 
@@ -175,8 +181,55 @@ export class TicketingController {
   ) {
     return this.ticketingService.checkInTicket(
       dto,
-      user?.email || 'Petugas gerbang',
+      user,
       dto.gateName || 'Gerbang utama',
     );
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('check-in/undo')
+  undoTicketCheckIn(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Body() dto: UndoTicketCheckInDto,
+  ) {
+    return this.ticketingService.undoTicketCheckIn(dto, user);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Get('events/:eventId/offline-snapshot')
+  getEventOfflineSnapshot(
+    @Param('eventId') eventId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    return this.ticketingService.getEventOfflineSnapshot(eventId, user);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Post('events/:eventId/offline-sync')
+  syncOfflineTicketCheckIns(
+    @Param('eventId') eventId: string,
+    @Body() dto: SyncOfflineTicketCheckInsDto,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    return this.ticketingService.syncOfflineTicketCheckIns(eventId, dto, user);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Get('events/:eventId/checkin-stats')
+  getEventCheckInStats(
+    @Param('eventId') eventId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    return this.ticketingService.getEventCheckInStats(eventId, user);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Get('events/:eventId/tickets/search')
+  searchEventTicketsManual(
+    @Param('eventId') eventId: string,
+    @Query() query: SearchEventTicketsQueryDto,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    return this.ticketingService.searchEventTicketsManual(eventId, query, user);
   }
 }

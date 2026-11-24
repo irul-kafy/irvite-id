@@ -33,12 +33,13 @@ describe('Ticketing Module (e2e MySQL)', () => {
   let otherEventTierId: string;
 
   beforeAll(async () => {
+    process.env.TICKETING_ENABLED = 'true';
     process.env.TICKET_QR_SECRET =
       'e2e-test-ticket-qr-hmac-secret-minimum-32-chars';
     process.env.PAYMENT_WEBHOOK_SECRET =
       'e2e-test-payment-webhook-hmac-secret-32-chars';
     process.env.PAYMENT_MODE = 'mock';
-    process.env.CRON_SECRET = 'e2e-cron-secret-key';
+    process.env.CRON_SECRET = 'e2e-cron-secret-key-minimum-16-chars';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -78,8 +79,8 @@ describe('Ticketing Module (e2e MySQL)', () => {
     adminToken = (loginRes.body as { accessToken: string }).accessToken;
 
     const now = new Date();
-    const futureStart = new Date(now.getTime() + 14 * 86400000);
-    const futureEnd = new Date(now.getTime() + 14 * 86400000 + 4 * 3600000);
+    const futureStart = new Date(now.getTime() + 2 * 3600000); // 2h ahead: upcoming AND inside 6h check-in window
+    const futureEnd = new Date(now.getTime() + 8 * 3600000);
 
     // 1. Published Event with limited tier (quota = 5), free tier, and unopened tier
     const pubEvent = await prisma.event.create({
@@ -128,7 +129,7 @@ describe('Ticketing Module (e2e MySQL)', () => {
               quota: 20,
               soldCount: 0,
               maxPerOrder: 2,
-              salesStartAt: new Date(now.getTime() + 5 * 86400000),
+              salesStartAt: new Date(now.getTime() + 3600000),
               salesEndAt: futureStart,
               sortOrder: 3,
             },
@@ -404,7 +405,7 @@ describe('Ticketing Module (e2e MySQL)', () => {
     // Run periodic cron endpoint to expire pendingOrders[1] and release 1 more ticket
     const cronRes = await request(app.getHttpServer())
       .post('/ticketing/cron/expire-orders')
-      .set('x-cron-secret', 'e2e-cron-secret-key')
+      .set('x-cron-secret', 'e2e-cron-secret-key-minimum-16-chars')
       .expect(201);
     expect((cronRes.body as { expiredCount: number }).expiredCount).toBe(1);
 
@@ -458,29 +459,42 @@ describe('Ticketing Module (e2e MySQL)', () => {
     const badScanRes = await request(app.getHttpServer())
       .post('/ticketing/check-in')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ qrPayload: tamperedQr, gateName: 'Gerbang A' })
+      .send({
+        eventId: publishedEventId,
+        qrPayload: tamperedQr,
+        gateName: 'Gerbang A',
+      })
       .expect(201);
     expect((badScanRes.body as { valid: boolean; status: string }).valid).toBe(
       false,
     );
     expect((badScanRes.body as { status: string }).status).toBe('INVALID');
 
-    // Valid QR payload succeeds on first scan
+    // Valid QR payload succeeds on first scan (and does NOT leak buyer email/WA)
     const goodScanRes = await request(app.getHttpServer())
       .post('/ticketing/check-in')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ qrPayload: validQr, gateName: 'Gerbang A' })
+      .send({
+        eventId: publishedEventId,
+        qrPayload: validQr,
+        gateName: 'Gerbang A',
+      })
       .expect(201);
     expect((goodScanRes.body as { valid: boolean; status: string }).valid).toBe(
       true,
     );
     expect((goodScanRes.body as { status: string }).status).toBe('VALID');
+    expect(JSON.stringify(goodScanRes.body)).not.toContain('@');
 
     // Second scan of same QR returns DUPLICATE
     const dupScanRes = await request(app.getHttpServer())
       .post('/ticketing/check-in')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ qrPayload: validQr, gateName: 'Gerbang A' })
+      .send({
+        eventId: publishedEventId,
+        qrPayload: validQr,
+        gateName: 'Gerbang A',
+      })
       .expect(201);
     expect((dupScanRes.body as { valid: boolean; status: string }).valid).toBe(
       false,
@@ -951,4 +965,339 @@ describe('Ticketing Module (e2e MySQL)', () => {
       }),
     ).toBe(1);
   });
+
+  it('8. Atomic check-in & scanner features: 2 parallel scans -> 1 VALID + 1 DUPLICATE, WRONG_EVENT, OUTSIDE_WINDOW, STAFF assignment, qrDigest snapshot & idempotent offline sync, undo rules, stats, manual search (no PII), and TICKETING_ENABLED=false 404 gate', async () => {
+    const passwordHash = await argon2.hash('Password123!');
+    const assignedStaffEmail = `staff_assigned_${Date.now()}@fiktif-irvite.test`;
+    const unassignedStaffEmail = `staff_unassigned_${Date.now()}@fiktif-irvite.test`;
+
+    const [assignedStaff, unassignedStaff] = await Promise.all([
+      prisma.user.create({
+        data: {
+          email: assignedStaffEmail,
+          passwordHash,
+          role: 'STAFF',
+          isActive: true,
+        },
+      }),
+      prisma.user.create({
+        data: {
+          email: unassignedStaffEmail,
+          passwordHash,
+          role: 'STAFF',
+          isActive: true,
+        },
+      }),
+    ]);
+
+    await prisma.staffEvent.create({
+      data: {
+        eventId: publishedEventId,
+        userId: assignedStaff.id,
+      },
+    });
+
+    const assignedLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: assignedStaffEmail, password: 'Password123!' })
+      .expect(200);
+    const assignedStaffToken = (assignedLogin.body as { accessToken: string })
+      .accessToken;
+
+    const unassignedLogin = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: unassignedStaffEmail, password: 'Password123!' })
+      .expect(200);
+    const unassignedStaffToken = (
+      unassignedLogin.body as { accessToken: string }
+    ).accessToken;
+
+    // Issue 2 free tickets on publishedEventId and 1 paid ticket on otherEvent
+    const freeTier = await prisma.ticketTier.findFirstOrThrow({
+      where: { eventId: publishedEventId, price: 0 },
+    });
+    const freeOrder = await ticketingService.checkoutTicket({
+      eventSlug: pubSlug,
+      tierId: freeTier.id,
+      quantity: 2,
+      buyerName: 'Rina Penonton',
+      buyerEmail: 'rina.rahasia@contoh-fiktif.id',
+      buyerWhatsapp: '081266667777',
+      holderNames: ['Rina Paralel', 'Rina Offline'],
+    });
+    expect(freeOrder.tickets).toHaveLength(2);
+    const ticketParallel = freeOrder.tickets[0];
+    const ticketOffline = freeOrder.tickets[1];
+
+    // A. Unassigned STAFF gets 403 on check-in and offline-snapshot
+    await request(app.getHttpServer())
+      .post('/ticketing/check-in')
+      .set('Authorization', `Bearer ${unassignedStaffToken}`)
+      .send({
+        eventId: publishedEventId,
+        qrPayload: ticketParallel.qrPayload,
+        gateName: 'Gerbang Barat',
+      })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get(`/ticketing/events/${publishedEventId}/offline-snapshot`)
+      .set('Authorization', `Bearer ${unassignedStaffToken}`)
+      .expect(403);
+
+    // B. Two parallel check-ins by assigned STAFF -> strictly ONE VALID and ONE DUPLICATE!
+    const [scanA, scanB] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/ticketing/check-in')
+        .set('Authorization', `Bearer ${assignedStaffToken}`)
+        .send({
+          eventId: publishedEventId,
+          qrPayload: ticketParallel.qrPayload,
+          gateName: 'Gerbang Barat',
+        }),
+      request(app.getHttpServer())
+        .post('/ticketing/check-in')
+        .set('Authorization', `Bearer ${assignedStaffToken}`)
+        .send({
+          eventId: publishedEventId,
+          qrPayload: ticketParallel.qrPayload,
+          gateName: 'Gerbang Barat',
+        }),
+    ]);
+
+    expect(scanA.status).toBe(201);
+    expect(scanB.status).toBe(201);
+    const parallelStatuses = [
+      (scanA.body as { status: string }).status,
+      (scanB.body as { status: string }).status,
+    ].sort();
+    expect(parallelStatuses).toEqual(['DUPLICATE', 'VALID']);
+    expect(JSON.stringify(scanA.body)).not.toContain(
+      'rina.rahasia@contoh-fiktif.id',
+    );
+    expect(JSON.stringify(scanA.body)).not.toContain('6281266667777');
+
+    // C. Ticket from another event -> WRONG_EVENT
+    const otherCheckout = await ticketingService.checkoutTicket({
+      eventSlug: otherSlug,
+      tierId: otherEventTierId,
+      quantity: 1,
+      buyerName: 'Tamu Acara Lain',
+      buyerEmail: 'lain@contoh-fiktif.id',
+      buyerWhatsapp: '081255554444',
+      paymentMethod: 'QRIS',
+    });
+    const otherPaidSig = paymentService.computeWebhookSignature({
+      orderCode: otherCheckout.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: otherCheckout.totalAmount,
+    });
+    const otherPaidOrder = await ticketingService.handlePaymentWebhook(
+      {
+        orderCode: otherCheckout.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: otherCheckout.totalAmount,
+      },
+      otherPaidPaidSigHelper(otherPaidSig),
+    );
+    const wrongEventRes = await request(app.getHttpServer())
+      .post('/ticketing/check-in')
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .send({
+        eventId: publishedEventId,
+        qrPayload: otherPaidOrder.tickets[0].qrPayload,
+        gateName: 'Gerbang Barat',
+      })
+      .expect(201);
+    expect((wrongEventRes.body as { status: string }).status).toBe(
+      'WRONG_EVENT',
+    );
+
+    // D. Outside check-in window -> OUTSIDE_WINDOW (move otherEvent startAt to +48h)
+    const otherEventDb = await prisma.event.findUniqueOrThrow({
+      where: { slug: otherSlug },
+    });
+    await prisma.event.update({
+      where: { id: otherEventDb.id },
+      data: {
+        startAt: new Date(Date.now() + 48 * 3600_000),
+        endAt: new Date(Date.now() + 52 * 3600_000),
+      },
+    });
+    const outsideWinRes = await request(app.getHttpServer())
+      .post('/ticketing/check-in')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        eventId: otherEventDb.id,
+        qrPayload: otherPaidOrder.tickets[0].qrPayload,
+        gateName: 'Gerbang Utama',
+      })
+      .expect(201);
+    expect((outsideWinRes.body as { status: string }).status).toBe(
+      'OUTSIDE_WINDOW',
+    );
+
+    // E. Offline snapshot for assigned STAFF -> qrDigest only, NO secret, NO qrPayload, NO email/WA
+    const snapRes = await request(app.getHttpServer())
+      .get(`/ticketing/events/${publishedEventId}/offline-snapshot`)
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .expect(200);
+    const snapBody = snapRes.body as {
+      tickets: Array<{
+        ticketId: string;
+        ticketCode: string;
+        attendeeName: string;
+        tierName: string;
+        status: string;
+        qrDigest: string;
+      }>;
+    };
+    const offlineSnapItem = snapBody.tickets.find(
+      (t) => t.ticketId === ticketOffline.id,
+    );
+    expect(offlineSnapItem).toBeDefined();
+    expect(offlineSnapItem?.qrDigest).toBe(
+      ticketingService.computeTicketQrDigest(ticketOffline.id),
+    );
+    expect(JSON.stringify(snapBody)).not.toContain(
+      'rina.rahasia@contoh-fiktif.id',
+    );
+    expect(JSON.stringify(snapBody)).not.toContain(ticketOffline.qrPayload);
+
+    // Offline sync matching qrDigest -> 1st call APPLIED, 2nd retry with same opId -> DUPLICATE without double log
+    const opId = `op-ticket-sync-${Date.now()}`;
+    const sync1 = await request(app.getHttpServer())
+      .post(`/ticketing/events/${publishedEventId}/offline-sync`)
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .send({
+        deviceId: 'scanner-android-01',
+        operations: [
+          {
+            opId,
+            ticketId: ticketOffline.id,
+            qrDigest: offlineSnapItem!.qrDigest,
+            gateName: 'Gerbang Offline',
+            scannedAt: new Date().toISOString(),
+          },
+        ],
+      })
+      .expect(201);
+    expect((sync1.body as { syncedCount: number }).syncedCount).toBe(1);
+
+    const sync2 = await request(app.getHttpServer())
+      .post(`/ticketing/events/${publishedEventId}/offline-sync`)
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .send({
+        deviceId: 'scanner-android-01',
+        operations: [
+          {
+            opId,
+            ticketId: ticketOffline.id,
+            qrDigest: offlineSnapItem!.qrDigest,
+            gateName: 'Gerbang Offline',
+            scannedAt: new Date().toISOString(),
+          },
+        ],
+      })
+      .expect(201);
+    expect((sync2.body as { duplicateCount: number }).duplicateCount).toBe(1);
+
+    const syncLogsCount = await prisma.ticketCheckInLog.count({
+      where: { syncOpId: opId },
+    });
+    expect(syncLogsCount).toBe(1);
+
+    // F. Check-in stats & Manual search (no PII)
+    const statsRes = await request(app.getHttpServer())
+      .get(`/ticketing/events/${publishedEventId}/checkin-stats`)
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .expect(200);
+    const statsBody = statsRes.body as {
+      checkedInCount: number;
+      byTier: Array<{ tierName: string; checkedInCount: number }>;
+      byGate: Array<{ gateName: string; checkedInCount: number }>;
+    };
+    expect(statsBody.checkedInCount).toBeGreaterThanOrEqual(3);
+    expect(statsBody.byGate.some((g) => g.gateName === 'Gerbang Offline')).toBe(
+      true,
+    );
+
+    const searchRes = await request(app.getHttpServer())
+      .get(`/ticketing/events/${publishedEventId}/tickets/search?q=Rina`)
+      .set('Authorization', `Bearer ${assignedStaffToken}`)
+      .expect(200);
+    const searchJson = JSON.stringify(searchRes.body);
+    expect(searchJson).toContain('Rina Paralel');
+    expect(searchJson).not.toContain('rina.rahasia@contoh-fiktif.id');
+    expect(searchJson).not.toContain('6281266667777');
+
+    // G. Undo check-in (ADMIN): records actorUserId & reason, reverts to ISSUED, and blocks undo if ENDED
+    const undoRes = await request(app.getHttpServer())
+      .post('/ticketing/check-in/undo')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        eventId: publishedEventId,
+        ticketId: ticketParallel.id,
+        reason: 'Tamu keluar sebelum masuk area panggung',
+      })
+      .expect(201);
+    expect((undoRes.body as { status: string }).status).toBe('ISSUED');
+
+    const undoLog = await prisma.ticketCheckInLog.findFirstOrThrow({
+      where: { issuedTicketId: ticketParallel.id, result: 'UNDO' },
+      orderBy: { scannedAt: 'desc' },
+    });
+    expect(undoLog.actorUserId).toBe(adminUserId);
+    expect(undoLog.reason).toBe('Tamu keluar sebelum masuk area panggung');
+
+    // Mark otherEvent ENDED -> undo must be rejected with 409
+    await prisma.issuedTicket.update({
+      where: { id: otherPaidOrder.tickets[0].id },
+      data: { status: 'CHECKED_IN', checkedInAt: new Date() },
+    });
+    await prisma.event.update({
+      where: { id: otherEventDb.id },
+      data: { ticketStatus: TicketEventStatus.ENDED },
+    });
+    await request(app.getHttpServer())
+      .post('/ticketing/check-in/undo')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        eventId: otherEventDb.id,
+        ticketId: otherPaidOrder.tickets[0].id,
+        reason: 'Acara sudah selesai',
+      })
+      .expect(409);
+
+    // H. When TICKETING_ENABLED=false, ticketing routes return 404 (so wedding deployment stays isolated)
+    process.env.TICKETING_ENABLED = 'false';
+    try {
+      await request(app.getHttpServer()).get('/ticketing/events').expect(404);
+      await request(app.getHttpServer())
+        .post('/ticketing/check-in')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          eventId: publishedEventId,
+          qrPayload: ticketParallel.qrPayload,
+        })
+        .expect(404);
+    } finally {
+      process.env.TICKETING_ENABLED = 'true';
+    }
+
+    // Cleanup extra staff users created in this test
+    await prisma.offlineSyncOp.deleteMany({
+      where: { eventId: publishedEventId },
+    });
+    await prisma.staffEvent.deleteMany({
+      where: { userId: { in: [assignedStaff.id, unassignedStaff.id] } },
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: [assignedStaff.id, unassignedStaff.id] } },
+    });
+  });
 });
+
+function otherPaidPaidSigHelper(sig: string): string {
+  return sig;
+}

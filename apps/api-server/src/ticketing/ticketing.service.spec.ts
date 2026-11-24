@@ -50,11 +50,22 @@ interface MockPrisma {
   issuedTicket: {
     create: jest.Mock;
     findUnique: jest.Mock;
+    findUniqueOrThrow: jest.Mock;
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
     update: jest.Mock;
     updateMany: jest.Mock;
     count: jest.Mock;
   };
   ticketCheckInLog: {
+    create: jest.Mock;
+    findUnique: jest.Mock;
+  };
+  staffEvent: {
+    findUnique: jest.Mock;
+  };
+  offlineSyncOp: {
+    findUnique: jest.Mock;
     create: jest.Mock;
   };
   eoInquiry: {
@@ -231,11 +242,22 @@ describe('TicketingService (Prisma single source of truth)', () => {
           }),
         ),
         findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
-        updateMany: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         count: jest.fn().mockResolvedValue(0),
       },
       ticketCheckInLog: {
+        create: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      staffEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      offlineSyncOp: {
+        findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn(),
       },
       eoInquiry: {
@@ -875,14 +897,156 @@ describe('TicketingService (Prisma single source of truth)', () => {
     expect(service.verifyTicketQr(tamperedId).valid).toBe(false);
 
     const checkInTampered = await service.checkInTicket({
+      eventId: sampleEventDb.id,
       qrPayload: tamperedId,
     });
     expect(checkInTampered.valid).toBe(false);
     expect(checkInTampered.status).toBe('INVALID');
+    const logCall = (
+      mockPrisma.ticketCheckInLog.create.mock.calls[0] as Array<{
+        data: Record<string, unknown>;
+      }>
+    )[0];
+    expect(logCall.data).toMatchObject({
+      eventId: sampleEventDb.id,
+      result: 'INVALID',
+    });
 
     mockPrisma.event.findFirst.mockResolvedValueOnce(null);
     await expect(service.getPublicEventBySlug('draft-event')).rejects.toThrow(
       NotFoundException,
     );
+  });
+
+  it('enforces atomic check-in, staff_events assignment, check-in time window, privacy (no email/WA), undo rules, offline qrDigest snapshot, and offline sync idempotency', async () => {
+    const activeStart = new Date(Date.now() + 2 * 3600_000); // within default 6h window before startAt
+    const activeEnd = new Date(Date.now() + 6 * 3600_000);
+    const activeEvent = {
+      ...sampleEventDb,
+      startAt: activeStart,
+      eventDate: activeStart,
+      endAt: activeEnd,
+      ticketStatus: TicketEventStatus.PUBLISHED,
+    };
+    mockPrisma.event.findUnique.mockResolvedValue(activeEvent);
+
+    const ticketId = '550e8400-e29b-41d4-a716-446655440099';
+    const validQr = service.signTicketQr(ticketId);
+    const ticketRecord = {
+      id: ticketId,
+      orderId: 'ord-paid-001',
+      eventId: activeEvent.id,
+      tierId: activeEvent.ticketTiers[0].id,
+      ticketCode: 'TKT-UNIT990011',
+      attendeeName: 'Nadia Putri',
+      attendeeEmail: 'nadia.rahasia@contoh.id',
+      status: IssuedTicketStatus.ISSUED,
+      checkedInAt: null,
+      checkedInBy: null,
+      checkedInGate: null,
+      tier: activeEvent.ticketTiers[0],
+      order: { status: TicketOrderStatus.PAID },
+    };
+
+    // 1. Unassigned STAFF rejected with ForbiddenException
+    mockPrisma.staffEvent.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.checkInTicket(
+        { eventId: activeEvent.id, qrPayload: validQr },
+        { id: 'staff-unassigned', email: 'staff1@irvite.id', role: Role.STAFF },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+
+    // 2. Assigned STAFF succeeds, and response NEVER exposes email or WhatsApp
+    mockPrisma.staffEvent.findUnique.mockResolvedValueOnce({
+      eventId: activeEvent.id,
+      userId: 'staff-assigned',
+    });
+    mockPrisma.issuedTicket.findUnique.mockResolvedValueOnce(ticketRecord);
+    mockPrisma.issuedTicket.updateMany.mockResolvedValueOnce({ count: 1 });
+
+    const validCheckIn = await service.checkInTicket(
+      {
+        eventId: activeEvent.id,
+        qrPayload: validQr,
+        gateName: 'Gerbang Utara',
+      },
+      { id: 'staff-assigned', email: 'staff2@irvite.id', role: Role.STAFF },
+    );
+    expect(validCheckIn.valid).toBe(true);
+    expect(validCheckIn.status).toBe('VALID');
+    expect(JSON.stringify(validCheckIn)).not.toContain(
+      'nadia.rahasia@contoh.id',
+    );
+    expect(validCheckIn.ticket).toMatchObject({
+      ticketId,
+      attendeeName: 'Nadia Putri',
+      tierName: activeEvent.ticketTiers[0].name,
+      status: 'CHECKED_IN',
+      checkedInGate: 'Gerbang Utara',
+    });
+
+    // 3. Wrong event -> WRONG_EVENT logged
+    mockPrisma.issuedTicket.findUnique.mockResolvedValueOnce({
+      ...ticketRecord,
+      eventId: 'evt-other-999',
+    });
+    const wrongEventRes = await service.checkInTicket(
+      { eventId: activeEvent.id, qrPayload: validQr },
+      { id: activeEvent.userId, email: 'admin@irvite.id', role: Role.ADMIN },
+    );
+    expect(wrongEventRes.status).toBe('WRONG_EVENT');
+
+    // 4. Outside window (event starts 24h in future > 6h default) -> OUTSIDE_WINDOW logged
+    mockPrisma.event.findUnique.mockResolvedValueOnce({
+      ...activeEvent,
+      startAt: new Date(Date.now() + 24 * 3600_000),
+      endAt: new Date(Date.now() + 28 * 3600_000),
+    });
+    mockPrisma.issuedTicket.findUnique.mockResolvedValueOnce(ticketRecord);
+    const outsideRes = await service.checkInTicket(
+      { eventId: activeEvent.id, qrPayload: validQr },
+      { id: activeEvent.userId, email: 'admin@irvite.id', role: Role.ADMIN },
+    );
+    expect(outsideRes.status).toBe('OUTSIDE_WINDOW');
+
+    // 5. Offline snapshot contains qrDigest = SHA-256(signedQr), NO HMAC secret, NO qrPayload, NO email/WA
+    mockPrisma.staffEvent.findUnique.mockResolvedValueOnce({
+      eventId: activeEvent.id,
+      userId: 'staff-assigned',
+    });
+    mockPrisma.issuedTicket.findMany.mockResolvedValueOnce([ticketRecord]);
+    const snapshot = await service.getEventOfflineSnapshot(activeEvent.id, {
+      id: 'staff-assigned',
+      email: 'staff2@irvite.id',
+      role: Role.STAFF,
+    });
+    expect(snapshot.tickets).toHaveLength(1);
+    expect(snapshot.tickets[0]).toEqual({
+      ticketId,
+      ticketCode: 'TKT-UNIT990011',
+      attendeeName: 'Nadia Putri',
+      tierName: activeEvent.ticketTiers[0].name,
+      status: 'ISSUED',
+      qrDigest: service.computeTicketQrDigest(ticketId),
+    });
+    expect(JSON.stringify(snapshot)).not.toContain('nadia.rahasia@contoh.id');
+    expect(JSON.stringify(snapshot)).not.toContain(validQr);
+
+    // 6. Undo check-in blocked when event is ENDED
+    mockPrisma.event.findUnique.mockResolvedValueOnce({
+      ...activeEvent,
+      ticketStatus: TicketEventStatus.ENDED,
+    });
+    await expect(
+      service.undoTicketCheckIn(
+        {
+          eventId: activeEvent.id,
+          ticketId,
+          reason: 'Salah scan petugas gerbang',
+        },
+        { id: activeEvent.userId, email: 'admin@irvite.id', role: Role.ADMIN },
+      ),
+    ).rejects.toThrow(ConflictException);
   });
 });

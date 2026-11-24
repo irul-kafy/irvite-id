@@ -37,6 +37,14 @@ export async function GET(request: NextRequest) {
       targetUrl = `${apiBase}/api/v1/ticketing/inquiries`;
     } else if (mode === 'orders' && eventId) {
       targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/orders`;
+    } else if (mode === 'offline-snapshot' && eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/offline-snapshot`;
+    } else if (mode === 'checkin-stats' && eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/checkin-stats`;
+    } else if (mode === 'search-tickets' && eventId) {
+      const query = new URLSearchParams();
+      if (search) query.set('q', search);
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/tickets/search?${query.toString()}`;
     } else {
       const query = new URLSearchParams();
       if (category) query.set('category', category);
@@ -125,8 +133,26 @@ export async function POST(request: NextRequest) {
     if (action === 'check-in') {
       targetUrl = `${apiBase}/api/v1/ticketing/check-in`;
       payload = {
-        qrToken: body.qrToken || body.ticketCode,
-        gateName: body.gateName,
+        eventId: body.eventId,
+        ...(body.qrPayload ? { qrPayload: body.qrPayload } : {}),
+        ...(body.qrToken ? { qrToken: body.qrToken } : {}),
+        ...(body.qrDigest ? { qrDigest: body.qrDigest } : {}),
+        ...(body.ticketCode ? { ticketCode: body.ticketCode } : {}),
+        ...(body.gateName ? { gateName: body.gateName } : {}),
+      };
+    } else if (action === 'undo-check-in') {
+      targetUrl = `${apiBase}/api/v1/ticketing/check-in/undo`;
+      payload = {
+        eventId: body.eventId,
+        ...(body.ticketId ? { ticketId: body.ticketId } : {}),
+        ...(body.ticketCode ? { ticketCode: body.ticketCode } : {}),
+        reason: body.reason,
+      };
+    } else if (action === 'offline-sync' && body.eventId) {
+      targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(String(body.eventId))}/offline-sync`;
+      payload = {
+        ...(body.deviceId ? { deviceId: body.deviceId } : {}),
+        operations: Array.isArray(body.operations) ? body.operations : [],
       };
     } else if (action === 'publish-event' && body.eventId) {
       targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(String(body.eventId))}/publish`;

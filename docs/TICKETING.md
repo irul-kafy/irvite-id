@@ -78,13 +78,15 @@ apps/web-invitation (/tiket, /partnership)     apps/web-admin (/events, /orders)
 | --- | --- | --- |
 | `DATABASE_URL` | `apps/api-server`, `packages/database` | URL koneksi MySQL utama (`mysql://...`). |
 | `E2E_DATABASE_URL` | `apps/api-server` (Test) | URL database MySQL khusus pengujian E2E yang wajib berakhiran `_test`. |
-| `TICKET_QR_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 (minimal 32 karakter) untuk menandatangani dan memverifikasi payload QR tiket `v1.<ticketId>.<hmac>`. |
-| `PAYMENT_WEBHOOK_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 untuk memverifikasi header signature `x-payment-signature` pada endpoint webhook pembayaran. |
+| `TICKETING_ENABLED` | `apps/api-server` | Sakelar fitur modul tiket di API (`true` untuk mengaktifkan rute `/ticketing` dan validasi rahasia saat *startup*; jika `false` atau kosong, rute tiket mengembalikan `404` dan server tetap *boot* untuk produk undangan tanpa memeriksa env rahasia tiket). |
+| `TICKET_QR_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 (wajib minimal 16 karakter & berbeda dari secret lain) untuk menandatangani payload QR tiket `v1.<ticketId>.<hmac>`. |
+| `PAYMENT_WEBHOOK_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 tersendiri (minimal 16 karakter & berbeda dari secret lain) untuk memverifikasi header `x-payment-signature`. |
+| `CRON_SECRET` | `apps/api-server` | Rahasia internal tersendiri (minimal 16 karakter & berbeda dari secret lain) untuk mengotorisasi `POST /ticketing/cron/expire-orders` (dibandingkan via SHA-256 + `timingSafeEqual`). |
 | `PAYMENT_MODE` | `apps/api-server` | Mode layanan pembayaran (`mock` atau `gateway`). `MockPaymentService` hanya aktif jika `PAYMENT_MODE=mock` **dan** `NODE_ENV !== 'production'`. |
 | `DEFAULT_SERVICE_FEE_BPS` | `apps/api-server` | Tarif biaya layanan default dalam basis poin (`0..1000`, default `350` = 3,5%). |
 | `VA_MIN_TOTAL_IDR` | `apps/api-server` | Batas minimum total tagihan Rupiah agar metode Virtual Account (`VA_*`) diizinkan (default `150000`). |
 | `ORDER_EXPIRY_MINUTES` | `apps/api-server` | Durasi masa berlaku pesanan `PENDING` sebelum kedaluwarsa (default `30` menit). |
-| `CRON_SECRET` | `apps/api-server` | Token rahasia internal untuk mengotorisasi `POST /ticketing/cron/expire-orders`. |
+| `CHECKIN_OPEN_HOURS_BEFORE` | `apps/api-server` | Jumlah jam sebelum `startAt` saat jendela check-in dibuka (default `6` jam; ditutup pada `endAt + 6` jam). |
 | `INTERNAL_API_URL` | `web-invitation`, `web-admin` | URL internal `apps/api-server` (default `http://localhost:3000`) yang dituju oleh proxy BFF `/api/ticketing`. |
 | `NEXT_PUBLIC_ENABLE_TICKETING` | `web-invitation` | Sakelar fitur modul tiket di frontend (`true` untuk mengaktifkan `/tiket` dan `/partnership`). |
 
@@ -115,9 +117,20 @@ apps/web-invitation (/tiket, /partnership)     apps/web-admin (/events, /orders)
    - **Idempotensi Paralel & Penanganan `PENDING` Lewat Waktu vs `EXPIRED`/`CANCELLED`**:
      - Untuk pesanan yang masih berstatus `PENDING` (termasuk yang `expiresAt`-nya sudah lewat tetapi **belum** disapu oleh cron, sehingga kuotanya masih ditahan oleh pesanan tersebut), webhook pembayaran sukses melakukan klaim atomik `updateMany({ where: { id, status: 'PENDING' }, data: { status: 'PAID', paidAt, paymentReference } })`. Tiket (`IssuedTicket` dengan `sequence_number` `1..quantity` dan `UNIQUE(order_id, sequence_number)`) hanya diterbitkan oleh pekerja yang mendapatkan `count === 1`.
      - Untuk pembayaran sukses yang datang terlambat ketika status pesanan sudah `EXPIRED` atau `CANCELLED` (kuota sudah dilepas), server mengklaim transisi secara atomik dan mencoba menahan ulang kuota (`sold_count + qty <= quota`). Jika kuota masih tersedia, pesanan menjadi `PAID` dan tiket diterbitkan; jika kuota sudah habis, status pesanan disimpan sebagai `REFUND_PENDING` tanpa melempar *exception* di dalam transaksi agar perubahan status tetap ter-*commit*.
-5. **Verifikasi Pesanan & Pemindaian Gerbang (Check-in)**
+5. **Verifikasi Pesanan, Check-in Atomik, & Scanner Offline**
    - Pembeli memeriksa status pesanan dan kode QR tiket di tab **Cek pesanan dan tiket** (`/tiket`) menggunakan `orderCode` dan `accessToken` (`GET /api/v1/ticketing/orders/:orderCode?accessToken=...`).
-   - Pada hari acara, petugas (`SUPER_ADMIN`, `ADMIN`, atau `STAFF`) memindai QR melalui `POST /api/v1/ticketing/check-in`. Server memverifikasi HMAC `v1.<ticketId>.<hmac>`, memastikan tiket berstatus `ISSUED`, menandai `CHECKED_IN`, dan mencatat log ke `ticket_check_in_logs`.
+   - **Check-in Atomik (`POST /api/v1/ticketing/check-in`)**:
+     - Mewajibkan `eventId`. Untuk peran `STAFF`, server memastikan petugas ditugaskan ke acara tersebut melalui `staff_events` (`403` bila tidak ditugaskan).
+     - Memvalidasi bahwa acara berstatus `PUBLISHED` dan waktu pemindaian berada dalam jendela `[startAt - CHECKIN_OPEN_HOURS_BEFORE, endAt + 6 jam]`.
+     - Menggunakan klaim atomik `updateMany({ where: { id, eventId, status: 'ISSUED' }, data: { status: 'CHECKED_IN', ... } })`. Jika `count === 0`, tiket dibaca ulang untuk membedakan `DUPLICATE` vs `VOID`. Setiap percobaan (`VALID`, `DUPLICATE`, `VOID`, `WRONG_EVENT`, `NOT_PAID`, `OUTSIDE_WINDOW`, `INVALID`) dicatat ke `ticket_check_in_logs`.
+     - Demi privasi, respons check-in dan pencarian manual (`GET /api/v1/ticketing/events/:eventId/tickets/search?q=...`) **tidak pernah** menampilkan email maupun nomor WhatsApp pembeli (hanya nama pemegang, kategori tier, dan status).
+   - **Undo Check-in (`POST /api/v1/ticketing/check-in/undo`)**:
+     - Khusus `ADMIN`/`SUPER_ADMIN` selama acara belum berstatus `ENDED`. Mengembalikan `CHECKED_IN` ke `ISSUED` serta mencatat `actor_user_id` dan `reason` wajib dengan hasil `UNDO` di `ticket_check_in_logs`.
+   - **Offline Snapshot & Offline Sync (`GET .../offline-snapshot` & `POST .../offline-sync`)**:
+     - `offline-snapshot` hanya dapat diakses oleh pengelola atau `STAFF` yang ditugaskan pada acara tersebut, dan mengirimkan `{ ticketId, ticketCode, attendeeName, tierName, status, qrDigest }` (`qrDigest = SHA-256(signedQr)`) tanpa menyertakan rahasia HMAC, payload QR mentah, email, maupun nomor WhatsApp pembeli.
+     - Perangkat mencocokkan digest SHA-256 dari QR yang dipindai dengan `qrDigest` pada snapshot, lalu menyinkronkannya melalui `offline-sync` secara idempoten memakai `offline_sync_ops` (`opType: 'TICKET_CHECK_IN'`) dan kunci unik `ticket_check_in_logs.sync_op_id` di dalam satu transaksi database.
+   - **Statistik Check-in (`GET /api/v1/ticketing/events/:eventId/checkin-stats`)**:
+     - Menyajikan jumlah tiket terbit, sudah check-in, dan sisa kuota masuk per acara, per kategori tier (`byTier`), dan per gerbang (`byGate`).
 
 ---
 

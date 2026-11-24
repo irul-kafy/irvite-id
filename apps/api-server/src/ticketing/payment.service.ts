@@ -1,5 +1,9 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import * as crypto from 'crypto';
+import {
+  getPaymentWebhookSecret,
+  safeCompareSecret,
+} from './ticketing-secrets';
 
 export const PAYMENT_SERVICE = 'PAYMENT_SERVICE';
 
@@ -40,20 +44,10 @@ export interface PaymentService extends PaymentWebhookVerifier {
 
 /**
  * Resolves PAYMENT_WEBHOOK_SECRET strictly from its own environment variable
- * without falling back to TICKET_PAYMENT_WEBHOOK_SECRET or TICKET_QR_SECRET.
+ * via requireSecret without falling back to TICKET_PAYMENT_WEBHOOK_SECRET or TICKET_QR_SECRET.
  */
 export function resolvePaymentWebhookSecret(): string {
-  const secret = process.env.PAYMENT_WEBHOOK_SECRET?.trim();
-  if (secret && secret.length >= 16) {
-    return secret;
-  }
-  const nodeEnv = (process.env.NODE_ENV || '').trim().toLowerCase();
-  if (nodeEnv === 'development' || nodeEnv === 'test') {
-    return 'dev-test-payment-webhook-hmac-secret-32-bytes';
-  }
-  throw new Error(
-    'Konfigurasi PAYMENT_WEBHOOK_SECRET wajib diatur (minimal 16 karakter).',
-  );
+  return getPaymentWebhookSecret();
 }
 
 export class HmacPaymentWebhookVerifier implements PaymentWebhookVerifier {
@@ -73,12 +67,7 @@ export class HmacPaymentWebhookVerifier implements PaymentWebhookVerifier {
       return false;
     }
     const expectedHex = this.computeWebhookSignature(payload);
-    const providedBuf = Buffer.from(signatureHeader.trim(), 'utf8');
-    const expectedBuf = Buffer.from(expectedHex, 'utf8');
-    if (providedBuf.length !== expectedBuf.length) {
-      return false;
-    }
-    return crypto.timingSafeEqual(providedBuf, expectedBuf);
+    return safeCompareSecret(signatureHeader.trim(), expectedHex);
   }
 }
 

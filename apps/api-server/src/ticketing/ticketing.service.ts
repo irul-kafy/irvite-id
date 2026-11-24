@@ -32,9 +32,20 @@ import {
   CreateTicketingEventDto,
   CreateTicketTierDto,
   ListEventOrdersQueryDto,
+  SearchEventTicketsQueryDto,
+  SyncOfflineTicketCheckInsDto,
+  UndoTicketCheckInDto,
   UpdateTicketingEventDto,
   UpdateTicketTierDto,
 } from './dto/admin-ticketing.dto';
+import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import {
+  CHECKIN_CLOSE_HOURS_AFTER,
+  getCheckInOpenHoursBefore,
+  getTicketQrSecret,
+  safeCompareSecret,
+  sha256Hex,
+} from './ticketing-secrets';
 import {
   assertPaymentMethodAllowed,
   computeOrderAmounts,
@@ -213,16 +224,7 @@ export class TicketingService {
   }
 
   private getQrSecret(): string {
-    const secret = process.env.TICKET_QR_SECRET;
-    if (secret && secret.trim().length >= 16) {
-      return secret.trim();
-    }
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        'Konfigurasi TICKET_QR_SECRET belum diatur di server produksi.',
-      );
-    }
-    return 'dev-test-ticket-qr-secret-key-minimum-32-bytes';
+    return getTicketQrSecret();
   }
 
   /**
@@ -239,7 +241,15 @@ export class TicketingService {
   }
 
   /**
-   * Verifies QR payload: v1.<ticketId>.<hmac> in constant time.
+   * Produces SHA-256 hex digest of the signed QR payload for offline snapshot matching
+   * without exposing the HMAC secret or raw signed QR token on scanner devices.
+   */
+  computeTicketQrDigest(ticketId: string): string {
+    return sha256Hex(this.signTicketQr(ticketId));
+  }
+
+  /**
+   * Verifies QR payload: v1.<ticketId>.<hmac> using SHA-256 + timingSafeEqual.
    */
   verifyTicketQr(qrPayload: string): { valid: boolean; ticketId?: string } {
     if (!qrPayload || typeof qrPayload !== 'string') {
@@ -260,13 +270,7 @@ export class TicketingService {
       .update(`v1.${ticketId}`)
       .digest('base64url');
 
-    const providedBuf = Buffer.from(providedHmac, 'utf8');
-    const expectedBuf = Buffer.from(expectedHmac, 'utf8');
-    if (providedBuf.length !== expectedBuf.length) {
-      return { valid: false };
-    }
-
-    if (!crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+    if (!safeCompareSecret(providedHmac, expectedHmac)) {
       return { valid: false };
     }
 
@@ -1145,12 +1149,7 @@ export class TicketingService {
     }
 
     const providedHash = hashAccessToken(accessToken);
-    const providedBuf = Buffer.from(providedHash, 'utf8');
-    const storedBuf = Buffer.from(initialOrder.accessTokenHash, 'utf8');
-    if (
-      providedBuf.length !== storedBuf.length ||
-      !crypto.timingSafeEqual(providedBuf, storedBuf)
-    ) {
+    if (!safeCompareSecret(providedHash, initialOrder.accessTokenHash)) {
       throw new ForbiddenException('Token akses pesanan tidak valid.');
     }
 
@@ -2188,140 +2187,1048 @@ export class TicketingService {
     };
   }
 
-  /**
-   * Staff / Admin: Verify v1.<ticketId>.<hmac> QR payload and perform gate check-in.
-   */
-  async checkInTicket(
-    dto: CheckInTicketDto | string,
-    scannedBy = 'Petugas gerbang',
-    defaultGateName = 'Gerbang utama',
-  ) {
-    const rawPayload =
-      typeof dto === 'string'
-        ? dto
-        : dto.qrPayload || dto.qrToken || dto.ticketCode || '';
-    const gateName =
-      typeof dto === 'string'
-        ? defaultGateName
-        : dto.gateName || defaultGateName;
+  private toScannerTicketSummary(ticket: {
+    id: string;
+    ticketCode: string;
+    attendeeName: string;
+    tierId: string;
+    status: IssuedTicketStatus;
+    checkedInAt: Date | null;
+    checkedInGate: string | null;
+    tier: { name: string };
+  }) {
+    // Privacy rule: scanner & manual search responses NEVER include buyer/attendee email or WhatsApp.
+    return {
+      ticketId: ticket.id,
+      ticketCode: ticket.ticketCode,
+      attendeeName: ticket.attendeeName,
+      holderName: ticket.attendeeName,
+      tierId: ticket.tierId,
+      tierName: ticket.tier.name,
+      status: ticket.status,
+      checkedInAt: ticket.checkedInAt ? ticket.checkedInAt.toISOString() : null,
+      checkedInGate: ticket.checkedInGate ?? null,
+    };
+  }
 
-    const verified = this.verifyTicketQr(rawPayload);
-    if (!verified.valid || !verified.ticketId) {
-      return {
-        valid: false,
-        status: 'INVALID' as const,
-        message:
-          'Token QR tiket tidak valid atau tanda tangan keamanan telah dimodifikasi.',
-        ticket: null,
-      };
+  private async authorizeScannerEventAccess(
+    eventId: string,
+    actor?: AuthenticatedUser,
+  ) {
+    const cleanEventId = (eventId || '').trim();
+    if (!cleanEventId) {
+      throw new BadRequestException('ID acara (eventId) wajib diisi.');
     }
 
-    const ticket = await this.prisma.issuedTicket.findUnique({
-      where: { id: verified.ticketId },
+    const event = await this.prisma.event.findUnique({
+      where: { id: cleanEventId },
       include: {
-        order: {
-          include: {
-            event: true,
-            tier: true,
-            issuedTickets: true,
-          },
+        ticketTiers: {
+          orderBy: { sortOrder: 'asc' },
         },
       },
     });
 
-    if (!ticket) {
+    if (!event) {
+      throw new NotFoundException('Acara tidak ditemukan.');
+    }
+
+    if (actor) {
+      if (actor.role === Role.STAFF) {
+        const assignment = await this.prisma.staffEvent.findUnique({
+          where: {
+            eventId_userId: {
+              eventId: cleanEventId,
+              userId: actor.id,
+            },
+          },
+        });
+        if (!assignment) {
+          throw new ForbiddenException(
+            'Petugas tidak ditugaskan pada acara ini.',
+          );
+        }
+      } else if (actor.role === Role.ADMIN) {
+        if (event.userId !== actor.id) {
+          throw new ForbiddenException(
+            'Admin tidak memiliki akses ke acara milik penyelenggara lain.',
+          );
+        }
+      } else if (actor.role !== Role.SUPER_ADMIN) {
+        throw new ForbiddenException(
+          'Peran pengguna tidak memiliki akses ke pemindai acara ini.',
+        );
+      }
+    }
+
+    return event;
+  }
+
+  private isWithinCheckInWindow(
+    event: {
+      ticketStatus: TicketEventStatus;
+      eventDate: Date;
+      startAt: Date | null;
+      endAt: Date | null;
+    },
+    referenceTime: Date,
+  ): boolean {
+    if (event.ticketStatus !== TicketEventStatus.PUBLISHED) {
+      return false;
+    }
+    const openHoursBefore = getCheckInOpenHoursBefore();
+    const effectiveStart = event.startAt || event.eventDate;
+    const effectiveEnd = event.endAt || effectiveStart;
+    const windowStart = new Date(
+      effectiveStart.getTime() - openHoursBefore * 3600_000,
+    );
+    const windowEnd = new Date(
+      effectiveEnd.getTime() + CHECKIN_CLOSE_HOURS_AFTER * 3600_000,
+    );
+    return referenceTime >= windowStart && referenceTime <= windowEnd;
+  }
+
+  private async logCheckInAttempt(params: {
+    issuedTicketId: string | null;
+    eventId: string;
+    actorUserId?: string | null;
+    scannedBy: string;
+    gateName: string;
+    result:
+      | 'VALID'
+      | 'DUPLICATE'
+      | 'VOID'
+      | 'WRONG_EVENT'
+      | 'NOT_PAID'
+      | 'OUTSIDE_WINDOW'
+      | 'INVALID'
+      | 'UNDO';
+    reason?: string | null;
+    syncOpId?: string | null;
+    scannedAt?: Date;
+  }): Promise<void> {
+    await this.prisma.ticketCheckInLog.create({
+      data: {
+        issuedTicketId: params.issuedTicketId,
+        eventId: params.eventId,
+        actorUserId: params.actorUserId ?? null,
+        scannedBy: params.scannedBy,
+        gateName: params.gateName,
+        result: params.result,
+        reason: params.reason ?? null,
+        syncOpId: params.syncOpId ?? null,
+        ...(params.scannedAt ? { scannedAt: params.scannedAt } : {}),
+      },
+    });
+  }
+
+  private async resolveScannedTicket(params: {
+    eventId: string;
+    qrPayload?: string;
+    qrDigest?: string;
+    ticketId?: string;
+    ticketCode?: string;
+  }) {
+    if (params.qrPayload && params.qrPayload.trim()) {
+      const verified = this.verifyTicketQr(params.qrPayload.trim());
+      if (!verified.valid || !verified.ticketId) {
+        return { kind: 'INVALID_QR' as const, ticket: null };
+      }
+      const ticket = await this.prisma.issuedTicket.findUnique({
+        where: { id: verified.ticketId },
+        include: {
+          tier: true,
+          order: { select: { status: true } },
+        },
+      });
+      if (!ticket) {
+        return { kind: 'NOT_FOUND' as const, ticket: null };
+      }
+      return { kind: 'FOUND' as const, ticket };
+    }
+
+    if (params.qrDigest && params.qrDigest.trim()) {
+      const providedDigest = params.qrDigest.trim().toLowerCase();
+      if (params.ticketId && params.ticketId.trim()) {
+        const candidate = await this.prisma.issuedTicket.findUnique({
+          where: { id: params.ticketId.trim() },
+          include: {
+            tier: true,
+            order: { select: { status: true } },
+          },
+        });
+        if (
+          candidate &&
+          safeCompareSecret(
+            providedDigest,
+            this.computeTicketQrDigest(candidate.id),
+          )
+        ) {
+          return { kind: 'FOUND' as const, ticket: candidate };
+        }
+        return { kind: 'INVALID_QR' as const, ticket: null };
+      }
+
+      const eventTickets = await this.prisma.issuedTicket.findMany({
+        where: { eventId: params.eventId },
+        include: {
+          tier: true,
+          order: { select: { status: true } },
+        },
+      });
+      const matched = eventTickets.find((t) =>
+        safeCompareSecret(providedDigest, this.computeTicketQrDigest(t.id)),
+      );
+      if (!matched) {
+        return { kind: 'INVALID_QR' as const, ticket: null };
+      }
+      return { kind: 'FOUND' as const, ticket: matched };
+    }
+
+    if (params.ticketCode && params.ticketCode.trim()) {
+      const cleanTicketCode = params.ticketCode.trim().toUpperCase();
+      const ticket = await this.prisma.issuedTicket.findUnique({
+        where: { ticketCode: cleanTicketCode },
+        include: {
+          tier: true,
+          order: { select: { status: true } },
+        },
+      });
+      if (!ticket) {
+        return { kind: 'NOT_FOUND' as const, ticket: null };
+      }
+      return { kind: 'FOUND' as const, ticket };
+    }
+
+    return { kind: 'MISSING_IDENTIFIER' as const, ticket: null };
+  }
+
+  /**
+   * Staff / Admin: Atomic ticket check-in scoped to a single eventId with staff_events check,
+   * PUBLISHED + check-in window check, atomic updateMany(status: ISSUED -> CHECKED_IN),
+   * full audit logging to ticket_check_in_logs, and zero buyer PII leakage.
+   */
+  async checkInTicket(
+    dto: CheckInTicketDto,
+    actorOrScannedBy:
+      AuthenticatedUser | string | undefined = 'Petugas gerbang',
+    defaultGateName = 'Gerbang utama',
+  ) {
+    if (!dto || !dto.eventId || !dto.eventId.trim()) {
+      throw new BadRequestException('ID acara (eventId) wajib diisi.');
+    }
+
+    const actor =
+      typeof actorOrScannedBy === 'object' && actorOrScannedBy !== null
+        ? actorOrScannedBy
+        : undefined;
+    const scannedBy =
+      typeof actorOrScannedBy === 'string'
+        ? actorOrScannedBy
+        : actor?.email || 'Petugas gerbang';
+    const actorUserId = actor?.id ?? null;
+    const gateName = (dto.gateName || defaultGateName || 'Gerbang utama')
+      .trim()
+      .slice(0, 80);
+
+    const event = await this.authorizeScannerEventAccess(dto.eventId, actor);
+
+    const rawQr = dto.qrPayload || dto.qrToken;
+    const resolved = await this.resolveScannedTicket({
+      eventId: event.id,
+      qrPayload: rawQr,
+      qrDigest: dto.qrDigest,
+      ticketCode: !rawQr && !dto.qrDigest ? dto.ticketCode : undefined,
+    });
+
+    if (resolved.kind === 'MISSING_IDENTIFIER') {
+      throw new BadRequestException(
+        'Wajib menyertakan qrPayload, qrDigest, atau ticketCode untuk check-in.',
+      );
+    }
+
+    if (!resolved.ticket) {
+      await this.logCheckInAttempt({
+        issuedTicketId: null,
+        eventId: event.id,
+        actorUserId,
+        scannedBy,
+        gateName,
+        result: 'INVALID',
+      });
       return {
         valid: false,
         status: 'INVALID' as const,
-        message: 'Tiket tidak ditemukan di basis data.',
+        message:
+          resolved.kind === 'INVALID_QR'
+            ? 'Token QR tiket tidak valid atau tanda tangan keamanan telah dimodifikasi.'
+            : 'Tiket tidak ditemukan di basis data.',
         ticket: null,
       };
     }
 
+    const ticket = resolved.ticket;
+
+    // 1. Reject ticket from a different event (WRONG_EVENT)
+    if (ticket.eventId !== event.id) {
+      await this.logCheckInAttempt({
+        issuedTicketId: ticket.id,
+        eventId: event.id,
+        actorUserId,
+        scannedBy,
+        gateName,
+        result: 'WRONG_EVENT',
+      });
+      return {
+        valid: false,
+        status: 'WRONG_EVENT' as const,
+        message: 'Tiket ini terdaftar untuk acara lain.',
+        ticket: null,
+      };
+    }
+
+    // 2. Reject ticket whose order is not PAID (NOT_PAID)
     if (ticket.order.status !== TicketOrderStatus.PAID) {
+      await this.logCheckInAttempt({
+        issuedTicketId: ticket.id,
+        eventId: event.id,
+        actorUserId,
+        scannedBy,
+        gateName,
+        result: 'NOT_PAID',
+      });
       return {
         valid: false,
-        status: 'INVALID' as const,
+        status: 'NOT_PAID' as const,
         message: 'Pesanan tiket ini belum berstatus lunas.',
-        ticket: null,
+        ticket: this.toScannerTicketSummary(ticket),
       };
     }
 
-    const orderView = this.mapOrderToView(ticket.order);
-    const ticketView =
-      orderView.tickets.find((t) => t.id === ticket.id) || null;
-
-    if (ticket.status === IssuedTicketStatus.CHECKED_IN) {
-      await this.prisma.ticketCheckInLog.create({
-        data: {
-          issuedTicketId: ticket.id,
-          eventId: ticket.eventId,
-          scannedBy,
-          gateName,
-          result: 'DUPLICATE',
-        },
-      });
-      return {
-        valid: false,
-        status: 'DUPLICATE' as const,
-        message: `Tiket atas nama ${ticket.attendeeName} sudah pernah digunakan masuk.`,
-        ticket: ticketView,
-      };
-    }
-
-    if (ticket.status === IssuedTicketStatus.VOID) {
-      await this.prisma.ticketCheckInLog.create({
-        data: {
-          issuedTicketId: ticket.id,
-          eventId: ticket.eventId,
-          scannedBy,
-          gateName,
-          result: 'VOID',
-        },
-      });
-      return {
-        valid: false,
-        status: 'INVALID' as const,
-        message: 'Tiket ini telah dibatalkan (VOID).',
-        ticket: ticketView,
-      };
-    }
-
+    // 3. Enforce PUBLISHED status and check-in time window [startAt - CHECKIN_OPEN_HOURS_BEFORE, endAt + 6h]
     const now = new Date();
-    await this.prisma.$transaction([
-      this.prisma.issuedTicket.update({
-        where: { id: ticket.id },
+    if (!this.isWithinCheckInWindow(event, now)) {
+      await this.logCheckInAttempt({
+        issuedTicketId: ticket.id,
+        eventId: event.id,
+        actorUserId,
+        scannedBy,
+        gateName,
+        result: 'OUTSIDE_WINDOW',
+      });
+      return {
+        valid: false,
+        status: 'OUTSIDE_WINDOW' as const,
+        message:
+          'Check-in belum dibuka, sudah ditutup, atau acara belum berstatus PUBLISHED.',
+        ticket: this.toScannerTicketSummary(ticket),
+      };
+    }
+
+    // 4. Atomic transition ISSUED -> CHECKED_IN via updateMany inside a transaction
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.issuedTicket.updateMany({
+        where: {
+          id: ticket.id,
+          eventId: event.id,
+          status: IssuedTicketStatus.ISSUED,
+        },
         data: {
           status: IssuedTicketStatus.CHECKED_IN,
           checkedInAt: now,
           checkedInBy: scannedBy,
           checkedInGate: gateName,
         },
-      }),
-      this.prisma.ticketCheckInLog.create({
+      });
+
+      if (updated.count === 1) {
+        await tx.ticketCheckInLog.create({
+          data: {
+            issuedTicketId: ticket.id,
+            eventId: event.id,
+            actorUserId,
+            scannedBy,
+            gateName,
+            result: 'VALID',
+            scannedAt: now,
+          },
+        });
+
+        return {
+          valid: true,
+          status: 'VALID' as const,
+          message: `Check-in berhasil untuk ${ticket.attendeeName} (${ticket.tier.name}).`,
+          ticket: this.toScannerTicketSummary({
+            ...ticket,
+            status: IssuedTicketStatus.CHECKED_IN,
+            checkedInAt: now,
+            checkedInGate: gateName,
+          }),
+        };
+      }
+
+      // count === 0: re-read ticket to distinguish DUPLICATE vs VOID
+      const fresh = await tx.issuedTicket.findUniqueOrThrow({
+        where: { id: ticket.id },
+        include: { tier: true },
+      });
+
+      const failStatus =
+        fresh.status === IssuedTicketStatus.VOID
+          ? ('VOID' as const)
+          : ('DUPLICATE' as const);
+
+      await tx.ticketCheckInLog.create({
         data: {
           issuedTicketId: ticket.id,
-          eventId: ticket.eventId,
+          eventId: event.id,
+          actorUserId,
           scannedBy,
           gateName,
-          result: 'VALID',
+          result: failStatus,
+          scannedAt: now,
         },
-      }),
-    ]);
+      });
+
+      return {
+        valid: false,
+        status: failStatus,
+        message:
+          failStatus === 'VOID'
+            ? 'Tiket ini telah dibatalkan (VOID).'
+            : `Tiket atas nama ${fresh.attendeeName} sudah pernah digunakan masuk.`,
+        ticket: this.toScannerTicketSummary(fresh),
+      };
+    });
+  }
+
+  /**
+   * POST /ticketing/check-in/undo (ADMIN / SUPER_ADMIN only)
+   * Reverts CHECKED_IN -> ISSUED with mandatory reason and actor logging, allowed only while event is not ENDED.
+   */
+  async undoTicketCheckIn(
+    dto: UndoTicketCheckInDto,
+    actor: AuthenticatedUser | undefined,
+  ) {
+    if (!actor?.id) {
+      throw new UnauthorizedException('Autentikasi admin diperlukan.');
+    }
+    if (actor.role !== Role.SUPER_ADMIN && actor.role !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Hanya ADMIN atau SUPER_ADMIN yang dapat membatalkan check-in.',
+      );
+    }
+
+    const reason = (dto.reason || '').trim();
+    if (reason.length < 3) {
+      throw new BadRequestException(
+        'Alasan pembatalan check-in wajib diisi (minimal 3 karakter).',
+      );
+    }
+
+    const event = await this.authorizeScannerEventAccess(dto.eventId, actor);
+    const now = new Date();
+    if (
+      event.ticketStatus === TicketEventStatus.ENDED ||
+      (event.endAt && now > event.endAt)
+    ) {
+      throw new ConflictException(
+        'Undo check-in tidak diizinkan karena acara telah berakhir (ENDED).',
+      );
+    }
+
+    const ticket = dto.ticketId?.trim()
+      ? await this.prisma.issuedTicket.findFirst({
+          where: { id: dto.ticketId.trim(), eventId: event.id },
+          include: { tier: true },
+        })
+      : dto.ticketCode?.trim()
+        ? await this.prisma.issuedTicket.findFirst({
+            where: {
+              ticketCode: dto.ticketCode.trim().toUpperCase(),
+              eventId: event.id,
+            },
+            include: { tier: true },
+          })
+        : null;
+
+    if (!ticket) {
+      throw new NotFoundException(
+        'Tiket tidak ditemukan pada acara yang dipilih.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const reverted = await tx.issuedTicket.updateMany({
+        where: {
+          id: ticket.id,
+          eventId: event.id,
+          status: IssuedTicketStatus.CHECKED_IN,
+        },
+        data: {
+          status: IssuedTicketStatus.ISSUED,
+          checkedInAt: null,
+          checkedInBy: null,
+          checkedInGate: null,
+        },
+      });
+
+      if (reverted.count === 0) {
+        throw new ConflictException('Tiket tidak sedang berstatus CHECKED_IN.');
+      }
+
+      await tx.ticketCheckInLog.create({
+        data: {
+          issuedTicketId: ticket.id,
+          eventId: event.id,
+          actorUserId: actor.id,
+          scannedBy: actor.email,
+          gateName: ticket.checkedInGate || 'Gerbang utama',
+          result: 'UNDO',
+          reason,
+          scannedAt: now,
+        },
+      });
+
+      const fresh = await tx.issuedTicket.findUniqueOrThrow({
+        where: { id: ticket.id },
+        include: { tier: true },
+      });
+
+      return {
+        undone: true,
+        status: 'ISSUED' as const,
+        actorUserId: actor.id,
+        reason,
+        ticket: this.toScannerTicketSummary(fresh),
+      };
+    });
+  }
+
+  /**
+   * GET /ticketing/events/:eventId/offline-snapshot
+   * Returns valid tickets for offline scanning with qrDigest = SHA-256(signedQr),
+   * WITHOUT exposing HMAC secrets, raw signed QR payloads, buyer email, or buyer WhatsApp.
+   * Restricted to ADMIN/SUPER_ADMIN or STAFF assigned to this event.
+   */
+  async getEventOfflineSnapshot(
+    eventId: string,
+    actor: AuthenticatedUser | undefined,
+  ) {
+    if (!actor?.id) {
+      throw new UnauthorizedException('Autentikasi diperlukan.');
+    }
+
+    const event = await this.authorizeScannerEventAccess(eventId, actor);
+
+    const tickets = await this.prisma.issuedTicket.findMany({
+      where: {
+        eventId: event.id,
+        status: {
+          in: [IssuedTicketStatus.ISSUED, IssuedTicketStatus.CHECKED_IN],
+        },
+        order: {
+          status: TicketOrderStatus.PAID,
+        },
+      },
+      include: {
+        tier: {
+          select: { name: true },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+
+    const snapshotItems = tickets.map((t) => ({
+      ticketId: t.id,
+      ticketCode: t.ticketCode,
+      attendeeName: t.attendeeName,
+      tierName: t.tier.name,
+      status: t.status,
+      qrDigest: this.computeTicketQrDigest(t.id),
+    }));
 
     return {
-      valid: true,
-      status: 'VALID' as const,
-      message: `Check-in berhasil untuk ${ticket.attendeeName} (${ticket.order.tier.name}).`,
-      ticket: ticketView
-        ? {
-            ...ticketView,
-            status: 'CHECKED_IN' as const,
-            checkedInAt: now.toISOString(),
-            checkedInBy: scannedBy,
+      eventId: event.id,
+      eventTitle: event.title,
+      snapshotAt: new Date().toISOString(),
+      totalTickets: snapshotItems.length,
+      tickets: snapshotItems,
+    };
+  }
+
+  /**
+   * POST /ticketing/events/:eventId/offline-sync
+   * Synchronizes offline ticket scans idempotently using OfflineSyncOp + TicketCheckInLog.syncOpId
+   * inside the same DB transaction so retries never create duplicate check-ins or logs.
+   */
+  async syncOfflineTicketCheckIns(
+    eventId: string,
+    dto: SyncOfflineTicketCheckInsDto,
+    actor: AuthenticatedUser | undefined,
+  ) {
+    if (!actor?.id) {
+      throw new UnauthorizedException('Autentikasi diperlukan.');
+    }
+
+    const event = await this.authorizeScannerEventAccess(eventId, actor);
+    const results: Array<{
+      opId: string;
+      status: 'APPLIED' | 'DUPLICATE' | 'REJECTED';
+      checkInResult: string;
+      message: string;
+      ticket: ReturnType<TicketingService['toScannerTicketSummary']> | null;
+    }> = [];
+
+    for (const op of dto.operations || []) {
+      const cleanOpId = (op.opId || '').trim();
+      if (!cleanOpId) {
+        continue;
+      }
+
+      const [existingSyncOp, existingSyncLog] = await Promise.all([
+        this.prisma.offlineSyncOp.findUnique({ where: { id: cleanOpId } }),
+        this.prisma.ticketCheckInLog.findUnique({
+          where: { syncOpId: cleanOpId },
+        }),
+      ]);
+
+      if (existingSyncOp || existingSyncLog) {
+        results.push({
+          opId: cleanOpId,
+          status: 'DUPLICATE',
+          checkInResult: 'ALREADY_SYNCED',
+          message:
+            'Operasi scan offline sudah pernah disinkronkan (idempoten).',
+          ticket: null,
+        });
+        continue;
+      }
+
+      const scanTime = op.scannedAt ? new Date(op.scannedAt) : new Date();
+      const effectiveScanTime = isNaN(scanTime.getTime())
+        ? new Date()
+        : scanTime;
+      const gateName = (op.gateName || 'Gerbang utama').trim().slice(0, 80);
+
+      // Compute qrDigest if client sent raw qrPayload scanned from camera
+      const effectiveQrDigest =
+        op.qrDigest?.trim() ||
+        (op.qrPayload?.trim() ? sha256Hex(op.qrPayload.trim()) : undefined);
+
+      const resolved = await this.resolveScannedTicket({
+        eventId: event.id,
+        qrDigest: effectiveQrDigest,
+        ticketId: op.ticketId,
+        ticketCode: !effectiveQrDigest ? op.ticketCode : undefined,
+      });
+
+      const opOutcome = await this.prisma.$transaction(async (tx) => {
+        // Double-check idempotency inside transaction
+        const raceSyncOp = await tx.offlineSyncOp.findUnique({
+          where: { id: cleanOpId },
+        });
+        if (raceSyncOp) {
+          return {
+            opId: cleanOpId,
+            status: 'DUPLICATE' as const,
+            checkInResult: 'ALREADY_SYNCED',
+            message:
+              'Operasi scan offline sudah pernah disinkronkan (idempoten).',
+            ticket: null,
+          };
+        }
+
+        if (!resolved.ticket) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: cleanOpId,
+              eventId: event.id,
+              opType: 'TICKET_CHECK_IN',
+              status: 'REJECTED',
+              deviceId: dto.deviceId || null,
+              scannedById: actor.id,
+              clientTimestamp: effectiveScanTime,
+              details: JSON.stringify({ result: 'INVALID' }),
+            },
+          });
+          await tx.ticketCheckInLog.create({
+            data: {
+              issuedTicketId: null,
+              eventId: event.id,
+              actorUserId: actor.id,
+              scannedBy: actor.email,
+              gateName,
+              result: 'INVALID',
+              syncOpId: cleanOpId,
+              scannedAt: effectiveScanTime,
+            },
+          });
+          return {
+            opId: cleanOpId,
+            status: 'REJECTED' as const,
+            checkInResult: 'INVALID',
+            message: 'Tiket atau digest QR tidak valid.',
+            ticket: null,
+          };
+        }
+
+        const ticket = resolved.ticket;
+
+        if (ticket.eventId !== event.id) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: cleanOpId,
+              eventId: event.id,
+              opType: 'TICKET_CHECK_IN',
+              status: 'REJECTED',
+              deviceId: dto.deviceId || null,
+              scannedById: actor.id,
+              clientTimestamp: effectiveScanTime,
+              details: JSON.stringify({ result: 'WRONG_EVENT' }),
+            },
+          });
+          await tx.ticketCheckInLog.create({
+            data: {
+              issuedTicketId: ticket.id,
+              eventId: event.id,
+              actorUserId: actor.id,
+              scannedBy: actor.email,
+              gateName,
+              result: 'WRONG_EVENT',
+              syncOpId: cleanOpId,
+              scannedAt: effectiveScanTime,
+            },
+          });
+          return {
+            opId: cleanOpId,
+            status: 'REJECTED' as const,
+            checkInResult: 'WRONG_EVENT',
+            message: 'Tiket milik acara lain.',
+            ticket: null,
+          };
+        }
+
+        if (ticket.order.status !== TicketOrderStatus.PAID) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: cleanOpId,
+              eventId: event.id,
+              opType: 'TICKET_CHECK_IN',
+              status: 'REJECTED',
+              deviceId: dto.deviceId || null,
+              scannedById: actor.id,
+              clientTimestamp: effectiveScanTime,
+              details: JSON.stringify({ result: 'NOT_PAID' }),
+            },
+          });
+          await tx.ticketCheckInLog.create({
+            data: {
+              issuedTicketId: ticket.id,
+              eventId: event.id,
+              actorUserId: actor.id,
+              scannedBy: actor.email,
+              gateName,
+              result: 'NOT_PAID',
+              syncOpId: cleanOpId,
+              scannedAt: effectiveScanTime,
+            },
+          });
+          return {
+            opId: cleanOpId,
+            status: 'REJECTED' as const,
+            checkInResult: 'NOT_PAID',
+            message: 'Pesanan tiket belum lunas.',
+            ticket: this.toScannerTicketSummary(ticket),
+          };
+        }
+
+        if (!this.isWithinCheckInWindow(event, effectiveScanTime)) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: cleanOpId,
+              eventId: event.id,
+              opType: 'TICKET_CHECK_IN',
+              status: 'REJECTED',
+              deviceId: dto.deviceId || null,
+              scannedById: actor.id,
+              clientTimestamp: effectiveScanTime,
+              details: JSON.stringify({ result: 'OUTSIDE_WINDOW' }),
+            },
+          });
+          await tx.ticketCheckInLog.create({
+            data: {
+              issuedTicketId: ticket.id,
+              eventId: event.id,
+              actorUserId: actor.id,
+              scannedBy: actor.email,
+              gateName,
+              result: 'OUTSIDE_WINDOW',
+              syncOpId: cleanOpId,
+              scannedAt: effectiveScanTime,
+            },
+          });
+          return {
+            opId: cleanOpId,
+            status: 'REJECTED' as const,
+            checkInResult: 'OUTSIDE_WINDOW',
+            message: 'Scan berada di luar jendela waktu check-in acara.',
+            ticket: this.toScannerTicketSummary(ticket),
+          };
+        }
+
+        const updated = await tx.issuedTicket.updateMany({
+          where: {
+            id: ticket.id,
+            eventId: event.id,
+            status: IssuedTicketStatus.ISSUED,
+          },
+          data: {
+            status: IssuedTicketStatus.CHECKED_IN,
+            checkedInAt: effectiveScanTime,
+            checkedInBy: actor.email,
             checkedInGate: gateName,
-          }
-        : null,
+          },
+        });
+
+        if (updated.count === 1) {
+          await tx.offlineSyncOp.create({
+            data: {
+              id: cleanOpId,
+              eventId: event.id,
+              opType: 'TICKET_CHECK_IN',
+              status: 'APPLIED',
+              deviceId: dto.deviceId || null,
+              scannedById: actor.id,
+              clientTimestamp: effectiveScanTime,
+              details: JSON.stringify({ ticketId: ticket.id, result: 'VALID' }),
+            },
+          });
+          await tx.ticketCheckInLog.create({
+            data: {
+              issuedTicketId: ticket.id,
+              eventId: event.id,
+              actorUserId: actor.id,
+              scannedBy: actor.email,
+              gateName,
+              result: 'VALID',
+              syncOpId: cleanOpId,
+              scannedAt: effectiveScanTime,
+            },
+          });
+
+          return {
+            opId: cleanOpId,
+            status: 'APPLIED' as const,
+            checkInResult: 'VALID',
+            message: `Check-in offline disinkronkan untuk ${ticket.attendeeName}.`,
+            ticket: this.toScannerTicketSummary({
+              ...ticket,
+              status: IssuedTicketStatus.CHECKED_IN,
+              checkedInAt: effectiveScanTime,
+              checkedInGate: gateName,
+            }),
+          };
+        }
+
+        const fresh = await tx.issuedTicket.findUniqueOrThrow({
+          where: { id: ticket.id },
+          include: { tier: true },
+        });
+        const conflictResult =
+          fresh.status === IssuedTicketStatus.VOID ? 'VOID' : 'DUPLICATE';
+
+        await tx.offlineSyncOp.create({
+          data: {
+            id: cleanOpId,
+            eventId: event.id,
+            opType: 'TICKET_CHECK_IN',
+            status: 'REJECTED',
+            deviceId: dto.deviceId || null,
+            scannedById: actor.id,
+            clientTimestamp: effectiveScanTime,
+            details: JSON.stringify({
+              ticketId: ticket.id,
+              result: conflictResult,
+            }),
+          },
+        });
+        await tx.ticketCheckInLog.create({
+          data: {
+            issuedTicketId: ticket.id,
+            eventId: event.id,
+            actorUserId: actor.id,
+            scannedBy: actor.email,
+            gateName,
+            result: conflictResult,
+            syncOpId: cleanOpId,
+            scannedAt: effectiveScanTime,
+          },
+        });
+
+        return {
+          opId: cleanOpId,
+          status: 'REJECTED' as const,
+          checkInResult: conflictResult,
+          message:
+            conflictResult === 'VOID'
+              ? 'Tiket telah dibatalkan (VOID).'
+              : 'Tiket sudah pernah check-in sebelumnya.',
+          ticket: this.toScannerTicketSummary(fresh),
+        };
+      });
+
+      results.push(opOutcome);
+    }
+
+    return {
+      eventId: event.id,
+      syncedCount: results.filter((r) => r.status === 'APPLIED').length,
+      duplicateCount: results.filter((r) => r.status === 'DUPLICATE').length,
+      rejectedCount: results.filter((r) => r.status === 'REJECTED').length,
+      results,
+    };
+  }
+
+  /**
+   * GET /ticketing/events/:eventId/checkin-stats
+   * Check-in counts per event, per tier, and per gate.
+   */
+  async getEventCheckInStats(
+    eventId: string,
+    actor: AuthenticatedUser | undefined,
+  ) {
+    if (!actor?.id) {
+      throw new UnauthorizedException('Autentikasi diperlukan.');
+    }
+
+    const event = await this.authorizeScannerEventAccess(eventId, actor);
+
+    const tickets = await this.prisma.issuedTicket.findMany({
+      where: {
+        eventId: event.id,
+        order: { status: TicketOrderStatus.PAID },
+      },
+      select: {
+        tierId: true,
+        status: true,
+        checkedInGate: true,
+      },
+    });
+
+    let totalIssued = 0;
+    let checkedInCount = 0;
+    let voidCount = 0;
+
+    const tierStatsMap = new Map<
+      string,
+      {
+        tierId: string;
+        tierName: string;
+        totalIssued: number;
+        checkedInCount: number;
+        remainingCount: number;
+      }
+    >();
+
+    for (const tier of event.ticketTiers) {
+      tierStatsMap.set(tier.id, {
+        tierId: tier.id,
+        tierName: tier.name,
+        totalIssued: 0,
+        checkedInCount: 0,
+        remainingCount: 0,
+      });
+    }
+
+    const gateCounts = new Map<string, number>();
+
+    for (const t of tickets) {
+      if (t.status === IssuedTicketStatus.VOID) {
+        voidCount += 1;
+        continue;
+      }
+
+      totalIssued += 1;
+      const tierEntry = tierStatsMap.get(t.tierId);
+      if (tierEntry) {
+        tierEntry.totalIssued += 1;
+      }
+
+      if (t.status === IssuedTicketStatus.CHECKED_IN) {
+        checkedInCount += 1;
+        if (tierEntry) {
+          tierEntry.checkedInCount += 1;
+        }
+        const gateKey = (t.checkedInGate || 'Gerbang utama').trim();
+        gateCounts.set(gateKey, (gateCounts.get(gateKey) || 0) + 1);
+      }
+    }
+
+    const byTier = Array.from(tierStatsMap.values()).map((entry) => ({
+      ...entry,
+      remainingCount: Math.max(0, entry.totalIssued - entry.checkedInCount),
+    }));
+
+    const byGate = Array.from(gateCounts.entries())
+      .map(([gateName, count]) => ({
+        gateName,
+        checkedInCount: count,
+      }))
+      .sort((a, b) => b.checkedInCount - a.checkedInCount);
+
+    return {
+      eventId: event.id,
+      eventTitle: event.title,
+      totalIssued,
+      checkedInCount,
+      remainingCount: Math.max(0, totalIssued - checkedInCount),
+      voidCount,
+      byTier,
+      byGate,
+    };
+  }
+
+  /**
+   * GET /ticketing/events/:eventId/tickets/search?q=...
+   * Manual backup search by attendeeName or ticketCode without exposing email or WhatsApp.
+   */
+  async searchEventTicketsManual(
+    eventId: string,
+    query: SearchEventTicketsQueryDto,
+    actor: AuthenticatedUser | undefined,
+  ) {
+    if (!actor?.id) {
+      throw new UnauthorizedException('Autentikasi diperlukan.');
+    }
+
+    const event = await this.authorizeScannerEventAccess(eventId, actor);
+    const keyword = (query.q || '').trim();
+    if (!keyword) {
+      throw new BadRequestException('Kata kunci pencarian (q) wajib diisi.');
+    }
+    const take = Math.max(1, Math.min(100, Number(query.limit) || 25));
+
+    const tickets = await this.prisma.issuedTicket.findMany({
+      where: {
+        eventId: event.id,
+        order: { status: TicketOrderStatus.PAID },
+        OR: [
+          { attendeeName: { contains: keyword } },
+          { ticketCode: { contains: keyword.toUpperCase() } },
+        ],
+      },
+      include: {
+        tier: true,
+      },
+      orderBy: [{ attendeeName: 'asc' }, { createdAt: 'asc' }],
+      take,
+    });
+
+    return {
+      eventId: event.id,
+      query: keyword,
+      items: tickets.map((t) => this.toScannerTicketSummary(t)),
     };
   }
 }

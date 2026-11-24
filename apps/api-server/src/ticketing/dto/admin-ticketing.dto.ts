@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -355,6 +356,11 @@ export class ListEventOrdersQueryDto {
 }
 
 export class CheckInTicketDto {
+  @IsString()
+  @IsNotEmpty({ message: 'ID acara (eventId) wajib diisi.' })
+  @MaxLength(191)
+  eventId!: string;
+
   @IsOptional()
   @IsString()
   qrPayload?: string;
@@ -365,10 +371,102 @@ export class CheckInTicketDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(128)
+  qrDigest?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
   ticketCode?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(80)
   gateName?: string;
+}
+
+export class UndoTicketCheckInDto {
+  @IsString()
+  @IsNotEmpty({ message: 'ID acara (eventId) wajib diisi.' })
+  @MaxLength(191)
+  eventId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  ticketId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  ticketCode?: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Alasan pembatalan check-in wajib diisi.' })
+  @MinLength(3, { message: 'Alasan pembatalan minimal 3 karakter.' })
+  @MaxLength(300)
+  reason!: string;
+}
+
+export class SearchEventTicketsQueryDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Kata kunci pencarian (q) wajib diisi.' })
+  @MinLength(1)
+  @MaxLength(120)
+  q!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 25;
+}
+
+export class OfflineTicketCheckInOpDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(191)
+  opId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  ticketId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  ticketCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  qrDigest?: string;
+
+  @IsOptional()
+  @IsString()
+  qrPayload?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  gateName?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scannedAt?: string;
+}
+
+export class SyncOfflineTicketCheckInsDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  deviceId?: string;
+
+  @IsArray()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => OfflineTicketCheckInOpDto)
+  operations!: OfflineTicketCheckInOpDto[];
 }
