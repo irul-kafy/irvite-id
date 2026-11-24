@@ -82,6 +82,41 @@ describe('EventsService', () => {
       expect(res.id).toBe('event-1');
     });
 
+    it('ignores client-supplied clientKey in create and generates a fresh server key', async () => {
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-1',
+        themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
+      });
+      (prisma.event.create as jest.Mock).mockImplementation(
+        (params: { data: { content?: Record<string, unknown> } }) => ({
+          id: 'event-1',
+          content: params.data.content,
+        }),
+      );
+
+      await service.create('user-1', {
+        title: 'Test Event',
+        slug: 'test',
+        eventDate: '2026-10-10',
+        templateId: 'tpl-1',
+        content: {
+          partnerOneName: 'Sarah',
+          partnerTwoName: 'Michael',
+          clientKey: 'attacker-injected-key-1234',
+        },
+      });
+
+      const createCall = (prisma.event.create as jest.Mock).mock.calls[0][0] as {
+        data: { content: { clientKey?: string } };
+      };
+      expect(createCall.data.content.clientKey).toBeDefined();
+      expect(createCall.data.content.clientKey).not.toBe(
+        'attacker-injected-key-1234',
+      );
+      expect(createCall.data.content.clientKey).toMatch(/^[a-f0-9]{24}$/);
+    });
+
     it('should throw ConflictException on duplicate slug', async () => {
       const p2002 = new Prisma.PrismaClientKnownRequestError('Error', {
         code: 'P2002',
@@ -355,6 +390,37 @@ describe('EventsService', () => {
       const matched2 = calls2.find((c) => c[0].where.id === 'event-1');
       expect(matched2?.[0].data.regenerateClientKey).toBeUndefined();
     });
+
+    it('ignores client-supplied clientKey in update content and preserves existing stored clientKey unless regenerateClientKey is true', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'PUBLISHED',
+        templateId: 'tpl-1',
+        template: { themeCode: 'IVORY_GARDEN' },
+        content: {
+          partnerOneName: 'Sarah',
+          partnerTwoName: 'Michael',
+          clientKey: 'a1b2c3d4e5f60718293a4b5c',
+        },
+      });
+      (prisma.event.update as jest.Mock).mockImplementation(
+        (params: { data: { content?: Record<string, unknown> } }) => ({
+          id: 'event-1',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          content: params.data.content,
+        }),
+      );
+
+      const res = await service.update('event-1', 'admin-1', Role.ADMIN, {
+        content: {
+          partnerOneName: 'Sarah Updated',
+          partnerTwoName: 'Michael',
+          clientKey: 'attacker-supplied-key-9999',
+        },
+      });
+
+      expect(res.clientKey).toBe('a1b2c3d4e5f60718293a4b5c');
+    });
   });
 
   describe('resolvePublic', () => {
@@ -520,6 +586,41 @@ describe('EventsService', () => {
       });
 
       expect(res.id).toBe('event-1');
+    });
+
+    it('ignores client-supplied clientKey in create and generates a fresh server key', async () => {
+      (prisma.template.findUnique as jest.Mock).mockResolvedValue({
+        id: 'tpl-1',
+        themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
+      });
+      (prisma.event.create as jest.Mock).mockImplementation(
+        (params: { data: { content?: Record<string, unknown> } }) => ({
+          id: 'event-1',
+          content: params.data.content,
+        }),
+      );
+
+      await service.create('user-1', {
+        title: 'Test Event',
+        slug: 'test',
+        eventDate: '2026-10-10',
+        templateId: 'tpl-1',
+        content: {
+          partnerOneName: 'Sarah',
+          partnerTwoName: 'Michael',
+          clientKey: 'attacker-injected-key-1234',
+        },
+      });
+
+      const createCall = (prisma.event.create as jest.Mock).mock.calls[0][0] as {
+        data: { content: { clientKey?: string } };
+      };
+      expect(createCall.data.content.clientKey).toBeDefined();
+      expect(createCall.data.content.clientKey).not.toBe(
+        'attacker-injected-key-1234',
+      );
+      expect(createCall.data.content.clientKey).toMatch(/^[a-f0-9]{24}$/);
     });
 
     it('rejects creating an event with a HIDDEN template with BadRequestException', async () => {

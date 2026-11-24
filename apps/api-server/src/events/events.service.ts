@@ -102,12 +102,7 @@ export class EventsService {
       !Array.isArray(validatedContent)
         ? {
             ...validatedContent,
-            clientKey:
-              typeof (validatedContent as { clientKey?: unknown }).clientKey ===
-                'string' &&
-              (validatedContent as { clientKey: string }).clientKey.trim()
-                ? (validatedContent as { clientKey: string }).clientKey.trim()
-                : generateClientPortalKey(),
+            clientKey: generateClientPortalKey(),
           }
         : validatedContent;
 
@@ -465,9 +460,8 @@ export class EventsService {
           contentToUpdateObj.clientPortalEnabled =
             existingContentObj.clientPortalEnabled;
         }
-        if (incomingContentObj.clientKey) {
-          contentToUpdateObj.clientKey = incomingContentObj.clientKey;
-        } else if (existingContentObj.clientKey) {
+        delete contentToUpdateObj.clientKey;
+        if (existingContentObj.clientKey) {
           contentToUpdateObj.clientKey = existingContentObj.clientKey;
         }
         if (existingContentObj._mediaFallback) {
