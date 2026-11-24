@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../database/prisma.service';
@@ -19,7 +19,10 @@ describe('EventsService', () => {
       providers: [
         {
           provide: MediaStorageService,
-          useValue: { deleteFile: jest.fn() },
+          useValue: {
+            deleteFile: jest.fn(),
+            writeFile: jest.fn().mockResolvedValue(undefined),
+          },
         },
         EventsService,
         {
@@ -107,7 +110,8 @@ describe('EventsService', () => {
         },
       });
 
-      const createCall = (prisma.event.create as jest.Mock).mock.calls[0][0] as {
+      const createCall = (prisma.event.create as jest.Mock).mock
+        .calls[0][0] as {
         data: { content: { clientKey?: string } };
       };
       expect(createCall.data.content.clientKey).toBeDefined();
@@ -435,6 +439,81 @@ describe('EventsService', () => {
 
       expect(res.clientKey).toBe('a1b2c3d4e5f60718293a4b5c');
     });
+
+    it('does NOT preserve _mediaFallback in Event.content during update() and migrateLegacyMediaFallbacks moves base64 to MediaStorageService', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        status: 'DRAFT',
+        templateId: 'tpl-1',
+        template: { themeCode: 'IVORY_GARDEN' },
+        content: {
+          partnerOneName: 'Sarah',
+          partnerTwoName: 'Michael',
+          clientKey: 'a1b2c3d4e5f60718293a4b5c',
+          _mediaFallback: {
+            'media/legacy-hero.jpg':
+              Buffer.from('legacy-jpg-data').toString('base64'),
+          },
+        },
+      });
+      (prisma.event.update as jest.Mock).mockImplementation(
+        (params: { data: { content?: Record<string, unknown> } }) => ({
+          id: 'event-1',
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+          content: params.data.content,
+        }),
+      );
+
+      await service.update('event-1', 'admin-1', Role.ADMIN, {
+        content: {
+          partnerOneName: 'Sarah Clean',
+          partnerTwoName: 'Michael',
+        },
+      });
+
+      const updateArg = (prisma.event.update as jest.Mock).mock.calls[0][0] as {
+        data: { content: Record<string, unknown> };
+      };
+      expect(updateArg.data.content._mediaFallback).toBeUndefined();
+
+      // Also verify migrateLegacyMediaFallbacks writes files to MediaStorageService and strips _mediaFallback from DB
+      const mediaStorage = (
+        service as unknown as {
+          mediaStorageService: { writeFile: jest.Mock };
+        }
+      ).mediaStorageService;
+      (prisma.event.findMany as jest.Mock).mockResolvedValueOnce([
+        {
+          id: 'event-legacy-1',
+          content: {
+            partnerOneName: 'Sarah',
+            partnerTwoName: 'Michael',
+            clientKey: 'a1b2c3d4e5f60718293a4b5c',
+            _mediaFallback: {
+              'media/legacy-hero.jpg':
+                Buffer.from('legacy-jpg-data').toString('base64'),
+            },
+          },
+        },
+      ]);
+
+      const migrationRes = await service.migrateLegacyMediaFallbacks();
+      expect(migrationRes).toEqual({ migratedEvents: 1, migratedFiles: 1 });
+      expect(mediaStorage.writeFile).toHaveBeenCalledWith(
+        'media/legacy-hero.jpg',
+        Buffer.from('legacy-jpg-data'),
+      );
+      expect(prisma.event.update).toHaveBeenLastCalledWith({
+        where: { id: 'event-legacy-1' },
+        data: {
+          content: {
+            partnerOneName: 'Sarah',
+            partnerTwoName: 'Michael',
+            clientKey: 'a1b2c3d4e5f60718293a4b5c',
+          },
+        },
+      });
+    });
   });
 
   describe('resolvePublic', () => {
@@ -627,7 +706,8 @@ describe('EventsService', () => {
         },
       });
 
-      const createCall = (prisma.event.create as jest.Mock).mock.calls[0][0] as {
+      const createCall = (prisma.event.create as jest.Mock).mock
+        .calls[0][0] as {
         data: { content: { clientKey?: string } };
       };
       expect(createCall.data.content.clientKey).toBeDefined();

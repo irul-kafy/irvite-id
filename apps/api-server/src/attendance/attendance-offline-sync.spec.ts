@@ -347,15 +347,15 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
           ...mockPrisma,
           guest: {
             ...mockPrisma.guest,
-            create: jest.fn().mockImplementation(async () => {
+            create: jest.fn().mockImplementation(() => {
               txGuestsCreated += 1;
-              return {
+              return Promise.resolve({
                 id: 'g-atomic-1',
                 eventId: 'evt-100',
                 name: 'Atomic Walk-In',
                 category: 'ON_THE_SPOT',
                 maxPax: 2,
-              };
+              });
             }),
           },
           invitation: {
@@ -384,11 +384,13 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
           },
           offlineSyncOp: {
             ...mockPrisma.offlineSyncOp,
-            create: jest.fn().mockImplementation(async () => {
+            create: jest.fn().mockImplementation(() => {
               if (shouldFailSyncOpCreate) {
-                throw new Error('Transient DB error writing offline_sync_ops');
+                return Promise.reject(
+                  new Error('Transient DB error writing offline_sync_ops'),
+                );
               }
-              return { id: 'op-atomic-walkin' };
+              return Promise.resolve({ id: 'op-atomic-walkin' });
             }),
           },
         };
@@ -431,15 +433,15 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
           ...mockPrisma,
           guest: {
             ...mockPrisma.guest,
-            create: jest.fn().mockImplementation(async () => {
+            create: jest.fn().mockImplementation(() => {
               txGuestsCreated += 1;
-              return {
+              return Promise.resolve({
                 id: 'g-atomic-1',
                 eventId: 'evt-100',
                 name: 'Atomic Walk-In',
                 category: 'ON_THE_SPOT',
                 maxPax: 2,
-              };
+              });
             }),
           },
           invitation: {

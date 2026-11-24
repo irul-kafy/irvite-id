@@ -322,45 +322,6 @@ export class MediaService {
         select: this.safeSelect(),
       });
 
-      // Also persist base64 fallback for photos/thumbnails so serverless instances never lose images
-      if (
-        (dto.type === MediaType.PHOTO || dto.type === MediaType.THUMBNAIL) &&
-        file.buffer.length <= 5 * 1024 * 1024
-      ) {
-        try {
-          const ev = await this.prisma.event.findFirst({
-            where: { id: eventId },
-            select: { content: true },
-          });
-          const existingContent =
-            ev?.content &&
-            typeof ev.content === 'object' &&
-            !Array.isArray(ev.content)
-              ? (ev.content as Record<string, unknown>)
-              : {};
-          const existingFallback =
-            existingContent._mediaFallback &&
-            typeof existingContent._mediaFallback === 'object' &&
-            !Array.isArray(existingContent._mediaFallback)
-              ? (existingContent._mediaFallback as Record<string, string>)
-              : {};
-          await this.prisma.event.update({
-            where: { id: eventId },
-            data: {
-              content: {
-                ...existingContent,
-                _mediaFallback: {
-                  ...existingFallback,
-                  [key]: file.buffer.toString('base64'),
-                },
-              },
-            },
-          });
-        } catch {
-          // Non-fatal if fallback persistence fails
-        }
-      }
-
       return media;
     } catch (error) {
       try {

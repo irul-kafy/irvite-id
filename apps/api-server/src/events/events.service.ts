@@ -2,6 +2,7 @@ import { EVENT_STATUS } from './event-status';
 import { isPublicInvitationExpired } from '../invitations/public-invitation-expiry';
 import {
   Injectable,
+  OnModuleInit,
   NotFoundException,
   ConflictException,
   BadRequestException,
@@ -33,13 +34,23 @@ export function stripPublicDraftTag(title: string | null | undefined): string {
 }
 
 @Injectable()
-export class EventsService {
+export class EventsService implements OnModuleInit {
   private readonly logger = new Logger(EventsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaStorageService: MediaStorageService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.migrateLegacyMediaFallbacks();
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Skipped legacy _mediaFallback migration on startup: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 
   private selectSafeEvent() {
     return {
@@ -182,6 +193,72 @@ export class EventsService {
       return rest as Prisma.JsonValue;
     }
     return content;
+  }
+
+  /**
+   * Migrates any remaining base64 entries in Event.content._mediaFallback
+   * to MediaStorageService and removes _mediaFallback from Event.content.
+   */
+  async migrateLegacyMediaFallbacks(): Promise<{
+    migratedEvents: number;
+    migratedFiles: number;
+  }> {
+    const events = await this.prisma.event.findMany({
+      select: { id: true, content: true },
+    });
+
+    let migratedEvents = 0;
+    let migratedFiles = 0;
+
+    for (const ev of events) {
+      if (
+        !ev.content ||
+        typeof ev.content !== 'object' ||
+        Array.isArray(ev.content) ||
+        !('_mediaFallback' in ev.content)
+      ) {
+        continue;
+      }
+
+      const contentObj = { ...(ev.content as Record<string, unknown>) };
+      const rawFallback = contentObj._mediaFallback;
+
+      if (
+        rawFallback &&
+        typeof rawFallback === 'object' &&
+        !Array.isArray(rawFallback)
+      ) {
+        const fallbackEntries = Object.entries(
+          rawFallback as Record<string, unknown>,
+        );
+        for (const [storageKey, base64Val] of fallbackEntries) {
+          if (
+            typeof storageKey === 'string' &&
+            storageKey.trim() &&
+            typeof base64Val === 'string' &&
+            base64Val.trim()
+          ) {
+            const buffer = Buffer.from(base64Val.trim(), 'base64');
+            if (buffer.length > 0) {
+              await this.mediaStorageService.writeFile(
+                storageKey.trim(),
+                buffer,
+              );
+              migratedFiles += 1;
+            }
+          }
+        }
+      }
+
+      delete contentObj._mediaFallback;
+      await this.prisma.event.update({
+        where: { id: ev.id },
+        data: { content: contentObj as Prisma.InputJsonObject },
+      });
+      migratedEvents += 1;
+    }
+
+    return { migratedEvents, migratedFiles };
   }
 
   async summary(userId: string, role: Role) {
@@ -461,22 +538,24 @@ export class EventsService {
         if (existingContentObj.clientKey) {
           contentToUpdateObj.clientKey = existingContentObj.clientKey;
         }
-        if (existingContentObj._mediaFallback) {
-          contentToUpdateObj._mediaFallback = existingContentObj._mediaFallback;
-        }
+        delete contentToUpdateObj._mediaFallback;
       }
     }
 
     if (clientPortalEnabled !== undefined) {
       if (!contentToUpdateObj) {
         contentToUpdateObj = { ...existingContentObj };
+        delete contentToUpdateObj._mediaFallback;
       }
+      contentToUpdateObj.clientKey =
+        contentToUpdateObj.clientKey ?? existingContentObj.clientKey;
       contentToUpdateObj.clientPortalEnabled = clientPortalEnabled;
     }
 
     if (regenerateClientKey) {
       if (!contentToUpdateObj) {
         contentToUpdateObj = { ...existingContentObj };
+        delete contentToUpdateObj._mediaFallback;
       }
       contentToUpdateObj.clientKey = generateClientPortalKey();
     }
