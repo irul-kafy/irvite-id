@@ -142,6 +142,51 @@ describe('EventsService', () => {
     });
   });
 
+  describe('summary', () => {
+    it('excludes walk-in guests (isWalkIn: true) from RSVP invitation counts', async () => {
+      (prisma.event.count as jest.Mock).mockResolvedValue(1);
+      (prisma.event.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.template as any).count = jest.fn().mockResolvedValue(2);
+      (prisma.template as any).findMany = jest.fn().mockResolvedValue([]);
+      (prisma as any).guest = { count: jest.fn().mockResolvedValue(5) };
+      const invitationCountMock = jest
+        .fn()
+        .mockResolvedValueOnce(4)
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(1);
+      (prisma as any).invitation = { count: invitationCountMock };
+
+      const res = await service.summary('admin-1', Role.ADMIN);
+
+      expect(res.rsvp).toEqual({
+        totalInvitations: 4,
+        attending: 2,
+        declined: 1,
+        pending: 1,
+      });
+      expect(invitationCountMock).toHaveBeenNthCalledWith(1, {
+        where: {
+          event: { userId: 'admin-1' },
+          guest: { isWalkIn: false },
+        },
+      });
+      expect(invitationCountMock).toHaveBeenNthCalledWith(2, {
+        where: {
+          event: { userId: 'admin-1' },
+          status: 'RSVP_YES',
+          guest: { isWalkIn: false },
+        },
+      });
+      expect(invitationCountMock).toHaveBeenNthCalledWith(3, {
+        where: {
+          event: { userId: 'admin-1' },
+          status: 'RSVP_NO',
+          guest: { isWalkIn: false },
+        },
+      });
+    });
+  });
+
   describe('update - template switching', () => {
     it('allows changing template on DRAFT event with empty content and no template-specific media', async () => {
       (prisma.event.findFirst as jest.Mock).mockResolvedValue({

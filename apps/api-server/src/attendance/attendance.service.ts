@@ -426,6 +426,7 @@ export class AttendanceService {
           category,
           maxPax: pax,
           tableNumber,
+          isWalkIn: true,
         },
       });
 
@@ -519,6 +520,7 @@ export class AttendanceService {
         category: string;
         maxPax: number;
         eventId: string;
+        isWalkIn?: boolean;
       };
     } | null = null;
 
@@ -569,8 +571,7 @@ export class AttendanceService {
     }
 
     const maxPax = invitation.guest.maxPax;
-    const isWalkInGuest =
-      (invitation.guest.category || '').toUpperCase() === 'ON_THE_SPOT';
+    const isWalkInGuest = Boolean(invitation.guest.isWalkIn);
 
     const rollbackResult = await this.db.$transaction(async (tx) => {
       const checkIns = await tx.attendanceCheckIn.findMany({

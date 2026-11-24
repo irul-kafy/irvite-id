@@ -1393,6 +1393,13 @@ describe('AttendanceService', () => {
       expect(res.guest.name).toBe('Tamu Dadakan Bpk. Joko');
       expect(res.guest.category).toBe('ON_THE_SPOT');
       expect(res.guest.tableNumber).toBe('10');
+      expect(txGuestCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            isWalkIn: true,
+          }),
+        }),
+      );
       expect(txInvitationCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -1411,7 +1418,7 @@ describe('AttendanceService', () => {
       );
     });
 
-    it('undoCheckIn deletes auto-created walk-in Guest and Invitation when ON_THE_SPOT attendance reaches 0', async () => {
+    it('undoCheckIn deletes auto-created walk-in Guest and Invitation when isWalkIn is true and attendance reaches 0', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: 'u1',
         isActive: true,
@@ -1430,6 +1437,7 @@ describe('AttendanceService', () => {
           id: 'g-walkin-1',
           name: 'Tamu Dadakan',
           category: 'ON_THE_SPOT',
+          isWalkIn: true,
           maxPax: 2,
           eventId: 'e1',
         },
@@ -1468,6 +1476,62 @@ describe('AttendanceService', () => {
       expect((prisma.guest as any).delete).toHaveBeenCalledWith({
         where: { id: 'g-walkin-1' },
       });
+    });
+
+    it('undoCheckIn does NOT delete regular Guest with category ON_THE_SPOT when isWalkIn is false', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.SUPER_ADMIN,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2027-12-01'),
+        userId: 'u1',
+      });
+      (prisma.invitation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'inv-reg-ots',
+        uniqueCode: 'reg-ots-code',
+        guest: {
+          id: 'g-reg-ots',
+          name: 'Tamu Biasa Kategori ON_THE_SPOT',
+          category: 'ON_THE_SPOT',
+          isWalkIn: false,
+          maxPax: 2,
+          eventId: 'e1',
+        },
+      });
+      (prisma.attendance.findUnique as jest.Mock).mockResolvedValue({
+        id: 'att-reg-ots',
+        scannedPax: 2,
+        scannedAt: new Date(),
+      });
+      (prisma.attendanceCheckIn.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: 'ci-reg-ots',
+          attendanceId: 'att-reg-ots',
+          scannedPax: 2,
+          scannedAt: new Date(),
+          scannedById: 'u1',
+        },
+      ]);
+      (prisma.attendanceCheckIn.delete as jest.Mock).mockResolvedValue({});
+      (prisma.attendance.delete as jest.Mock).mockResolvedValue({});
+      (prisma.invitation as any).delete = jest.fn().mockResolvedValue({});
+      (prisma.guest as any).delete = jest.fn().mockResolvedValue({});
+
+      const result = await service.undoCheckIn(
+        'e1',
+        'u1',
+        Role.SUPER_ADMIN,
+        'reg-ots-code',
+      );
+
+      expect(result.result).toBe('UNDONE');
+      expect((result as any).walkInDeleted).toBe(false);
+      expect((prisma.invitation as any).delete).not.toHaveBeenCalled();
+      expect((prisma.guest as any).delete).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException if name is empty', async () => {

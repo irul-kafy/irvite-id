@@ -214,12 +214,22 @@ export class EventsService {
       this.prisma.event.count({ where: upcoming }),
       this.prisma.guest.count({ where: { event: scope } }),
       this.prisma.template.count({ where: { status: 'AVAILABLE' } }),
-      this.prisma.invitation.count({ where: { event: scope } }),
       this.prisma.invitation.count({
-        where: { event: scope, status: 'RSVP_YES' },
+        where: { event: scope, guest: { isWalkIn: false } },
       }),
       this.prisma.invitation.count({
-        where: { event: scope, status: 'RSVP_NO' },
+        where: {
+          event: scope,
+          status: 'RSVP_YES',
+          guest: { isWalkIn: false },
+        },
+      }),
+      this.prisma.invitation.count({
+        where: {
+          event: scope,
+          status: 'RSVP_NO',
+          guest: { isWalkIn: false },
+        },
       }),
       this.prisma.event.findMany({
         where: upcoming,

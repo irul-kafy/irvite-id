@@ -209,6 +209,7 @@ export class ClientPortalService {
           email: true,
           tableNumber: true,
           maxPax: true,
+          isWalkIn: true,
           customGreeting: true,
           createdAt: true,
           invitation: {
@@ -264,7 +265,7 @@ export class ClientPortalService {
         waPendingCount++;
       }
 
-      const isWalkIn = (g.category || '').toUpperCase() === 'ON_THE_SPOT';
+      const isWalkIn = Boolean(g.isWalkIn);
       if (!isWalkIn) {
         if (inv?.status === InvitationStatus.RSVP_YES) {
           rsvpYesCount++;

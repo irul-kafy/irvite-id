@@ -225,6 +225,58 @@ describe('ClientPortalService', () => {
       expect(prisma.invitation.create).not.toHaveBeenCalled();
     });
 
+    it('excludes guests with isWalkIn=true from RSVP stats while including non-walkIn guests even with category ON_THE_SPOT', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+
+      prisma.guest.findMany.mockResolvedValueOnce([
+        {
+          id: 'g-walkin',
+          name: 'Walk-in Guest',
+          category: 'ON_THE_SPOT',
+          isWalkIn: true,
+          phoneNumber: null,
+          email: null,
+          tableNumber: null,
+          maxPax: 2,
+          customGreeting: null,
+          createdAt: new Date('2026-06-01T11:00:00Z'),
+          invitation: {
+            id: 'inv-walkin',
+            uniqueCode: 'code-walkin',
+            status: InvitationStatus.PENDING,
+            rsvpPax: null,
+            updatedAt: new Date(),
+            attendances: [{ scannedPax: 2, scannedAt: new Date() }],
+          },
+        },
+        {
+          id: 'g-regular-ots',
+          name: 'Invited Guest with ON_THE_SPOT Category',
+          category: 'ON_THE_SPOT',
+          isWalkIn: false,
+          phoneNumber: null,
+          email: null,
+          tableNumber: null,
+          maxPax: 1,
+          customGreeting: null,
+          createdAt: new Date('2026-06-01T12:00:00Z'),
+          invitation: {
+            id: 'inv-regular-ots',
+            uniqueCode: 'code-reg-ots',
+            status: InvitationStatus.PENDING,
+            rsvpPax: null,
+            updatedAt: new Date(),
+            attendances: [],
+          },
+        },
+      ]);
+
+      const data = await service.getPortalData(mockEvent.id, storedClientKey);
+
+      expect(data.stats.totalGuests).toBe(2);
+      expect(data.stats.rsvpPendingCount).toBe(1);
+    });
+
     it('syncMissingInvitations generates missing invitations in a dedicated write operation', async () => {
       prisma.event.findUnique.mockResolvedValue(mockEvent);
       prisma.guest.findMany.mockResolvedValueOnce([
