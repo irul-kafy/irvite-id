@@ -84,9 +84,6 @@ export class MediaService {
     storageKey: string,
   ): Promise<Buffer | null> {
     try {
-      if (typeof this.prisma.event?.findFirst !== 'function') {
-        return null;
-      }
       const ev = await this.prisma.event.findFirst({
         where: { id: eventId },
         select: { content: true },
@@ -107,11 +104,9 @@ export class MediaService {
       if (typeof base64Data === 'string' && base64Data.length > 0) {
         const buf = Buffer.from(base64Data, 'base64');
         if (buf.length > 0) {
-          if (typeof this.storageService.writeFile === 'function') {
-            await this.storageService
-              .writeFile(storageKey, buf)
-              .catch(() => undefined);
-          }
+          await this.storageService
+            .writeFile(storageKey, buf)
+            .catch(() => undefined);
           return buf;
         }
       }
@@ -330,8 +325,7 @@ export class MediaService {
       // Also persist base64 fallback for photos/thumbnails so serverless instances never lose images
       if (
         (dto.type === MediaType.PHOTO || dto.type === MediaType.THUMBNAIL) &&
-        file.buffer.length <= 5 * 1024 * 1024 &&
-        typeof this.prisma.event?.update === 'function'
+        file.buffer.length <= 5 * 1024 * 1024
       ) {
         try {
           const ev = await this.prisma.event.findFirst({

@@ -1025,34 +1025,26 @@ export class EventsService {
       });
 
       // 7. orders (retain financial records by detaching eventId = null)
-      const orders = await tx.order
-        .updateMany({
-          where: { eventId: id },
-          data: { eventId: null },
-        })
-        .catch(() => ({ count: 0 }));
+      const orders = await tx.order.updateMany({
+        where: { eventId: id },
+        data: { eventId: null },
+      });
 
       // 8. wishes
-      const wishes = await tx.wish
-        .deleteMany({
-          where: { eventId: id },
-        })
-        .catch(() => ({ count: 0 }));
+      const wishes = await tx.wish.deleteMany({
+        where: { eventId: id },
+      });
 
       // 9. offline_sync_ops
-      const offlineOps = await tx.offlineSyncOp
-        .deleteMany({
-          where: { eventId: id },
-        })
-        .catch(() => ({ count: 0 }));
+      const offlineOps = await tx.offlineSyncOp.deleteMany({
+        where: { eventId: id },
+      });
 
       // 10. activity_logs (retain audit trail by detaching eventId = null)
-      const activityLogs = await tx.activityLog
-        .updateMany({
-          where: { eventId: id },
-          data: { eventId: null },
-        })
-        .catch(() => ({ count: 0 }));
+      const activityLogs = await tx.activityLog.updateMany({
+        where: { eventId: id },
+        data: { eventId: null },
+      });
 
       // 11. event
       await tx.event.delete({
@@ -1066,10 +1058,10 @@ export class EventsService {
         guests: guests.count,
         medias: medias.count,
         staffEvents: staffEvents.count,
-        orders: orders?.count ?? 0,
-        wishes: wishes?.count ?? 0,
-        offlineSyncOps: offlineOps?.count ?? 0,
-        activityLogs: activityLogs?.count ?? 0,
+        orders: orders.count,
+        wishes: wishes.count,
+        offlineSyncOps: offlineOps.count,
+        activityLogs: activityLogs.count,
         events: 1,
       };
     });

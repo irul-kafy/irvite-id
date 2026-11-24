@@ -30,6 +30,7 @@ describe('MediaService - previewFile', () => {
             createReadStream: jest
               .fn()
               .mockReturnValue(Readable.from(['data'])),
+            writeFile: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

@@ -28,7 +28,7 @@ describe('MediaService', () => {
         {
           provide: PrismaService,
           useValue: {
-            event: { findFirst: jest.fn() },
+            event: { findFirst: jest.fn(), update: jest.fn() },
             media: {
               create: jest.fn(),
               findFirst: jest.fn(),

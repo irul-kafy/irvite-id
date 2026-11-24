@@ -122,7 +122,6 @@ export class PublicMediaService {
     key: string,
   ): Promise<Buffer | null> {
     try {
-      if (typeof this.prisma.event?.findUnique !== 'function') return null;
       const ev = await this.prisma.event.findUnique({
         where: { slug },
         select: { content: true },
@@ -140,7 +139,6 @@ export class PublicMediaService {
     try {
       const context =
         await this.publicAccessService.getEligibleContext(uniqueCode);
-      if (typeof this.prisma.event?.findUnique !== 'function') return null;
       const ev = await this.prisma.event.findUnique({
         where: { id: context.eventId },
         select: { content: true },

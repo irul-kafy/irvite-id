@@ -36,6 +36,7 @@ describe('Public Event Media Security & Streaming', () => {
           useValue: {
             getFileStat: jest.fn(),
             createReadStream: jest.fn(),
+            writeFile: jest.fn().mockResolvedValue(undefined),
           },
         },
         {

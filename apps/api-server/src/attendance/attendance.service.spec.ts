@@ -18,8 +18,18 @@ describe('AttendanceService', () => {
     const mockPrisma: any = {
       user: { findUnique: jest.fn() },
       event: { findUnique: jest.fn(), findFirst: jest.fn(), update: jest.fn() },
-      guest: { findMany: jest.fn() },
-      invitation: { findUnique: jest.fn() },
+      template: { findUnique: jest.fn().mockResolvedValue(null) },
+      guest: {
+        findMany: jest.fn(),
+        create: jest.fn(),
+        delete: jest.fn().mockResolvedValue({}),
+      },
+      invitation: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        delete: jest.fn().mockResolvedValue({}),
+      },
       attendance: {
         create: jest.fn(),
         findUnique: jest.fn(),
@@ -32,6 +42,10 @@ describe('AttendanceService', () => {
         create: jest.fn(),
         findMany: jest.fn(),
         delete: jest.fn(),
+      },
+      offlineSyncOp: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
       },
       $transaction: jest.fn(async (cb: any) => await cb(mockPrisma)),
     };

@@ -49,19 +49,14 @@ export class PublicEventMediaController {
       const error = e as NodeJS.ErrnoException;
       if (error.code === 'ENOENT') {
         const fallbackBuf =
-          typeof this.publicMediaService.resolveEventFallbackBufferBySlug ===
-          'function'
-            ? await this.publicMediaService.resolveEventFallbackBufferBySlug(
-                slug,
-                key,
-              )
-            : null;
+          await this.publicMediaService.resolveEventFallbackBufferBySlug(
+            slug,
+            key,
+          );
         if (fallbackBuf) {
-          if (typeof this.storageService.writeFile === 'function') {
-            await this.storageService
-              .writeFile(key, fallbackBuf)
-              .catch(() => undefined);
-          }
+          await this.storageService
+            .writeFile(key, fallbackBuf)
+            .catch(() => undefined);
           res.status(HttpStatus.OK);
           res.header('Content-Type', mimeType);
           res.header('Accept-Ranges', 'bytes');

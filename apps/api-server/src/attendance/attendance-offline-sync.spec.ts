@@ -17,15 +17,20 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
     },
+    template: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
     guest: {
       findMany: jest.fn(),
       create: jest.fn(),
+      delete: jest.fn().mockResolvedValue({}),
     },
     invitation: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn().mockResolvedValue({}),
     },
     attendance: {
       findUnique: jest.fn(),

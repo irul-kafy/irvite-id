@@ -370,15 +370,13 @@ export class ClientPortalService {
       );
     }
 
-    if (typeof this.prisma.guest.count === 'function') {
-      const currentGuestsCount = await this.prisma.guest.count({
-        where: { eventId },
-      });
-      if (currentGuestsCount >= MAX_PORTAL_GUESTS_PER_EVENT) {
-        throw new BadRequestException(
-          `Batas maksimum tamu per acara (${MAX_PORTAL_GUESTS_PER_EVENT} tamu) telah tercapai.`,
-        );
-      }
+    const currentGuestsCount = await this.prisma.guest.count({
+      where: { eventId },
+    });
+    if (currentGuestsCount >= MAX_PORTAL_GUESTS_PER_EVENT) {
+      throw new BadRequestException(
+        `Batas maksimum tamu per acara (${MAX_PORTAL_GUESTS_PER_EVENT} tamu) telah tercapai.`,
+      );
     }
 
     const maxPax = dto.maxPax && dto.maxPax > 0 ? dto.maxPax : 1;

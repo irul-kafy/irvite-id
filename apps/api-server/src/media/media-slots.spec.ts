@@ -40,6 +40,7 @@ describe('MediaService - Media Slots', () => {
           useValue: {
             event: {
               findFirst: jest.fn(),
+              update: jest.fn(),
             },
             media: {
               create: jest.fn(),

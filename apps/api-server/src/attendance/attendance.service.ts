@@ -239,7 +239,7 @@ export class AttendanceService {
     let templateName: string | null = null;
     if (event.templateId) {
       try {
-        const template = await this.db.template?.findUnique?.({
+        const template = await this.db.template.findUnique({
           where: { id: event.templateId },
           select: { name: true, previewImageUrl: true },
         });
@@ -637,10 +637,10 @@ export class AttendanceService {
             where: { id: attendance.id },
           });
           if (isWalkInGuest) {
-            await tx.invitation?.delete?.({
+            await tx.invitation.delete({
               where: { id: invitation.id },
             });
-            await tx.guest?.delete?.({
+            await tx.guest.delete({
               where: { id: invitation.guest.id },
             });
           }
@@ -677,10 +677,10 @@ export class AttendanceService {
           where: { id: attendance.id },
         });
         if (isWalkInGuest) {
-          await tx.invitation?.delete?.({
+          await tx.invitation.delete({
             where: { id: invitation.id },
           });
-          await tx.guest?.delete?.({
+          await tx.guest.delete({
             where: { id: invitation.guest.id },
           });
         }
