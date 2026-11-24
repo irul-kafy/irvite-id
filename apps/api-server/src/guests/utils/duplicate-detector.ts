@@ -16,6 +16,7 @@ export interface DetectDuplicateItem {
 
 export interface DuplicateCheckResult {
   isDuplicate: boolean;
+  hasPhoneDuplicate?: boolean;
   duplicateReasons: string[];
   matchedExistingGuestId?: string;
   matchedSourceRow?: number;
@@ -72,6 +73,7 @@ export function detectDuplicates(
     const reasons: string[] = [];
     let matchedExistingId: string | undefined;
     let matchedRow: number | undefined;
+    let hasPhoneDuplicate = false;
 
     const nameKey = normalizeKey(item.name);
     const phoneKey = item.phoneNumber
@@ -92,6 +94,7 @@ export function detectDuplicates(
         `No. WhatsApp sama dengan tamu terdaftar: "${match.name}" (${match.phoneNumber})`,
       );
       matchedExistingId = matchedExistingId || match.id;
+      hasPhoneDuplicate = true;
     }
 
     if (emailKey && existingByEmail.has(emailKey)) {
@@ -113,6 +116,7 @@ export function detectDuplicates(
       const priorRow = seenByPhone.get(phoneKey)!;
       reasons.push(`No. WhatsApp duplikat dengan Baris ${priorRow}`);
       matchedRow = matchedRow || priorRow;
+      hasPhoneDuplicate = true;
     }
 
     if (emailKey && seenByEmail.has(emailKey)) {
@@ -131,6 +135,7 @@ export function detectDuplicates(
 
     results.set(item.sourceRow, {
       isDuplicate: reasons.length > 0,
+      hasPhoneDuplicate,
       duplicateReasons: reasons,
       matchedExistingGuestId: matchedExistingId,
       matchedSourceRow: matchedRow,

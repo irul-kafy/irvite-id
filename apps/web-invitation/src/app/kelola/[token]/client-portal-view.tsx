@@ -1686,9 +1686,10 @@ export function ClientPortalView({
                 >
                   <option value="REGULAR">REGULAR (Umum)</option>
                   <option value="VIP">VIP</option>
-                  <option value="KELUARGA">KELUARGA</option>
-                  <option value="TEMAN">TEMAN</option>
-                  <option value="KANTOR">TEMAN KANTOR</option>
+                  <option value="VVIP">VVIP</option>
+                  <option value="FAMILY">FAMILY (Keluarga)</option>
+                  <option value="FRIEND">FRIEND (Teman)</option>
+                  <option value="COLLEAGUE">COLLEAGUE (Teman Kantor)</option>
                 </select>
               </div>
 

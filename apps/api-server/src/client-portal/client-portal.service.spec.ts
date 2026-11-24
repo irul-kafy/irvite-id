@@ -512,5 +512,25 @@ describe('ClientPortalService', () => {
         service.deleteGuest(mockEvent.id, 'g-1', storedClientKey),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('validates Guest.category enum and blocks duplicate phone number per event in client portal', async () => {
+      prisma.event.findUnique.mockResolvedValue(mockEvent);
+
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, {
+          name: 'Tamu Kategori Salah',
+          category: 'INVALID_CAT',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      prisma.guest.findFirst.mockResolvedValueOnce({ id: 'existing-guest-1' });
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, {
+          name: 'Tamu Nomor Dobel',
+          category: 'VIP',
+          phoneNumber: '081234567890',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
   });
 });

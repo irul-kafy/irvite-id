@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { normalizePhoneNumber } from './phone-normalizer';
 import { isFormulaCell } from './formula-sanitizer';
+import { normalizeGuestCategory } from './guest-category';
 
 export interface ParsedRowData {
   sourceRow: number;
@@ -267,15 +268,13 @@ export async function parseSpreadsheetBuffer(
       errors.push('INVALID_NAME');
     }
 
-    // 2. Validate Category (optional, default REGULAR, max 50 chars)
+    // 2. Validate Category (optional, default REGULAR, fixed allowed list)
     const rawCategory = categoryCell.value ? categoryCell.value.trim() : '';
-    let category = 'REGULAR';
-    if (rawCategory.length > 0) {
-      if (rawCategory.length > 50) {
-        errors.push('INVALID_CATEGORY');
-      } else {
-        category = rawCategory.toUpperCase();
-      }
+    const catNorm = normalizeGuestCategory(rawCategory);
+    let category: string = catNorm.category;
+    if (!catNorm.valid) {
+      category = rawCategory.toUpperCase();
+      errors.push('INVALID_CATEGORY');
     }
 
     // 3. Validate Phone (optional, normalized)

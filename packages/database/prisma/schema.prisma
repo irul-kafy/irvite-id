@@ -146,6 +146,7 @@ model Guest {
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
   invitation Invitation?
 
+  @@unique([eventId, phoneNumber])
   @@index([eventId])
   @@map("guests")
 }

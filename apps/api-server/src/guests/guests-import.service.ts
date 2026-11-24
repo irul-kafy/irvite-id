@@ -16,6 +16,10 @@ import { fetchGoogleSheetCsv } from './utils/google-sheets-fetcher';
 import { generateGuestImportTemplate } from './utils/template-generator';
 import { generateGuestImportReport } from './utils/report-generator';
 import { normalizePhoneNumber } from './utils/phone-normalizer';
+import {
+  ALLOWED_GUEST_CATEGORIES,
+  normalizeGuestCategory,
+} from './utils/guest-category';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import { ImportReportDto } from './dto/import-report.dto';
 
@@ -298,6 +302,17 @@ export class GuestsImportService {
       };
     });
     const dupMap = detectDuplicates(normalizedRowsForDup, existingGuests);
+    const activePhoneSet = new Set<string>();
+    for (const eg of existingGuests) {
+      if (eg.phoneNumber) {
+        const pNorm = normalizePhoneNumber(eg.phoneNumber);
+        activePhoneSet.add(
+          pNorm.valid && pNorm.phoneNumber
+            ? pNorm.phoneNumber
+            : eg.phoneNumber.trim(),
+        );
+      }
+    }
 
     const results: ImportResultItem[] = [];
     let importedCount = 0;
@@ -323,9 +338,10 @@ export class GuestsImportService {
         continue;
       }
 
-      // 2. Re-validate category
-      const rawCategory = (row.category || 'REGULAR').trim();
-      if (rawCategory.length > 50) {
+      // 2. Re-validate category against canonical enum/list
+      const rawCategory = (row.category || '').trim();
+      const catNorm = normalizeGuestCategory(rawCategory);
+      if (!catNorm.valid) {
         invalidCount++;
         results.push({
           sourceRow: row.sourceRow,
@@ -335,12 +351,11 @@ export class GuestsImportService {
           email: row.email || null,
           maxPax: row.maxPax || 1,
           status: 'INVALID',
-          reason:
-            'Kategori melebihi batas maksimal 50 karakter (INVALID_CATEGORY).',
+          reason: `Kategori tamu tidak valid (INVALID_CATEGORY). Pilihan yang diizinkan: ${ALLOWED_GUEST_CATEGORIES.join(', ')}.`,
         });
         continue;
       }
-      const cleanCategory = rawCategory.toUpperCase();
+      const cleanCategory = catNorm.category;
 
       // 3. Re-validate phone
       let cleanPhone: string | null = null;
@@ -408,9 +423,13 @@ export class GuestsImportService {
       }
       const cleanMaxPax = rawPax;
 
-      // 6. Check duplicate handling
+      // 6. Check duplicate handling (phone duplicates are strictly rejected even if importAnyway is true)
       const dupInfo = dupMap.get(row.sourceRow);
-      if (dupInfo?.isDuplicate && !row.importAnyway) {
+      const isPhoneCollision =
+        Boolean(cleanPhone && activePhoneSet.has(cleanPhone)) ||
+        Boolean(dupInfo?.hasPhoneDuplicate);
+
+      if (isPhoneCollision || (dupInfo?.isDuplicate && !row.importAnyway)) {
         skippedDuplicateCount++;
         results.push({
           sourceRow: row.sourceRow,
@@ -420,7 +439,9 @@ export class GuestsImportService {
           email: cleanEmail,
           maxPax: cleanMaxPax,
           status: 'SKIPPED_DUPLICATE',
-          reason: dupInfo.duplicateReasons.join('; '),
+          reason:
+            dupInfo?.duplicateReasons.join('; ') ||
+            'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
         });
         continue;
       }
@@ -428,50 +449,27 @@ export class GuestsImportService {
       // 7. Atomic transaction: Guest + Invitation
       try {
         const txResult = await this.prisma.$transaction(async (tx) => {
-          let guest: { id: string };
-          try {
-            guest = await tx.guest.create({
-              data: {
-                eventId,
-                name: cleanName,
-                category: cleanCategory,
-                phoneNumber: cleanPhone,
-                email: cleanEmail,
-                maxPax: cleanMaxPax,
-                tableNumber:
-                  typeof (row as { tableNumber?: string | null })
-                    .tableNumber === 'string' &&
-                  String(
-                    (row as { tableNumber?: string | null }).tableNumber,
-                  ).trim()
-                    ? String(
-                        (row as { tableNumber?: string | null }).tableNumber,
-                      ).trim()
-                    : null,
-              },
-              select: { id: true },
-            });
-          } catch (err: unknown) {
-            const isMissingCol =
-              err instanceof Prisma.PrismaClientKnownRequestError &&
-              (err.code === 'P2022' ||
-                String(err.message).includes('table_number'));
-            if (isMissingCol) {
-              guest = await tx.guest.create({
-                data: {
-                  eventId,
-                  name: cleanName,
-                  category: cleanCategory,
-                  phoneNumber: cleanPhone,
-                  email: cleanEmail,
-                  maxPax: cleanMaxPax,
-                },
-                select: { id: true },
-              });
-            } else {
-              throw err;
-            }
-          }
+          const guest = await tx.guest.create({
+            data: {
+              eventId,
+              name: cleanName,
+              category: cleanCategory,
+              phoneNumber: cleanPhone,
+              email: cleanEmail,
+              maxPax: cleanMaxPax,
+              tableNumber:
+                typeof (row as { tableNumber?: string | null }).tableNumber ===
+                  'string' &&
+                String(
+                  (row as { tableNumber?: string | null }).tableNumber,
+                ).trim()
+                  ? String(
+                      (row as { tableNumber?: string | null }).tableNumber,
+                    ).trim()
+                  : null,
+            },
+            select: { id: true },
+          });
 
           const invitation =
             await this.invitationsService.createInvitationWithRetry(tx, {
@@ -482,6 +480,10 @@ export class GuestsImportService {
 
           return { guestId: guest.id, uniqueCode: invitation.uniqueCode };
         });
+
+        if (cleanPhone) {
+          activePhoneSet.add(cleanPhone);
+        }
 
         importedCount++;
         results.push({

@@ -197,7 +197,7 @@ describe('GuestsImportService', () => {
       expect(result.results[2].status).toBe('INVALID');
     });
 
-    it('imports duplicate row when importAnyway is true', async () => {
+    it('imports name-only duplicate row when importAnyway is true, but still blocks phone number duplicate even when importAnyway is true', async () => {
       mockPrisma.event.findFirst.mockResolvedValue({ id: 'ev-1' });
       mockPrisma.guest.findMany.mockResolvedValue([
         {
@@ -224,8 +224,15 @@ describe('GuestsImportService', () => {
             sourceRow: 2,
             name: 'Budi Santoso',
             category: 'VIP',
-            phoneNumber: '081234567890',
-            importAnyway: true, // User chose to import anyway
+            phoneNumber: '081999888777', // Different phone, same name -> allowed with importAnyway: true
+            importAnyway: true,
+          },
+          {
+            sourceRow: 3,
+            name: 'Tamu Lain',
+            category: 'REGULAR',
+            phoneNumber: '081234567890', // Same phone as existing -> blocked even with importAnyway: true
+            importAnyway: true,
           },
         ],
       };
@@ -237,7 +244,9 @@ describe('GuestsImportService', () => {
         dto,
       );
       expect(result.importedCount).toBe(1);
+      expect(result.skippedDuplicateCount).toBe(1);
       expect(result.results[0].status).toBe('IMPORTED');
+      expect(result.results[1].status).toBe('SKIPPED_DUPLICATE');
     });
 
     it('records FAILED status when transaction fails without breaking other rows', async () => {
@@ -280,7 +289,7 @@ describe('GuestsImportService', () => {
       expect(result.results[1].status).toBe('IMPORTED');
     });
 
-    it('validates category length boundary at confirm: 50 chars valid, 51 chars invalid', async () => {
+    it('validates category against fixed allowed list at confirm (KELUARGA -> FAMILY valid, unknown category invalid)', async () => {
       mockPrisma.event.findFirst.mockResolvedValue({ id: 'ev-1' });
       mockPrisma.guest.findMany.mockResolvedValue([]);
       mockPrisma.$transaction.mockImplementation(async (cb: any) => {
@@ -290,13 +299,10 @@ describe('GuestsImportService', () => {
         return cb(tx);
       });
 
-      const cat50 = 'A'.repeat(50);
-      const cat51 = 'B'.repeat(51);
-
       const dto = {
         rows: [
-          { sourceRow: 2, name: 'Valid Cat', category: cat50 },
-          { sourceRow: 3, name: 'Invalid Cat', category: cat51 },
+          { sourceRow: 2, name: 'Valid Cat', category: 'KELUARGA' },
+          { sourceRow: 3, name: 'Invalid Cat', category: 'NOT_A_VALID_CAT' },
         ],
       };
 
@@ -309,7 +315,7 @@ describe('GuestsImportService', () => {
       expect(result.importedCount).toBe(1);
       expect(result.invalidCount).toBe(1);
       expect(result.results[0].status).toBe('IMPORTED');
-      expect(result.results[0].category).toBe(cat50);
+      expect(result.results[0].category).toBe('FAMILY');
       expect(result.results[1].status).toBe('INVALID');
       expect(result.results[1].reason).toContain('INVALID_CATEGORY');
     });

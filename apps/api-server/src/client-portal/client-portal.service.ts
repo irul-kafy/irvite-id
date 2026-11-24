@@ -15,6 +15,8 @@ import {
   CreatePortalGuestDto,
   UpdatePortalGuestDto,
 } from './dto/client-portal.dto';
+import { parseOrThrowGuestCategory } from '../guests/utils/guest-category';
+import { normalizePhoneNumber } from '../guests/utils/phone-normalizer';
 
 export const MAX_PORTAL_GUESTS_PER_EVENT = 2000;
 export const MAX_PORTAL_PAX_PER_GUEST = 20;
@@ -348,6 +350,40 @@ export class ClientPortalService {
     };
   }
 
+  private async resolveAndAssertUniquePortalPhone(
+    eventId: string,
+    rawPhone: string | null | undefined,
+    excludeGuestId?: string,
+  ): Promise<string | null> {
+    if (rawPhone === null || rawPhone === undefined) {
+      return null;
+    }
+    const trimmed = rawPhone.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const normalized = normalizePhoneNumber(trimmed);
+    if (!normalized.valid || !normalized.phoneNumber) {
+      throw new BadRequestException(
+        'Format nomor telepon/WhatsApp tidak valid.',
+      );
+    }
+    const duplicate = await this.prisma.guest.findFirst({
+      where: {
+        eventId,
+        phoneNumber: normalized.phoneNumber,
+        ...(excludeGuestId ? { id: { not: excludeGuestId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+      );
+    }
+    return normalized.phoneNumber;
+  }
+
   async addGuest(
     eventId: string,
     key: string | undefined,
@@ -380,35 +416,61 @@ export class ClientPortalService {
     }
 
     const maxPax = dto.maxPax && dto.maxPax > 0 ? dto.maxPax : 1;
-    const category = dto.category?.trim().toUpperCase() || 'REGULAR';
-    const phoneNumber = dto.phoneNumber?.trim() || null;
+    const category = parseOrThrowGuestCategory(dto.category);
+    const phoneNumber = await this.resolveAndAssertUniquePortalPhone(
+      eventId,
+      dto.phoneNumber,
+    );
     const email = dto.email?.trim() || null;
     const tableNumber = dto.tableNumber?.trim() || null;
     const customGreeting = dto.customGreeting?.trim() || null;
 
-    const guest = await this.prisma.guest.create({
-      data: {
-        eventId,
-        name: cleanName,
-        category,
-        maxPax,
-        phoneNumber,
-        email,
-        tableNumber,
-        customGreeting,
-      },
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        phoneNumber: true,
-        email: true,
-        tableNumber: true,
-        maxPax: true,
-        customGreeting: true,
-        createdAt: true,
-      },
-    });
+    let guest: {
+      id: string;
+      name: string;
+      category: string;
+      phoneNumber: string | null;
+      email: string | null;
+      tableNumber: string | null;
+      maxPax: number;
+      customGreeting: string | null;
+      createdAt: Date;
+    };
+    try {
+      guest = await this.prisma.guest.create({
+        data: {
+          eventId,
+          name: cleanName,
+          category,
+          maxPax,
+          phoneNumber,
+          email,
+          tableNumber,
+          customGreeting,
+        },
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          phoneNumber: true,
+          email: true,
+          tableNumber: true,
+          maxPax: true,
+          customGreeting: true,
+          createdAt: true,
+        },
+      });
+    } catch (err: unknown) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+        );
+      }
+      throw err;
+    }
 
     // Auto-create invitation
     const uniqueCode = crypto.randomBytes(16).toString('base64url');
@@ -478,9 +540,13 @@ export class ClientPortalService {
     const data: Prisma.GuestUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
     if (dto.category !== undefined)
-      data.category = dto.category.trim().toUpperCase();
+      data.category = parseOrThrowGuestCategory(dto.category);
     if (dto.phoneNumber !== undefined)
-      data.phoneNumber = dto.phoneNumber?.trim() || null;
+      data.phoneNumber = await this.resolveAndAssertUniquePortalPhone(
+        eventId,
+        dto.phoneNumber,
+        guestId,
+      );
     if (dto.email !== undefined) data.email = dto.email?.trim() || null;
     if (dto.maxPax !== undefined) data.maxPax = dto.maxPax;
     if (dto.customGreeting !== undefined)
@@ -488,30 +554,60 @@ export class ClientPortalService {
     if (dto.tableNumber !== undefined)
       data.tableNumber = dto.tableNumber?.trim() || null;
 
-    const updated = await this.prisma.guest.update({
-      where: { id: guestId },
-      data,
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        phoneNumber: true,
-        email: true,
-        tableNumber: true,
-        maxPax: true,
-        customGreeting: true,
-        createdAt: true,
-        invitation: {
-          select: {
-            id: true,
-            uniqueCode: true,
-            status: true,
-            rsvpPax: true,
-            updatedAt: true,
+    let updated: {
+      id: string;
+      name: string;
+      category: string;
+      phoneNumber: string | null;
+      email: string | null;
+      tableNumber: string | null;
+      maxPax: number;
+      customGreeting: string | null;
+      createdAt: Date;
+      invitation: {
+        id: string;
+        uniqueCode: string;
+        status: InvitationStatus;
+        rsvpPax: number | null;
+        updatedAt: Date;
+      } | null;
+    };
+    try {
+      updated = await this.prisma.guest.update({
+        where: { id: guestId },
+        data,
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          phoneNumber: true,
+          email: true,
+          tableNumber: true,
+          maxPax: true,
+          customGreeting: true,
+          createdAt: true,
+          invitation: {
+            select: {
+              id: true,
+              uniqueCode: true,
+              status: true,
+              rsvpPax: true,
+              updatedAt: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (err: unknown) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+        );
+      }
+      throw err;
+    }
 
     return {
       id: updated.id,

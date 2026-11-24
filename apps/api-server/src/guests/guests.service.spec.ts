@@ -2,7 +2,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuestsService } from './guests.service';
 import { PrismaService } from '../database/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { Role, Prisma } from 'database';
 import { ReportsService } from '../reports/reports.service';
 
@@ -177,6 +181,51 @@ describe('GuestsService', () => {
           name: 'Update',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects unknown guest category and maps aliases like KELUARGA -> FAMILY', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-id' });
+      mockPrisma.guest.create.mockResolvedValue({
+        id: 'g-1',
+        category: 'FAMILY',
+      });
+
+      await service.create('event-id', 'user-id', Role.ADMIN, {
+        name: 'Tamu Keluarga',
+        category: 'KELUARGA',
+      });
+      expect(mockPrisma.guest.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'FAMILY' }),
+        }),
+      );
+
+      await expect(
+        service.create('event-id', 'user-id', Role.ADMIN, {
+          name: 'Tamu Invalid',
+          category: 'RANDOM_INVALID_CATEGORY',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('prevents duplicate phone numbers per event on create and update (after normalizing 08... to 628...)', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-id' });
+      mockPrisma.guest.findFirst.mockResolvedValueOnce({ id: 'existing-g' });
+
+      await expect(
+        service.create('event-id', 'user-id', Role.ADMIN, {
+          name: 'Duplicate Phone Guest',
+          phoneNumber: '081234567890',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(mockPrisma.guest.findFirst).toHaveBeenCalledWith({
+        where: {
+          eventId: 'event-id',
+          phoneNumber: '6281234567890',
+        },
+        select: { id: true },
+      });
     });
   });
 });

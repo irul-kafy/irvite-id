@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateGuestDto } from './dto/create-guest.dto';
@@ -11,6 +12,8 @@ import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { Role, Prisma } from 'database';
 import { ReportsService } from '../reports/reports.service';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
+import { parseOrThrowGuestCategory } from './utils/guest-category';
+import { normalizePhoneNumber } from './utils/phone-normalizer';
 
 @Injectable()
 export class GuestsService {
@@ -73,6 +76,40 @@ export class GuestsService {
     return this.reportsService.exportGuestData(eventId, event, query);
   }
 
+  private async resolveAndAssertUniquePhone(
+    eventId: string,
+    rawPhone: string | null | undefined,
+    excludeGuestId?: string,
+  ): Promise<string | null> {
+    if (rawPhone === null || rawPhone === undefined) {
+      return null;
+    }
+    const trimmed = rawPhone.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const normalized = normalizePhoneNumber(trimmed);
+    if (!normalized.valid || !normalized.phoneNumber) {
+      throw new BadRequestException(
+        'Format nomor telepon/WhatsApp tidak valid.',
+      );
+    }
+    const duplicate = await this.prisma.guest.findFirst({
+      where: {
+        eventId,
+        phoneNumber: normalized.phoneNumber,
+        ...(excludeGuestId ? { id: { not: excludeGuestId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+      );
+    }
+    return normalized.phoneNumber;
+  }
+
   async create(
     eventId: string,
     currentUserId: string,
@@ -93,10 +130,13 @@ export class GuestsService {
       data.email = createGuestDto.email;
     }
     if (createGuestDto.phoneNumber !== undefined) {
-      data.phoneNumber = createGuestDto.phoneNumber;
+      data.phoneNumber = await this.resolveAndAssertUniquePhone(
+        eventId,
+        createGuestDto.phoneNumber,
+      );
     }
     if (createGuestDto.category !== undefined) {
-      data.category = createGuestDto.category;
+      data.category = parseOrThrowGuestCategory(createGuestDto.category);
     }
     if (createGuestDto.maxPax !== undefined) {
       data.maxPax = createGuestDto.maxPax;
@@ -105,10 +145,22 @@ export class GuestsService {
       data.tableNumber = createGuestDto.tableNumber;
     }
 
-    return this.prisma.guest.create({
-      data,
-      select: this.safeGuestSelect(),
-    });
+    try {
+      return await this.prisma.guest.create({
+        data,
+        select: this.safeGuestSelect(),
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+        );
+      }
+      throw error;
+    }
   }
 
   async findAll(
@@ -190,10 +242,14 @@ export class GuestsService {
       data.email = updateGuestDto.email;
     }
     if (updateGuestDto.phoneNumber !== undefined) {
-      data.phoneNumber = updateGuestDto.phoneNumber;
+      data.phoneNumber = await this.resolveAndAssertUniquePhone(
+        eventId,
+        updateGuestDto.phoneNumber,
+        id,
+      );
     }
     if (updateGuestDto.category !== undefined) {
-      data.category = updateGuestDto.category;
+      data.category = parseOrThrowGuestCategory(updateGuestDto.category);
     }
     if (updateGuestDto.maxPax !== undefined) {
       data.maxPax = updateGuestDto.maxPax;
@@ -212,11 +268,15 @@ export class GuestsService {
         select: this.safeGuestSelect(),
       });
     } catch (error: unknown) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException('Guest not found');
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Guest not found');
+        }
+        if (error.code === 'P2002') {
+          throw new ConflictException(
+            'Nomor telepon/WhatsApp sudah terdaftar untuk tamu lain pada acara ini.',
+          );
+        }
       }
       throw error;
     }

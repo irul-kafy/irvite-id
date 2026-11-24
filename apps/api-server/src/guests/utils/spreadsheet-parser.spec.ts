@@ -178,7 +178,7 @@ describe('spreadsheet-parser', () => {
       expect(result.totalRows).toBe(1);
       expect(result.validRowsCount).toBe(1);
       expect(result.rows[0].name).toBe('Joko Widodo');
-      expect(result.rows[0].category).toBe('KELUARGA');
+      expect(result.rows[0].category).toBe('FAMILY');
       expect(result.rows[0].phoneNumber).toBe('62811223344');
       expect(result.rows[0].maxPax).toBe(4);
     });
@@ -215,17 +215,15 @@ describe('spreadsheet-parser', () => {
       expect(result.rows[0].phoneNumber).toBe('6281234567899');
     });
 
-    it('enforces category length boundary: 50 chars valid, 51 chars invalid (INVALID_CATEGORY)', async () => {
-      const cat50 = 'A'.repeat(50);
-      const cat51 = 'B'.repeat(51);
+    it('enforces allowed category enum list and maps Indonesian aliases (KELUARGA -> FAMILY)', async () => {
       const csv =
-        'Nama Tamu,Kategori\nGuest 50,' + cat50 + '\nGuest 51,' + cat51;
+        'Nama Tamu,Kategori\nGuest Family,KELUARGA\nGuest Invalid,UNKNOWN_CAT';
       const buffer = Buffer.from(csv, 'utf8');
 
       const result = await parseSpreadsheetBuffer(buffer, 'csv');
       expect(result.totalRows).toBe(2);
       expect(result.rows[0].isValid).toBe(true);
-      expect(result.rows[0].category).toBe(cat50);
+      expect(result.rows[0].category).toBe('FAMILY');
       expect(result.rows[0].errors).toEqual([]);
 
       expect(result.rows[1].isValid).toBe(false);
