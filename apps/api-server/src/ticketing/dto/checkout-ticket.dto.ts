@@ -14,6 +14,18 @@ import {
   MinLength,
 } from 'class-validator';
 
+export class QuoteTicketOrderDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Kategori tiket wajib dipilih.' })
+  tierId!: string;
+
+  @Type(() => Number)
+  @IsInt({ message: 'Jumlah tiket harus berupa bilangan bulat.' })
+  @Min(1, { message: 'Jumlah pembelian minimal 1 tiket.' })
+  @Max(50, { message: 'Jumlah pembelian melebihi batas maksimum.' })
+  quantity!: number;
+}
+
 export class CheckoutTicketDto {
   @IsString()
   @IsNotEmpty({ message: 'Slug acara wajib diisi.' })

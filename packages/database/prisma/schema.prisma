@@ -117,7 +117,12 @@ model Event {
   organizerName   String?            @map("organizer_name") @db.VarChar(150)
   taxRatePercent  Int                @default(0) @map("tax_rate_percent")
   taxIncluded     Boolean            @default(false) @map("tax_included")
+  /// @deprecated Use serviceFeeBps and feePayer instead
   serviceFee      Int                @default(3000) @map("service_fee")
+  serviceFeeBps   Int                @default(350) @map("service_fee_bps")
+  feePayer        TicketFeePayer     @default(BUYER) @map("fee_payer")
+  promoFeeBps     Int?               @map("promo_fee_bps")
+  promoEndsAt     DateTime?          @map("promo_ends_at")
   activeUntil     DateTime?          @map("active_until")
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
@@ -332,12 +337,18 @@ enum TicketEventStatus {
   CANCELLED
 }
 
+enum TicketFeePayer {
+  BUYER
+  ORGANIZER
+}
+
 enum TicketOrderStatus {
   PENDING
   PAID
   EXPIRED
   CANCELLED
   REFUNDED
+  REFUND_PENDING
 }
 
 enum IssuedTicketStatus {
@@ -349,6 +360,7 @@ enum IssuedTicketStatus {
 enum EoInquiryStatus {
   PENDING
   REVIEWED
+  NEED_INFO
   APPROVED
   REJECTED
 }
@@ -390,10 +402,13 @@ model TicketOrder {
   unitPrice        Int               @default(0) @map("unit_price")
   subtotal         Int               @default(0)
   serviceFee       Int               @default(3000) @map("service_fee")
+  serviceFeeBps    Int               @default(350) @map("service_fee_bps")
+  feePayer         TicketFeePayer    @default(BUYER) @map("fee_payer")
   taxAmount        Int               @default(0) @map("tax_amount")
   totalAmount      Int               @default(0) @map("total_amount")
   paymentMethod    String            @default("QRIS") @map("payment_method") @db.VarChar(40)
   paymentReference String?           @map("payment_reference") @db.VarChar(120)
+  holderNames      Json?             @map("holder_names")
   status           TicketOrderStatus @default(PENDING)
   expiresAt        DateTime?         @map("expires_at")
   paidAt           DateTime?         @map("paid_at")
@@ -406,7 +421,6 @@ model TicketOrder {
   issuedTickets IssuedTicket[]
 
   @@index([eventId, status])
-  @@index([orderCode])
   @@index([buyerEmail])
   @@index([status, expiresAt])
   @@map("ticket_orders")
@@ -434,7 +448,6 @@ model IssuedTicket {
 
   @@index([eventId, status])
   @@index([orderId])
-  @@index([ticketCode])
   @@map("issued_tickets")
 }
 
@@ -457,6 +470,7 @@ model TicketCheckInLog {
 model EoInquiry {
   id                String          @id @default(uuid())
   inquiryCode       String          @unique @map("inquiry_code") @db.VarChar(64)
+  accessTokenHash   String?         @map("access_token_hash") @db.VarChar(191)
   organizerName     String          @map("organizer_name") @db.VarChar(150)
   eventName         String          @map("event_name") @db.VarChar(191)
   category          String          @db.VarChar(80)

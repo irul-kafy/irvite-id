@@ -73,10 +73,36 @@ export interface TicketOrderRecord {
   subtotalAmount: number;
   serviceFeeAmount: number;
   totalAmount: number;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED' | 'REFUNDED';
+  status:
+    | 'PENDING'
+    | 'PAID'
+    | 'EXPIRED'
+    | 'CANCELLED'
+    | 'REFUNDED'
+    | 'REFUND_PENDING';
   paidAt?: string | null;
   createdAt: string;
   tickets: IssuedTicketRecord[];
+}
+
+export interface TicketOrderQuote {
+  eventSlug: string;
+  tierId: string;
+  tierName: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  serviceFee: number;
+  serviceFeeBps: number;
+  isPromoActive?: boolean;
+  feePayer: 'BUYER' | 'ORGANIZER';
+  taxRatePercent: number;
+  taxIncluded: boolean;
+  taxAmount: number;
+  total: number;
+  totalAmount: number;
+  organizerNet?: number;
+  allowedPaymentMethods: string[];
 }
 
 export interface PublicCheckoutConfirmation {
@@ -94,6 +120,8 @@ export interface PublicCheckoutConfirmation {
   taxAmount?: number;
   serviceFee: number;
   serviceFeeAmount: number;
+  serviceFeeBps?: number;
+  feePayer?: 'BUYER' | 'ORGANIZER';
   totalAmount: number;
   paymentMethod: string;
   status: 'PENDING' | 'PAID';
@@ -102,6 +130,7 @@ export interface PublicCheckoutConfirmation {
   message: string;
 }
 
+/** @deprecated Flat fee constant kept only for static partnership info page compatibility; checkout uses server quote */
 export const PLATFORM_FEE_PER_TICKET = 3000;
 
 export function formatRupiah(amount: number): string {

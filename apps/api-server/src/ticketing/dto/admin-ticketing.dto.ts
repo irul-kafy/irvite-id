@@ -12,6 +12,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -197,6 +198,30 @@ export class CreateTicketingEventDto {
   serviceFee?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  serviceFeeBps?: number;
+
+  @IsOptional()
+  @IsIn(['BUYER', 'ORGANIZER'])
+  feePayer?: 'BUYER' | 'ORGANIZER';
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  promoFeeBps?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @IsDateString()
+  promoEndsAt?: string | null;
+
+  @IsOptional()
   @IsIn(['DRAFT', 'REVIEW', 'PUBLISHED', 'ENDED', 'CANCELLED'])
   ticketStatus?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ENDED' | 'CANCELLED';
 
@@ -269,14 +294,51 @@ export class UpdateTicketingEventDto {
   serviceFee?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  serviceFeeBps?: number;
+
+  @IsOptional()
+  @IsIn(['BUYER', 'ORGANIZER'])
+  feePayer?: 'BUYER' | 'ORGANIZER';
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1000)
+  promoFeeBps?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== undefined)
+  @IsDateString()
+  promoEndsAt?: string | null;
+
+  @IsOptional()
   @IsIn(['DRAFT', 'REVIEW', 'PUBLISHED', 'ENDED', 'CANCELLED'])
   ticketStatus?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ENDED' | 'CANCELLED';
 }
 
 export class ListEventOrdersQueryDto {
   @IsOptional()
-  @IsIn(['PENDING', 'PAID', 'EXPIRED', 'CANCELLED', 'REFUNDED'])
-  status?: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED' | 'REFUNDED';
+  @IsIn([
+    'PENDING',
+    'PAID',
+    'EXPIRED',
+    'CANCELLED',
+    'REFUNDED',
+    'REFUND_PENDING',
+  ])
+  status?:
+    | 'PENDING'
+    | 'PAID'
+    | 'EXPIRED'
+    | 'CANCELLED'
+    | 'REFUNDED'
+    | 'REFUND_PENDING';
 
   @IsOptional()
   @Type(() => Number)

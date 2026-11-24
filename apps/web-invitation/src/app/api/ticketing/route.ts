@@ -132,6 +132,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data.data ?? data, { status: 200 });
     }
 
+    if (action === 'quote') {
+      const eventSlug = String(body.eventSlug || body.slug || '').trim();
+      const upstream = await fetch(
+        `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventSlug)}/quote`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tierId: body.tierId,
+            quantity: body.quantity,
+          }),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+
+      const data = await upstream.json().catch(() => null);
+      if (!upstream.ok) {
+        const status = upstream.status >= 500 ? 502 : upstream.status;
+        return NextResponse.json(
+          {
+            message:
+              data?.message ||
+              (status === 502
+                ? UPSTREAM_ERROR_MESSAGE
+                : 'Gagal memuat rincian biaya tiket dari server.'),
+          },
+          { status },
+        );
+      }
+
+      if (!data) {
+        return NextResponse.json(
+          { message: UPSTREAM_ERROR_MESSAGE },
+          { status: 502 },
+        );
+      }
+
+      return NextResponse.json(data.data ?? data, { status: 200 });
+    }
+
     const endpoint =
       action === 'submit-inquiry'
         ? `${apiBase}/api/v1/ticketing/public/inquiries`
@@ -157,6 +198,9 @@ export async function POST(request: NextRequest) {
             buyerEmail: body.buyerEmail,
             buyerWhatsapp: body.buyerWhatsapp,
             paymentMethod: body.paymentMethod,
+            ...(Array.isArray(body.holderNames)
+              ? { holderNames: body.holderNames }
+              : {}),
           };
 
     const upstream = await fetch(endpoint, {

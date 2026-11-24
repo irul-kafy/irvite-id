@@ -13,6 +13,7 @@ import {
   Prisma,
   Role,
   TicketEventStatus,
+  TicketFeePayer,
   TicketOrderStatus,
 } from 'database';
 import { PrismaService } from '../database/prisma.service';
@@ -22,6 +23,7 @@ import { ListPublicEventsQueryDto } from './dto/list-public-events-query.dto';
 import {
   CheckoutTicketDto,
   PaymentWebhookDto,
+  QuoteTicketOrderDto,
 } from './dto/checkout-ticket.dto';
 import {
   CheckInTicketDto,
@@ -31,9 +33,19 @@ import {
   UpdateTicketingEventDto,
   UpdateTicketTierDto,
 } from './dto/admin-ticketing.dto';
+import {
+  assertPaymentMethodAllowed,
+  computeOrderAmounts,
+  getAllowedPaymentMethods,
+  getDefaultServiceFeeBps,
+  getOrderExpiryMinutes,
+  resolveEffectiveServiceFeeBps,
+  type TicketFeePayerType,
+} from './ticketing-pricing';
 
+/** @deprecated Flat serviceFee is deprecated; use serviceFeeBps and computeOrderAmounts */
 export const DEFAULT_PLATFORM_SERVICE_FEE = 3000;
-export const ORDER_EXPIRY_MINUTES = 15;
+export const ORDER_EXPIRY_MINUTES = 30;
 
 export interface TicketTierView {
   id: string;
@@ -46,7 +58,8 @@ export interface TicketTierView {
   salesStartAt: string | null;
   salesEndAt: string | null;
   maxPerOrder: number;
-  statusLabel: 'TERSEDIA' | 'HAMPIR HABIS' | 'HABIS' | 'BELUM DIBUKA' | 'DITUTUP';
+  statusLabel:
+  'TERSEDIA' | 'HAMPIR HABIS' | 'HABIS' | 'BELUM DIBUKA' | 'DITUTUP';
   benefits: string[];
 }
 
@@ -75,7 +88,14 @@ export interface TicketingEventView {
   ticketStatus: TicketEventStatus;
   taxRatePercent: number;
   taxIncluded: boolean;
+  /** @deprecated Flat serviceFee is deprecated */
   serviceFee: number;
+  serviceFeeBps: number;
+  effectiveServiceFeeBps: number;
+  isPromoActive: boolean;
+  promoFeeBps: number | null;
+  promoEndsAt: string | null;
+  feePayer: TicketFeePayerType;
   tiers: TicketTierView[];
 }
 
@@ -120,13 +140,23 @@ export interface TicketOrderView {
   subtotalAmount: number;
   serviceFee: number;
   serviceFeeAmount: number;
+  serviceFeeBps: number;
+  feePayer: TicketFeePayerType;
   taxAmount: number;
   total: number;
   totalAmount: number;
+  organizerNet: number;
+  holderNames: string[];
   paymentMethod: string;
   paymentRef: string | null;
   paymentReference: string | null;
-  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED' | 'REFUNDED';
+  status:
+  | 'PENDING'
+  | 'PAID'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'REFUND_PENDING';
   expiresAt: string | null;
   paidAt: string | null;
   createdAt: string;
@@ -255,6 +285,10 @@ export class TicketingService {
     taxRatePercent: number;
     taxIncluded: boolean;
     serviceFee: number;
+    serviceFeeBps?: number;
+    feePayer?: TicketFeePayer | TicketFeePayerType;
+    promoFeeBps?: number | null;
+    promoEndsAt?: Date | null;
     locationDetails: string | null;
     status: string;
     ticketStatus: TicketEventStatus;
@@ -324,6 +358,21 @@ export class TicketingService {
     const category = rawEvent.category || 'Konser Musik';
     const organizerName = rawEvent.organizerName || 'Penyelenggara acara';
 
+    const serviceFeeBps =
+      typeof rawEvent.serviceFeeBps === 'number'
+        ? rawEvent.serviceFeeBps
+        : getDefaultServiceFeeBps();
+    const feePayer: TicketFeePayerType =
+      rawEvent.feePayer === 'ORGANIZER' ? 'ORGANIZER' : 'BUYER';
+    const promoResolution = resolveEffectiveServiceFeeBps(
+      {
+        serviceFeeBps,
+        promoFeeBps: rawEvent.promoFeeBps ?? null,
+        promoEndsAt: rawEvent.promoEndsAt ?? null,
+      },
+      now,
+    );
+
     return {
       id: rawEvent.id,
       slug: rawEvent.slug,
@@ -353,6 +402,14 @@ export class TicketingService {
       taxRatePercent: rawEvent.taxRatePercent,
       taxIncluded: rawEvent.taxIncluded,
       serviceFee: rawEvent.serviceFee,
+      serviceFeeBps,
+      effectiveServiceFeeBps: promoResolution.effectiveBps,
+      isPromoActive: promoResolution.isPromoActive,
+      promoFeeBps: rawEvent.promoFeeBps ?? null,
+      promoEndsAt: rawEvent.promoEndsAt
+        ? rawEvent.promoEndsAt.toISOString()
+        : null,
+      feePayer,
       tiers,
     };
   }
@@ -369,10 +426,13 @@ export class TicketingService {
     unitPrice: number;
     subtotal: number;
     serviceFee: number;
+    serviceFeeBps?: number;
+    feePayer?: TicketFeePayer | TicketFeePayerType;
     taxAmount: number;
     totalAmount: number;
     paymentMethod: string;
     paymentReference: string | null;
+    holderNames?: unknown;
     status: TicketOrderStatus;
     expiresAt: Date | null;
     paidAt: Date | null;
@@ -448,6 +508,21 @@ export class TicketingService {
       rawOrder.subtotal > 0
         ? rawOrder.subtotal
         : rawOrder.unitPrice * rawOrder.quantity;
+    const feePayer: TicketFeePayerType =
+      rawOrder.feePayer === 'ORGANIZER' ? 'ORGANIZER' : 'BUYER';
+    const serviceFeeBps =
+      typeof rawOrder.serviceFeeBps === 'number'
+        ? rawOrder.serviceFeeBps
+        : subtotal === 0
+          ? 0
+          : getDefaultServiceFeeBps();
+    const organizerNet =
+      feePayer === 'ORGANIZER'
+        ? Math.max(0, subtotal - rawOrder.serviceFee)
+        : subtotal;
+    const holderNames = Array.isArray(rawOrder.holderNames)
+      ? rawOrder.holderNames.filter((n): n is string => typeof n === 'string')
+      : [];
 
     return {
       id: rawOrder.id,
@@ -466,9 +541,13 @@ export class TicketingService {
       subtotalAmount: subtotal,
       serviceFee: rawOrder.serviceFee,
       serviceFeeAmount: rawOrder.serviceFee,
+      serviceFeeBps,
+      feePayer,
       taxAmount: rawOrder.taxAmount,
       total: rawOrder.totalAmount,
       totalAmount: rawOrder.totalAmount,
+      organizerNet,
+      holderNames,
       paymentMethod: rawOrder.paymentMethod,
       paymentRef: rawOrder.paymentReference,
       paymentReference: rawOrder.paymentReference,
@@ -544,8 +623,7 @@ export class TicketingService {
     const searchTerm = (query.q || query.search || '').trim();
     const categoryTerm = (query.category || query.kategori || '').trim();
     const cityTerm = (query.city || query.kota || '').trim();
-    const isFreeFilter =
-      query.free !== undefined ? query.free : query.gratis;
+    const isFreeFilter = query.free !== undefined ? query.free : query.gratis;
 
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 12));
@@ -691,10 +769,97 @@ export class TicketingService {
   }
 
   /**
+   * POST /ticketing/events/:slug/quote
+   * Pure server-side price quote and allowed payment methods without reserving quota or writing to DB.
+   */
+  async quoteTicketOrder(slug: string, dto: QuoteTicketOrderDto) {
+    const now = new Date();
+    const rawEvent = await this.prisma.event.findFirst({
+      where: {
+        slug,
+        ticketStatus: TicketEventStatus.PUBLISHED,
+        status: 'PUBLISHED',
+        OR: [
+          { endAt: { gte: now } },
+          { endAt: null, startAt: { gte: now } },
+          { endAt: null, startAt: null, eventDate: { gte: now } },
+        ],
+      },
+      include: {
+        ticketTiers: true,
+      },
+    });
+
+    if (!rawEvent) {
+      throw new NotFoundException(
+        'Acara tidak ditemukan, belum dipublikasikan, atau telah berakhir.',
+      );
+    }
+
+    const tier = rawEvent.ticketTiers.find((t) => t.id === dto.tierId);
+    if (!tier || tier.eventId !== rawEvent.id) {
+      throw new BadRequestException(
+        'Kategori tiket tidak valid atau bukan milik acara ini.',
+      );
+    }
+
+    if (tier.salesStartAt && now < tier.salesStartAt) {
+      throw new BadRequestException(
+        'Penjualan untuk kategori tiket ini belum dibuka.',
+      );
+    }
+    if (tier.salesEndAt && now > tier.salesEndAt) {
+      throw new BadRequestException(
+        'Penjualan untuk kategori tiket ini telah ditutup.',
+      );
+    }
+
+    if (dto.quantity < 1 || dto.quantity > tier.maxPerOrder) {
+      throw new BadRequestException(
+        `Jumlah pembelian tiket harus antara 1 hingga ${tier.maxPerOrder} tiket per pesanan.`,
+      );
+    }
+
+    const unitPrice = Math.round(tier.price);
+    const subtotal = unitPrice * dto.quantity;
+    const feePayer: TicketFeePayerType =
+      rawEvent.feePayer === 'ORGANIZER' ? 'ORGANIZER' : 'BUYER';
+    const promoResolution = resolveEffectiveServiceFeeBps(rawEvent, now);
+    const amounts = computeOrderAmounts(
+      subtotal,
+      promoResolution.effectiveBps,
+      feePayer,
+      rawEvent.taxRatePercent,
+      rawEvent.taxIncluded,
+    );
+    const allowedPaymentMethods = getAllowedPaymentMethods(amounts.totalAmount);
+
+    return {
+      eventSlug: rawEvent.slug,
+      tierId: tier.id,
+      tierName: tier.name,
+      unitPrice,
+      quantity: dto.quantity,
+      subtotal: amounts.subtotal,
+      serviceFee: amounts.serviceFee,
+      serviceFeeBps: amounts.serviceFeeBps,
+      isPromoActive: promoResolution.isPromoActive,
+      feePayer: amounts.feePayer,
+      taxRatePercent: amounts.taxRatePercent,
+      taxIncluded: amounts.taxIncluded,
+      taxAmount: amounts.taxAmount,
+      total: amounts.total,
+      totalAmount: amounts.totalAmount,
+      organizerNet: amounts.organizerNet,
+      allowedPaymentMethods,
+    };
+  }
+
+  /**
    * POST /ticketing/checkout
    * Atomic quota reservation inside a single DB transaction.
    * Free events -> immediately PAID + IssuedTickets created.
-   * Paid events -> PENDING with expiresAt = now + 15m; IssuedTickets only created after PAID.
+   * Paid events -> PENDING with expiresAt = now + ORDER_EXPIRY_MINUTES; IssuedTickets only created after PAID.
    */
   async checkoutTicket(dto: CheckoutTicketDto) {
     const now = new Date();
@@ -748,29 +913,48 @@ export class TicketingService {
     // Lazily release any expired PENDING holds on this tier before reserving
     await this.expireOverdueOrdersCron({ tierId: tier.id });
 
-    // Server-side money computation (Int Rupiah)
+    // Server-side money computation (Int Rupiah) via shared pure computeOrderAmounts
     const unitPrice = Math.round(tier.price);
-    const subtotal = unitPrice * dto.quantity;
-    const isFreeOrder = subtotal === 0;
-    const serviceFee = isFreeOrder
-      ? 0
-      : Math.round(rawEvent.serviceFee) * dto.quantity;
-    const taxAmount = isFreeOrder
-      ? 0
-      : rawEvent.taxIncluded
-        ? 0
-        : Math.round((subtotal * rawEvent.taxRatePercent) / 100);
-    const totalAmount = subtotal + serviceFee + taxAmount;
+    const rawSubtotal = unitPrice * dto.quantity;
+    const feePayer: TicketFeePayerType =
+      rawEvent.feePayer === 'ORGANIZER' ? 'ORGANIZER' : 'BUYER';
+    const promoResolution = resolveEffectiveServiceFeeBps(rawEvent, now);
+    const amounts = computeOrderAmounts(
+      rawSubtotal,
+      promoResolution.effectiveBps,
+      feePayer,
+      rawEvent.taxRatePercent,
+      rawEvent.taxIncluded,
+    );
+    const { subtotal, serviceFee, serviceFeeBps, taxAmount, totalAmount } =
+      amounts;
+    const isFreeOrder = totalAmount === 0;
+
+    const requestedPaymentMethod =
+      dto.paymentMethod && dto.paymentMethod.trim()
+        ? dto.paymentMethod.trim()
+        : isFreeOrder
+          ? 'FREE'
+          : 'QRIS';
+    const paymentMethod = assertPaymentMethodAllowed(
+      requestedPaymentMethod,
+      totalAmount,
+    );
 
     const orderCode = this.generateSecureCode('ORD');
     const { accessToken, accessTokenHash } = this.generateOrderAccessToken();
     const cleanWhatsapp = normalizeIndonesianWhatsapp(dto.buyerWhatsapp);
     const cleanEmail = dto.buyerEmail.trim().toLowerCase();
     const cleanName = dto.buyerName.trim();
-    const paymentMethod = (dto.paymentMethod || (isFreeOrder ? 'FREE' : 'QRIS')).trim();
+    const holderNamesList = Array.from({ length: dto.quantity }, (_, i) => {
+      const provided = dto.holderNames?.[i]?.trim();
+      if (provided) return provided;
+      return dto.quantity === 1 ? cleanName : `${cleanName} (Tiket ${i + 1})`;
+    });
+    const expiryMinutes = getOrderExpiryMinutes();
     const expiresAt = isFreeOrder
       ? null
-      : new Date(now.getTime() + ORDER_EXPIRY_MINUTES * 60 * 1000);
+      : new Date(now.getTime() + expiryMinutes * 60 * 1000);
 
     const paymentIntent = isFreeOrder
       ? null
@@ -811,10 +995,13 @@ export class TicketingService {
           unitPrice,
           subtotal,
           serviceFee,
+          serviceFeeBps,
+          feePayer,
           taxAmount,
           totalAmount,
           paymentMethod,
           paymentReference: paymentIntent?.paymentRef ?? null,
+          holderNames: holderNamesList,
           status: isFreeOrder
             ? TicketOrderStatus.PAID
             : TicketOrderStatus.PENDING,
@@ -826,18 +1013,13 @@ export class TicketingService {
       // Rule: IssuedTicket is ONLY created after the order is PAID
       if (isFreeOrder) {
         for (let i = 0; i < dto.quantity; i++) {
-          const holderName =
-            dto.holderNames?.[i]?.trim() ||
-            (dto.quantity === 1
-              ? cleanName
-              : `${cleanName} (Tiket ${i + 1})`);
           await tx.issuedTicket.create({
             data: {
               orderId: order.id,
               eventId: rawEvent.id,
               tierId: tier.id,
               ticketCode: this.generateSecureCode('TKT'),
-              attendeeName: holderName,
+              attendeeName: holderNamesList[i],
               attendeeEmail: cleanEmail,
               status: IssuedTicketStatus.ISSUED,
             },
@@ -967,9 +1149,7 @@ export class TicketingService {
       });
 
       if (!order) {
-        throw new NotFoundException(
-          `Pesanan "${cleanCode}" tidak ditemukan.`,
-        );
+        throw new NotFoundException(`Pesanan "${cleanCode}" tidak ditemukan.`);
       }
 
       if (order.status === TicketOrderStatus.PAID) {
@@ -1040,18 +1220,26 @@ export class TicketingService {
         );
       }
 
-      // Issue tickets now that payment is confirmed
+      // Issue tickets now that payment is confirmed using stored holderNames
+      const storedHolders = Array.isArray(order.holderNames)
+        ? order.holderNames
+          .filter((n): n is string => typeof n === 'string')
+          .map((n) => n.trim())
+          .filter(Boolean)
+        : [];
       for (let i = 0; i < order.quantity; i++) {
+        const attendeeName =
+          storedHolders[i] ||
+          (order.quantity === 1
+            ? order.buyerName
+            : `${order.buyerName} (Tiket ${i + 1})`);
         await tx.issuedTicket.create({
           data: {
             orderId: order.id,
             eventId: order.eventId,
             tierId: order.tierId,
             ticketCode: this.generateSecureCode('TKT'),
-            attendeeName:
-              order.quantity === 1
-                ? order.buyerName
-                : `${order.buyerName} (Tiket ${i + 1})`,
+            attendeeName,
             attendeeEmail: order.buyerEmail,
             status: IssuedTicketStatus.ISSUED,
           },
@@ -1097,7 +1285,12 @@ export class TicketingService {
       ownerId = fallbackUser.id;
     }
 
-    const venue = (dto.venue || dto.venueName || dto.locationDetails || '').trim();
+    const venue = (
+      dto.venue ||
+      dto.venueName ||
+      dto.locationDetails ||
+      ''
+    ).trim();
     const city = (dto.city || 'Jakarta').trim();
     const locationDetails = (
       dto.locationDetails || (venue ? `${venue}, ${city}` : city)
@@ -1117,7 +1310,9 @@ export class TicketingService {
 
     const endAt = dto.endAt ? new Date(dto.endAt) : null;
     if (endAt && isNaN(endAt.getTime())) {
-      throw new BadRequestException('Format tanggal selesai acara tidak valid.');
+      throw new BadRequestException(
+        'Format tanggal selesai acara tidak valid.',
+      );
     }
 
     const baseSlug = (dto.slug || dto.title)
@@ -1172,6 +1367,10 @@ export class TicketingService {
         taxRatePercent: dto.taxRatePercent ?? 0,
         taxIncluded: dto.taxIncluded ?? false,
         serviceFee: dto.serviceFee ?? DEFAULT_PLATFORM_SERVICE_FEE,
+        serviceFeeBps: dto.serviceFeeBps ?? getDefaultServiceFeeBps(),
+        feePayer: dto.feePayer ?? 'BUYER',
+        promoFeeBps: dto.promoFeeBps ?? null,
+        promoEndsAt: dto.promoEndsAt ? new Date(dto.promoEndsAt) : null,
         locationDetails,
         status: statusStr,
         ticketStatus,
@@ -1247,6 +1446,18 @@ export class TicketingService {
           ? { taxIncluded: dto.taxIncluded }
           : {}),
         ...(dto.serviceFee !== undefined ? { serviceFee: dto.serviceFee } : {}),
+        ...(dto.serviceFeeBps !== undefined
+          ? { serviceFeeBps: dto.serviceFeeBps }
+          : {}),
+        ...(dto.feePayer !== undefined ? { feePayer: dto.feePayer } : {}),
+        ...(dto.promoFeeBps !== undefined
+          ? { promoFeeBps: dto.promoFeeBps }
+          : {}),
+        ...(dto.promoEndsAt !== undefined
+          ? {
+            promoEndsAt: dto.promoEndsAt ? new Date(dto.promoEndsAt) : null,
+          }
+          : {}),
         ...(ticketStatus !== undefined
           ? {
             ticketStatus,

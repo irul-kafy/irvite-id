@@ -485,4 +485,120 @@ describe('Ticketing Module (e2e MySQL)', () => {
     );
     expect((dupScanRes.body as { status: string }).status).toBe('DUPLICATE');
   });
+
+  it('6. Quote endpoint computes 3.5% vs 3% promo & BUYER vs ORGANIZER without holding quota, and checkout rejects client money fields or disallowed payment methods', async () => {
+    const tierBefore = await prisma.ticketTier.findUniqueOrThrow({
+      where: { id: limitedTierId },
+    });
+
+    // 1. Public quote on 1x Rp 100.000 (350 bps = 3.5%, 10% tax, BUYER) -> total = 113.500 (< 150.000, so VA_* not in allowedPaymentMethods)
+    const quoteRes = await request(app.getHttpServer())
+      .post(`/ticketing/events/${pubSlug}/quote`)
+      .send({ tierId: limitedTierId, quantity: 1 })
+      .expect(201);
+
+    const quoteBody = quoteRes.body as {
+      subtotal: number;
+      serviceFee: number;
+      serviceFeeBps: number;
+      feePayer: string;
+      taxAmount: number;
+      totalAmount: number;
+      organizerNet: number;
+      allowedPaymentMethods: string[];
+    };
+    expect(quoteBody.subtotal).toBe(100000);
+    expect(quoteBody.serviceFee).toBe(3500);
+    expect(quoteBody.serviceFeeBps).toBe(350);
+    expect(quoteBody.feePayer).toBe('BUYER');
+    expect(quoteBody.taxAmount).toBe(10000);
+    expect(quoteBody.totalAmount).toBe(113500);
+    expect(quoteBody.organizerNet).toBe(100000);
+    expect(quoteBody.allowedPaymentMethods).toEqual(['QRIS', 'EWALLET']);
+
+    // Verify quote did NOT increment soldCount
+    const tierAfterQuote = await prisma.ticketTier.findUniqueOrThrow({
+      where: { id: limitedTierId },
+    });
+    expect(tierAfterQuote.soldCount).toBe(tierBefore.soldCount);
+
+    // 2. Rejects client-supplied money fields (subtotal, serviceFee, total) due to forbidNonWhitelisted
+    await request(app.getHttpServer())
+      .post('/ticketing/checkout')
+      .send({
+        eventSlug: pubSlug,
+        tierId: limitedTierId,
+        quantity: 1,
+        buyerName: 'Damar Wijaya',
+        buyerEmail: 'damar@contoh-fiktif.id',
+        buyerWhatsapp: '081234567890',
+        paymentMethod: 'QRIS',
+        subtotal: 1000,
+        serviceFee: 0,
+        total: 1000,
+      })
+      .expect(400);
+
+    // 3. Rejects VA_BCA when totalAmount (113.500) < 150.000, and always rejects CARD
+    await request(app.getHttpServer())
+      .post('/ticketing/checkout')
+      .send({
+        eventSlug: pubSlug,
+        tierId: limitedTierId,
+        quantity: 1,
+        buyerName: 'Damar Wijaya',
+        buyerEmail: 'damar@contoh-fiktif.id',
+        buyerWhatsapp: '081234567890',
+        paymentMethod: 'VA_BCA',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/ticketing/checkout')
+      .send({
+        eventSlug: pubSlug,
+        tierId: limitedTierId,
+        quantity: 2,
+        buyerName: 'Damar Wijaya',
+        buyerEmail: 'damar@contoh-fiktif.id',
+        buyerWhatsapp: '081234567890',
+        paymentMethod: 'CARD',
+      })
+      .expect(400);
+
+    // 4. Enable 3% promo (300 bps) and ORGANIZER feePayer on event, verify quote reflects promo & organizerNet
+    await prisma.event.update({
+      where: { slug: pubSlug },
+      data: {
+        feePayer: 'ORGANIZER',
+        promoFeeBps: 300,
+        promoEndsAt: new Date(Date.now() + 3600000),
+      },
+    });
+
+    const promoQuoteRes = await request(app.getHttpServer())
+      .post(`/ticketing/events/${pubSlug}/quote`)
+      .send({ tierId: limitedTierId, quantity: 2 })
+      .expect(201);
+
+    const promoQuote = promoQuoteRes.body as {
+      subtotal: number;
+      serviceFee: number;
+      serviceFeeBps: number;
+      isPromoActive: boolean;
+      feePayer: string;
+      taxAmount: number;
+      totalAmount: number;
+      organizerNet: number;
+      allowedPaymentMethods: string[];
+    };
+    expect(promoQuote.subtotal).toBe(200000);
+    expect(promoQuote.serviceFeeBps).toBe(300);
+    expect(promoQuote.isPromoActive).toBe(true);
+    expect(promoQuote.serviceFee).toBe(6000);
+    expect(promoQuote.taxAmount).toBe(20000);
+    expect(promoQuote.totalAmount).toBe(220000); // ORGANIZER pays fee, buyer pays subtotal + tax
+    expect(promoQuote.organizerNet).toBe(194000); // 200.000 - 6.000 (tax is separate)
+    expect(promoQuote.allowedPaymentMethods).toContain('VA_BCA');
+  });
 });

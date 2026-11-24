@@ -92,6 +92,10 @@ describe('TicketingService (Prisma single source of truth)', () => {
     taxRatePercent: 10,
     taxIncluded: false,
     serviceFee: 3000,
+    serviceFeeBps: 350,
+    feePayer: 'BUYER' as const,
+    promoFeeBps: null as number | null,
+    promoEndsAt: null as Date | null,
     locationDetails: 'Arena Terbuka Taman Lembayung, Jakarta Selatan',
     status: 'PUBLISHED',
     ticketStatus: TicketEventStatus.PUBLISHED,
@@ -287,12 +291,163 @@ describe('TicketingService (Prisma single source of truth)', () => {
     expect(res.orderCode.length).toBeGreaterThanOrEqual(10);
     expect(res.accessToken.length).toBeGreaterThanOrEqual(24);
     expect(res.subtotal).toBe(200000);
-    expect(res.serviceFee).toBe(6000);
+    expect(res.serviceFee).toBe(7000);
+    expect(res.serviceFeeBps).toBe(350);
+    expect(res.feePayer).toBe('BUYER');
     expect(res.taxAmount).toBe(20000);
-    expect(res.totalAmount).toBe(226000);
+    expect(res.totalAmount).toBe(227000);
+    expect(res.organizerNet).toBe(200000);
     expect(res.expiresAt).toBeTruthy();
     expect(res.tickets).toHaveLength(0);
     expect(mockPrisma.issuedTicket.create).not.toHaveBeenCalled();
+  });
+
+  it('quotes order breakdown without reserving quota or writing to DB, and honors active vs expired promo and payment method rules', async () => {
+    // 1. Standard 3.5% (350 bps) quote on 1x Rp 100.000 + 10% tax -> total 113.500 (< 150.000, so VA_* not allowed)
+    const quote1 = await service.quoteTicketOrder('panggung-senja-nusantara', {
+      tierId: 'tier-fiktif-reg',
+      quantity: 1,
+    });
+    expect(quote1.subtotal).toBe(100000);
+    expect(quote1.serviceFee).toBe(3500);
+    expect(quote1.serviceFeeBps).toBe(350);
+    expect(quote1.isPromoActive).toBe(false);
+    expect(quote1.taxAmount).toBe(10000);
+    expect(quote1.totalAmount).toBe(113500);
+    expect(quote1.organizerNet).toBe(100000);
+    expect(quote1.allowedPaymentMethods).toEqual(['QRIS', 'EWALLET']);
+    expect(mockPrisma.$executeRaw).not.toHaveBeenCalled();
+    expect(mockPrisma.ticketOrder.create).not.toHaveBeenCalled();
+
+    // 2. Active promo (300 bps = 3%, promoEndsAt in the future) on 2x Rp 100.000 -> subtotal 200.000, fee 6.000, tax 20.000, total 226.000 (VA_* allowed)
+    const promoEvent = {
+      ...sampleEventDb,
+      promoFeeBps: 300,
+      promoEndsAt: new Date(Date.now() + 3600000),
+    };
+    mockPrisma.event.findFirst.mockResolvedValueOnce(promoEvent);
+    const quotePromo = await service.quoteTicketOrder(
+      'panggung-senja-nusantara',
+      {
+        tierId: 'tier-fiktif-reg',
+        quantity: 2,
+      },
+    );
+    expect(quotePromo.serviceFeeBps).toBe(300);
+    expect(quotePromo.isPromoActive).toBe(true);
+    expect(quotePromo.serviceFee).toBe(6000);
+    expect(quotePromo.totalAmount).toBe(226000);
+    expect(quotePromo.allowedPaymentMethods).toContain('VA_BCA');
+
+    // 3. Expired promo (promoEndsAt in the past) falls back to 350 bps (fee 7.000)
+    const expiredPromoEvent = {
+      ...sampleEventDb,
+      promoFeeBps: 300,
+      promoEndsAt: new Date(Date.now() - 3600000),
+    };
+    mockPrisma.event.findFirst.mockResolvedValueOnce(expiredPromoEvent);
+    const quoteExpired = await service.quoteTicketOrder(
+      'panggung-senja-nusantara',
+      {
+        tierId: 'tier-fiktif-reg',
+        quantity: 2,
+      },
+    );
+    expect(quoteExpired.serviceFeeBps).toBe(350);
+    expect(quoteExpired.isPromoActive).toBe(false);
+    expect(quoteExpired.serviceFee).toBe(7000);
+    expect(quoteExpired.totalAmount).toBe(227000);
+  });
+
+  it('persists holderNames at checkout and uses them when issuing tickets upon payment webhook', async () => {
+    mockPrisma.ticketOrder.findUniqueOrThrow.mockImplementation(() => {
+      const createCall = (
+        mockPrisma.ticketOrder.create.mock.calls[0] as Array<{
+          data: Record<string, unknown>;
+        }>
+      )[0].data;
+      return Promise.resolve({
+        id: 'ord-holders-001',
+        ...createCall,
+        createdAt: new Date(),
+        event: sampleEventDb,
+        tier: sampleEventDb.ticketTiers[0],
+        issuedTickets: [],
+      });
+    });
+
+    const checkoutRes = await service.checkoutTicket({
+      eventSlug: 'panggung-senja-nusantara',
+      tierId: 'tier-fiktif-reg',
+      quantity: 2,
+      buyerName: 'Damar Wijaya',
+      buyerEmail: 'damar@contoh.id',
+      buyerWhatsapp: '081234567890',
+      paymentMethod: 'VA_BCA',
+      holderNames: ['Raisa Andriana', 'Isyana Sarasvati'],
+    });
+
+    expect(checkoutRes.holderNames).toEqual([
+      'Raisa Andriana',
+      'Isyana Sarasvati',
+    ]);
+
+    // Simulate payment webhook confirming PAID -> tickets must use stored holderNames
+    const createdData = (
+      mockPrisma.ticketOrder.create.mock.calls[0] as Array<{
+        data: Record<string, unknown>;
+      }>
+    )[0].data;
+    mockPrisma.ticketOrder.findUnique.mockResolvedValueOnce({
+      id: 'ord-holders-001',
+      ...createdData,
+      createdAt: new Date(),
+      event: sampleEventDb,
+      tier: sampleEventDb.ticketTiers[0],
+      issuedTickets: [],
+    });
+    mockPrisma.ticketOrder.update.mockImplementation(
+      (args: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          id: 'ord-holders-001',
+          ...createdData,
+          ...args.data,
+          createdAt: new Date(),
+          event: sampleEventDb,
+          tier: sampleEventDb.ticketTiers[0],
+          issuedTickets: mockPrisma.issuedTicket.create.mock.calls.map(
+            (c: Array<{ data: Record<string, unknown> }>, idx: number) => ({
+              id: `tkt-issued-${idx + 1}`,
+              ...c[0].data,
+              checkedInAt: null,
+              checkedInBy: null,
+              checkedInGate: null,
+              createdAt: new Date(),
+            }),
+          ),
+        }),
+    );
+
+    const sig = paymentService.computeWebhookSignature({
+      orderCode: checkoutRes.orderCode,
+      transactionStatus: 'PAID',
+      grossAmount: checkoutRes.totalAmount,
+    });
+
+    const paidView = await service.handlePaymentWebhook(
+      {
+        orderCode: checkoutRes.orderCode,
+        transactionStatus: 'PAID',
+        grossAmount: checkoutRes.totalAmount,
+      },
+      sig,
+    );
+
+    expect(paidView.status).toBe('PAID');
+    expect(paidView.tickets.map((t) => t.holderName)).toEqual([
+      'Raisa Andriana',
+      'Isyana Sarasvati',
+    ]);
   });
 
   it('allows free tier checkout to become PAID immediately and issues tickets', async () => {

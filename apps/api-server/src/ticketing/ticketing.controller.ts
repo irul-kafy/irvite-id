@@ -16,6 +16,7 @@ import { ListPublicEventsQueryDto } from './dto/list-public-events-query.dto';
 import {
   CheckoutTicketDto,
   PaymentWebhookDto,
+  QuoteTicketOrderDto,
 } from './dto/checkout-ticket.dto';
 import {
   CheckInTicketDto,
@@ -44,6 +45,16 @@ export class TicketingController {
   @Get(['events/:slug', 'public/events/:slug'])
   getPublicEventBySlug(@Param('slug') slug: string) {
     return this.ticketingService.getPublicEventBySlug(slug);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: seconds(60) } })
+  @Post(['events/:slug/quote', 'public/events/:slug/quote'])
+  quoteTicketOrder(
+    @Param('slug') slug: string,
+    @Body() dto: QuoteTicketOrderDto,
+  ) {
+    return this.ticketingService.quoteTicketOrder(slug, dto);
   }
 
   @Public()

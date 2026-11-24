@@ -1,12 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   formatRupiah,
-  PLATFORM_FEE_PER_TICKET,
   PublicCheckoutConfirmation,
   PublicTicketingEvent,
+  TicketOrderQuote,
 } from '../types';
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  FREE: 'Gratis (Tanpa Pembayaran)',
+  QRIS: 'QRIS',
+  EWALLET: 'E-Wallet',
+  VA_BCA: 'Virtual Account BCA',
+  VA_BNI: 'Virtual Account BNI',
+  VA_BRI: 'Virtual Account BRI',
+  VA_MANDIRI: 'Virtual Account Mandiri',
+  VA_PERMATA: 'Virtual Account Permata',
+};
 
 interface TicketCheckoutModalProps {
   checkoutEvent: PublicTicketingEvent;
@@ -51,13 +62,113 @@ export function TicketCheckoutModal({
   onSubmit,
   onViewOrderStatus,
 }: TicketCheckoutModalProps) {
-  const activeTier =
-    checkoutEvent.tiers.find((t) => t.id === selectedTierId) ||
-    checkoutEvent.tiers[0];
-  const unitPrice = activeTier?.price ?? 0;
-  const subtotal = unitPrice * quantity;
-  const serviceFee = unitPrice === 0 ? 0 : PLATFORM_FEE_PER_TICKET * quantity;
-  const totalAmount = subtotal + serviceFee;
+  const [quote, setQuote] = useState<TicketOrderQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState<boolean>(true);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  const requestQuote = useCallback(
+    async (slug: string, tierId: string, qty: number): Promise<TicketOrderQuote> => {
+      const res = await fetch('/api/ticketing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'quote',
+          eventSlug: slug,
+          tierId,
+          quantity: qty,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        throw new Error(
+          data?.message || 'Gagal memuat rincian biaya tiket dari server.',
+        );
+      }
+      return data as TicketOrderQuote;
+    },
+    [],
+  );
+
+  const handleRetryQuote = useCallback(async () => {
+    if (!checkoutEvent.slug || !selectedTierId || quantity < 1) return;
+    setQuoteLoading(true);
+    setQuoteError(null);
+    try {
+      const nextQuote = await requestQuote(
+        checkoutEvent.slug,
+        selectedTierId,
+        quantity,
+      );
+      setQuote(nextQuote);
+      if (
+        Array.isArray(nextQuote.allowedPaymentMethods) &&
+        nextQuote.allowedPaymentMethods.length > 0 &&
+        !nextQuote.allowedPaymentMethods.includes(paymentMethod)
+      ) {
+        onPaymentMethodChange(nextQuote.allowedPaymentMethods[0]);
+      }
+    } catch (err) {
+      setQuote(null);
+      setQuoteError(
+        err instanceof Error
+          ? err.message
+          : 'Gagal memuat rincian biaya tiket dari server.',
+      );
+    } finally {
+      setQuoteLoading(false);
+    }
+  }, [
+    checkoutEvent.slug,
+    selectedTierId,
+    quantity,
+    paymentMethod,
+    onPaymentMethodChange,
+    requestQuote,
+  ]);
+
+  useEffect(() => {
+    if (!checkoutEvent.slug || !selectedTierId || quantity < 1) return;
+    let active = true;
+    requestQuote(checkoutEvent.slug, selectedTierId, quantity)
+      .then((nextQuote) => {
+        if (!active) return;
+        setQuote(nextQuote);
+        setQuoteError(null);
+        setQuoteLoading(false);
+        if (
+          Array.isArray(nextQuote.allowedPaymentMethods) &&
+          nextQuote.allowedPaymentMethods.length > 0 &&
+          !nextQuote.allowedPaymentMethods.includes(paymentMethod)
+        ) {
+          onPaymentMethodChange(nextQuote.allowedPaymentMethods[0]);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        setQuote(null);
+        setQuoteError(
+          err instanceof Error
+            ? err.message
+            : 'Gagal memuat rincian biaya tiket dari server.',
+        );
+        setQuoteLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    checkoutEvent.slug,
+    selectedTierId,
+    quantity,
+    paymentMethod,
+    onPaymentMethodChange,
+    requestQuote,
+  ]);
+
+  const allowedMethods =
+    quote?.allowedPaymentMethods && quote.allowedPaymentMethods.length > 0
+      ? quote.allowedPaymentMethods
+      : ['QRIS', 'EWALLET'];
 
   return (
     <div
@@ -378,8 +489,11 @@ export function TicketCheckoutModal({
                   fontSize: '0.86rem',
                 }}
               >
-                <option value="QRIS">QRIS</option>
-                <option value="Virtual Account">Virtual Account</option>
+                {allowedMethods.map((methodCode) => (
+                  <option key={methodCode} value={methodCode}>
+                    {PAYMENT_METHOD_LABELS[methodCode] || methodCode}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -394,27 +508,72 @@ export function TicketCheckoutModal({
                 gap: '0.3rem',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Subtotal tiket ({quantity}x)</span>
-                <span>{formatRupiah(subtotal)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Biaya layanan platform</span>
-                <span>{formatRupiah(serviceFee)}</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontWeight: 800,
-                  borderTop: '1px solid var(--tkt-border)',
-                  paddingTop: '0.35rem',
-                  marginTop: '0.2rem',
-                }}
-              >
-                <span>Total pembayaran</span>
-                <span>{formatRupiah(totalAmount)}</span>
-              </div>
+              {quoteLoading ? (
+                <span>Memuat rincian harga dari server...</span>
+              ) : quoteError ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: 'var(--tkt-danger)',
+                  }}
+                >
+                  <span>{quoteError}</span>
+                  <button
+                    type="button"
+                    onClick={() => void handleRetryQuote()}
+                    className="irv-tkt-btn"
+                  >
+                    Coba lagi
+                  </button>
+                </div>
+              ) : quote ? (
+                <>
+                  <div
+                    style={{ display: 'flex', justifyContent: 'space-between' }}
+                  >
+                    <span>Subtotal tiket ({quote.quantity}x)</span>
+                    <span>{formatRupiah(quote.subtotal)}</span>
+                  </div>
+                  {quote.feePayer === 'BUYER' && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>Biaya layanan platform</span>
+                      <span>{formatRupiah(quote.serviceFee)}</span>
+                    </div>
+                  )}
+                  {quote.taxAmount > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>Pajak ({quote.taxRatePercent}%)</span>
+                      <span>{formatRupiah(quote.taxAmount)}</span>
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontWeight: 800,
+                      borderTop: '1px solid var(--tkt-border)',
+                      paddingTop: '0.35rem',
+                      marginTop: '0.2rem',
+                    }}
+                  >
+                    <span>Total pembayaran</span>
+                    <span>{formatRupiah(quote.totalAmount)}</span>
+                  </div>
+                </>
+              ) : null}
             </div>
 
             {checkoutError && (

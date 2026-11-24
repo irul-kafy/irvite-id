@@ -40,11 +40,30 @@ apps/web-invitation (/tiket, /partnership)     apps/web-admin (/events, /orders)
 - `CANCELLED`: Acara dibatalkan.
 
 ### B. Status Pesanan Tiket (`TicketOrderStatus` pada `TicketOrder.status`)
-- `PENDING`: Status awal wajib untuk setiap pesanan berbayar baru (`expiresAt = now + 15 menit`). Kuota kategori tiket sudah ditahan secara atomik, tetapi `IssuedTicket` belum diterbitkan.
-- `PAID`: Pembayaran telah terverifikasi melalui webhook (`POST /ticketing/webhooks/payment`) atau acara gratis (`totalAmount === 0`). Pada transisi ini `IssuedTicket` diterbitkan.
-- `EXPIRED`: Pesanan `PENDING` melewati batas waktu 15 menit (`expiresAt < now`). Kuota kategori tiket dilepaskan kembali secara atomik melalui mekanisme *lazy-expire* saat dibaca maupun job cron (`POST /ticketing/cron/expire-orders`).
+- `PENDING`: Status awal wajib untuk setiap pesanan berbayar baru (`expiresAt = now + ORDER_EXPIRY_MINUTES`, default 30 menit). Kuota kategori tiket sudah ditahan secara atomik, tetapi `IssuedTicket` belum diterbitkan.
+- `PAID`: Pembayaran telah terverifikasi melalui webhook (`POST /ticketing/webhooks/payment`) atau acara gratis (`totalAmount === 0`). Pada transisi ini `IssuedTicket` diterbitkan memakai `holderNames` yang tersimpan di pesanan.
+- `EXPIRED`: Pesanan `PENDING` melewati batas waktu (`expiresAt < now`). Kuota kategori tiket dilepaskan kembali secara atomik melalui mekanisme *lazy-expire* saat dibaca maupun job cron (`POST /ticketing/cron/expire-orders`).
 - `CANCELLED`: Pesanan dibatalkan.
 - `REFUNDED`: Dana pesanan dikembalikan.
+- `REFUND_PENDING`: Pembayaran masuk terlambat ketika pesanan sudah kedaluwarsa dan kuota sudah habis, sehingga memerlukan pengembalian dana (*refund*) manual.
+
+### C. Aturan Perhitungan Biaya (`computeOrderAmounts`) & Metode Pembayaran
+- **Perhitungan Biaya Layanan (`serviceFeeBps` & Promo)**:
+  - Seluruh perhitungan uang dilakukan di server dalam **`Int` Rupiah** melalui fungsi murni `computeOrderAmounts(subtotal, bps, feePayer, taxRatePercent, taxIncluded)` di `apps/api-server/src/ticketing/ticketing-pricing.ts`.
+  - `serviceFee = Math.round(subtotal * bps / 10000)` dihitung untuk seluruh pesanan (bukan per tiket), **tanpa biaya minimum**. Untuk pesanan gratis (`subtotal === 0`), `serviceFee = 0`.
+  - Tarif default berasal dari env `DEFAULT_SERVICE_FEE_BPS` (default `350` = 3,5%). Admin dapat mengatur `serviceFeeBps` (`0..1000`), `feePayer` (`BUYER` atau `ORGANIZER`), serta promo berbatas waktu (`promoFeeBps` dan `promoEndsAt`). Jika `promoEndsAt` masih di masa depan, tarif efektif memakai `promoFeeBps` (misal `300` = 3%); jika promo berakhir atau tidak disetel, tarif efektif memakai `serviceFeeBps`.
+  - Jika `feePayer === 'BUYER'`: `totalAmount = subtotal + serviceFee + taxAmount`, `organizerNet = subtotal`.
+  - Jika `feePayer === 'ORGANIZER'`: `totalAmount = subtotal + taxAmount`, `organizerNet = subtotal - serviceFee` (informasi pendapatan bersih EO; pajak `taxAmount` ditampilkan terpisah dan bukan bagian pendapatan EO).
+  - Snapshot `serviceFeeBps`, `feePayer`, dan `holderNames` disimpan di baris `ticket_orders` saat checkout agar perubahan tarif di masa depan tidak mengubah pesanan lama.
+- **Aturan Metode Pembayaran**:
+  - Pesanan gratis (`totalAmount === 0`): hanya metode `FREE` yang diizinkan.
+  - Pesanan berbayar (`totalAmount > 0`):
+    - `QRIS` dan `EWALLET` selalu diizinkan.
+    - `VA_*` (`VA_BCA`, `VA_BNI`, `VA_BRI`, `VA_MANDIRI`, `VA_PERMATA`) hanya diizinkan jika `totalAmount >= VA_MIN_TOTAL_IDR` (default `150000`).
+    - `CARD` tidak diizinkan.
+- **Endpoint Quote Publik (`POST /ticketing/events/:slug/quote`)**:
+  - Endpoint `@Public()` dengan `@Throttle` (30 permintaan/menit) yang menerima `{ tierId, quantity }` dan mengembalikan rincian harga (`subtotal`, `serviceFee`, `serviceFeeBps`, `taxAmount`, `totalAmount`, `organizerNet`, `allowedPaymentMethods`) tanpa menahan kuota dan tanpa menyimpan apa pun ke database.
+  - Frontend (`/tiket`) mengambil rincian biaya dari endpoint quote dan tidak menghitung uang sendiri. DTO checkout menolak field angka uang dari klien (`forbidNonWhitelisted`).
 
 ### C. Status Tiket Terbit (`IssuedTicketStatus` pada `IssuedTicket.status`)
 - `ISSUED`: Tiket resmi telah terbit dan siap dipindai di gerbang acara.
@@ -62,6 +81,9 @@ apps/web-invitation (/tiket, /partnership)     apps/web-admin (/events, /orders)
 | `TICKET_QR_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 (minimal 32 karakter) untuk menandatangani dan memverifikasi payload QR tiket `v1.<ticketId>.<hmac>`. |
 | `PAYMENT_WEBHOOK_SECRET` | `apps/api-server` | Rahasia HMAC-SHA256 untuk memverifikasi header signature `x-payment-signature` pada endpoint webhook pembayaran. |
 | `PAYMENT_MODE` | `apps/api-server` | Mode layanan pembayaran (`mock` atau `gateway`). `MockPaymentService` hanya aktif jika `PAYMENT_MODE=mock` **dan** `NODE_ENV !== 'production'`. |
+| `DEFAULT_SERVICE_FEE_BPS` | `apps/api-server` | Tarif biaya layanan default dalam basis poin (`0..1000`, default `350` = 3,5%). |
+| `VA_MIN_TOTAL_IDR` | `apps/api-server` | Batas minimum total tagihan Rupiah agar metode Virtual Account (`VA_*`) diizinkan (default `150000`). |
+| `ORDER_EXPIRY_MINUTES` | `apps/api-server` | Durasi masa berlaku pesanan `PENDING` sebelum kedaluwarsa (default `30` menit). |
 | `CRON_SECRET` | `apps/api-server` | Token rahasia internal untuk mengotorisasi `POST /ticketing/cron/expire-orders`. |
 | `INTERNAL_API_URL` | `web-invitation`, `web-admin` | URL internal `apps/api-server` (default `http://localhost:3000`) yang dituju oleh proxy BFF `/api/ticketing`. |
 | `NEXT_PUBLIC_ENABLE_TICKETING` | `web-invitation` | Sakelar fitur modul tiket di frontend (`true` untuk mengaktifkan `/tiket` dan `/partnership`). |
