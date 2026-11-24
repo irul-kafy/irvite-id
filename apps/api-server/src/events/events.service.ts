@@ -289,18 +289,15 @@ export class EventsService {
         : undefined;
 
     if (!clientKey) {
-      clientKey = generateClientPortalKey();
-      const backfilledContent = { ...content, clientKey };
-      if (typeof this.prisma.event.update === 'function') {
-        await Promise.resolve(
-          this.prisma.event.update({
-            where: { id: event.id },
-            data: {
-              content: backfilledContent,
-            },
-          }),
-        ).catch(() => null);
-      }
+      const generatedKey = generateClientPortalKey();
+      const backfilledContent = { ...content, clientKey: generatedKey };
+      await this.prisma.event.update({
+        where: { id: event.id },
+        data: {
+          content: backfilledContent,
+        },
+      });
+      clientKey = generatedKey;
     }
 
     const clientPortalEnabled = content.clientPortalEnabled !== false;

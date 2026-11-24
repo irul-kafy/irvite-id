@@ -175,6 +175,20 @@ describe('EventsService', () => {
         }),
       );
     });
+
+    it('does not swallow error or return unsaved clientKey when backfill update fails', async () => {
+      (prisma.event.findFirst as jest.Mock).mockResolvedValue({
+        id: 'event-1',
+        content: {},
+      });
+      (prisma.event.update as jest.Mock).mockRejectedValueOnce(
+        new Error('Database write failed while persisting clientKey'),
+      );
+
+      await expect(
+        service.findOne('event-1', 'admin-1', Role.ADMIN),
+      ).rejects.toThrow('Database write failed while persisting clientKey');
+    });
   });
 
   describe('summary', () => {
