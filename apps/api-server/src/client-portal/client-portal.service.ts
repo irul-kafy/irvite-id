@@ -20,6 +20,7 @@ import { normalizePhoneNumber } from '../guests/utils/phone-normalizer';
 
 export const MAX_PORTAL_GUESTS_PER_EVENT = 2000;
 export const MAX_PORTAL_PAX_PER_GUEST = 20;
+export const CLIENT_KEY_VERSION = 2;
 
 function toIsoSafe(val: unknown): string {
   if (val instanceof Date) {

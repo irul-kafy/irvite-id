@@ -127,7 +127,7 @@ describe('ClientPortalService', () => {
       expect(isClientKeyValid(regeneratedEvent, storedClientKey)).toBe(false);
     });
 
-    it('migration 20261124072000_rotate_uuid_client_portal_keys rotates UUID-based keys using LOWER(HEX(RANDOM_BYTES(12))) without editing prior migrations', () => {
+    it('migration 20261124072000_rotate_uuid_client_portal_keys rotates only keys lacking explicit clientKeyVersion = 2 using LOWER(HEX(RANDOM_BYTES(12))) and sets clientKeyVersion = 2', () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs') as typeof import('fs');
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -138,7 +138,9 @@ describe('ClientPortalService', () => {
       );
       const sql = fs.readFileSync(migrationPath, 'utf8');
       expect(sql).toContain('LOWER(HEX(RANDOM_BYTES(12)))');
-      expect(sql).toContain('^[0-9a-f]{12}1[0-9a-f]{3}[89ab][0-9a-f]{7}$');
+      expect(sql).toContain('$.clientKeyVersion');
+      expect(sql).toContain('< 2');
+      expect(sql).not.toContain('REGEXP');
     });
   });
 

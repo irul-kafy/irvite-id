@@ -23,7 +23,10 @@ import {
   getTemplateDefinition,
   validateEventContent,
 } from '../templates/definitions';
-import { generateClientPortalKey } from '../client-portal/client-portal.service';
+import {
+  CLIENT_KEY_VERSION,
+  generateClientPortalKey,
+} from '../client-portal/client-portal.service';
 
 export function stripPublicDraftTag(title: string | null | undefined): string {
   if (!title || typeof title !== 'string') return '';
@@ -103,6 +106,7 @@ export class EventsService {
         ? {
             ...validatedContent,
             clientKey: generateClientPortalKey(),
+            clientKeyVersion: CLIENT_KEY_VERSION,
           }
         : validatedContent;
 
@@ -290,7 +294,11 @@ export class EventsService {
 
     if (!clientKey) {
       const generatedKey = generateClientPortalKey();
-      const backfilledContent = { ...content, clientKey: generatedKey };
+      const backfilledContent = {
+        ...content,
+        clientKey: generatedKey,
+        clientKeyVersion: CLIENT_KEY_VERSION,
+      };
       await this.prisma.event.update({
         where: { id: event.id },
         data: {
@@ -458,8 +466,11 @@ export class EventsService {
             existingContentObj.clientPortalEnabled;
         }
         delete contentToUpdateObj.clientKey;
+        delete contentToUpdateObj.clientKeyVersion;
         if (existingContentObj.clientKey) {
           contentToUpdateObj.clientKey = existingContentObj.clientKey;
+          contentToUpdateObj.clientKeyVersion =
+            existingContentObj.clientKeyVersion ?? CLIENT_KEY_VERSION;
         }
         delete contentToUpdateObj._mediaFallback;
       }
@@ -481,6 +492,7 @@ export class EventsService {
         delete contentToUpdateObj._mediaFallback;
       }
       contentToUpdateObj.clientKey = generateClientPortalKey();
+      contentToUpdateObj.clientKeyVersion = CLIENT_KEY_VERSION;
     }
 
     if (contentToUpdateObj) {
@@ -1337,6 +1349,7 @@ export class EventsService {
         ? validatedContent
         : {}),
       clientKey: generateClientPortalKey(),
+      clientKeyVersion: CLIENT_KEY_VERSION,
     };
 
     const p1 =
