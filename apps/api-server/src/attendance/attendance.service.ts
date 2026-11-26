@@ -19,6 +19,7 @@ import { Role } from 'database';
 import { Prisma, Event, StaffEvent } from '@prisma/client';
 import { ReportsService } from '../reports/reports.service';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
+import { parseOrThrowGuestCategory } from '../guests/utils/guest-category';
 
 type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
@@ -427,7 +428,11 @@ export class AttendanceService {
       throw new BadRequestException('Nama tamu dadakan tidak boleh kosong');
     }
     const pax = Math.max(1, dto.pax || 1);
-    const category = (dto.category && dto.category.trim()) || 'ON_THE_SPOT';
+    const rawCategory =
+      typeof dto.category === 'string' ? dto.category.trim() : '';
+    const category = rawCategory
+      ? parseOrThrowGuestCategory(rawCategory)
+      : 'ON_THE_SPOT';
     const tableNumber = dto.tableNumber ? dto.tableNumber.trim() : null;
 
     const txResult = await this.db.$transaction(async (tx) => {
@@ -649,7 +654,7 @@ export class AttendanceService {
             rolledBackPax,
             scannedPax: 0,
             remainingPax: maxPax,
-            status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+            status: 'NOT_CHECKED_IN',
             walkInDeleted: isWalkInGuest,
           };
         } else {
@@ -667,7 +672,7 @@ export class AttendanceService {
             rolledBackPax,
             scannedPax: newScannedPax,
             remainingPax: Math.max(0, maxPax - newScannedPax),
-            status: 'PARTIAL' as AttendanceCheckInStatus,
+            status: 'PARTIAL',
             walkInDeleted: false,
           };
         }
@@ -689,7 +694,7 @@ export class AttendanceService {
           rolledBackPax,
           scannedPax: 0,
           remainingPax: maxPax,
-          status: 'NOT_CHECKED_IN' as AttendanceCheckInStatus,
+          status: 'NOT_CHECKED_IN',
           walkInDeleted: isWalkInGuest,
         };
       }
@@ -1682,6 +1687,13 @@ export class AttendanceService {
           if (!op.walkInData || !op.walkInData.name) {
             throw new BadRequestException('Walk-in data is required');
           }
+          const rawWalkInCategory =
+            typeof op.walkInData.category === 'string'
+              ? op.walkInData.category.trim()
+              : '';
+          const validatedWalkInCategory = rawWalkInCategory
+            ? parseOrThrowGuestCategory(rawWalkInCategory)
+            : 'ON_THE_SPOT';
           opResultData = await this.walkInCheckIn(
             eventId,
             userId,
@@ -1689,7 +1701,7 @@ export class AttendanceService {
             {
               name: op.walkInData.name,
               pax: op.walkInData.pax || 1,
-              category: op.walkInData.category,
+              category: validatedWalkInCategory,
               tableNumber: op.walkInData.tableNumber,
             },
             syncOpMeta,
@@ -1729,8 +1741,7 @@ export class AttendanceService {
               opId: op.opId,
               status: 'DUPLICATE',
               type: op.type,
-              message:
-                'Operation already processed previously (idempotent)',
+              message: 'Operation already processed previously (idempotent)',
             });
             continue;
           }

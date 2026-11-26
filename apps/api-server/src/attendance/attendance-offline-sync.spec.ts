@@ -238,7 +238,7 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
             walkInData: {
               name: 'Tamu Dadakan',
               pax: 2,
-              category: 'VIP_SPONSOR',
+              category: 'ON_THE_SPOT',
               tableNumber: 'V-01',
             },
             clientTimestamp: new Date().toISOString(),
@@ -486,6 +486,44 @@ describe('AttendanceService - Offline Snapshot & Sync', () => {
       );
       expect(attempt2.appliedCount).toBe(1);
       expect(committedGuests).toBe(1);
+    });
+
+    it('rejects invalid walkInData.category in syncAttendance as permanent non-retryable FAILED operation', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(adminUser);
+      mockPrisma.event.findUnique.mockResolvedValue(validEvent);
+      mockPrisma.offlineSyncOp.findUnique.mockResolvedValue(null);
+
+      const batch = {
+        operations: [
+          {
+            opId: 'op-invalid-walkin-cat',
+            type: 'WALK_IN' as const,
+            walkInData: {
+              name: 'Tamu Kategori Tidak Valid',
+              pax: 1,
+              category: 'INVALID_CUSTOM_CATEGORY',
+            },
+            clientTimestamp: new Date().toISOString(),
+          },
+        ],
+      };
+
+      const res = await service.syncAttendance(
+        'evt-100',
+        'admin-1',
+        Role.ADMIN,
+        batch,
+      );
+
+      expect(res.failedCount).toBe(1);
+      expect(res.results[0]).toEqual(
+        expect.objectContaining({
+          opId: 'op-invalid-walkin-cat',
+          status: 'FAILED',
+          retryable: false,
+        }),
+      );
+      expect(mockPrisma.guest.create).not.toHaveBeenCalled();
     });
   });
 });

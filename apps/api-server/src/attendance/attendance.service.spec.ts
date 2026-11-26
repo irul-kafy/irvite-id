@@ -1570,6 +1570,29 @@ describe('AttendanceService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('validates category in walkInCheckIn via parseOrThrowGuestCategory (defaults empty to ON_THE_SPOT, normalizes aliases, rejects unknown category)', async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        id: 'u1',
+        isActive: true,
+        role: Role.STAFF,
+      });
+      (prisma.event.findUnique as jest.Mock).mockResolvedValue({
+        id: 'e1',
+        status: 'PUBLISHED',
+        eventDate: new Date('2026-12-01'),
+        userId: 'admin-owner',
+        staffEvents: [{ userId: 'u1' }],
+      });
+
+      await expect(
+        service.walkInCheckIn('e1', 'u1', Role.STAFF, {
+          name: 'Tamu Kategori Salah',
+          pax: 1,
+          category: 'UNKNOWN_WALKIN_CATEGORY',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('migration 20261124075000_backfill_walk_in_zero_check_ins marks is_walk_in=true for ON_THE_SPOT guests with attendance and zero attendance_check_ins without editing 20261124071000', () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs') as typeof import('fs');
