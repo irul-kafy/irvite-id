@@ -1,6 +1,118 @@
 import type { RendererData } from '../renderers/registry';
 import type { PublicMediaDescriptor } from '../types/public-invitation';
 import { getPublicWhatsAppNumber } from '../utils/contact';
+import {
+  CAPACITY_TIERS,
+  WEDDING_PACKAGE_CATALOG,
+  calculateOrderPrice,
+  getPackageDisplayLabel,
+  isCapacityTier,
+  isPresetPackageCode,
+  isSelectablePackageCode,
+  type CapacityTier,
+  type OrderPricingOptionsInput,
+  type SelectablePackageCode,
+} from 'pricing';
+
+export const PACKAGE_SELECTION_STORAGE_KEY = 'irvite_selected_package_v1';
+
+export interface StoredPackageSelection {
+  packageCode: SelectablePackageCode;
+  options: OrderPricingOptionsInput;
+}
+
+export function parsePackageCodeParam(
+  raw?: string | null,
+): SelectablePackageCode | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const upper = raw.trim().toUpperCase();
+  return isSelectablePackageCode(upper) ? upper : null;
+}
+
+export function getDefaultOptionsForPackage(
+  packageCode: SelectablePackageCode,
+): OrderPricingOptionsInput {
+  if (isPresetPackageCode(packageCode)) {
+    const pkg = WEDDING_PACKAGE_CATALOG[packageCode];
+    return {
+      extraPetugas: 0,
+      extraHoursPerPetugas: 0,
+      supervisor: pkg.includedSupervisor,
+      akrilik: pkg.includesAkrilik,
+      gladi: pkg.includesGladi,
+      capacityTier: pkg.baseCapacity,
+    };
+  }
+  return {
+    extraPetugas: 0,
+    extraHoursPerPetugas: 0,
+    supervisor: 0,
+    akrilik: false,
+    gladi: false,
+    capacityTier: 50,
+  };
+}
+
+export function savePackageSelectionToSession(
+  selection: StoredPackageSelection,
+): void {
+  if (typeof window === 'undefined' || !window.sessionStorage) return;
+  try {
+    const safePayload: StoredPackageSelection = {
+      packageCode: selection.packageCode,
+      options: {
+        extraPetugas: Number(selection.options?.extraPetugas) || 0,
+        extraHoursPerPetugas:
+          Number(selection.options?.extraHoursPerPetugas) || 0,
+        supervisor: selection.options?.supervisor ? 1 : 0,
+        akrilik: Boolean(selection.options?.akrilik),
+        gladi: Boolean(selection.options?.gladi),
+        capacityTier: isCapacityTier(selection.options?.capacityTier)
+          ? selection.options.capacityTier
+          : isPresetPackageCode(selection.packageCode)
+            ? WEDDING_PACKAGE_CATALOG[selection.packageCode].baseCapacity
+            : (CAPACITY_TIERS[0] as CapacityTier),
+      },
+    };
+    window.sessionStorage.setItem(
+      PACKAGE_SELECTION_STORAGE_KEY,
+      JSON.stringify(safePayload),
+    );
+  } catch {
+    // Ignore storage quota or private browsing errors
+  }
+}
+
+export function loadPackageSelectionFromSession(): StoredPackageSelection | null {
+  if (typeof window === 'undefined' || !window.sessionStorage) return null;
+  try {
+    const raw = window.sessionStorage.getItem(PACKAGE_SELECTION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      packageCode?: unknown;
+      options?: OrderPricingOptionsInput;
+    };
+    const code = parsePackageCodeParam(
+      typeof parsed?.packageCode === 'string' ? parsed.packageCode : null,
+    );
+    if (!code) return null;
+    return {
+      packageCode: code,
+      options: {
+        ...getDefaultOptionsForPackage(code),
+        ...(parsed.options && typeof parsed.options === 'object'
+          ? parsed.options
+          : {}),
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function formatRupiah(amount: number): string {
+  return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+}
 
 export interface CeremonyFormState {
   title: string;
@@ -844,9 +956,19 @@ export function buildDraftSubmissionPayload(params: {
   clientName: string;
   clientWhatsapp: string;
   clientNotes?: string;
+  packageCode?: SelectablePackageCode | 'UNSELECTED';
+  options?: OrderPricingOptionsInput;
   state: ClientCustomizationState;
 }) {
-  const { themeCode, clientName, clientWhatsapp, clientNotes, state } = params;
+  const {
+    themeCode,
+    clientName,
+    clientWhatsapp,
+    clientNotes,
+    packageCode,
+    options,
+    state,
+  } = params;
   const upperTheme = normalizeThemeKey(themeCode);
 
   const p1 = state.partnerOneName.trim() || 'Mempelai Wanita';
@@ -1007,11 +1129,27 @@ export function buildDraftSubmissionPayload(params: {
       .filter(Boolean)
       .join(', ') || 'Lokasi Acara';
 
+  const resolvedPackageCode =
+    packageCode && isSelectablePackageCode(packageCode)
+      ? packageCode
+      : 'UNSELECTED';
+
+  const normalizedOptions =
+    resolvedPackageCode !== 'UNSELECTED'
+      ? calculateOrderPrice({
+          packageCode: resolvedPackageCode,
+          capacityTier: options?.capacityTier,
+          options,
+        }).normalizedOptions
+      : undefined;
+
   return {
     themeCode: upperTheme,
     clientName: clientName.trim(),
     clientWhatsapp: clientWhatsapp.trim(),
     clientNotes: clientNotes?.trim() || undefined,
+    packageCode: resolvedPackageCode,
+    options: normalizedOptions,
     eventDate,
     locationDetails,
     content,
@@ -1031,6 +1169,8 @@ export function buildWhatsappOrderUrl(params: {
   clientName: string;
   clientWhatsapp: string;
   clientNotes?: string;
+  packageCode?: SelectablePackageCode | 'UNSELECTED';
+  options?: OrderPricingOptionsInput;
   state: ClientCustomizationState;
 }): string {
   const configuredPhone = params.adminPhone
@@ -1054,20 +1194,46 @@ export function buildWhatsappOrderUrl(params: {
       (params.state.closingPhoto ? 1 : 0) +
       params.state.galleryPhotos.length;
 
+  const pkgCode =
+    params.packageCode && isSelectablePackageCode(params.packageCode)
+      ? params.packageCode
+      : null;
+  const priceCalc = pkgCode
+    ? calculateOrderPrice({
+        packageCode: pkgCode,
+        capacityTier: params.options?.capacityTier,
+        options: params.options,
+      })
+    : null;
+
   const lines = [
     `Halo Admin *IRVITE*, saya sudah melakukan simulasi personalisasi undangan dan ingin memesan dengan rincian berikut:`,
     ``,
     `▸ *Kode Draf Dashboard:* #${params.referenceCode}`,
     `▸ *Template:* ${params.templateDisplayName} (Ketentuan Desain IRVITE)`,
+    `▸ *Paket Layanan:* ${getPackageDisplayLabel(pkgCode || 'UNSELECTED')}`,
     `▸ *Mempelai:* ${p1} & ${p2}`,
     `▸ *Jadwal Utama:* ${dateStr} (${params.state.timeZone})`,
     `▸ *Lokasi:* ${venueStr}`,
     `▸ *Foto Simulasi Diunggah:* ${uploadedPhotoCount} foto`,
+  ];
+
+  if (priceCalc) {
+    lines.push(``, `*Rincian Komponen Paket:*`);
+    for (const item of priceCalc.lineItems) {
+      lines.push(`• ${item.label}: ${formatRupiah(item.amount)}`);
+    }
+    lines.push(
+      `▸ *Total Harga:* ${formatRupiah(priceCalc.total)} _(estimasi, final dikonfirmasi admin)_`,
+    );
+  }
+
+  lines.push(
     ``,
     `*Data Pemesan:*`,
     `• Nama: ${params.clientName.trim()}`,
     `• WhatsApp: ${params.clientWhatsapp.trim()}`,
-  ];
+  );
 
   if (params.clientNotes?.trim()) {
     lines.push(`• Catatan: ${params.clientNotes.trim()}`);

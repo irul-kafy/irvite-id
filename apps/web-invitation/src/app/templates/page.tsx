@@ -5,6 +5,8 @@ import { fetchPublicTemplateAvailability, fetchPublicTemplatePackages } from '@/
 import type { CatalogTemplateItem } from '@/catalog/template-catalog.types';
 import { getTemplateOrderUrl, getGeneralContactUrl } from '@/utils/contact';
 import { LandingNavbar } from '@/components/landing-navbar';
+import { TemplatePackageBanner } from '@/components/template-package-banner';
+import { parsePackageCodeParam } from '@/customizer/template-customizer';
 import './templates.css';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +34,18 @@ function IconSparkles({ style }: { style?: React.CSSProperties }) {
   );
 }
 
-export default async function PublicTemplatesPage() {
+interface PublicTemplatesPageProps {
+  searchParams?: Promise<{ paket?: string }>;
+}
+
+export default async function PublicTemplatesPage({
+  searchParams,
+}: PublicTemplatesPageProps = {}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const selectedPackageCode = parsePackageCodeParam(resolvedParams.paket);
+  const paketQuerySuffix = selectedPackageCode
+    ? `paket=${encodeURIComponent(selectedPackageCode)}`
+    : '';
   const [availability, packages] = await Promise.all([fetchPublicTemplateAvailability(), fetchPublicTemplatePackages()]);
   const allTemplates = getCatalogTemplates();
   const builtInTemplates =
@@ -76,6 +89,7 @@ export default async function PublicTemplatesPage() {
 
       {/* Catalog Grid */}
       <main className="cat-container">
+        <TemplatePackageBanner queryPackageCode={selectedPackageCode} />
         {templates.length === 0 ? (
           <div id="catalog-empty-state">
             <div className="cat-empty__icon">
@@ -144,7 +158,11 @@ export default async function PublicTemplatesPage() {
                     <div className="cat-card__actions">
                       <a
                         id={'demo-' + tpl.slug}
-                        href={tpl.demoPath}
+                        href={
+                          paketQuerySuffix
+                            ? `${tpl.demoPath}?${paketQuerySuffix}`
+                            : tpl.demoPath
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="cat-btn cat-btn--demo"
@@ -155,7 +173,11 @@ export default async function PublicTemplatesPage() {
 
                       <a
                         id={'customize-' + tpl.slug}
-                        href={`${tpl.demoPath}?customize=1`}
+                        href={
+                          paketQuerySuffix
+                            ? `${tpl.demoPath}?customize=1&${paketQuerySuffix}`
+                            : `${tpl.demoPath}?customize=1`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="cat-btn cat-btn--order"

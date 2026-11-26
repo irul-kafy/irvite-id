@@ -407,4 +407,53 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
       'irv-studio-bar__sandbox-pill must be hidden on mobile to prioritize title',
     );
   });
+
+  await t.test('buildDraftSubmissionPayload and buildWhatsappOrderUrl include packageCode, options, breakdown, and estimate note', () => {
+    const fixture = getDemoFixture('SEKAR_KEDATON')!;
+    const state = extractInitialCustomizationState(fixture);
+    state.partnerOneName = 'Alya';
+    state.partnerTwoName = 'Bima';
+
+    const payload = buildDraftSubmissionPayload({
+      themeCode: 'SEKAR_KEDATON',
+      clientName: 'Alya Kusuma',
+      clientWhatsapp: '081234567890',
+      packageCode: 'INTIMATE',
+      options: {
+        extraPetugas: 1,
+        extraHoursPerPetugas: 2,
+        gladi: true,
+        capacityTier: 300,
+      },
+      state,
+    });
+
+    assert.equal(payload.packageCode, 'INTIMATE');
+    assert.deepEqual(payload.options, {
+      extraPetugas: 1,
+      extraHoursPerPetugas: 2,
+      supervisor: 0,
+      akrilik: true,
+      gladi: true,
+      capacityTier: 300,
+    });
+
+    const waUrl = buildWhatsappOrderUrl({
+      adminPhone: '6281122334455',
+      referenceCode: 'IRV-77CD',
+      templateDisplayName: 'Sekar Kedaton',
+      themeCode: 'SEKAR_KEDATON',
+      clientName: 'Alya Kusuma',
+      clientWhatsapp: '081234567890',
+      packageCode: 'INTIMATE',
+      options: payload.options,
+      state,
+    });
+
+    const decoded = decodeURIComponent(waUrl.split('?text=')[1]);
+    assert.ok(decoded.includes('Intimate'));
+    assert.ok(decoded.includes('Upgrade Kapasitas Tamu'));
+    assert.ok(decoded.includes('Sesi Gladi Bersih H-1'));
+    assert.ok(decoded.includes('estimasi, final dikonfirmasi admin'));
+  });
 });

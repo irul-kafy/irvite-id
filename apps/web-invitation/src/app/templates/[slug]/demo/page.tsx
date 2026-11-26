@@ -13,7 +13,12 @@ import { TemplateCustomizerStudio } from '../../../../components/template-custom
 
 interface DemoPageProps {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ admin?: string; previewOnly?: string; embed?: string }>;
+  searchParams?: Promise<{
+    admin?: string;
+    previewOnly?: string;
+    embed?: string;
+    paket?: string;
+  }>;
 }
 
 export async function generateMetadata({
@@ -101,6 +106,7 @@ export default async function TemplateDemoPage({ params, searchParams }: DemoPag
         templateCategory={catalogItem.category}
         initialFixture={fixture}
         adminMode={isAdmin}
+        initialPackageCode={resolvedSearchParams.paket}
       />
     </main>
   );

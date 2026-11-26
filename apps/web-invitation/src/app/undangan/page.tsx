@@ -6,9 +6,23 @@ import { PublicTemplateShowcase } from '../../components/public-template-showcas
 import { HeroPhoneShowcase } from '../../components/hero-phone-showcase';
 import '../landing.css';
 import { getGeneralContactUrl } from '../../utils/contact';
+import {
+  ACTIVE_PRICE_TIER,
+  AKRILIK_QRIS,
+  CAPACITY_BASE_PRICES,
+  GLADI_H1,
+  PACKAGE_PRICES,
+  PETUGAS_EXTRA_HOUR,
+  PETUGAS_UNIT,
+  PRESET_PACKAGE_CODES,
+  SUPERVISOR,
+  WEDDING_PACKAGE_CATALOG,
+} from 'pricing';
+import { formatRupiah } from '../../customizer/template-customizer';
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
 const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
+const MSG_ASK_PACKAGES = 'Halo IRVITE, saya ingin bertanya tentang pilihan paket undangan digital pernikahan.';
 
 const HERO_FEATURES = [
   { icon: '✨', label: 'Desain Eksklusif' },
@@ -16,8 +30,6 @@ const HERO_FEATURES = [
   { icon: '⚡', label: 'RSVP Real-Time' },
   { icon: '📱', label: 'Check-in QR Tamu' },
 ];
-const MSG_BASIC = 'Halo IRVITE, saya ingin memesan Paket Esensial untuk undangan digital.';
-const MSG_PREMIUM = 'Halo IRVITE, saya ingin memesan Paket Personal dengan Tim Scanner di venue.';
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
 function IconWA({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -170,6 +182,8 @@ function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
 
 // ── Packages Section ───────────────────────────────────────────────────────────
 function PackagesSection() {
+  const askWaUrl = getGeneralContactUrl(MSG_ASK_PACKAGES);
+
   return (
     <section className="section packages" id="paket">
       {/* Ambient decorative luxury rings for wide viewports */}
@@ -183,148 +197,176 @@ function PackagesSection() {
             <h2>Pilih sesuai cara Anda merayakan.</h2>
           </div>
           <p>
-            Lingkup yang jelas sejak awal. Kami membantu memilihkan paket
-            berdasarkan kebutuhan, bukan sekadar yang paling mahal.
+            Harga transparan sesuai kapasitas tamu dan pendampingan di lokasi.
+            Setiap paket masih dapat disesuaikan komponennya saat memesan.
           </p>
         </div>
-        <div className="package-grid">
-          <article className="package-card">
-            <div className="package-card-header">
-              <span className="package-label">Paket Esensial</span>
-              <h3>Satu tautan untuk semua</h3>
-              <p className="package-desc">
-                Undangan digital praktis dan tetap berkelas untuk dibagikan ke seluruh tamu.
-              </p>
-            </div>
-            <div className="package-divider" aria-hidden="true" />
-            <ul className="package-features">
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>1 tautan publik untuk semua tamu</span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>Pilihan desain katalog eksklusif</span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>Form RSVP dan ucapan tamu online</span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>Informasi acara, peta maps, dan galeri</span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>Format praktis tanpa sistem scanner on-site</span>
-              </li>
-            </ul>
-            {getGeneralContactUrl(MSG_BASIC) ? (
-              <a
-                id="pkg-basic-wa"
-                className="button outline"
-                href={getGeneralContactUrl(MSG_BASIC)!}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <IconWA className="wa-icon" />
-                <span>Tanyakan paket ini</span>
-              </a>
-            ) : (
-              <button
-                type="button"
-                id="pkg-basic-wa"
-                disabled
-                className="button outline"
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                title="Kontak belum dikonfigurasi"
-              >
-                <IconWA className="wa-icon" />
-                <span>Tanyakan paket ini</span>
-              </button>
-            )}
-          </article>
 
-          <article className="package-card featured">
-            <span className="recommended">
-              <span aria-hidden="true">✨</span> Paling diminati
-            </span>
+        <div
+          className="package-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '1.25rem',
+          }}
+        >
+          {PRESET_PACKAGE_CODES.map((code) => {
+            const pkg = WEDDING_PACKAGE_CATALOG[code];
+            const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
+            const isFeatured = Boolean(pkg.popular);
+
+            return (
+              <article
+                key={code}
+                className={`package-card ${isFeatured ? 'featured' : ''}`}
+                data-testid={`package-card-${code}`}
+              >
+                {isFeatured && (
+                  <span className="recommended">
+                    <span aria-hidden="true">✨</span> Paling diminati
+                  </span>
+                )}
+                <div className="package-card-header">
+                  <span className="package-label">Paket {pkg.name}</span>
+                  <h3>{pkg.tagline}</h3>
+                  <div
+                    style={{
+                      fontSize: '1.55rem',
+                      fontWeight: 700,
+                      margin: '0.45rem 0 0.35rem',
+                      fontFamily: 'var(--serif)',
+                    }}
+                  >
+                    {formatRupiah(price)}
+                  </div>
+                  <p className="package-desc">{pkg.description}</p>
+                </div>
+                <div className="package-divider" aria-hidden="true" />
+                <ul className="package-features">
+                  {pkg.features.map((feat) => (
+                    <li key={feat}>
+                      <span
+                        className={`pkg-feature-icon ${isFeatured ? 'pkg-feature-icon--featured' : ''}`}
+                        aria-hidden="true"
+                      >
+                        <IconCheck />
+                      </span>
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  id={`pkg-select-${code.toLowerCase()}`}
+                  className={`button ${isFeatured ? 'primary exclusive-cta' : 'outline'}`}
+                  href={`/templates?paket=${code}`}
+                >
+                  <span>Pilih Paket {pkg.name}</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </article>
+            );
+          })}
+
+          {/* Rakit Sendiri (CUSTOM) Card */}
+          <article
+            className="package-card"
+            data-testid="package-card-CUSTOM"
+          >
             <div className="package-card-header">
-              <span className="package-label">Paket Personal</span>
-              <h3>Setiap tamu terasa istimewa</h3>
+              <span className="package-label">Rakit Sendiri</span>
+              <h3>Sesuaikan kapasitas &amp; komponen</h3>
+              <div
+                style={{
+                  fontSize: '1.55rem',
+                  fontWeight: 700,
+                  margin: '0.45rem 0 0.35rem',
+                  fontFamily: 'var(--serif)',
+                }}
+              >
+                Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
+              </div>
               <p className="package-desc">
-                Pengalaman personal premium lengkap dengan QR per tamu dan scanner di venue.
+                Pilih sendiri kuota tamu (50/150/300/600), jumlah petugas check-in,
+                jam tambahan, stand akrilik QRIS, hingga sesi gladi H-1.
               </p>
             </div>
             <div className="package-divider" aria-hidden="true" />
             <ul className="package-features">
               <li>
-                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                <span className="pkg-feature-icon" aria-hidden="true">
                   <IconCheck />
                 </span>
-                <span>Tautan personal dengan nama tamu masing-masing</span>
+                <span>
+                  Dasar undangan 50–600 tamu ({formatRupiah(CAPACITY_BASE_PRICES[50])} –{' '}
+                  {formatRupiah(CAPACITY_BASE_PRICES[600])})
+                </span>
               </li>
               <li>
-                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                <span className="pkg-feature-icon" aria-hidden="true">
                   <IconCheck />
                 </span>
-                <span>QR Code eksklusif per tamu undangan</span>
+                <span>
+                  Petugas check-in {formatRupiah(PETUGAS_UNIT)}/orang (4 jam) +{' '}
+                  {formatRupiah(PETUGAS_EXTRA_HOUR)}/jam tambahan
+                </span>
               </li>
               <li>
-                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                <span className="pkg-feature-icon" aria-hidden="true">
                   <IconCheck />
                 </span>
-                <span>Tim scanner hadir siaga di lokasi acara</span>
+                <span>
+                  Stand akrilik QRIS meja ({formatRupiah(AKRILIK_QRIS)}) &amp; Gladi H-1 (
+                  {formatRupiah(GLADI_H1)})
+                </span>
               </li>
               <li>
-                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
+                <span className="pkg-feature-icon" aria-hidden="true">
                   <IconCheck />
                 </span>
-                <span>Dashboard dan laporan kehadiran real-time</span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon pkg-feature-icon--featured" aria-hidden="true">
-                  <IconCheck />
+                <span>
+                  Supervisor lapangan opsional ({formatRupiah(SUPERVISOR)})
                 </span>
-                <span>Semua fitur desain dan dukungan prioritas</span>
               </li>
             </ul>
-            {getGeneralContactUrl(MSG_PREMIUM) ? (
-              <a
-                id="pkg-premium-wa"
-                className="button primary exclusive-cta"
-                href={getGeneralContactUrl(MSG_PREMIUM)!}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <IconWA className="wa-icon" />
-                <span>Konsultasi paket personal</span>
-              </a>
-            ) : (
-              <button
-                type="button"
-                id="pkg-premium-wa"
-                disabled
-                className="button primary exclusive-cta"
-                style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                title="Kontak belum dikonfigurasi"
-              >
-                <IconWA className="wa-icon" />
-                <span>Konsultasi paket personal</span>
-              </button>
-            )}
+            <Link
+              id="pkg-select-custom"
+              className="button outline"
+              href="/templates?paket=CUSTOM"
+            >
+              <span>Rakit Sendiri</span>
+              <span aria-hidden="true">→</span>
+            </Link>
           </article>
         </div>
+
+        {/* Single subtle WhatsApp consultation link below the grid */}
+        {askWaUrl && (
+          <div
+            style={{
+              marginTop: '1.35rem',
+              textAlign: 'center',
+              fontSize: '0.88rem',
+            }}
+          >
+            <a
+              id="packages-ask-wa-link"
+              href={askWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                color: 'inherit',
+                opacity: 0.85,
+                textDecoration: 'underline',
+              }}
+            >
+              <IconWA style={{ width: 15, height: 15 }} />
+              <span>Tanya dulu via WhatsApp</span>
+            </a>
+          </div>
+        )}
 
         {/* Jaminan Layanan & Kenyamanan Klien */}
         <div className="packages-trust-banner" role="region" aria-label="Jaminan Layanan">

@@ -16,7 +16,31 @@ import {
   buildWhatsappOrderUrl,
   getTemplatePhotoSlotsConfig,
   countSupportedUploadedPhotos,
+  formatRupiah,
+  getDefaultOptionsForPackage,
+  loadPackageSelectionFromSession,
+  parsePackageCodeParam,
+  savePackageSelectionToSession,
 } from '../customizer/template-customizer';
+import {
+  ACTIVE_PRICE_TIER,
+  AKRILIK_QRIS,
+  CAPACITY_BASE_PRICES,
+  CAPACITY_TIERS,
+  GLADI_H1,
+  PACKAGE_PRICES,
+  PETUGAS_EXTRA_HOUR,
+  PETUGAS_UNIT,
+  PRESET_PACKAGE_CODES,
+  SUPERVISOR,
+  WEDDING_PACKAGE_CATALOG,
+  calculateOrderPrice,
+  getPackageDisplayLabel,
+  isPresetPackageCode,
+  type CapacityTier,
+  type OrderPricingOptionsInput,
+  type SelectablePackageCode,
+} from 'pricing';
 import './template-customizer-studio.css';
 import {
   ImageCropperModal,
@@ -31,6 +55,7 @@ interface TemplateCustomizerStudioProps {
   initialFixture: RendererData;
   defaultOpenCustomizer?: boolean;
   adminMode?: boolean;
+  initialPackageCode?: string;
 }
 
 type StudioTab =
@@ -100,6 +125,7 @@ export function TemplateCustomizerStudio({
   initialFixture,
   defaultOpenCustomizer = false,
   adminMode = false,
+  initialPackageCode,
 }: TemplateCustomizerStudioProps) {
   const defaultState = useMemo(
     () => extractInitialCustomizationState(initialFixture),
@@ -123,8 +149,48 @@ export function TemplateCustomizerStudio({
   const [viewportDevice, setViewportDevice] = useState<ViewportDevice>('desktop');
   const [deviceZoom, setDeviceZoom] = useState<number>(85);
 
-  // Order & Admin Submission Modal State
+  // Order & Admin Submission Modal State (2-Step Flow inside the same modal)
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [orderModalStep, setOrderModalStep] = useState<1 | 2>(1);
+  const [selectedPackageCode, setSelectedPackageCode] =
+    useState<SelectablePackageCode>(() => {
+      const fromProp = parsePackageCodeParam(initialPackageCode);
+      if (fromProp) return fromProp;
+      if (typeof window !== 'undefined') {
+        const fromQuery = parsePackageCodeParam(
+          new URLSearchParams(window.location.search).get('paket'),
+        );
+        if (fromQuery) return fromQuery;
+        const fromStorage = loadPackageSelectionFromSession();
+        if (fromStorage) return fromStorage.packageCode;
+      }
+      return 'SIGNATURE';
+    });
+  const [packageOptions, setPackageOptions] =
+    useState<OrderPricingOptionsInput>(() => {
+      const fromProp = parsePackageCodeParam(initialPackageCode);
+      if (typeof window !== 'undefined') {
+        const fromQuery =
+          fromProp ??
+          parsePackageCodeParam(
+            new URLSearchParams(window.location.search).get('paket'),
+          );
+        const fromStorage = loadPackageSelectionFromSession();
+        if (fromQuery) {
+          if (fromStorage && fromStorage.packageCode === fromQuery) {
+            return fromStorage.options;
+          }
+          return getDefaultOptionsForPackage(fromQuery);
+        }
+        if (fromStorage) {
+          return fromStorage.options;
+        }
+      }
+      if (fromProp) {
+        return getDefaultOptionsForPackage(fromProp);
+      }
+      return getDefaultOptionsForPackage('SIGNATURE');
+    });
   const [clientName, setClientName] = useState('');
   const [clientWhatsapp, setClientWhatsapp] = useState('');
   const [clientNotes, setClientNotes] = useState('');
@@ -135,6 +201,28 @@ export function TemplateCustomizerStudio({
     whatsappUrl: string;
     savedToServer: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    savePackageSelectionToSession({
+      packageCode: selectedPackageCode,
+      options: packageOptions,
+    });
+  }, [selectedPackageCode, packageOptions]);
+
+  const livePricing = useMemo(
+    () =>
+      calculateOrderPrice({
+        packageCode: selectedPackageCode,
+        capacityTier: packageOptions.capacityTier,
+        options: packageOptions,
+      }),
+    [selectedPackageCode, packageOptions],
+  );
+
+  const handleSelectPackage = useCallback((code: SelectablePackageCode) => {
+    setSelectedPackageCode(code);
+    setPackageOptions(getDefaultOptionsForPackage(code));
+  }, []);
 
   // Active Interactive Cropper & Framing Modal State
   const [activeCropper, setActiveCropper] = useState<ActiveCropperState | null>(null);
@@ -562,6 +650,8 @@ export function TemplateCustomizerStudio({
       clientName,
       clientWhatsapp,
       clientNotes,
+      packageCode: selectedPackageCode,
+      options: packageOptions,
       state,
     });
 
@@ -602,6 +692,8 @@ export function TemplateCustomizerStudio({
         clientName,
         clientWhatsapp,
         clientNotes,
+        packageCode: selectedPackageCode,
+        options: packageOptions,
         state,
       });
 
@@ -612,7 +704,7 @@ export function TemplateCustomizerStudio({
       });
       setSubmitting(false);
 
-      if (typeof window !== 'undefined') {
+      if (savedToServer && typeof window !== 'undefined') {
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
       }
     }
@@ -740,6 +832,7 @@ export function TemplateCustomizerStudio({
             onClick={() => {
               setSubmittedResult(null);
               setSubmitError(null);
+              setOrderModalStep(1);
               setShowOrderModal(true);
             }}
             aria-label="Pesan Undangan Sekarang"
@@ -1799,6 +1892,7 @@ export function TemplateCustomizerStudio({
             onClick={() => {
               setSubmittedResult(null);
               setSubmitError(null);
+              setOrderModalStep(1);
               setShowOrderModal(true);
             }}
           >
@@ -1856,7 +1950,7 @@ export function TemplateCustomizerStudio({
         </div>
       </div>
 
-      {/* ── Submit to Super Admin & WhatsApp Modal ── */}
+      {/* ── Submit to Super Admin & WhatsApp Modal (2-Step Flow) ── */}
       {!adminMode && showOrderModal && (
         <div
           className="irv-studio-modal-backdrop"
@@ -1864,14 +1958,39 @@ export function TemplateCustomizerStudio({
           aria-modal="true"
           aria-labelledby="studio-order-modal-title"
         >
-          <div className="irv-studio-modal">
+          <div
+            className="irv-studio-modal"
+            style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
+          >
             <div className="irv-studio-modal__header">
               <div>
-                <h2 id="studio-order-modal-title" className="irv-studio-modal__title">
-                  Kirim Draf Personalisasi ke Admin IRVITE
+                <div
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: '#0f766e',
+                    marginBottom: '2px',
+                  }}
+                >
+                  Langkah {orderModalStep} dari 2 •{' '}
+                  {orderModalStep === 1
+                    ? 'Pilih Paket & Sesuaikan Komponen'
+                    : 'Ringkasan Harga & Data Pemesan'}
+                </div>
+                <h2
+                  id="studio-order-modal-title"
+                  className="irv-studio-modal__title"
+                >
+                  {orderModalStep === 1
+                    ? 'Pilih Paket Layanan Pernikahan'
+                    : 'Kirim Draf Personalisasi ke Admin IRVITE'}
                 </h2>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: '#59655f' }}>
-                  Data dan foto yang Anda sesuaikan akan masuk ke Dashboard Super Admin sebagai draf pesanan dan diteruskan ke WhatsApp Admin.
+                  {orderModalStep === 1
+                    ? 'Pilih paket atau rakit sendiri sesuai kebutuhan tamu dan petugas di lokasi acara.'
+                    : 'Periksa rincian paket dan lengkapi data pemesan untuk menyimpan draf ke Dashboard Admin.'}
                 </p>
               </div>
               <button
@@ -1884,143 +2003,841 @@ export function TemplateCustomizerStudio({
               </button>
             </div>
 
-            {/* Summary of Client's Customized Data */}
-            <div className="irv-studio-summary-box">
-              <div className="irv-studio-summary-item">
-                <span>Template Pilihan</span>
-                <strong>
-                  {templateDisplayName} ({templateCategory})
-                </strong>
-              </div>
-              <div className="irv-studio-summary-item">
-                <span>Nama Mempelai</span>
-                <strong>
-                  {state.partnerOneName || 'Mempelai 1'} &amp;{' '}
-                  {state.partnerTwoName || 'Mempelai 2'}
-                </strong>
-              </div>
-              <div className="irv-studio-summary-item">
-                <span>Jadwal Utama</span>
-                <strong>
-                  {state.ceremonies[0]?.startDateTime
-                    ? state.ceremonies[0].startDateTime.replace('T', ' • ')
-                    : '-'}
-                </strong>
-              </div>
-              <div className="irv-studio-summary-item">
-                <span>Foto Simulasi Terlampir</span>
-                <strong>{uploadedPhotoCount} Foto Siap Dikirim</strong>
-              </div>
-            </div>
-
-            {!submittedResult ? (
-              <form
-                onSubmit={handleSubmitOrderToAdmin}
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            {orderModalStep === 1 ? (
+              <div
+                data-testid="order-modal-step-1"
+                style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
               >
-                {submitError && (
-                  <div
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      background: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      color: '#b91c1c',
-                      fontSize: '0.8rem',
-                    }}
-                  >
-                    ⚠️ {submitError}
-                  </div>
-                )}
-
-                <div className="irv-studio-field">
-                  <label className="irv-studio-label">
-                    <span>Nama Lengkap Pemesan *</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="irv-studio-input"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Masukkan nama Anda"
-                  />
-                </div>
-
-                <div className="irv-studio-field">
-                  <label className="irv-studio-label">
-                    <span>Nomor WhatsApp Aktif *</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    className="irv-studio-input"
-                    value={clientWhatsapp}
-                    onChange={(e) => setClientWhatsapp(e.target.value)}
-                    placeholder="Contoh: 081234567890"
-                  />
-                </div>
-
-                <div className="irv-studio-field">
-                  <label className="irv-studio-label">
-                    <span>Catatan Tambahan untuk Admin (Opsional)</span>
-                  </label>
-                  <textarea
-                    className="irv-studio-textarea"
-                    rows={2}
-                    value={clientNotes}
-                    onChange={(e) => setClientNotes(e.target.value)}
-                    placeholder="Contoh: Mohon gunakan lagu instrumental Jawa / request warna amplop..."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="irv-studio-drawer__footer-cta"
-                  style={{ marginTop: '4px' }}
-                >
-                  {submitting
-                    ? 'Menyimpan ke Dashboard Admin...'
-                    : '🚀 Simpan Draf & Lanjut ke WhatsApp Admin'}
-                </button>
-              </form>
-            ) : (
-              <div className="irv-studio-success-box">
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                  ✅ Draf Undangan Anda Berhasil Disiapkan!
-                </div>
-                <div style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>
-                  Kode Draf Dashboard Super Admin:{' '}
-                  <strong
-                    style={{
-                      background: '#ffffff',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid #6ee7b7',
-                    }}
-                  >
-                    #{submittedResult.referenceCode}
-                  </strong>
-                  <br />
-                  {submittedResult.savedToServer
-                    ? 'Data pernikahan & foto Anda telah tersimpan otomatis di Dashboard Super Admin IRVITE dengan status DRAFT.'
-                    : 'Ringkasan data pernikahan Anda telah diformat otomatis untuk dikirimkan ke WhatsApp Admin IRVITE.'}
-                </div>
-
-                <a
-                  href={submittedResult.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="irv-studio-drawer__footer-cta"
+                {/* 4 Preset Package Cards + Rakit Sendiri */}
+                <div
                   style={{
-                    textAlign: 'center',
-                    textDecoration: 'none',
-                    display: 'block',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))',
+                    gap: '10px',
                   }}
                 >
-                  💬 Buka Chat WhatsApp Admin Sekarang →
-                </a>
+                  {PRESET_PACKAGE_CODES.map((code) => {
+                    const pkg = WEDDING_PACKAGE_CATALOG[code];
+                    const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
+                    const isSelected = selectedPackageCode === code;
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        data-testid={`modal-pkg-card-${code}`}
+                        onClick={() => handleSelectPackage(code)}
+                        style={{
+                          textAlign: 'left',
+                          padding: '12px',
+                          borderRadius: '10px',
+                          border: isSelected
+                            ? '2px solid #0f766e'
+                            : '1px solid #d1dbd6',
+                          background: isSelected ? '#f0fdfa' : '#ffffff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <strong style={{ fontSize: '0.88rem', color: '#14261c' }}>
+                            {pkg.name}
+                          </strong>
+                          {pkg.popular && (
+                            <span
+                              style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                background: '#ccfbf1',
+                                color: '#115e59',
+                                padding: '2px 6px',
+                                borderRadius: '999px',
+                              }}
+                            >
+                              Populer
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '0.95rem',
+                            fontWeight: 700,
+                            color: '#0f766e',
+                          }}
+                        >
+                          {formatRupiah(price)}
+                        </div>
+                        <div style={{ fontSize: '0.73rem', color: '#475569' }}>
+                          {pkg.baseCapacity} tamu • {pkg.includedPetugas} petugas
+                          {pkg.includedSupervisor ? ' + 1 spv' : ''}
+                          {pkg.includesAkrilik ? ' • akrilik' : ''}
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    data-testid="modal-pkg-card-CUSTOM"
+                    onClick={() => handleSelectPackage('CUSTOM')}
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border:
+                        selectedPackageCode === 'CUSTOM'
+                          ? '2px solid #0f766e'
+                          : '1px solid #d1dbd6',
+                      background:
+                        selectedPackageCode === 'CUSTOM' ? '#f0fdfa' : '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}
+                  >
+                    <strong style={{ fontSize: '0.88rem', color: '#14261c' }}>
+                      Rakit Sendiri
+                    </strong>
+                    <div
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        color: '#0f766e',
+                      }}
+                    >
+                      Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
+                    </div>
+                    <div style={{ fontSize: '0.73rem', color: '#475569' }}>
+                      Atur kapasitas &amp; komponen bebas tanpa paket
+                    </div>
+                  </button>
+                </div>
+
+                {/* Panel Sesuaikan Komponen */}
+                <div
+                  data-testid="order-modal-customize-panel"
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#1e293b',
+                    }}
+                  >
+                    ⚙️ Sesuaikan Kapasitas &amp; Add-on (
+                    {getPackageDisplayLabel(selectedPackageCode)})
+                  </div>
+
+                  {/* Capacity Tier Selector */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.78rem', color: '#334155' }}>
+                      Kapasitas Tamu Undangan
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {CAPACITY_TIERS.map((tier) => {
+                        const baseCap = isPresetPackageCode(selectedPackageCode)
+                          ? WEDDING_PACKAGE_CATALOG[selectedPackageCode]
+                              .baseCapacity
+                          : 50;
+                        const isDisabled =
+                          isPresetPackageCode(selectedPackageCode) &&
+                          tier < baseCap;
+                        const activeCap =
+                          livePricing.entitlements.maxGuests === tier;
+                        return (
+                          <button
+                            key={tier}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() =>
+                              setPackageOptions((prev) => ({
+                                ...prev,
+                                capacityTier: tier as CapacityTier,
+                              }))
+                            }
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              fontSize: '0.76rem',
+                              fontWeight: 600,
+                              border: activeCap
+                                ? '1.5px solid #0f766e'
+                                : '1px solid #cbd5e1',
+                              background: activeCap
+                                ? '#0f766e'
+                                : isDisabled
+                                  ? '#f1f5f9'
+                                  : '#ffffff',
+                              color: activeCap
+                                ? '#ffffff'
+                                : isDisabled
+                                  ? '#94a3b8'
+                                  : '#1e293b',
+                              cursor: isDisabled ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            {tier} tamu
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Extra Petugas Stepper (0..20) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                        {selectedPackageCode === 'CUSTOM'
+                          ? 'Jumlah Petugas Check-in (4 jam)'
+                          : `Tambahan Petugas Check-in (Bawaan: ${WEDDING_PACKAGE_CATALOG[selectedPackageCode].includedPetugas})`}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        +{formatRupiah(PETUGAS_UNIT)} / orang (maks. 20)
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Kurangi petugas"
+                        onClick={() =>
+                          setPackageOptions((prev) => ({
+                            ...prev,
+                            extraPetugas: Math.max(
+                              0,
+                              (Number(prev.extraPetugas) || 0) - 1,
+                            ),
+                          }))
+                        }
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        −
+                      </button>
+                      <span
+                        style={{
+                          minWidth: '24px',
+                          textAlign: 'center',
+                          fontSize: '0.84rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {livePricing.normalizedOptions.extraPetugas}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Tambah petugas"
+                        onClick={() =>
+                          setPackageOptions((prev) => ({
+                            ...prev,
+                            extraPetugas: Math.min(
+                              20,
+                              (Number(prev.extraPetugas) || 0) + 1,
+                            ),
+                          }))
+                        }
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Extra Hours Stepper (0..8) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      opacity:
+                        livePricing.entitlements.petugasCount > 0 ? 1 : 0.5,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.78rem', color: '#334155' }}>
+                        Tambahan Jam Kerja per Petugas
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        +{formatRupiah(PETUGAS_EXTRA_HOUR)} / jam / orang (total{' '}
+                        {livePricing.entitlements.petugasCount} petugas)
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Kurangi jam petugas"
+                        disabled={livePricing.entitlements.petugasCount === 0}
+                        onClick={() =>
+                          setPackageOptions((prev) => ({
+                            ...prev,
+                            extraHoursPerPetugas: Math.max(
+                              0,
+                              (Number(prev.extraHoursPerPetugas) || 0) - 1,
+                            ),
+                          }))
+                        }
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          cursor:
+                            livePricing.entitlements.petugasCount === 0
+                              ? 'not-allowed'
+                              : 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        −
+                      </button>
+                      <span
+                        style={{
+                          minWidth: '24px',
+                          textAlign: 'center',
+                          fontSize: '0.84rem',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {livePricing.normalizedOptions.extraHoursPerPetugas}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Tambah jam petugas"
+                        disabled={livePricing.entitlements.petugasCount === 0}
+                        onClick={() =>
+                          setPackageOptions((prev) => ({
+                            ...prev,
+                            extraHoursPerPetugas: Math.min(
+                              8,
+                              (Number(prev.extraHoursPerPetugas) || 0) + 1,
+                            ),
+                          }))
+                        }
+                        style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          background: '#fff',
+                          cursor:
+                            livePricing.entitlements.petugasCount === 0
+                              ? 'not-allowed'
+                              : 'pointer',
+                          fontWeight: 700,
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Toggles: Akrilik QRIS, Gladi H-1, Supervisor */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '8px',
+                      paddingTop: '4px',
+                    }}
+                  >
+                    {/* Stand Akrilik QRIS */}
+                    {(() => {
+                      const included =
+                        isPresetPackageCode(selectedPackageCode) &&
+                        WEDDING_PACKAGE_CATALOG[selectedPackageCode]
+                          .includesAkrilik;
+                      return (
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: '#fff',
+                            fontSize: '0.76rem',
+                            cursor: included ? 'default' : 'pointer',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={livePricing.entitlements.akrilikQris}
+                            disabled={included}
+                            onChange={(e) =>
+                              setPackageOptions((prev) => ({
+                                ...prev,
+                                akrilik: e.target.checked,
+                              }))
+                            }
+                          />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>
+                              Stand Akrilik QRIS
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                              {included
+                                ? 'Sudah termasuk'
+                                : `+${formatRupiah(AKRILIK_QRIS)}`}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })()}
+
+                    {/* Gladi H-1 */}
+                    {(() => {
+                      const included =
+                        isPresetPackageCode(selectedPackageCode) &&
+                        WEDDING_PACKAGE_CATALOG[selectedPackageCode]
+                          .includesGladi;
+                      return (
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: '#fff',
+                            fontSize: '0.76rem',
+                            cursor: included ? 'default' : 'pointer',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={livePricing.entitlements.gladiH1}
+                            disabled={included}
+                            onChange={(e) =>
+                              setPackageOptions((prev) => ({
+                                ...prev,
+                                gladi: e.target.checked,
+                              }))
+                            }
+                          />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>
+                              Sesi Gladi Bersih H-1
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                              {included
+                                ? 'Sudah termasuk'
+                                : `+${formatRupiah(GLADI_H1)}`}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })()}
+
+                    {/* Supervisor */}
+                    {(() => {
+                      const included =
+                        isPresetPackageCode(selectedPackageCode) &&
+                        WEDDING_PACKAGE_CATALOG[selectedPackageCode]
+                          .includedSupervisor === 1;
+                      return (
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            background: '#fff',
+                            fontSize: '0.76rem',
+                            cursor: included ? 'default' : 'pointer',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              livePricing.entitlements.supervisorCount === 1
+                            }
+                            disabled={included}
+                            onChange={(e) =>
+                              setPackageOptions((prev) => ({
+                                ...prev,
+                                supervisor: e.target.checked ? 1 : 0,
+                              }))
+                            }
+                          />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>
+                              Supervisor Lapangan
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                              {included
+                                ? 'Sudah termasuk'
+                                : `+${formatRupiah(SUPERVISOR)}`}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Live Total Bar & Continue to Step 2 Button */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.73rem', color: '#166534' }}>
+                      Total Estimasi ({getPackageDisplayLabel(selectedPackageCode)}
+                      )
+                    </div>
+                    <div
+                      data-testid="order-modal-live-total"
+                      style={{
+                        fontSize: '1.15rem',
+                        fontWeight: 800,
+                        color: '#14532d',
+                      }}
+                    >
+                      {formatRupiah(livePricing.total)}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-testid="btn-order-step-next"
+                    className="irv-studio-drawer__footer-cta"
+                    style={{ width: 'auto', padding: '10px 18px' }}
+                    onClick={() => setOrderModalStep(2)}
+                  >
+                    Lanjut ke Data Pemesan →
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                data-testid="order-modal-step-2"
+                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <button
+                    type="button"
+                    data-testid="btn-order-step-back"
+                    onClick={() => setOrderModalStep(1)}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      padding: '5px 10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: '#334155',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Ubah Paket
+                  </button>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    {uploadedPhotoCount} foto simulasi terlampir
+                  </span>
+                </div>
+
+                {/* Summary of Client's Customized Data + Package Line Items */}
+                <div className="irv-studio-summary-box">
+                  <div className="irv-studio-summary-item">
+                    <span>Template &amp; Mempelai</span>
+                    <strong>
+                      {templateDisplayName} •{' '}
+                      {state.partnerOneName || 'Mempelai 1'} &amp;{' '}
+                      {state.partnerTwoName || 'Mempelai 2'}
+                    </strong>
+                  </div>
+                  <div className="irv-studio-summary-item">
+                    <span>Paket Dipilih</span>
+                    <strong>
+                      {getPackageDisplayLabel(selectedPackageCode)} (Maks.{' '}
+                      {livePricing.entitlements.maxGuests} tamu)
+                    </strong>
+                  </div>
+                  {livePricing.lineItems.map((item) => (
+                    <div
+                      key={item.code}
+                      className="irv-studio-summary-item"
+                      style={{ fontSize: '0.78rem' }}
+                    >
+                      <span>{item.label}</span>
+                      <strong>{formatRupiah(item.amount)}</strong>
+                    </div>
+                  ))}
+                  <div
+                    className="irv-studio-summary-item"
+                    style={{
+                      borderTop: '1px dashed #cbd5e1',
+                      paddingTop: '6px',
+                      marginTop: '2px',
+                    }}
+                  >
+                    <span>Total Estimasi</span>
+                    <strong style={{ color: '#0f766e', fontSize: '0.95rem' }}>
+                      {formatRupiah(livePricing.total)}{' '}
+                      <small style={{ fontWeight: 400, color: '#64748b' }}>
+                        (estimasi, final dikonfirmasi admin)
+                      </small>
+                    </strong>
+                  </div>
+                </div>
+
+                {!submittedResult ? (
+                  <form
+                    onSubmit={handleSubmitOrderToAdmin}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    {submitError && (
+                      <div
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          color: '#b91c1c',
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        ⚠️ {submitError}
+                      </div>
+                    )}
+
+                    <div className="irv-studio-field">
+                      <label className="irv-studio-label">
+                        <span>Nama Lengkap Pemesan *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        className="irv-studio-input"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        placeholder="Masukkan nama Anda"
+                      />
+                    </div>
+
+                    <div className="irv-studio-field">
+                      <label className="irv-studio-label">
+                        <span>Nomor WhatsApp Aktif *</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        className="irv-studio-input"
+                        value={clientWhatsapp}
+                        onChange={(e) => setClientWhatsapp(e.target.value)}
+                        placeholder="Contoh: 081234567890"
+                      />
+                    </div>
+
+                    <div className="irv-studio-field">
+                      <label className="irv-studio-label">
+                        <span>Catatan Tambahan untuk Admin (Opsional)</span>
+                      </label>
+                      <textarea
+                        className="irv-studio-textarea"
+                        rows={2}
+                        value={clientNotes}
+                        onChange={(e) => setClientNotes(e.target.value)}
+                        placeholder="Contoh: Mohon gunakan lagu instrumental Jawa / request warna amplop..."
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="irv-studio-drawer__footer-cta"
+                      style={{ marginTop: '4px' }}
+                    >
+                      {submitting
+                        ? 'Menyimpan ke Dashboard Admin...'
+                        : '🚀 Simpan Draf & Lanjut ke WhatsApp Admin'}
+                    </button>
+                  </form>
+                ) : submittedResult.savedToServer ? (
+                  <div className="irv-studio-success-box">
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      ✅ Draf Undangan Anda Berhasil Disiapkan!
+                    </div>
+                    <div style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>
+                      Kode Draf Dashboard Super Admin:{' '}
+                      <strong
+                        style={{
+                          background: '#ffffff',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #6ee7b7',
+                        }}
+                      >
+                        #{submittedResult.referenceCode}
+                      </strong>
+                      <br />
+                      Data pernikahan, paket, &amp; foto Anda telah tersimpan
+                      otomatis di Dashboard Super Admin IRVITE dengan status
+                      DRAFT.
+                    </div>
+
+                    <a
+                      href={submittedResult.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="irv-studio-drawer__footer-cta"
+                      style={{
+                        textAlign: 'center',
+                        textDecoration: 'none',
+                        display: 'block',
+                      }}
+                    >
+                      💬 Buka Chat WhatsApp Admin Sekarang →
+                    </a>
+                  </div>
+                ) : (
+                  <div
+                    data-testid="draft-save-failed-box"
+                    style={{
+                      padding: '14px',
+                      borderRadius: '10px',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      color: '#991b1b',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      ⚠️ Draf belum tersimpan di server
+                    </div>
+                    <div style={{ fontSize: '0.82rem', lineHeight: 1.5 }}>
+                      Kami tidak dapat menyimpan draf Anda ke server saat ini.
+                      Anda dapat mencoba menyimpan ulang atau tetap menghubungi
+                      Admin via WhatsApp dengan rincian paket Anda (Kode
+                      referensi sementara:{' '}
+                      <strong>#{submittedResult.referenceCode}</strong>).
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSubmittedResult(null)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #dc2626',
+                          background: '#ffffff',
+                          color: '#b91c1c',
+                          fontWeight: 600,
+                          fontSize: '0.82rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ↻ Coba Simpan Ulang
+                      </button>
+                      <a
+                        href={submittedResult.whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="irv-studio-drawer__footer-cta"
+                        style={{
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          display: 'inline-block',
+                          width: 'auto',
+                          padding: '8px 16px',
+                        }}
+                      >
+                        💬 Tetap Lanjut via WhatsApp →
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
