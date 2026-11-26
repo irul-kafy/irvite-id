@@ -14,6 +14,7 @@ import { detectSignature } from '../media/media-signature';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatePublicDraftDto } from './dto/create-public-draft.dto';
+import { buildOrderPricingSnapshot } from '../orders/packages';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
@@ -1429,6 +1430,11 @@ export class EventsService {
       select: this.selectSafeEvent(),
     });
 
+    const pricingSnapshot = buildOrderPricingSnapshot(
+      dto.packageCode,
+      dto.options,
+    );
+
     try {
       await this.prisma.order.create({
         data: {
@@ -1436,8 +1442,11 @@ export class EventsService {
           referenceCode,
           clientName: clientNameClean,
           clientWhatsapp: clientWaClean,
-          packageCode: 'GOLD',
-          priceAmount: 199000,
+          packageCode: pricingSnapshot.packageCode,
+          priceAmount: pricingSnapshot.priceAmount,
+          pricingVersion: pricingSnapshot.pricingVersion,
+          options:
+            pricingSnapshot.options as unknown as Prisma.InputJsonValue,
           status: 'DRAFT',
           notes: clientNotesClean || null,
         },

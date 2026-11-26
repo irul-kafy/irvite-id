@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { GuestsService } from './guests.service';
 import { PrismaService } from '../database/prisma.service';
@@ -17,6 +17,9 @@ describe('GuestsService', () => {
   const mockPrisma = {
     event: {
       findFirst: jest.fn(),
+    },
+    order: {
+      findUnique: jest.fn(),
     },
     guest: {
       create: jest.fn(),
@@ -269,6 +272,24 @@ describe('GuestsService', () => {
       expect(sql).toContain('`old_phone_number`');
       expect(sql).toContain("REPLACE(TRIM(`phone_number`), ' ', ''), '-', ''");
       expect(sql).toContain('PHONE_DEDUP_CLEARED');
+    });
+
+    it('enforces maxGuests entitlement from event order in GuestsService.create', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-id' });
+      mockPrisma.order.findUnique.mockResolvedValue({
+        packageCode: 'SACRED',
+        options: {
+          entitlements: { maxGuests: 50 },
+        },
+      });
+      mockPrisma.guest.count.mockResolvedValue(50);
+
+      await expect(
+        service.create('event-id', 'user-id', Role.ADMIN, {
+          name: 'Tamu ke-51',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.guest.create).not.toHaveBeenCalled();
     });
   });
 });

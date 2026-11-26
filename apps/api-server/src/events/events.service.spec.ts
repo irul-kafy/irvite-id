@@ -42,10 +42,19 @@ describe('EventsService', () => {
             },
             template: {
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
+            },
+            user: {
+              findFirst: jest.fn(),
+            },
+            order: {
+              create: jest.fn(),
+              findUnique: jest.fn(),
             },
             media: {
               findMany: jest.fn(),
               count: jest.fn(),
+              create: jest.fn(),
             },
             wish: {
               create: jest.fn(),
@@ -1300,6 +1309,112 @@ describe('EventsService', () => {
       await expect(
         service.deleteWish('event-1', 'nonexistent', 'user-1', Role.ADMIN),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('createPublicDraft package pricing & options snapshot', () => {
+    beforeEach(() => {
+      (
+        prisma.template as unknown as { findFirst: jest.Mock }
+      ).findFirst.mockResolvedValue({
+        id: 'tpl-1',
+        name: 'Ivory Garden',
+        themeCode: 'IVORY_GARDEN',
+        status: 'AVAILABLE',
+      });
+      (
+        prisma.user as unknown as { findFirst: jest.Mock }
+      ).findFirst.mockResolvedValue({
+        id: 'super-admin-1',
+      });
+      (prisma.event.create as jest.Mock).mockResolvedValue({
+        id: 'ev-draft-1',
+        slug: 'romeo-juliet-123456',
+        title: 'Pernikahan Romeo & Juliet',
+        status: 'DRAFT',
+      });
+      (
+        prisma.order as unknown as { create: jest.Mock }
+      ).create.mockResolvedValue({
+        id: 'ord-draft-1',
+      });
+    });
+
+    it('defaults to UNSELECTED with priceAmount 0 when packageCode is omitted', async () => {
+      await service.createPublicDraft({
+        themeCode: 'IVORY_GARDEN',
+        clientName: 'Romeo',
+        clientWhatsapp: '081234567890',
+        content: {
+          partnerOneName: 'Romeo',
+          partnerTwoName: 'Juliet',
+        },
+      });
+
+      const orderCreateMock = (prisma.order as unknown as { create: jest.Mock })
+        .create;
+      expect(orderCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            packageCode: 'UNSELECTED',
+            priceAmount: 0,
+            pricingVersion: 1,
+            options: expect.objectContaining({
+              computedTotal: 0,
+              entitlements: expect.objectContaining({
+                maxGuests: 50,
+              }),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('computes server-side price and snapshot for preset packages and CUSTOM options, ignoring any client price tamper', async () => {
+      const tamperedDto = {
+        themeCode: 'IVORY_GARDEN',
+        clientName: 'Romeo',
+        clientWhatsapp: '081234567890',
+        packageCode: 'SIGNATURE' as const,
+        priceAmount: 1000,
+        total: 1000,
+        options: {
+          extraPetugas: 1,
+          extraHoursPerPetugas: 2,
+          capacityTier: 600 as const,
+        },
+        content: {
+          partnerOneName: 'Romeo',
+          partnerTwoName: 'Juliet',
+        },
+      };
+
+      await service.createPublicDraft(tamperedDto);
+
+      // SIGNATURE (499_000) + capacity upgrade 300->600 (449_000 - 299_000 = 150_000)
+      // + 1 extra petugas (80_000) + (2+1=3 petugas * 2 extra hours * 15_000 = 90_000) = 819_000
+      const orderCreateMock = (prisma.order as unknown as { create: jest.Mock })
+        .create;
+      expect(orderCreateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            packageCode: 'SIGNATURE',
+            priceAmount: 819_000,
+            pricingVersion: 1,
+            options: expect.objectContaining({
+              computedTotal: 819_000,
+              entitlements: expect.objectContaining({
+                maxGuests: 600,
+                petugasCount: 3,
+                extraHoursPerPetugas: 2,
+                akrilikQris: true,
+                gladiH1: true,
+                googleSheetLive: true,
+              }),
+            }),
+          }),
+        }),
+      );
     });
   });
 });

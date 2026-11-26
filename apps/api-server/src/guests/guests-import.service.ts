@@ -22,6 +22,7 @@ import {
 } from './utils/guest-category';
 import { ConfirmImportDto } from './dto/confirm-import.dto';
 import { ImportReportDto } from './dto/import-report.dto';
+import { resolveOrderMaxGuests } from '../orders/packages';
 
 export interface PreviewResult {
   totalRows: number;
@@ -292,6 +293,16 @@ export class GuestsImportService {
 
     // Re-query database to ensure fresh duplicate check at moment of confirm
     const existingGuests = await this.getExistingGuests(eventId);
+    const eventOrder = await this.prisma.order?.findUnique?.({
+      where: { eventId },
+      select: { packageCode: true, options: true },
+    });
+    const maxGuests = resolveOrderMaxGuests(eventOrder);
+    if (maxGuests !== null && existingGuests.length >= maxGuests) {
+      throw new BadRequestException(
+        `Batas kapasitas tamu undangan untuk paket acara ini (${maxGuests} tamu) telah tercapai. Silakan upgrade kapasitas paket terlebih dahulu.`,
+      );
+    }
     const normalizedRowsForDup = dto.rows.map((r) => {
       const pNorm = r.phoneNumber ? normalizePhoneNumber(r.phoneNumber) : null;
       return {
@@ -446,7 +457,17 @@ export class GuestsImportService {
         continue;
       }
 
-      // 7. Atomic transaction: Guest + Invitation
+      // 7. Check package maxGuests entitlement before inserting
+      if (
+        maxGuests !== null &&
+        existingGuests.length + importedCount >= maxGuests
+      ) {
+        throw new BadRequestException(
+          `Impor melebihi batas kapasitas tamu paket acara ini (${maxGuests} tamu). Silakan upgrade kapasitas paket atau kurangi jumlah baris impor.`,
+        );
+      }
+
+      // 8. Atomic transaction: Guest + Invitation
       try {
         const txResult = await this.prisma.$transaction(async (tx) => {
           const guest = await tx.guest.create({

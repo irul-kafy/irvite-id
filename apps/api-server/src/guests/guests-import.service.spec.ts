@@ -16,6 +16,9 @@ describe('GuestsImportService', () => {
     event: {
       findFirst: jest.fn(),
     },
+    order: {
+      findUnique: jest.fn(),
+    },
     guest: {
       findMany: jest.fn(),
       create: jest.fn(),
@@ -381,6 +384,37 @@ describe('GuestsImportService', () => {
       expect(result.skippedDuplicateCount).toBe(2);
       expect(result.failedCount).toBe(0);
       expect(result.results.length).toBe(150);
+    });
+
+    it('rejects confirmImport when importing guests would exceed order maxGuests entitlement', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'ev-1' });
+      mockPrisma.order.findUnique.mockResolvedValue({
+        packageCode: 'SACRED',
+        options: { entitlements: { maxGuests: 50 } },
+      });
+      mockPrisma.guest.findMany.mockResolvedValue(
+        Array.from({ length: 49 }, (_, i) => ({
+          id: `g-${i}`,
+          name: `Tamu ${i}`,
+          phoneNumber: null,
+          email: null,
+        })),
+      );
+      mockPrisma.$transaction.mockImplementation(async (cb: any) => {
+        const tx = {
+          guest: { create: jest.fn().mockResolvedValue({ id: 'g-50' }) },
+        };
+        return cb(tx);
+      });
+
+      await expect(
+        service.confirmImport('ev-1', 'u-1', Role.ADMIN, {
+          rows: [
+            { sourceRow: 2, name: 'Tamu ke-50', category: 'REGULAR' },
+            { sourceRow: 3, name: 'Tamu ke-51 Overflow', category: 'REGULAR' },
+          ],
+        }),
+      ).rejects.toThrow(/kapasitas tamu/i);
     });
   });
 

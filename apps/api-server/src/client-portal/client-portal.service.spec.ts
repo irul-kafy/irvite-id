@@ -495,6 +495,55 @@ describe('ClientPortalService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('enforces order package maxGuests entitlement in ClientPortalService.addGuest while keeping 2000 for events without an order', async () => {
+      prisma.event.findUnique.mockResolvedValue({
+        ...mockEvent,
+        order: {
+          packageCode: 'SACRED',
+          options: { entitlements: { maxGuests: 50 } },
+        },
+      });
+      prisma.guest.count.mockResolvedValue(50);
+
+      await expect(
+        service.addGuest(mockEvent.id, storedClientKey, {
+          name: 'Tamu ke-51',
+          maxPax: 1,
+        }),
+      ).rejects.toThrow(/50 tamu/);
+
+      // Event without an order allows > 50 guests up to MAX_PORTAL_GUESTS_PER_EVENT (2000)
+      prisma.event.findUnique.mockResolvedValue({
+        ...mockEvent,
+        order: null,
+      });
+      prisma.guest.count.mockResolvedValue(50);
+      prisma.guest.create.mockResolvedValue({
+        id: 'g-51',
+        name: 'Tamu Tanpa Order ke-51',
+        category: 'REGULAR',
+        phoneNumber: null,
+        email: null,
+        tableNumber: null,
+        maxPax: 1,
+        customGreeting: null,
+        createdAt: new Date(),
+      });
+      prisma.invitation.create.mockResolvedValue({
+        id: 'inv-51',
+        uniqueCode: 'code-51',
+        status: InvitationStatus.PENDING,
+        rsvpPax: null,
+        updatedAt: new Date(),
+      });
+
+      const created = await service.addGuest(mockEvent.id, storedClientKey, {
+        name: 'Tamu Tanpa Order ke-51',
+        maxPax: 1,
+      });
+      expect(created.id).toBe('g-51');
+    });
+
     it('rejects write operations when event is ARCHIVED or expired', async () => {
       prisma.event.findUnique.mockResolvedValueOnce({
         ...mockEvent,

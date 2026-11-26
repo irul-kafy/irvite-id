@@ -14,6 +14,7 @@ import { ReportsService } from '../reports/reports.service';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { parseOrThrowGuestCategory } from './utils/guest-category';
 import { normalizePhoneNumber } from './utils/phone-normalizer';
+import { resolveOrderMaxGuests } from '../orders/packages';
 
 @Injectable()
 export class GuestsService {
@@ -117,6 +118,22 @@ export class GuestsService {
     createGuestDto: CreateGuestDto,
   ) {
     await this.assertEventAccessible(eventId, currentUserId, role);
+
+    const eventOrder = await this.prisma.order?.findUnique?.({
+      where: { eventId },
+      select: { packageCode: true, options: true },
+    });
+    const maxGuests = resolveOrderMaxGuests(eventOrder);
+    if (maxGuests !== null) {
+      const currentGuestCount = await this.prisma.guest.count({
+        where: { eventId, isWalkIn: false },
+      });
+      if (currentGuestCount >= maxGuests) {
+        throw new BadRequestException(
+          `Batas kapasitas tamu undangan untuk paket acara ini (${maxGuests} tamu) telah tercapai. Silakan upgrade kapasitas paket terlebih dahulu.`,
+        );
+      }
+    }
 
     const data: Prisma.GuestUncheckedCreateInput = {
       eventId,

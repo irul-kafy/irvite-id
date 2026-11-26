@@ -279,6 +279,8 @@ model Order {
   clientWhatsapp      String      @map("client_whatsapp")
   packageCode         String      @default("GOLD") @map("package_code")
   priceAmount         Int         @default(199000) @map("price_amount")
+  options             Json?       @map("options")
+  pricingVersion      Int         @default(1) @map("pricing_version")
   status              OrderStatus @default(DRAFT)
   paidAt              DateTime?   @map("paid_at")
   paymentProofMediaId String?     @map("payment_proof_media_id")

@@ -17,6 +17,7 @@ import {
 } from './dto/client-portal.dto';
 import { parseOrThrowGuestCategory } from '../guests/utils/guest-category';
 import { normalizePhoneNumber } from '../guests/utils/phone-normalizer';
+import { resolveOrderMaxGuests } from '../orders/packages';
 
 export const MAX_PORTAL_GUESTS_PER_EVENT = 2000;
 export const MAX_PORTAL_PAX_PER_GUEST = 20;
@@ -407,12 +408,30 @@ export class ClientPortalService {
       );
     }
 
+    const eventOrder =
+      (
+        event as {
+          order?: { packageCode?: string | null; options?: unknown } | null;
+        }
+      ).order !== undefined
+        ? (
+            event as {
+              order?: { packageCode?: string | null; options?: unknown } | null;
+            }
+          ).order
+        : await this.prisma.order?.findUnique?.({
+            where: { eventId },
+            select: { packageCode: true, options: true },
+          });
+    const maxAllowedGuests =
+      resolveOrderMaxGuests(eventOrder) ?? MAX_PORTAL_GUESTS_PER_EVENT;
+
     const currentGuestsCount = await this.prisma.guest.count({
       where: { eventId },
     });
-    if (currentGuestsCount >= MAX_PORTAL_GUESTS_PER_EVENT) {
+    if (currentGuestsCount >= maxAllowedGuests) {
       throw new BadRequestException(
-        `Batas maksimum tamu per acara (${MAX_PORTAL_GUESTS_PER_EVENT} tamu) telah tercapai.`,
+        `Batas maksimum tamu per acara (${maxAllowedGuests} tamu) telah tercapai.`,
       );
     }
 
