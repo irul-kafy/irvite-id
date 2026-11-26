@@ -32,6 +32,12 @@ import {
   UpdateTicketingEventDto,
   UpdateTicketTierDto,
 } from './dto/admin-ticketing.dto';
+import {
+  CreateEoInquiryDto,
+  ListEoInquiriesQueryDto,
+  UpdateEoInquiryStatusDto,
+  VerifyOrderAccessTokenDto,
+} from './dto/eo-inquiry.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -74,6 +80,7 @@ export class TicketingController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 20, ttl: seconds(60) } })
   @Get(['orders/:orderCode', 'public/orders/:orderCode'])
   getPublicOrderByCode(
     @Param('orderCode') orderCode: string,
@@ -82,8 +89,66 @@ export class TicketingController {
   ) {
     return this.ticketingService.getPublicOrderByCode(
       orderCode,
-      queryToken || headerToken,
+      headerToken || queryToken,
     );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: seconds(60) } })
+  @Post([
+    'orders/:orderCode',
+    'public/orders/:orderCode',
+    'orders/:orderCode/verify',
+  ])
+  verifyPublicOrderByPost(
+    @Param('orderCode') orderCode: string,
+    @Body() body?: VerifyOrderAccessTokenDto,
+    @Headers('x-access-token') headerToken?: string,
+    @Query('accessToken') queryToken?: string,
+  ) {
+    return this.ticketingService.getPublicOrderByCode(
+      orderCode,
+      headerToken || body?.accessToken || queryToken,
+    );
+  }
+
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: seconds(600) } })
+  @Post(['public/inquiries', 'inquiries/public'])
+  createPublicEoInquiry(@Body() dto: CreateEoInquiryDto) {
+    return this.ticketingService.createEoInquiry(dto);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: seconds(60) } })
+  @Get(['public/inquiries/:code', 'inquiries/public/:code'])
+  getPublicEoInquiryByCode(
+    @Param('code') code: string,
+    @Query('accessToken') queryToken?: string,
+    @Headers('x-access-token') headerToken?: string,
+  ) {
+    return this.ticketingService.getPublicEoInquiryByCode(
+      code,
+      headerToken || queryToken,
+    );
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get(['inquiries', 'admin/inquiries'])
+  listAdminEoInquiries(@Query() query: ListEoInquiriesQueryDto) {
+    return this.ticketingService.listAdminEoInquiries(query);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Patch(['inquiries/:id/status', 'admin/inquiries/:id/status'])
+  updateEoInquiryStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateEoInquiryStatusDto,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    return this.ticketingService.updateEoInquiryStatus(id, dto, user);
   }
 
   @Public()

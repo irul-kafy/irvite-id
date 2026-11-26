@@ -70,7 +70,9 @@ interface MockPrisma {
   };
   eoInquiry: {
     create: jest.Mock;
+    findUnique: jest.Mock;
     findMany: jest.Mock;
+    update: jest.Mock;
     count: jest.Mock;
   };
   paymentEvent: {
@@ -262,7 +264,9 @@ describe('TicketingService (Prisma single source of truth)', () => {
       },
       eoInquiry: {
         create: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn(),
         count: jest.fn().mockResolvedValue(0),
       },
       paymentEvent: {
@@ -1048,5 +1052,191 @@ describe('TicketingService (Prisma single source of truth)', () => {
         { id: activeEvent.userId, email: 'admin@irvite.id', role: Role.ADMIN },
       ),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('formats WIB time and date using Intl.DateTimeFormat (Asia/Jakarta) accurately across midnight UTC boundaries', () => {
+    // 1. 2026-12-01T16:45:00.000Z is 23:45 WIB on 01 Des 2026 (15 minutes before midnight WIB)
+    const beforeMidnightWib = new Date('2026-12-01T16:45:00.000Z');
+    // 2. 2026-12-01T17:15:00.000Z is 00:15 WIB on 02 Des 2026 (15 minutes after midnight WIB)
+    const afterMidnightWib = new Date('2026-12-01T17:15:00.000Z');
+
+    expect(service.formatWibDateLabel(beforeMidnightWib)).toBe('01 Des 2026');
+    expect(service.formatWibDateLabel(afterMidnightWib)).toBe('02 Des 2026');
+    expect(
+      service.formatWibTimeRange(beforeMidnightWib, afterMidnightWib),
+    ).toBe('23:45 - 00:15 WIB');
+    expect(service.formatWibTimeRange(beforeMidnightWib, null)).toBe(
+      '23:45 WIB',
+    );
+  });
+
+  it('enforces createTicketingEvent validation: mandatory title/organizerName/city/venue/future startAt/tiers and tier price/quota/maxPerOrder/salesWindow rules without fabricated defaults', async () => {
+    const validStart = new Date(Date.now() + 7 * 86400_000).toISOString();
+    const validTier = {
+      name: 'Tiket Reguler',
+      price: 75000,
+      quota: 100,
+      maxPerOrder: 4,
+    };
+
+    // Rejects missing organizerName or city
+    await expect(
+      service.createTicketingEvent({
+        title: 'Acara Uji',
+        organizerName: '',
+        city: 'Bandung',
+        startAt: validStart,
+        venueName: 'Gedung Merdeka',
+        tiers: [validTier],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    await expect(
+      service.createTicketingEvent({
+        title: 'Acara Uji',
+        organizerName: 'Komunitas Musik',
+        city: '   ',
+        startAt: validStart,
+        venueName: 'Gedung Merdeka',
+        tiers: [validTier],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    // Rejects startAt in the past
+    await expect(
+      service.createTicketingEvent({
+        title: 'Acara Masa Lalu',
+        organizerName: 'Komunitas Musik',
+        city: 'Bandung',
+        startAt: new Date(Date.now() - 3600_000).toISOString(),
+        venueName: 'Gedung Merdeka',
+        tiers: [validTier],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    // Rejects empty tiers (never fabricates "Tiket reguler Rp 50.000")
+    await expect(
+      service.createTicketingEvent({
+        title: 'Acara Tanpa Tier',
+        organizerName: 'Komunitas Musik',
+        city: 'Bandung',
+        startAt: validStart,
+        venueName: 'Gedung Merdeka',
+        tiers: [],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    // Rejects tier with salesEndAt <= salesStartAt
+    const salesStart = new Date(Date.now() + 2 * 86400_000).toISOString();
+    const salesEndBeforeStart = new Date(
+      Date.now() + 1 * 86400_000,
+    ).toISOString();
+    await expect(
+      service.createTicketingEvent({
+        title: 'Acara Jendela Salah',
+        organizerName: 'Komunitas Musik',
+        city: 'Bandung',
+        startAt: validStart,
+        venueName: 'Gedung Merdeka',
+        tiers: [
+          {
+            ...validTier,
+            salesStartAt: salesStart,
+            salesEndAt: salesEndBeforeStart,
+          },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('handles EO inquiry honeypot (200 fake response without DB write), saves valid inquiry with accessTokenHash, and updates admin review columns without overwriting applicant notes', async () => {
+    // 1. Honeypot "website" filled -> returns 200-equivalent fake response and does NOT call prisma.eoInquiry.create
+    const botRes = await service.createEoInquiry({
+      organizerName: 'Bot Spam Corp',
+      eventName: 'Bot Event',
+      category: 'Konser Musik',
+      estimatedAudience: '100 - 200',
+      contactName: 'Bot Runner',
+      contactWhatsapp: '081234567890',
+      website: 'https://spam-bot.example.com',
+    });
+    expect(botRes.inquiryCode).toMatch(/^INQ-/);
+    expect(botRes.accessToken.length).toBeGreaterThanOrEqual(24);
+    expect(botRes.status).toBe('PENDING');
+    expect(mockPrisma.eoInquiry.create).not.toHaveBeenCalled();
+
+    // 2. Valid submission (empty website) -> persists to eo_inquiries with normalized WhatsApp and accessTokenHash
+    mockPrisma.eoInquiry.create.mockImplementationOnce(
+      (args: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          id: 'inq-uuid-001',
+          ...args.data,
+          adminNotes: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+    );
+
+    const realRes = await service.createEoInquiry({
+      organizerName: 'Kolektif Suara Senja',
+      eventName: 'Panggung Harmoni 2027',
+      category: 'Konser Musik',
+      estimatedAudience: '500 - 1000',
+      contactName: 'Raka Pratama',
+      contactEmail: 'raka@suarasenja.id',
+      contactWhatsapp: '081234567890',
+      notes: 'Catatan asli dari pemohon EO',
+      website: '',
+    });
+    expect(realRes.inquiryCode).toMatch(/^INQ-/);
+    expect(realRes.status).toBe('PENDING');
+    expect(mockPrisma.eoInquiry.create).toHaveBeenCalledTimes(1);
+
+    const createdData = (
+      mockPrisma.eoInquiry.create.mock.calls[0] as Array<{
+        data: Record<string, unknown>;
+      }>
+    )[0].data;
+    expect(createdData.contactWhatsapp).toBe('6281234567890');
+    expect(createdData.notes).toBe('Catatan asli dari pemohon EO');
+    expect(typeof createdData.accessTokenHash).toBe('string');
+
+    // 3. Admin PATCH status updates adminNotes, reviewedBy, reviewedAt while keeping applicant's notes intact
+    mockPrisma.eoInquiry.findUnique.mockResolvedValueOnce({
+      id: 'inq-uuid-001',
+      ...createdData,
+      adminNotes: null,
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockPrisma.eoInquiry.update.mockImplementationOnce(
+      (args: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          id: 'inq-uuid-001',
+          ...createdData,
+          ...args.data,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+    );
+
+    const updated = await service.updateEoInquiryStatus(
+      'inq-uuid-001',
+      {
+        status: 'APPROVED',
+        adminNotes: 'Disetujui oleh tim kurasi IRVITE',
+      },
+      { id: 'usr-admin-001', email: 'admin@irvite.id', role: Role.ADMIN },
+    );
+
+    expect(updated.status).toBe('APPROVED');
+    expect(updated.notes).toBe('Catatan asli dari pemohon EO');
+    expect(updated.adminNotes).toBe('Disetujui oleh tim kurasi IRVITE');
+    expect(updated.reviewedBy).toBe('usr-admin-001');
+    expect(updated.reviewedAt).toBeTruthy();
   });
 });

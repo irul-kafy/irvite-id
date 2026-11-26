@@ -114,9 +114,9 @@ export class UpdateTicketTierDto {
 }
 
 export class CreateTicketingEventDto {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
+  @IsString({ message: 'Judul acara wajib berupa teks.' })
+  @IsNotEmpty({ message: 'Judul acara wajib diisi.' })
+  @MinLength(3, { message: 'Judul acara minimal 3 karakter.' })
   @MaxLength(191)
   title!: string;
 
@@ -130,6 +130,12 @@ export class CreateTicketingEventDto {
   @MaxLength(80)
   category?: string;
 
+  @IsString({ message: 'Nama penyelenggara (organizerName) wajib diisi.' })
+  @IsNotEmpty({ message: 'Nama penyelenggara (organizerName) wajib diisi.' })
+  @MinLength(2, { message: 'Nama penyelenggara minimal 2 karakter.' })
+  @MaxLength(150)
+  organizerName!: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(150)
@@ -137,19 +143,19 @@ export class CreateTicketingEventDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(150)
-  organizerName?: string;
-
-  @IsOptional()
-  @IsString()
   eventDate?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  @MaxLength(40)
+  eventTime?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Format tanggal mulai (startAt) tidak valid.' })
   startAt?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDateString({}, { message: 'Format tanggal selesai (endAt) tidak valid.' })
   endAt?: string;
 
   @IsOptional()
@@ -162,10 +168,11 @@ export class CreateTicketingEventDto {
   @MaxLength(191)
   venueName?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsString({ message: 'Kota acara (city) wajib diisi.' })
+  @IsNotEmpty({ message: 'Kota acara (city) wajib diisi.' })
+  @MinLength(2, { message: 'Nama kota minimal 2 karakter.' })
   @MaxLength(120)
-  city?: string;
+  city!: string;
 
   @IsOptional()
   @IsString()
@@ -226,11 +233,10 @@ export class CreateTicketingEventDto {
   @IsIn(['DRAFT', 'REVIEW', 'PUBLISHED', 'ENDED', 'CANCELLED'])
   ticketStatus?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ENDED' | 'CANCELLED';
 
-  @IsOptional()
-  @IsArray()
+  @IsArray({ message: 'Daftar kategori tiket (tiers) wajib diisi.' })
   @ValidateNested({ each: true })
   @Type(() => CreateTicketTierDto)
-  tiers?: CreateTicketTierDto[];
+  tiers!: CreateTicketTierDto[];
 }
 
 export class UpdateTicketingEventDto {
@@ -251,6 +257,15 @@ export class UpdateTicketingEventDto {
   organizerName?: string;
 
   @IsOptional()
+  @IsString()
+  eventDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  eventTime?: string;
+
+  @IsOptional()
   @IsDateString()
   startAt?: string;
 
@@ -265,8 +280,18 @@ export class UpdateTicketingEventDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(191)
+  venueName?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(120)
   city?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  locationDetails?: string;
 
   @IsOptional()
   @IsString()

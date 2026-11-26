@@ -17,15 +17,19 @@ export default function ClientPartnershipPage() {
   const [orgName, setOrgName] = useState<string>('');
   const [eventName, setEventName] = useState<string>('');
   const [attendeeCount, setAttendeeCount] = useState<string>('200 - 500');
+  const [contactName, setContactName] = useState<string>('');
   const [organizerWa, setOrganizerWa] = useState<string>('');
   const [contactEmail, setContactEmail] = useState<string>('');
   const [eventCategory, setEventCategory] = useState<string>('Konser Musik');
   const [notes, setNotes] = useState<string>('');
+  const [websiteHoneypot, setWebsiteHoneypot] = useState<string>('');
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitResult, setSubmitResult] = useState<{
     inquiryCode: string;
+    accessToken?: string;
+    status?: string;
     message: string;
   } | null>(null);
 
@@ -43,9 +47,11 @@ export default function ClientPartnershipPage() {
           eventName: eventName.trim(),
           category: eventCategory,
           estimatedAudience: attendeeCount,
+          contactName: contactName.trim() || orgName.trim(),
           contactEmail: contactEmail.trim() || undefined,
           contactWhatsapp: organizerWa.trim(),
           notes: notes.trim() || undefined,
+          website: websiteHoneypot,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -57,6 +63,8 @@ export default function ClientPartnershipPage() {
       }
       setSubmitResult({
         inquiryCode: data.inquiryCode,
+        accessToken: data.accessToken,
+        status: data.status || 'PENDING',
         message:
           data.message ||
           'Pengajuan acara berhasil dikirim. Tim IRVITE akan menyiapkan dan mengelola halaman penjualan tiket Anda.',
@@ -477,6 +485,12 @@ export default function ClientPartnershipPage() {
               <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '0.35rem' }}>
                 Kode pengajuan: {submitResult.inquiryCode}
               </strong>
+              {submitResult.accessToken && (
+                <div style={{ fontSize: '0.84rem', marginBottom: '0.35rem' }}>
+                  <strong>Token akses cek status:</strong>{' '}
+                  <code>{submitResult.accessToken}</code>
+                </div>
+              )}
               <p style={{ margin: '0 0 0.85rem 0', fontSize: '0.88rem' }}>
                 {submitResult.message}
               </p>
@@ -486,7 +500,9 @@ export default function ClientPartnershipPage() {
                   setSubmitResult(null);
                   setOrgName('');
                   setEventName('');
+                  setContactName('');
                   setNotes('');
+                  setWebsiteHoneypot('');
                 }}
                 style={{
                   padding: '0.55rem 1rem',
@@ -629,14 +645,14 @@ export default function ClientPartnershipPage() {
                       marginBottom: '0.3rem',
                     }}
                   >
-                    Nomor WhatsApp penanggung jawab
+                    Nama penanggung jawab
                   </label>
                   <input
-                    type="tel"
+                    type="text"
                     required
-                    value={organizerWa}
-                    onChange={(e) => setOrganizerWa(e.target.value)}
-                    placeholder="0812xxxxxxxx"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="Contoh: Raka Pratama"
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
@@ -656,13 +672,14 @@ export default function ClientPartnershipPage() {
                       marginBottom: '0.3rem',
                     }}
                   >
-                    Alamat email penanggung jawab (opsional)
+                    Nomor WhatsApp penanggung jawab
                   </label>
                   <input
-                    type="email"
-                    value={contactEmail}
-                    onChange={(e) => setContactEmail(e.target.value)}
-                    placeholder="kontak@komunitas.id"
+                    type="tel"
+                    required
+                    value={organizerWa}
+                    onChange={(e) => setOrganizerWa(e.target.value)}
+                    placeholder="0812xxxxxxxx"
                     style={{
                       width: '100%',
                       padding: '0.65rem 0.85rem',
@@ -672,6 +689,54 @@ export default function ClientPartnershipPage() {
                     }}
                   />
                 </div>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    marginBottom: '0.3rem',
+                  }}
+                >
+                  Alamat email penanggung jawab (opsional)
+                </label>
+                <input
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="kontak@komunitas.id"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: 'var(--tkt-radius-sm)',
+                    border: '1px solid var(--tkt-border-strong)',
+                    fontSize: '0.88rem',
+                  }}
+                />
+              </div>
+
+              <div
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: '-9999px',
+                  width: '1px',
+                  height: '1px',
+                  overflow: 'hidden',
+                }}
+              >
+                <label htmlFor="irv-inquiry-website">Website</label>
+                <input
+                  id="irv-inquiry-website"
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={websiteHoneypot}
+                  onChange={(e) => setWebsiteHoneypot(e.target.value)}
+                />
               </div>
 
               <div>

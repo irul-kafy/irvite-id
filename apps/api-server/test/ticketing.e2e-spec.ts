@@ -208,20 +208,23 @@ describe('Ticketing Module (e2e MySQL)', () => {
 
   async function cleanupFixtures() {
     const slugs = [pubSlug, draftSlug, otherSlug];
+    const eventFilter = {
+      OR: [{ slug: { in: slugs } }, { user: { email: adminEmail } }],
+    };
     await prisma.ticketCheckInLog.deleteMany({
-      where: { issuedTicket: { event: { slug: { in: slugs } } } },
+      where: { issuedTicket: { event: eventFilter } },
     });
     await prisma.issuedTicket.deleteMany({
-      where: { event: { slug: { in: slugs } } },
+      where: { event: eventFilter },
     });
     await prisma.ticketOrder.deleteMany({
-      where: { event: { slug: { in: slugs } } },
+      where: { event: eventFilter },
     });
     await prisma.ticketTier.deleteMany({
-      where: { event: { slug: { in: slugs } } },
+      where: { event: eventFilter },
     });
     await prisma.event.deleteMany({
-      where: { slug: { in: slugs } },
+      where: eventFilter,
     });
     await prisma.user.deleteMany({
       where: { email: adminEmail },
@@ -1294,6 +1297,284 @@ describe('Ticketing Module (e2e MySQL)', () => {
     });
     await prisma.user.deleteMany({
       where: { id: { in: [assignedStaff.id, unassignedStaff.id] } },
+    });
+  });
+
+  it('9. EO inquiries (honeypot 200 no-save, create, public status lookup with token, admin list & status PATCH preserving applicant notes, throttle), admin event create/update validation & WIB formatting near midnight, and order lookup via X-Access-Token / POST body', async () => {
+    // A. Honeypot "website" filled -> returns 200 with fake inquiryCode/accessToken/status and saves NOTHING to eo_inquiries
+    const countBeforeHoneypot = await prisma.eoInquiry.count();
+    const honeypotRes = await request(app.getHttpServer())
+      .post('/ticketing/public/inquiries')
+      .send({
+        organizerName: 'Spam Bot Organizer',
+        eventName: 'Bot Event 999',
+        category: 'Konser Musik',
+        estimatedAudience: '200 - 500',
+        contactName: 'Bot Name',
+        contactWhatsapp: '081234567890',
+        notes: 'Spam notes',
+        website: 'https://bot-trap.example.org',
+      })
+      .expect(200);
+    const honeypotBody = honeypotRes.body as {
+      inquiryCode: string;
+      accessToken: string;
+      status: string;
+    };
+    expect(honeypotBody.inquiryCode).toMatch(/^INQ-/);
+    expect(honeypotBody.accessToken.length).toBeGreaterThanOrEqual(24);
+    expect(honeypotBody.status).toBe('PENDING');
+    expect(await prisma.eoInquiry.count()).toBe(countBeforeHoneypot);
+
+    // B. Valid EO inquiry submission -> returns 200 and saves row in eo_inquiries
+    const validInqRes = await request(app.getHttpServer())
+      .post('/ticketing/public/inquiries')
+      .send({
+        organizerName: 'Komunitas Jazz Kota Tua',
+        eventName: 'Malam Harmoni Jazz 2027',
+        category: 'Konser Musik',
+        estimatedAudience: '500 - 1000',
+        contactName: 'Raka Pratama',
+        contactEmail: 'raka@jazzkotatua.id',
+        contactWhatsapp: '081299887766',
+        notes: 'Catatan asli pemohon: butuh 3 tier tiket dan gelang QR.',
+        website: '',
+      })
+      .expect(200);
+    const validInqBody = validInqRes.body as {
+      inquiryCode: string;
+      accessToken: string;
+      status: string;
+    };
+    expect(validInqBody.inquiryCode).toMatch(/^INQ-/);
+    expect(validInqBody.accessToken.length).toBeGreaterThanOrEqual(24);
+    expect(validInqBody.status).toBe('PENDING');
+
+    const dbInquiry = await prisma.eoInquiry.findUniqueOrThrow({
+      where: { inquiryCode: validInqBody.inquiryCode },
+    });
+    expect(dbInquiry.contactWhatsapp).toBe('6281299887766');
+    expect(dbInquiry.notes).toBe(
+      'Catatan asli pemohon: butuh 3 tier tiket dan gelang QR.',
+    );
+
+    // C. Public inquiry status check: 401 without token, 403 wrong token, 200 with X-Access-Token header
+    await request(app.getHttpServer())
+      .get(`/ticketing/public/inquiries/${validInqBody.inquiryCode}`)
+      .expect(401);
+
+    await request(app.getHttpServer())
+      .get(`/ticketing/public/inquiries/${validInqBody.inquiryCode}`)
+      .set('X-Access-Token', 'wrong-token-value')
+      .expect(403);
+
+    const pubInqGet = await request(app.getHttpServer())
+      .get(`/ticketing/public/inquiries/${validInqBody.inquiryCode}`)
+      .set('X-Access-Token', validInqBody.accessToken)
+      .expect(200);
+    expect((pubInqGet.body as { status: string }).status).toBe('PENDING');
+
+    // D. Admin GET /ticketing/inquiries?status=PENDING & PATCH /ticketing/inquiries/:id/status
+    // Must update admin_notes, reviewed_by, reviewed_at WITHOUT overwriting applicant's notes!
+    const adminListRes = await request(app.getHttpServer())
+      .get('/ticketing/inquiries?status=PENDING&page=1&limit=10')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const adminListBody = adminListRes.body as {
+      items: Array<{ id: string; inquiryCode: string }>;
+      total: number;
+    };
+    expect(
+      adminListBody.items.some(
+        (i) => i.inquiryCode === validInqBody.inquiryCode,
+      ),
+    ).toBe(true);
+
+    const patchInqRes = await request(app.getHttpServer())
+      .patch(`/ticketing/inquiries/${dbInquiry.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        status: 'APPROVED',
+        adminNotes: 'Disetujui oleh admin kurasi IRVITE pada tahap 1.',
+      })
+      .expect(200);
+    const patchedBody = patchInqRes.body as {
+      status: string;
+      notes: string | null;
+      adminNotes: string | null;
+      reviewedBy: string | null;
+      reviewedAt: string | null;
+    };
+    expect(patchedBody.status).toBe('APPROVED');
+    expect(patchedBody.notes).toBe(
+      'Catatan asli pemohon: butuh 3 tier tiket dan gelang QR.',
+    );
+    expect(patchedBody.adminNotes).toBe(
+      'Disetujui oleh admin kurasi IRVITE pada tahap 1.',
+    );
+    expect(patchedBody.reviewedBy).toBe(adminUserId);
+    expect(patchedBody.reviewedAt).toBeTruthy();
+
+    // Public status lookup now reflects APPROVED and adminNotes
+    const pubInqAfter = await request(app.getHttpServer())
+      .get(`/ticketing/public/inquiries/${validInqBody.inquiryCode}`)
+      .set('X-Access-Token', validInqBody.accessToken)
+      .expect(200);
+    expect(
+      (pubInqAfter.body as { status: string; adminNotes: string }).status,
+    ).toBe('APPROVED');
+    expect(
+      (pubInqAfter.body as { status: string; adminNotes: string }).adminNotes,
+    ).toBe('Disetujui oleh admin kurasi IRVITE pada tahap 1.');
+
+    // E. Admin event creation validation (rejects missing organizerName/city/tiers, past startAt, salesEndAt <= salesStartAt)
+    // and WIB time formatting near midnight UTC
+    const nearMidnightStartUtc = '2027-06-15T16:45:00.000Z'; // 23:45 WIB on 15 Jun 2027
+    const nearMidnightEndUtc = '2027-06-15T18:15:00.000Z'; // 01:15 WIB on 16 Jun 2027
+
+    await request(app.getHttpServer())
+      .post('/ticketing/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Acara Tanpa Tier',
+        organizerName: 'EO Uji',
+        city: 'Jakarta',
+        startAt: nearMidnightStartUtc,
+        venueName: 'Hall A',
+        tiers: [],
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/ticketing/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Acara Masa Lalu',
+        organizerName: 'EO Uji',
+        city: 'Jakarta',
+        startAt: '2020-01-01T10:00:00.000Z',
+        venueName: 'Hall A',
+        tiers: [{ name: 'Reguler', price: 50000, quota: 50, maxPerOrder: 4 }],
+      })
+      .expect(400);
+
+    const createdNearMidnightRes = await request(app.getHttpServer())
+      .post('/ticketing/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Konser Tengah Malam WIB',
+        organizerName: 'EO Malam Nusantara',
+        city: 'Surabaya',
+        category: 'Konser Musik',
+        startAt: nearMidnightStartUtc,
+        endAt: nearMidnightEndUtc,
+        venueName: 'Balai Pemuda Surabaya',
+        tiers: [
+          {
+            name: 'Tiket Malam',
+            price: 120000,
+            quota: 100,
+            maxPerOrder: 4,
+          },
+        ],
+      })
+      .expect(201);
+    const createdNearMidnight = createdNearMidnightRes.body as {
+      id: string;
+      dateLabel: string;
+      eventTime: string;
+      city: string;
+      organizerName: string;
+    };
+    expect(createdNearMidnight.dateLabel).toBe('15 Jun 2027');
+    expect(createdNearMidnight.eventTime).toBe('23:45 - 01:15 WIB');
+    expect(createdNearMidnight.city).toBe('Surabaya');
+    expect(createdNearMidnight.organizerName).toBe('EO Malam Nusantara');
+
+    // Admin PATCH event updates venueName, eventTime, promoFeeBps cleanly without extra-field rejection
+    const patchedEventRes = await request(app.getHttpServer())
+      .patch(`/ticketing/events/${createdNearMidnight.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        title: 'Konser Tengah Malam WIB (Revisi)',
+        venueName: 'Grand City Surabaya',
+        serviceFeeBps: 350,
+        feePayer: 'ORGANIZER',
+        promoFeeBps: 250,
+      })
+      .expect(200);
+    expect(
+      (patchedEventRes.body as { title: string; venueName: string }).title,
+    ).toBe('Konser Tengah Malam WIB (Revisi)');
+    expect(
+      (patchedEventRes.body as { title: string; venueName: string }).venueName,
+    ).toBe('Grand City Surabaya');
+
+    // F. Order lookup via X-Access-Token header and POST /ticketing/orders/:orderCode body (no token in query URL)
+    const freeTier = await prisma.ticketTier.findFirstOrThrow({
+      where: { eventId: publishedEventId, price: 0 },
+    });
+    const orderForTokenTest = await ticketingService.checkoutTicket({
+      eventSlug: pubSlug,
+      tierId: freeTier.id,
+      quantity: 1,
+      buyerName: 'Tamu Header Token',
+      buyerEmail: 'header.token@contoh-fiktif.id',
+      buyerWhatsapp: '081244445555',
+    });
+
+    const getWithHeaderRes = await request(app.getHttpServer())
+      .get(`/ticketing/orders/${orderForTokenTest.orderCode}`)
+      .set('X-Access-Token', orderForTokenTest.accessToken)
+      .expect(200);
+    expect(
+      (getWithHeaderRes.body as { order: { orderCode: string } }).order
+        .orderCode,
+    ).toBe(orderForTokenTest.orderCode);
+
+    const postWithBodyRes = await request(app.getHttpServer())
+      .post(`/ticketing/orders/${orderForTokenTest.orderCode}`)
+      .send({ accessToken: orderForTokenTest.accessToken })
+      .expect(200);
+    expect(
+      (postWithBodyRes.body as { order: { orderCode: string } }).order
+        .orderCode,
+    ).toBe(orderForTokenTest.orderCode);
+
+    // G. Inquiry throttle: 5 requests per 10 minutes (we already sent 2 above: honeypotRes + validInqRes; send 3 more -> 200, then 6th -> 429)
+    for (let i = 0; i < 3; i++) {
+      await request(app.getHttpServer())
+        .post('/ticketing/public/inquiries')
+        .send({
+          organizerName: `EO Throttle ${i}`,
+          eventName: `Acara Throttle ${i}`,
+          category: 'Workshop',
+          estimatedAudience: '100 - 200',
+          contactName: 'Raka',
+          contactWhatsapp: '081234567890',
+          website: 'https://bot-honeypot.invalid',
+        })
+        .expect(200);
+    }
+    await request(app.getHttpServer())
+      .post('/ticketing/public/inquiries')
+      .send({
+        organizerName: 'EO Throttle Ke-6',
+        eventName: 'Acara Throttle Ke-6',
+        category: 'Workshop',
+        estimatedAudience: '100 - 200',
+        contactName: 'Raka',
+        contactWhatsapp: '081234567890',
+        website: 'https://bot-honeypot.invalid',
+      })
+      .expect(429);
+
+    // Cleanup test event created in step E
+    await prisma.ticketTier.deleteMany({
+      where: { eventId: createdNearMidnight.id },
+    });
+    await prisma.event.delete({
+      where: { id: createdNearMidnight.id },
     });
   });
 });

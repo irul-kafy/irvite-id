@@ -5,28 +5,44 @@ import { isTicketingEnabled } from '@/config/features';
 const UPSTREAM_ERROR_MESSAGE =
   'Layanan server tiket sedang tidak dapat dihubungi (502). Silakan coba lagi.';
 
+function jsonWithNoReferrer(body: unknown, status: number): NextResponse {
+  const response = NextResponse.json(body, { status });
+  response.headers.set('Referrer-Policy', 'no-referrer');
+  return response;
+}
+
 export async function GET(request: NextRequest) {
   if (!isTicketingEnabled()) {
-    return NextResponse.json(
+    return jsonWithNoReferrer(
       { message: 'Layanan tiket saat ini tidak aktif di lingkungan ini.' },
-      { status: 404 },
+      404,
     );
   }
 
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug') || undefined;
   const orderCode = searchParams.get('orderCode') || undefined;
-  const accessToken = searchParams.get('accessToken') || undefined;
+  const inquiryCode = searchParams.get('inquiryCode') || undefined;
+  const accessToken =
+    request.headers.get('x-access-token') ||
+    searchParams.get('accessToken') ||
+    undefined;
   const apiBase = getInternalApiBaseUrl();
 
   try {
     let targetUrl: string;
+    const headers: Record<string, string> = {};
 
     if (orderCode) {
-      const tokenQuery = accessToken
-        ? `?accessToken=${encodeURIComponent(accessToken)}`
-        : '';
-      targetUrl = `${apiBase}/api/v1/ticketing/orders/${encodeURIComponent(orderCode)}${tokenQuery}`;
+      if (accessToken) {
+        headers['X-Access-Token'] = accessToken;
+      }
+      targetUrl = `${apiBase}/api/v1/ticketing/orders/${encodeURIComponent(orderCode)}`;
+    } else if (inquiryCode) {
+      if (accessToken) {
+        headers['X-Access-Token'] = accessToken;
+      }
+      targetUrl = `${apiBase}/api/v1/ticketing/public/inquiries/${encodeURIComponent(inquiryCode)}`;
     } else if (slug) {
       targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(slug)}`;
     } else {
@@ -41,6 +57,7 @@ export async function GET(request: NextRequest) {
 
     const upstream = await fetch(targetUrl, {
       method: 'GET',
+      headers,
       cache: 'no-store',
       signal: AbortSignal.timeout(8000),
     });
@@ -48,7 +65,7 @@ export async function GET(request: NextRequest) {
     const data = await upstream.json().catch(() => null);
     if (!upstream.ok) {
       const status = upstream.status >= 500 ? 502 : upstream.status;
-      return NextResponse.json(
+      return jsonWithNoReferrer(
         {
           message:
             data?.message ||
@@ -56,31 +73,25 @@ export async function GET(request: NextRequest) {
               ? UPSTREAM_ERROR_MESSAGE
               : 'Permintaan data tiket gagal diproses oleh server.'),
         },
-        { status },
+        status,
       );
     }
 
     if (!data) {
-      return NextResponse.json(
-        { message: UPSTREAM_ERROR_MESSAGE },
-        { status: 502 },
-      );
+      return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
     }
 
-    return NextResponse.json(data.data ?? data, { status: 200 });
+    return jsonWithNoReferrer(data.data ?? data, 200);
   } catch {
-    return NextResponse.json(
-      { message: UPSTREAM_ERROR_MESSAGE },
-      { status: 502 },
-    );
+    return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
   }
 }
 
 export async function POST(request: NextRequest) {
   if (!isTicketingEnabled()) {
-    return NextResponse.json(
+    return jsonWithNoReferrer(
       { message: 'Layanan tiket saat ini tidak aktif di lingkungan ini.' },
-      { status: 404 },
+      404,
     );
   }
 
@@ -94,14 +105,16 @@ export async function POST(request: NextRequest) {
       const accessToken = String(
         body.accessToken || body.verifier || '',
       ).trim();
-      const tokenQuery = accessToken
-        ? `?accessToken=${encodeURIComponent(accessToken)}`
-        : '';
 
       const upstream = await fetch(
-        `${apiBase}/api/v1/ticketing/orders/${encodeURIComponent(orderCode)}${tokenQuery}`,
+        `${apiBase}/api/v1/ticketing/orders/${encodeURIComponent(orderCode)}`,
         {
-          method: 'GET',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { 'X-Access-Token': accessToken } : {}),
+          },
+          body: JSON.stringify({ accessToken }),
           cache: 'no-store',
           signal: AbortSignal.timeout(8000),
         },
@@ -110,7 +123,7 @@ export async function POST(request: NextRequest) {
       const data = await upstream.json().catch(() => null);
       if (!upstream.ok) {
         const status = upstream.status >= 500 ? 502 : upstream.status;
-        return NextResponse.json(
+        return jsonWithNoReferrer(
           {
             message:
               data?.message ||
@@ -118,18 +131,53 @@ export async function POST(request: NextRequest) {
                 ? UPSTREAM_ERROR_MESSAGE
                 : 'Verifikasi pesanan gagal. Pastikan kode pesanan dan token akses sesuai.'),
           },
-          { status },
+          status,
         );
       }
 
       if (!data) {
-        return NextResponse.json(
-          { message: UPSTREAM_ERROR_MESSAGE },
-          { status: 502 },
+        return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
+      }
+
+      return jsonWithNoReferrer(data.data ?? data, 200);
+    }
+
+    if (action === 'check-inquiry') {
+      const inquiryCode = String(body.inquiryCode || body.code || '').trim();
+      const accessToken = String(
+        body.accessToken || body.verifier || '',
+      ).trim();
+
+      const upstream = await fetch(
+        `${apiBase}/api/v1/ticketing/public/inquiries/${encodeURIComponent(inquiryCode)}`,
+        {
+          method: 'GET',
+          headers: accessToken ? { 'X-Access-Token': accessToken } : {},
+          cache: 'no-store',
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+
+      const data = await upstream.json().catch(() => null);
+      if (!upstream.ok) {
+        const status = upstream.status >= 500 ? 502 : upstream.status;
+        return jsonWithNoReferrer(
+          {
+            message:
+              data?.message ||
+              (status === 502
+                ? UPSTREAM_ERROR_MESSAGE
+                : 'Gagal memeriksa status pengajuan acara.'),
+          },
+          status,
         );
       }
 
-      return NextResponse.json(data.data ?? data, { status: 200 });
+      if (!data) {
+        return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
+      }
+
+      return jsonWithNoReferrer(data.data ?? data, 200);
     }
 
     if (action === 'quote') {
@@ -151,7 +199,7 @@ export async function POST(request: NextRequest) {
       const data = await upstream.json().catch(() => null);
       if (!upstream.ok) {
         const status = upstream.status >= 500 ? 502 : upstream.status;
-        return NextResponse.json(
+        return jsonWithNoReferrer(
           {
             message:
               data?.message ||
@@ -159,49 +207,46 @@ export async function POST(request: NextRequest) {
                 ? UPSTREAM_ERROR_MESSAGE
                 : 'Gagal memuat rincian biaya tiket dari server.'),
           },
-          { status },
+          status,
         );
       }
 
       if (!data) {
-        return NextResponse.json(
-          { message: UPSTREAM_ERROR_MESSAGE },
-          { status: 502 },
-        );
+        return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
       }
 
-      return NextResponse.json(data.data ?? data, { status: 200 });
+      return jsonWithNoReferrer(data.data ?? data, 200);
     }
 
-    const endpoint =
-      action === 'submit-inquiry'
-        ? `${apiBase}/api/v1/ticketing/public/inquiries`
-        : `${apiBase}/api/v1/ticketing/checkout`;
+    const isSubmitInquiry = action === 'submit-inquiry';
+    const endpoint = isSubmitInquiry
+      ? `${apiBase}/api/v1/ticketing/public/inquiries`
+      : `${apiBase}/api/v1/ticketing/checkout`;
 
-    const payload =
-      action === 'submit-inquiry'
-        ? {
-            organizerName: body.organizerName,
-            eventName: body.eventName,
-            category: body.category,
-            estimatedAudience: body.estimatedAudience,
-            contactName: body.contactName,
-            contactEmail: body.contactEmail,
-            contactWhatsapp: body.contactWhatsapp,
-            notes: body.notes,
-          }
-        : {
-            eventSlug: body.eventSlug,
-            tierId: body.tierId,
-            quantity: body.quantity,
-            buyerName: body.buyerName,
-            buyerEmail: body.buyerEmail,
-            buyerWhatsapp: body.buyerWhatsapp,
-            paymentMethod: body.paymentMethod,
-            ...(Array.isArray(body.holderNames)
-              ? { holderNames: body.holderNames }
-              : {}),
-          };
+    const payload = isSubmitInquiry
+      ? {
+          organizerName: body.organizerName,
+          eventName: body.eventName,
+          category: body.category,
+          estimatedAudience: body.estimatedAudience,
+          contactName: body.contactName || body.organizerName,
+          ...(body.contactEmail ? { contactEmail: body.contactEmail } : {}),
+          contactWhatsapp: body.contactWhatsapp,
+          ...(body.notes ? { notes: body.notes } : {}),
+          ...(body.website !== undefined ? { website: body.website } : {}),
+        }
+      : {
+          eventSlug: body.eventSlug,
+          tierId: body.tierId,
+          quantity: body.quantity,
+          buyerName: body.buyerName,
+          buyerEmail: body.buyerEmail,
+          buyerWhatsapp: body.buyerWhatsapp,
+          paymentMethod: body.paymentMethod,
+          ...(Array.isArray(body.holderNames)
+            ? { holderNames: body.holderNames }
+            : {}),
+        };
 
     const upstream = await fetch(endpoint, {
       method: 'POST',
@@ -218,7 +263,7 @@ export async function POST(request: NextRequest) {
           : upstream.status >= 500
             ? 502
             : upstream.status;
-      return NextResponse.json(
+      return jsonWithNoReferrer(
         {
           message:
             data?.message ||
@@ -228,22 +273,16 @@ export async function POST(request: NextRequest) {
                 ? UPSTREAM_ERROR_MESSAGE
                 : 'Permintaan gagal diproses oleh server tiket.'),
         },
-        { status },
+        status,
       );
     }
 
     if (!data) {
-      return NextResponse.json(
-        { message: UPSTREAM_ERROR_MESSAGE },
-        { status: 502 },
-      );
+      return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
     }
 
-    return NextResponse.json(data.data ?? data, { status: 201 });
+    return jsonWithNoReferrer(data.data ?? data, isSubmitInquiry ? 200 : 201);
   } catch {
-    return NextResponse.json(
-      { message: UPSTREAM_ERROR_MESSAGE },
-      { status: 502 },
-    );
+    return jsonWithNoReferrer({ message: UPSTREAM_ERROR_MESSAGE }, 502);
   }
 }

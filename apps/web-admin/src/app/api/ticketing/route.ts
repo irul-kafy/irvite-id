@@ -34,7 +34,14 @@ export async function GET(request: NextRequest) {
     if (mode === 'summary') {
       targetUrl = `${apiBase}/api/v1/ticketing/summary`;
     } else if (mode === 'inquiries') {
-      targetUrl = `${apiBase}/api/v1/ticketing/inquiries`;
+      const query = new URLSearchParams();
+      const status = searchParams.get('status') || undefined;
+      const page = searchParams.get('page') || undefined;
+      const limit = searchParams.get('limit') || undefined;
+      if (status) query.set('status', status);
+      if (page) query.set('page', page);
+      if (limit) query.set('limit', limit);
+      targetUrl = `${apiBase}/api/v1/ticketing/inquiries${query.size ? `?${query.toString()}` : ''}`;
     } else if (mode === 'orders' && eventId) {
       targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(eventId)}/orders`;
     } else if (mode === 'offline-snapshot' && eventId) {
@@ -160,19 +167,82 @@ export async function POST(request: NextRequest) {
     } else if (action === 'update-event' && body.eventId) {
       targetUrl = `${apiBase}/api/v1/ticketing/events/${encodeURIComponent(String(body.eventId))}`;
       method = 'PATCH';
-      payload = body;
+      const allowedUpdateFields = [
+        'title',
+        'category',
+        'organizerName',
+        'eventDate',
+        'eventTime',
+        'startAt',
+        'endAt',
+        'venue',
+        'venueName',
+        'city',
+        'locationDetails',
+        'description',
+        'bannerUrl',
+        'taxRatePercent',
+        'taxIncluded',
+        'serviceFee',
+        'serviceFeeBps',
+        'feePayer',
+        'promoFeeBps',
+        'promoEndsAt',
+        'ticketStatus',
+      ] as const;
+      payload = {};
+      for (const key of allowedUpdateFields) {
+        if (body[key] !== undefined) {
+          payload[key] = body[key];
+        }
+      }
     } else if (action === 'create-event') {
       targetUrl = `${apiBase}/api/v1/ticketing/events`;
+      const allowedCreateFields = [
+        'title',
+        'slug',
+        'category',
+        'organizerName',
+        'organizer',
+        'eventDate',
+        'eventTime',
+        'startAt',
+        'endAt',
+        'venue',
+        'venueName',
+        'city',
+        'locationDetails',
+        'description',
+        'bannerUrl',
+        'taxRatePercent',
+        'taxIncluded',
+        'serviceFeeBps',
+        'feePayer',
+        'promoFeeBps',
+        'promoEndsAt',
+        'ticketStatus',
+        'tiers',
+      ] as const;
+      payload = {};
+      for (const key of allowedCreateFields) {
+        if (body[key] !== undefined) {
+          payload[key] = body[key];
+        }
+      }
+    } else if (
+      action === 'update-inquiry-status' &&
+      (body.inquiryId || body.id)
+    ) {
+      const inquiryId = String(body.inquiryId || body.id);
+      targetUrl = `${apiBase}/api/v1/ticketing/inquiries/${encodeURIComponent(inquiryId)}/status`;
+      method = 'PATCH';
       payload = {
-        title: body.title,
-        category: body.category,
-        organizerName: body.organizerName,
-        eventDate: body.eventDate,
-        eventTime: body.eventTime,
-        venueName: body.venueName,
-        city: body.city,
-        description: body.description,
-        tiers: body.tiers,
+        status: body.status,
+        ...(body.adminNotes !== undefined
+          ? { adminNotes: body.adminNotes }
+          : body.notes !== undefined
+            ? { adminNotes: body.notes }
+            : {}),
       };
     } else {
       return NextResponse.json(

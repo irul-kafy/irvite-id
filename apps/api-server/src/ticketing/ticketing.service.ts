@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import {
+  EoInquiryStatus,
   IssuedTicketStatus,
   Prisma,
   Role,
@@ -38,6 +39,11 @@ import {
   UpdateTicketingEventDto,
   UpdateTicketTierDto,
 } from './dto/admin-ticketing.dto';
+import {
+  CreateEoInquiryDto,
+  ListEoInquiriesQueryDto,
+  UpdateEoInquiryStatusDto,
+} from './dto/eo-inquiry.dto';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import {
   CHECKIN_CLOSE_HOURS_AFTER,
@@ -176,6 +182,47 @@ export interface TicketOrderView {
   tickets: IssuedTicketView[];
 }
 
+const WIB_TIME_FORMATTER = new Intl.DateTimeFormat('id-ID', {
+  timeZone: 'Asia/Jakarta',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  hourCycle: 'h23',
+});
+
+const WIB_DATE_FORMATTER = new Intl.DateTimeFormat('id-ID', {
+  timeZone: 'Asia/Jakarta',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+
+export function formatWibClock(date: Date): string {
+  const parts = WIB_TIME_FORMATTER.formatToParts(date);
+  const rawHour = parts.find((p) => p.type === 'hour')?.value ?? '00';
+  const rawMinute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  const hour = rawHour === '24' ? '00' : rawHour.padStart(2, '0');
+  const minute = rawMinute.padStart(2, '0');
+  return `${hour}:${minute}`;
+}
+
+export function formatWibTimeRange(startAt: Date, endAt?: Date | null): string {
+  const startStr = formatWibClock(startAt);
+  if (
+    !endAt ||
+    isNaN(endAt.getTime()) ||
+    endAt.getTime() === startAt.getTime()
+  ) {
+    return `${startStr} WIB`;
+  }
+  const endStr = formatWibClock(endAt);
+  return `${startStr} - ${endStr} WIB`;
+}
+
+export function formatWibDateLabel(date: Date): string {
+  return WIB_DATE_FORMATTER.format(date);
+}
+
 function formatRupiahLabel(amount: number): string {
   if (amount <= 0) {
     return 'Gratis';
@@ -207,9 +254,17 @@ export class TicketingService {
   /**
    * Generates a unique cryptographically random code >= 10 characters.
    */
-  generateSecureCode(prefix: 'ORD' | 'TKT'): string {
+  generateSecureCode(prefix: 'ORD' | 'TKT' | 'INQ'): string {
     const randomHex = crypto.randomBytes(6).toString('hex').toUpperCase();
     return `${prefix}-${randomHex}`;
+  }
+
+  formatWibDateLabel(date: Date): string {
+    return formatWibDateLabel(date);
+  }
+
+  formatWibTimeRange(startAt: Date, endAt?: Date | null): string {
+    return formatWibTimeRange(startAt, endAt);
   }
 
   /**
@@ -354,17 +409,13 @@ export class TicketingService {
       tiers.length > 0 ? Math.min(...tiers.map((t) => t.price)) : 0;
 
     const effectiveStart = rawEvent.startAt || rawEvent.eventDate;
-    const dateLabel = effectiveStart.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    const dateLabel = formatWibDateLabel(effectiveStart);
+    const eventTime = formatWibTimeRange(effectiveStart, rawEvent.endAt);
 
-    const venueName =
-      rawEvent.venue || rawEvent.locationDetails || 'Lokasi acara';
-    const city = rawEvent.city || 'Jakarta';
-    const category = rawEvent.category || 'Konser Musik';
-    const organizerName = rawEvent.organizerName || 'Penyelenggara acara';
+    const venueName = (rawEvent.venue || rawEvent.locationDetails || '').trim();
+    const city = (rawEvent.city || '').trim();
+    const category = (rawEvent.category || '').trim();
+    const organizerName = (rawEvent.organizerName || '').trim();
 
     const serviceFeeBps =
       typeof rawEvent.serviceFeeBps === 'number'
@@ -391,10 +442,12 @@ export class TicketingService {
       startAt: effectiveStart.toISOString(),
       endAt: rawEvent.endAt ? rawEvent.endAt.toISOString() : null,
       dateLabel,
-      eventTime: '19:00 - 22:00 WIB',
+      eventTime,
       venueName,
       city,
-      locationDetails: rawEvent.locationDetails || `${venueName}, ${city}`,
+      locationDetails:
+        rawEvent.locationDetails ||
+        [venueName, city].filter(Boolean).join(', '),
       description:
         rawEvent.description ||
         'Acara resmi terdaftar pada layanan penjualan tiket IRVITE.',
@@ -451,6 +504,7 @@ export class TicketingService {
       title: string;
       eventDate: Date;
       startAt: Date | null;
+      endAt?: Date | null;
       venue: string | null;
       locationDetails: string | null;
     };
@@ -474,13 +528,13 @@ export class TicketingService {
     }>;
   }): TicketOrderView {
     const effectiveStart = rawOrder.event.startAt || rawOrder.event.eventDate;
-    const dateLabel = effectiveStart.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-    const venueName =
-      rawOrder.event.venue || rawOrder.event.locationDetails || 'Lokasi acara';
+    const dateLabel = formatWibDateLabel(effectiveStart);
+    const eventTime = formatWibTimeRange(effectiveStart, rawOrder.event.endAt);
+    const venueName = (
+      rawOrder.event.venue ||
+      rawOrder.event.locationDetails ||
+      ''
+    ).trim();
 
     const tickets: IssuedTicketView[] =
       rawOrder.status === TicketOrderStatus.PAID
@@ -494,7 +548,7 @@ export class TicketingService {
               eventSlug: rawOrder.event.slug,
               eventTitle: rawOrder.event.title,
               eventDate: dateLabel,
-              eventTime: '19:00 - 22:00 WIB',
+              eventTime,
               venueName,
               tierId: t.tierId,
               tierName: rawOrder.tier.name,
@@ -1122,7 +1176,12 @@ export class TicketingService {
   async getPublicOrderByCode(
     orderCode: string,
     accessToken: string | undefined,
-  ): Promise<TicketOrderView> {
+  ): Promise<
+    TicketOrderView & {
+      order: TicketOrderView;
+      primaryTicket: IssuedTicketView | null;
+    }
+  > {
     if (!accessToken || !accessToken.trim()) {
       throw new UnauthorizedException(
         'Token akses pesanan wajib disertakan untuk melihat detail pesanan.',
@@ -1171,7 +1230,12 @@ export class TicketingService {
       },
     });
 
-    return this.mapOrderToView(freshOrder);
+    const view = this.mapOrderToView(freshOrder);
+    return {
+      ...view,
+      order: view,
+      primaryTicket: view.tickets[0] ?? null,
+    };
   }
 
   private sanitizeJsonValue(
@@ -1751,13 +1815,216 @@ export class TicketingService {
     return this.mapOrderToView(finalOrder);
   }
 
+  private parseEventStartAndEnd(params: {
+    startAt?: string;
+    endAt?: string;
+    eventDate?: string;
+    eventTime?: string;
+  }): { startAt: Date; endAt: Date | null } {
+    let startAt: Date | null = null;
+    let endAt: Date | null = null;
+
+    if (params.startAt && params.startAt.trim()) {
+      startAt = new Date(params.startAt.trim());
+    } else if (params.eventDate && params.eventDate.trim()) {
+      const cleanDate = params.eventDate.trim();
+      const timeMatch = (params.eventTime || '').match(
+        /(\d{1,2})[:.](\d{2})(?:\s*-\s*(\d{1,2})[:.](\d{2}))?/,
+      );
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleanDate) && timeMatch) {
+        const sh = timeMatch[1].padStart(2, '0');
+        const sm = timeMatch[2].padStart(2, '0');
+        startAt = new Date(`${cleanDate}T${sh}:${sm}:00+07:00`);
+        if (timeMatch[3] && timeMatch[4] && !params.endAt) {
+          const eh = timeMatch[3].padStart(2, '0');
+          const em = timeMatch[4].padStart(2, '0');
+          endAt = new Date(`${cleanDate}T${eh}:${em}:00+07:00`);
+        }
+      } else {
+        startAt = new Date(cleanDate);
+      }
+    }
+
+    if (!startAt) {
+      throw new BadRequestException(
+        'Tanggal mulai acara (startAt) wajib diisi.',
+      );
+    }
+    if (isNaN(startAt.getTime())) {
+      throw new BadRequestException('Format tanggal mulai acara tidak valid.');
+    }
+
+    if (params.endAt && params.endAt.trim()) {
+      endAt = new Date(params.endAt.trim());
+    }
+    if (endAt) {
+      if (isNaN(endAt.getTime())) {
+        throw new BadRequestException(
+          'Format tanggal selesai acara tidak valid.',
+        );
+      }
+      if (endAt.getTime() <= startAt.getTime()) {
+        throw new BadRequestException(
+          'Waktu selesai acara (endAt) harus setelah waktu mulai acara (startAt).',
+        );
+      }
+    }
+
+    return { startAt, endAt };
+  }
+
+  private validateAndNormalizeTierInput(tier: {
+    name?: string;
+    description?: string;
+    price?: number;
+    quota?: number;
+    maxPerOrder?: number;
+    salesStartAt?: string | null;
+    salesEndAt?: string | null;
+    sortOrder?: number;
+    benefits?: string[];
+  }) {
+    const name = (tier?.name || '').trim();
+    if (!name) {
+      throw new BadRequestException('Nama kategori tiket (tier) wajib diisi.');
+    }
+
+    const price = Number(tier.price);
+    if (!Number.isFinite(price) || !Number.isInteger(price) || price < 0) {
+      throw new BadRequestException(
+        'Harga kategori tiket (price) harus bilangan bulat minimal 0.',
+      );
+    }
+
+    const quota = Number(tier.quota);
+    if (!Number.isFinite(quota) || !Number.isInteger(quota) || quota < 1) {
+      throw new BadRequestException(
+        'Kuota kategori tiket (quota) harus bilangan bulat minimal 1.',
+      );
+    }
+
+    const maxPerOrder =
+      tier.maxPerOrder !== undefined && tier.maxPerOrder !== null
+        ? Number(tier.maxPerOrder)
+        : 10;
+    if (
+      !Number.isFinite(maxPerOrder) ||
+      !Number.isInteger(maxPerOrder) ||
+      maxPerOrder < 1 ||
+      maxPerOrder > 50
+    ) {
+      throw new BadRequestException(
+        'Batas maksimal pembelian per pesanan (maxPerOrder) harus antara 1 hingga 50.',
+      );
+    }
+
+    const salesStartAt = tier.salesStartAt ? new Date(tier.salesStartAt) : null;
+    if (salesStartAt && isNaN(salesStartAt.getTime())) {
+      throw new BadRequestException(
+        'Format waktu mulai penjualan tier (salesStartAt) tidak valid.',
+      );
+    }
+
+    const salesEndAt = tier.salesEndAt ? new Date(tier.salesEndAt) : null;
+    if (salesEndAt && isNaN(salesEndAt.getTime())) {
+      throw new BadRequestException(
+        'Format waktu akhir penjualan tier (salesEndAt) tidak valid.',
+      );
+    }
+
+    if (
+      salesStartAt &&
+      salesEndAt &&
+      salesEndAt.getTime() <= salesStartAt.getTime()
+    ) {
+      throw new BadRequestException(
+        'Waktu penutupan penjualan tier (salesEndAt) harus setelah waktu pembukaan (salesStartAt).',
+      );
+    }
+
+    return {
+      name,
+      description:
+        tier.description?.trim() || 'Tiket masuk resmi dengan kode QR.',
+      price,
+      quota,
+      maxPerOrder,
+      salesStartAt,
+      salesEndAt,
+      sortOrder: tier.sortOrder,
+      benefits:
+        Array.isArray(tier.benefits) && tier.benefits.length > 0
+          ? tier.benefits
+          : ['Tiket digital kode QR'],
+    };
+  }
+
   /**
    * Admin: Create a new ticketing event and its tiers.
+   * Rejects (400) if title, organizerName, city, startAt (in the future), venue/location, or >= 1 tier is missing.
    */
   async createTicketingEvent(
     dto: CreateTicketingEventDto,
     actorUserId?: string,
   ): Promise<TicketingEventView> {
+    const title = (dto?.title || '').trim();
+    if (title.length < 3) {
+      throw new BadRequestException(
+        'Judul acara wajib diisi (minimal 3 karakter).',
+      );
+    }
+
+    const organizerName = (dto?.organizerName || dto?.organizer || '').trim();
+    if (organizerName.length < 2) {
+      throw new BadRequestException(
+        'Nama penyelenggara acara (organizerName) wajib diisi.',
+      );
+    }
+
+    const city = (dto?.city || '').trim();
+    if (city.length < 2) {
+      throw new BadRequestException('Kota acara (city) wajib diisi.');
+    }
+
+    const venue = (
+      dto?.venue ||
+      dto?.venueName ||
+      dto?.locationDetails ||
+      ''
+    ).trim();
+    if (venue.length < 2) {
+      throw new BadRequestException('Lokasi acara (venue) wajib diisi.');
+    }
+
+    const locationDetails = (dto.locationDetails || `${venue}, ${city}`).trim();
+
+    const { startAt, endAt } = this.parseEventStartAndEnd({
+      startAt: dto.startAt,
+      endAt: dto.endAt,
+      eventDate: dto.eventDate,
+      eventTime: dto.eventTime,
+    });
+
+    if (startAt.getTime() <= Date.now()) {
+      throw new BadRequestException(
+        'Tanggal mulai acara (startAt) harus berada di masa depan.',
+      );
+    }
+
+    if (!Array.isArray(dto.tiers) || dto.tiers.length < 1) {
+      throw new BadRequestException(
+        'Minimal satu kategori tiket (tier) wajib diisi.',
+      );
+    }
+
+    const normalizedTiers = dto.tiers.map((t, index) => {
+      const validTier = this.validateAndNormalizeTierInput(t);
+      return {
+        ...validTier,
+        sortOrder: validTier.sortOrder ?? index + 1,
+      };
+    });
+
     let ownerId = actorUserId;
     if (!ownerId) {
       const fallbackUser = await this.prisma.user.findFirst({
@@ -1772,37 +2039,7 @@ export class TicketingService {
       ownerId = fallbackUser.id;
     }
 
-    const venue = (
-      dto.venue ||
-      dto.venueName ||
-      dto.locationDetails ||
-      ''
-    ).trim();
-    const city = (dto.city || 'Jakarta').trim();
-    const locationDetails = (
-      dto.locationDetails || (venue ? `${venue}, ${city}` : city)
-    ).trim();
-
-    if (locationDetails.length < 3) {
-      throw new BadRequestException('Lokasi acara wajib diisi.');
-    }
-
-    const rawStart = dto.startAt || dto.eventDate;
-    const startAt = rawStart
-      ? new Date(rawStart)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    if (isNaN(startAt.getTime())) {
-      throw new BadRequestException('Format tanggal mulai acara tidak valid.');
-    }
-
-    const endAt = dto.endAt ? new Date(dto.endAt) : null;
-    if (endAt && isNaN(endAt.getTime())) {
-      throw new BadRequestException(
-        'Format tanggal selesai acara tidak valid.',
-      );
-    }
-
-    const baseSlug = (dto.slug || dto.title)
+    const baseSlug = (dto.slug || title)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
@@ -1814,31 +2051,12 @@ export class TicketingService {
       dto.ticketStatus || TicketEventStatus.DRAFT;
     const statusStr =
       ticketStatus === TicketEventStatus.PUBLISHED ? 'PUBLISHED' : 'DRAFT';
-    const organizerName = (
-      dto.organizerName ||
-      dto.organizer ||
-      'Mitra penyelenggara IRVITE'
-    ).trim();
-    const category = (dto.category || 'Konser Musik').trim();
-
-    const tiersInput =
-      dto.tiers && dto.tiers.length > 0
-        ? dto.tiers
-        : [
-            {
-              name: 'Tiket reguler',
-              description: 'Tiket masuk reguler dengan kode QR.',
-              price: 50000,
-              quota: 100,
-              maxPerOrder: 10,
-              benefits: ['Tiket digital kode QR'],
-            },
-          ];
+    const category = (dto.category || 'Lainnya').trim();
 
     const created = await this.prisma.event.create({
       data: {
         userId: ownerId,
-        title: dto.title.trim(),
+        title,
         slug,
         description:
           dto.description?.trim() ||
@@ -1846,7 +2064,7 @@ export class TicketingService {
         eventDate: startAt,
         startAt,
         endAt,
-        venue: venue || locationDetails,
+        venue,
         city,
         category,
         organizerName,
@@ -1862,21 +2080,17 @@ export class TicketingService {
         status: statusStr,
         ticketStatus,
         ticketTiers: {
-          create: tiersInput.map((t, index) => ({
-            name: t.name.trim(),
-            description:
-              t.description?.trim() || 'Tiket masuk resmi dengan kode QR.',
-            price: Math.max(0, Math.round(Number(t.price) || 0)),
-            quota: Math.max(1, Math.round(Number(t.quota) || 100)),
+          create: normalizedTiers.map((t) => ({
+            name: t.name,
+            description: t.description,
+            price: t.price,
+            quota: t.quota,
             soldCount: 0,
-            salesStartAt: t.salesStartAt ? new Date(t.salesStartAt) : null,
-            salesEndAt: t.salesEndAt ? new Date(t.salesEndAt) : null,
-            maxPerOrder: Math.max(1, Math.round(Number(t.maxPerOrder) || 10)),
-            sortOrder: t.sortOrder ?? index + 1,
-            benefits:
-              t.benefits && t.benefits.length > 0
-                ? t.benefits
-                : ['Tiket digital kode QR'],
+            salesStartAt: t.salesStartAt,
+            salesEndAt: t.salesEndAt,
+            maxPerOrder: t.maxPerOrder,
+            sortOrder: t.sortOrder,
+            benefits: t.benefits,
           })),
         },
       },
@@ -1902,9 +2116,42 @@ export class TicketingService {
       throw new NotFoundException('Acara tidak ditemukan.');
     }
 
-    const startAt = dto.startAt ? new Date(dto.startAt) : undefined;
-    const endAt = dto.endAt ? new Date(dto.endAt) : undefined;
+    let startAt: Date | undefined;
+    let endAt: Date | null | undefined;
+    if (
+      dto.startAt !== undefined ||
+      dto.eventDate !== undefined ||
+      dto.eventTime !== undefined
+    ) {
+      const parsed = this.parseEventStartAndEnd({
+        startAt: dto.startAt,
+        endAt: dto.endAt,
+        eventDate:
+          dto.eventDate ??
+          (existing.startAt || existing.eventDate).toISOString().slice(0, 10),
+        eventTime: dto.eventTime,
+      });
+      startAt = parsed.startAt;
+      if (parsed.endAt) {
+        endAt = parsed.endAt;
+      }
+    } else if (dto.endAt !== undefined) {
+      endAt = dto.endAt ? new Date(dto.endAt) : null;
+      const effectiveStart = existing.startAt || existing.eventDate;
+      if (endAt && endAt.getTime() <= effectiveStart.getTime()) {
+        throw new BadRequestException(
+          'Waktu selesai acara (endAt) harus setelah waktu mulai acara (startAt).',
+        );
+      }
+    }
+
     const ticketStatus = dto.ticketStatus;
+    const nextVenue =
+      dto.venue !== undefined
+        ? dto.venue.trim()
+        : dto.venueName !== undefined
+          ? dto.venueName.trim()
+          : undefined;
 
     const updated = await this.prisma.event.update({
       where: { id: eventId },
@@ -1917,9 +2164,12 @@ export class TicketingService {
           ? { organizerName: dto.organizerName.trim() }
           : {}),
         ...(startAt ? { startAt, eventDate: startAt } : {}),
-        ...(endAt ? { endAt } : {}),
-        ...(dto.venue !== undefined ? { venue: dto.venue.trim() } : {}),
+        ...(endAt !== undefined ? { endAt } : {}),
+        ...(nextVenue !== undefined ? { venue: nextVenue } : {}),
         ...(dto.city !== undefined ? { city: dto.city.trim() } : {}),
+        ...(dto.locationDetails !== undefined
+          ? { locationDetails: dto.locationDetails.trim() }
+          : {}),
         ...(dto.description !== undefined
           ? { description: dto.description.trim() }
           : {}),
@@ -1986,23 +2236,21 @@ export class TicketingService {
       throw new NotFoundException('Acara tidak ditemukan.');
     }
 
+    const validTier = this.validateAndNormalizeTierInput(dto);
+
     const tier = await this.prisma.ticketTier.create({
       data: {
         eventId,
-        name: dto.name.trim(),
-        description:
-          dto.description?.trim() || 'Tiket masuk resmi dengan kode QR.',
-        price: dto.price,
-        quota: dto.quota,
+        name: validTier.name,
+        description: validTier.description,
+        price: validTier.price,
+        quota: validTier.quota,
         soldCount: 0,
-        salesStartAt: dto.salesStartAt ? new Date(dto.salesStartAt) : null,
-        salesEndAt: dto.salesEndAt ? new Date(dto.salesEndAt) : null,
-        maxPerOrder: dto.maxPerOrder ?? 10,
-        sortOrder: dto.sortOrder ?? 1,
-        benefits:
-          dto.benefits && dto.benefits.length > 0
-            ? dto.benefits
-            : ['Tiket digital kode QR'],
+        salesStartAt: validTier.salesStartAt,
+        salesEndAt: validTier.salesEndAt,
+        maxPerOrder: validTier.maxPerOrder,
+        sortOrder: validTier.sortOrder ?? 1,
+        benefits: validTier.benefits,
       },
     });
 
@@ -2041,6 +2289,28 @@ export class TicketingService {
     if (dto.quota !== undefined && dto.quota < existing.soldCount) {
       throw new BadRequestException(
         'Kuota baru tidak boleh lebih kecil dari jumlah tiket yang sudah terjual.',
+      );
+    }
+
+    const nextSalesStart =
+      dto.salesStartAt !== undefined
+        ? dto.salesStartAt
+          ? new Date(dto.salesStartAt)
+          : null
+        : existing.salesStartAt;
+    const nextSalesEnd =
+      dto.salesEndAt !== undefined
+        ? dto.salesEndAt
+          ? new Date(dto.salesEndAt)
+          : null
+        : existing.salesEndAt;
+    if (
+      nextSalesStart &&
+      nextSalesEnd &&
+      nextSalesEnd.getTime() <= nextSalesStart.getTime()
+    ) {
+      throw new BadRequestException(
+        'Waktu penutupan penjualan tier (salesEndAt) harus setelah waktu pembukaan (salesStartAt).',
       );
     }
 
@@ -3229,6 +3499,204 @@ export class TicketingService {
       eventId: event.id,
       query: keyword,
       items: tickets.map((t) => this.toScannerTicketSummary(t)),
+    };
+  }
+
+  /**
+   * POST /ticketing/public/inquiries (@Public, strict throttle)
+   * If honeypot field `website` is filled, returns 200 with fake inquiryCode & accessToken without saving anything.
+   */
+  async createEoInquiry(dto: CreateEoInquiryDto) {
+    if (dto.website && dto.website.trim().length > 0) {
+      const fakeInquiryCode = this.generateSecureCode('INQ');
+      const { accessToken: fakeAccessToken } = this.generateOrderAccessToken();
+      return {
+        inquiryCode: fakeInquiryCode,
+        accessToken: fakeAccessToken,
+        status: EoInquiryStatus.PENDING,
+        message:
+          'Pengajuan acara berhasil dikirim. Simpan kode pengajuan dan token akses Anda.',
+      };
+    }
+
+    const inquiryCode = this.generateSecureCode('INQ');
+    const { accessToken, accessTokenHash } = this.generateOrderAccessToken();
+    const cleanWhatsapp = normalizeIndonesianWhatsapp(dto.contactWhatsapp);
+    const cleanEmail = dto.contactEmail?.trim()
+      ? dto.contactEmail.trim().toLowerCase()
+      : null;
+
+    const created = await this.prisma.eoInquiry.create({
+      data: {
+        inquiryCode,
+        accessTokenHash,
+        organizerName: dto.organizerName.trim(),
+        eventName: dto.eventName.trim(),
+        category: dto.category.trim(),
+        estimatedAudience: dto.estimatedAudience.trim(),
+        contactName: dto.contactName.trim(),
+        contactEmail: cleanEmail,
+        contactWhatsapp: cleanWhatsapp,
+        notes: dto.notes?.trim() ? dto.notes.trim() : null,
+        status: EoInquiryStatus.PENDING,
+      },
+    });
+
+    return {
+      inquiryCode: created.inquiryCode,
+      accessToken,
+      status: created.status,
+      message:
+        'Pengajuan acara berhasil dikirim. Simpan kode pengajuan dan token akses Anda.',
+    };
+  }
+
+  /**
+   * GET /ticketing/public/inquiries/:code (requires accessToken)
+   */
+  async getPublicEoInquiryByCode(
+    code: string,
+    accessToken: string | undefined,
+  ) {
+    if (!accessToken || !accessToken.trim()) {
+      throw new UnauthorizedException(
+        'Token akses pengajuan wajib disertakan.',
+      );
+    }
+
+    const cleanCode = (code || '').trim().toUpperCase();
+    const inquiry = await this.prisma.eoInquiry.findUnique({
+      where: { inquiryCode: cleanCode },
+    });
+
+    if (!inquiry) {
+      throw new NotFoundException('Pengajuan acara tidak ditemukan.');
+    }
+
+    if (
+      !inquiry.accessTokenHash ||
+      !safeCompareSecret(hashAccessToken(accessToken), inquiry.accessTokenHash)
+    ) {
+      throw new ForbiddenException('Token akses pengajuan tidak valid.');
+    }
+
+    return {
+      id: inquiry.id,
+      inquiryCode: inquiry.inquiryCode,
+      organizerName: inquiry.organizerName,
+      eventName: inquiry.eventName,
+      category: inquiry.category,
+      estimatedAudience: inquiry.estimatedAudience,
+      contactName: inquiry.contactName,
+      notes: inquiry.notes,
+      adminNotes: inquiry.adminNotes ?? null,
+      reviewedAt: inquiry.reviewedAt ? inquiry.reviewedAt.toISOString() : null,
+      status: inquiry.status,
+      createdAt: inquiry.createdAt.toISOString(),
+      updatedAt: inquiry.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * Admin: GET /ticketing/inquiries (status filter & pagination)
+   */
+  async listAdminEoInquiries(query: ListEoInquiriesQueryDto = {}) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.max(1, Math.min(100, Number(query.limit) || 20));
+    const where: Prisma.EoInquiryWhereInput = {
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const [total, rows] = await Promise.all([
+      this.prisma.eoInquiry.count({ where }),
+      this.prisma.eoInquiry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    const items = rows.map((row) => ({
+      id: row.id,
+      inquiryCode: row.inquiryCode,
+      organizerName: row.organizerName,
+      eventName: row.eventName,
+      category: row.category,
+      estimatedAudience: row.estimatedAudience,
+      contactName: row.contactName,
+      contactEmail: row.contactEmail,
+      contactWhatsapp: row.contactWhatsapp,
+      notes: row.notes,
+      adminNotes: row.adminNotes ?? null,
+      reviewedBy: row.reviewedBy ?? null,
+      reviewedAt: row.reviewedAt ? row.reviewedAt.toISOString() : null,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
+
+    return {
+      data: items,
+      items,
+      total,
+      page,
+      limit,
+      lastPage: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  /**
+   * Admin: PATCH /ticketing/inquiries/:id/status
+   * Updates status, adminNotes, reviewedBy, and reviewedAt WITHOUT overwriting applicant's notes.
+   */
+  async updateEoInquiryStatus(
+    inquiryId: string,
+    dto: UpdateEoInquiryStatusDto,
+    actor?: AuthenticatedUser,
+  ) {
+    const existing = await this.prisma.eoInquiry.findUnique({
+      where: { id: (inquiryId || '').trim() },
+    });
+    if (!existing) {
+      throw new NotFoundException('Pengajuan acara tidak ditemukan.');
+    }
+
+    const rawAdminNotes =
+      dto.adminNotes !== undefined ? dto.adminNotes : dto.notes;
+    const nextAdminNotes =
+      rawAdminNotes !== undefined
+        ? rawAdminNotes.trim() || null
+        : existing.adminNotes;
+    const now = new Date();
+
+    const updated = await this.prisma.eoInquiry.update({
+      where: { id: existing.id },
+      data: {
+        status: dto.status,
+        adminNotes: nextAdminNotes,
+        reviewedBy: actor?.id || actor?.email || 'Admin IRVITE',
+        reviewedAt: now,
+      },
+    });
+
+    return {
+      id: updated.id,
+      inquiryCode: updated.inquiryCode,
+      organizerName: updated.organizerName,
+      eventName: updated.eventName,
+      category: updated.category,
+      estimatedAudience: updated.estimatedAudience,
+      contactName: updated.contactName,
+      contactEmail: updated.contactEmail,
+      contactWhatsapp: updated.contactWhatsapp,
+      notes: updated.notes,
+      adminNotes: updated.adminNotes ?? null,
+      reviewedBy: updated.reviewedBy ?? null,
+      reviewedAt: updated.reviewedAt ? updated.reviewedAt.toISOString() : null,
+      status: updated.status,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
     };
   }
 }
