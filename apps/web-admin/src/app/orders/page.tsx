@@ -6,6 +6,27 @@ import Link from 'next/link';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { PUBLIC_TICKETING_ORDERS, type TicketOrderRecord } from '@/lib/ticketing-store';
+import {
+  ALL_ORDER_PACKAGE_CODES,
+  getPackageDisplayLabel,
+  type OrderPriceLineItem,
+} from 'pricing';
+
+export interface OrderOptionsSnapshot {
+  lineItems?: OrderPriceLineItem[];
+  computedTotal?: number;
+  priceTier?: string;
+  entitlements?: {
+    maxGuests?: number;
+    petugasCount?: number;
+    extraHoursPerPetugas?: number;
+    supervisorCount?: number;
+    akrilikQris?: boolean;
+    gladiH1?: boolean;
+    googleSheetLive?: boolean;
+    postEventReport?: boolean;
+  };
+}
 
 export interface OrderItem {
   id: string;
@@ -15,6 +36,8 @@ export interface OrderItem {
   clientWhatsapp: string;
   packageCode: string;
   priceAmount: number;
+  pricingVersion?: number;
+  options?: OrderOptionsSnapshot | null;
   status: 'DRAFT' | 'AWAITING_PAYMENT' | 'PAID' | 'IN_PROGRESS' | 'LIVE' | 'COMPLETED' | 'CANCELLED';
   paidAt: string | null;
   paymentProofMediaId: string | null;
@@ -114,6 +137,8 @@ export default function OrdersPage() {
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'CANCELLED'>('ALL');
   const [updatingOrder, setUpdatingOrder] = useState<OrderItem | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
+  const [newPackageCode, setNewPackageCode] = useState<string>('');
+  const [newPriceAmount, setNewPriceAmount] = useState<string>('');
   const [newActiveUntil, setNewActiveUntil] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -183,6 +208,8 @@ export default function OrdersPage() {
   const openUpdateModal = (order: OrderItem) => {
     setUpdatingOrder(order);
     setNewStatus(order.status);
+    setNewPackageCode(order.packageCode || 'UNSELECTED');
+    setNewPriceAmount(String(order.priceAmount ?? 0));
     setNotes(order.notes || '');
     if (order.event.activeUntil) {
       const d = new Date(order.event.activeUntil);
@@ -194,6 +221,11 @@ export default function OrdersPage() {
 
   const handleSaveStatus = async () => {
     if (!updatingOrder) return;
+    const parsedPrice = Number(newPriceAmount);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      alert('Harga Final (Rp) harus berupa angka >= 0');
+      return;
+    }
     try {
       setSubmitting(true);
       const res = await fetch(`/api/orders/${updatingOrder.id}`, {
@@ -201,6 +233,11 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: newStatus,
+          packageCode:
+            newPackageCode && newPackageCode !== updatingOrder.packageCode
+              ? newPackageCode
+              : undefined,
+          priceAmount: Math.round(parsedPrice),
           notes: notes || undefined,
           activeUntil: newActiveUntil ? new Date(newActiveUntil).toISOString() : undefined,
         }),
@@ -321,18 +358,20 @@ export default function OrdersPage() {
 
           {/* Status Tabs for Tickets */}
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }} role="tablist">
-            {[
-              { key: 'ALL', label: 'Semua', count: ticketOrders.length },
-              { key: 'PAID', label: 'Lunas (PAID)', count: ticketOrders.filter((t) => t.status === 'PAID').length },
-              { key: 'PENDING', label: 'Menunggu Bayar', count: ticketOrders.filter((t) => t.status === 'PENDING').length },
-              { key: 'CANCELLED', label: 'Batal', count: ticketOrders.filter((t) => t.status === 'CANCELLED').length },
-            ].map((tab) => {
+            {(
+              [
+                { key: 'ALL', label: 'Semua', count: ticketOrders.length },
+                { key: 'PAID', label: 'Lunas (PAID)', count: ticketOrders.filter((t) => t.status === 'PAID').length },
+                { key: 'PENDING', label: 'Menunggu Bayar', count: ticketOrders.filter((t) => t.status === 'PENDING').length },
+                { key: 'CANCELLED', label: 'Batal', count: ticketOrders.filter((t) => t.status === 'CANCELLED').length },
+              ] as const
+            ).map((tab) => {
               const active = ticketStatusFilter === tab.key;
               return (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setTicketStatusFilter(tab.key as any)}
+                  onClick={() => setTicketStatusFilter(tab.key)}
                   className={`btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`}
                   style={{ borderRadius: '8px' }}
                 >
@@ -652,12 +691,92 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td style={{ padding: '0.85rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: '#f1f5f9', color: '#334155' }}>
-                          {order.packageCode}
-                        </span>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#111814', marginTop: '3px' }}>
-                          {formatRupiah(order.priceAmount)}
-                        </div>
+                        {(() => {
+                          const isUnselected =
+                            !order.packageCode ||
+                            order.packageCode.toUpperCase() === 'UNSELECTED';
+                          const computedTotal =
+                            typeof order.options?.computedTotal === 'number'
+                              ? order.options.computedTotal
+                              : null;
+                          const lineItems = Array.isArray(
+                            order.options?.lineItems,
+                          )
+                            ? order.options.lineItems
+                            : [];
+                          const maxGuests =
+                            order.options?.entitlements?.maxGuests;
+
+                          return (
+                            <div>
+                              <span
+                                data-testid={`order-pkg-badge-${order.referenceCode}`}
+                                style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 700,
+                                  padding: '2px 7px',
+                                  borderRadius: '4px',
+                                  background: isUnselected
+                                    ? '#fef3c7'
+                                    : '#f1f5f9',
+                                  color: isUnselected ? '#b45309' : '#334155',
+                                  border: isUnselected
+                                    ? '1px solid #fde68a'
+                                    : '1px solid transparent',
+                                }}
+                              >
+                                {isUnselected
+                                  ? '⚠️ Paket belum dipilih'
+                                  : `${getPackageDisplayLabel(order.packageCode)} (${order.packageCode})`}
+                              </span>
+                              {maxGuests ? (
+                                <span
+                                  style={{
+                                    marginLeft: '6px',
+                                    fontSize: '0.7rem',
+                                    color: '#64748b',
+                                  }}
+                                >
+                                  • Maks. {maxGuests} tamu
+                                </span>
+                              ) : null}
+                              <div
+                                style={{
+                                  fontSize: '0.8125rem',
+                                  fontWeight: 700,
+                                  color: '#111814',
+                                  marginTop: '4px',
+                                }}
+                              >
+                                Harga Final: {formatRupiah(order.priceAmount)}
+                              </div>
+                              {computedTotal !== null &&
+                                computedTotal !== order.priceAmount && (
+                                  <div
+                                    style={{
+                                      fontSize: '0.72rem',
+                                      color: '#64748b',
+                                    }}
+                                  >
+                                    Hasil Hitung: {formatRupiah(computedTotal)}
+                                  </div>
+                                )}
+                              {lineItems.length > 0 && (
+                                <div
+                                  style={{
+                                    fontSize: '0.7rem',
+                                    color: '#475569',
+                                    marginTop: '2px',
+                                  }}
+                                >
+                                  {lineItems
+                                    .map((li) => li.label)
+                                    .join(' + ')}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '0.85rem 1rem' }}>
                         <span
@@ -730,11 +849,122 @@ export default function OrdersPage() {
           }}
         >
           <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 id="order-modal-title" style={{ margin: '0 0 1rem', fontSize: '1.125rem', fontWeight: 700 }}>
-              Ubah Status Pesanan ({updatingOrder.referenceCode})
+            <h3 id="order-modal-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem', fontWeight: 700 }}>
+              Detail &amp; Ubah Pesanan ({updatingOrder.referenceCode})
             </h3>
-            <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1rem' }}>
-              Klien: <strong>{updatingOrder.clientName}</strong> · Paket: <strong>{updatingOrder.packageCode}</strong> ({formatRupiah(updatingOrder.priceAmount)})
+            <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.85rem' }}>
+              Klien: <strong>{updatingOrder.clientName}</strong> · Paket:{' '}
+              <strong>{getPackageDisplayLabel(updatingOrder.packageCode)}</strong>
+            </div>
+
+            {/* Rincian Komponen & Total Hasil Hitung */}
+            <div
+              data-testid="admin-order-pricing-breakdown"
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                fontSize: '0.8rem',
+              }}
+            >
+              <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.4rem' }}>
+                Rincian Komponen Paket
+              </div>
+              {Array.isArray(updatingOrder.options?.lineItems) &&
+              updatingOrder.options.lineItems.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {updatingOrder.options.lineItems.map((item) => (
+                    <div
+                      key={item.code}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        color: '#334155',
+                      }}
+                    >
+                      <span>{item.label}</span>
+                      <strong>{formatRupiah(item.amount)}</strong>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: '#64748b' }}>
+                  {updatingOrder.packageCode === 'UNSELECTED'
+                    ? 'Paket belum dipilih oleh klien saat membuat draf.'
+                    : `Paket ${getPackageDisplayLabel(updatingOrder.packageCode)}`}
+                </div>
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  borderTop: '1px dashed #cbd5e1',
+                  marginTop: '6px',
+                  paddingTop: '6px',
+                  color: '#0f172a',
+                }}
+              >
+                <span>Total Hasil Hitung (computedTotal):</span>
+                <strong>
+                  {formatRupiah(
+                    typeof updatingOrder.options?.computedTotal === 'number'
+                      ? updatingOrder.options.computedTotal
+                      : updatingOrder.priceAmount,
+                  )}
+                </strong>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: '2px',
+                  color: '#0f766e',
+                }}
+              >
+                <span>Harga Final Tersimpan:</span>
+                <strong>{formatRupiah(updatingOrder.priceAmount)}</strong>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                Paket Layanan:
+              </label>
+              <select
+                value={newPackageCode}
+                onChange={(e) => setNewPackageCode(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+              >
+                {ALL_ORDER_PACKAGE_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {getPackageDisplayLabel(code)} ({code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label
+                htmlFor="order-final-price-input"
+                style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}
+              >
+                Harga Final (Rp):
+              </label>
+              <input
+                id="order-final-price-input"
+                type="number"
+                min={0}
+                step={1000}
+                value={newPriceAmount}
+                onChange={(e) => setNewPriceAmount(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                Admin dapat menyesuaikan harga final (mis. diskon) tanpa menghapus total hasil hitung di atas.
+              </span>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>

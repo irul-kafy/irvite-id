@@ -79,7 +79,6 @@ type FilterTab = 'all' | 'wa_unsent' | 'wa_sent' | 'rsvp_yes' | 'rsvp_pending';
 
 export function ClientPortalView({
   initialEvent,
-  initialStats,
   initialGuests,
   initialWishes = [],
   accessKey,
@@ -96,7 +95,9 @@ export function ClientPortalView({
   const [deletingWish, setDeletingWish] = useState<PortalWish | null>(null);
   const [isDeletingWish, setIsDeletingWish] = useState(false);
   const [wishSearchQuery, setWishSearchQuery] = useState('');
-  const [clientOrigin, setClientOrigin] = useState('');
+  const [clientOrigin] = useState(() =>
+    typeof window !== 'undefined' ? window.location.origin : '',
+  );
 
   const filteredWishes = useMemo(() => {
     if (!wishSearchQuery.trim()) return wishes;
@@ -107,11 +108,77 @@ export function ClientPortalView({
     );
   }, [wishes, wishSearchQuery]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setClientOrigin(window.location.origin);
+  const handlePrintQrisSheet = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    let qrisSrc: string | null = null;
+    if (event.slug) {
+      try {
+        const res = await fetch(`/api-proxy/events/public/${event.slug}`, {
+          cache: 'no-store',
+        });
+        if (res.ok) {
+          const data = (await res.json()) as {
+            mediaBySlot?: { qris?: Array<{ src?: string }> };
+            media?: Array<{ slot?: string; src?: string }>;
+          };
+          const rawSrc =
+            data.mediaBySlot?.qris?.[0]?.src ||
+            data.media?.find((m) => m.slot === 'qris')?.src ||
+            null;
+          if (rawSrc) {
+            qrisSrc = rawSrc.startsWith('/events/')
+              ? `/api-proxy${rawSrc}`
+              : rawSrc;
+          }
+        }
+      } catch {
+        // Ignore network errors and render template sheet
+      }
     }
-  }, []);
+
+    const printWin = window.open('', '_blank', 'width=680,height=860');
+    if (!printWin) return;
+    const safeTitle = (event.title || 'Pernikahan Kami')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const qrisBlock = qrisSrc
+      ? `<img src="${qrisSrc}" alt="QRIS ${safeTitle}" style="width:260px;height:260px;object-fit:contain;border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#fff;" />`
+      : `<div style="width:260px;height:260px;border:2px dashed #94a3b8;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:14px;padding:16px;text-align:center;">Tempel / Tempatkan Kode QRIS Anda di Sini</div>`;
+
+    printWin.document.write(`<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Lembar Akrilik QRIS Meja — ${safeTitle}</title>
+  <style>
+    body { font-family: Georgia, serif; background: #f8fafc; margin: 0; padding: 24px; display: flex; flex-direction: column; align-items: center; }
+    .sheet { width: 105mm; min-height: 148mm; background: #fffdf9; border: 2px solid #c5a880; border-radius: 16px; padding: 28px 22px; box-sizing: border-box; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
+    .eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #8c6d46; margin-bottom: 6px; }
+    h1 { font-size: 22px; margin: 4px 0 8px; color: #1e293b; }
+    p { font-size: 12px; color: #475569; margin: 0 0 16px; line-height: 1.5; }
+    .footer { font-size: 11px; color: #8c6d46; margin-top: 16px; letter-spacing: 0.08em; }
+    .actions { margin-bottom: 16px; }
+    @media print { .actions { display: none; } body { background: #fff; padding: 0; } .sheet { box-shadow: none; } }
+  </style>
+</head>
+<body>
+  <div class="actions">
+    <button onclick="window.print()" style="padding:8px 18px;border-radius:8px;border:none;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;">🖨️ Cetak / Simpan PDF (Ukuran A6 Stand Akrilik)</button>
+  </div>
+  <div class="sheet">
+    <div>
+      <div class="eyebrow">Tanda Kasih Digital (QRIS)</div>
+      <h1>${safeTitle}</h1>
+      <p>Pindai kode QRIS di bawah ini menggunakan aplikasi Mobile Banking atau e-Wallet pilihan Anda.</p>
+    </div>
+    ${qrisBlock}
+    <div class="footer">Terima kasih atas doa restu &amp; kehadiran Anda • IRVITE</div>
+  </div>
+</body>
+</html>`);
+    printWin.document.close();
+  }, [event.slug, event.title]);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -613,7 +680,16 @@ export function ClientPortalView({
           <span className="portal-brand-title">IRVITE</span>
           <span className="portal-brand-badge">Portal Pengantin</span>
         </div>
-        <div className="portal-topbar-actions">
+        <div className="portal-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={handlePrintQrisSheet}
+            className="portal-preview-link"
+            style={{ cursor: 'pointer', background: 'transparent' }}
+            title="Unduh / Cetak Lembar QRIS untuk Stand Akrilik Meja"
+          >
+            <span>🖨️ Lembar QRIS Akrilik</span>
+          </button>
           {event.slug && (
             <Link
               href={`/e/${event.slug}`}

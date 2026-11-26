@@ -246,6 +246,51 @@ describe('OrdersService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('allows admin to update final priceAmount (discount) while preserving options.computedTotal', async () => {
+      const existingOptions = {
+        computedTotal: 499_000,
+        lineItems: [
+          {
+            code: 'PACKAGE_SIGNATURE',
+            label: 'Paket Signature (300 tamu)',
+            quantity: 1,
+            unitPrice: 499_000,
+            amount: 499_000,
+          },
+        ],
+        entitlements: { maxGuests: 300 },
+      };
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'SIGNATURE',
+        priceAmount: 499_000,
+        options: existingOptions,
+      });
+      prisma.order.update.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'SIGNATURE',
+        priceAmount: 450_000,
+        options: existingOptions,
+      });
+
+      const updated = await service.updateOrder('ord-123', {
+        priceAmount: 450_000,
+      });
+
+      expect(prisma.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            priceAmount: 450_000,
+          }),
+        }),
+      );
+      const updateCallData = (
+        prisma.order.update.mock.calls[0] as [{ data: Record<string, unknown> }]
+      )[0].data;
+      expect(updateCallData.options).toBeUndefined();
+      expect(updated.priceAmount).toBe(450_000);
+    });
   });
 
   describe('expireEventsCron', () => {

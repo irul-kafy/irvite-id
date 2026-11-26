@@ -13,7 +13,11 @@ import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { calculateActiveUntil, getPackageDefinition } from './packages';
+import {
+  buildOrderPricingSnapshot,
+  calculateActiveUntil,
+  getPackageDefinition,
+} from './packages';
 
 // Valid transitions mapping
 const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -351,7 +355,20 @@ export class OrdersService {
     if (dto.packageCode) {
       const pkg = getPackageDefinition(dto.packageCode);
       updateData.packageCode = pkg.code;
-      if (dto.priceAmount === undefined) {
+      const existingHasComputed =
+        order.options &&
+        typeof order.options === 'object' &&
+        !Array.isArray(order.options) &&
+        typeof (order.options as { computedTotal?: unknown }).computedTotal ===
+          'number' &&
+        (order.options as { computedTotal: number }).computedTotal > 0;
+      if (!existingHasComputed || dto.packageCode !== order.packageCode) {
+        const snap = buildOrderPricingSnapshot(pkg.code);
+        updateData.options = snap.options as unknown as Prisma.InputJsonValue;
+        if (dto.priceAmount === undefined) {
+          updateData.priceAmount = snap.priceAmount;
+        }
+      } else if (dto.priceAmount === undefined) {
         updateData.priceAmount = pkg.priceAmount;
       }
     }
