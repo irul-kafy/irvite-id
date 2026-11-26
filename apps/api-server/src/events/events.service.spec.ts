@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { EventsService } from './events.service';
 import { PrismaService } from '../database/prisma.service';
 import { MediaStorageService } from '../media/media-storage.service';
+import { runMediaFallbackMigration } from '../../scripts/migrate-media-fallback';
 import {
   NotFoundException,
   ConflictException,
@@ -440,7 +444,11 @@ describe('EventsService', () => {
       expect(res.clientKey).toBe('a1b2c3d4e5f60718293a4b5c');
     });
 
-    it('does NOT preserve _mediaFallback in Event.content during update() and migrateLegacyMediaFallbacks moves base64 to MediaStorageService', async () => {
+    it('does NOT preserve _mediaFallback in Event.content during update(), does NOT run migration on startup, and one-shot script migrates event-by-event with file verification & prod Blob check', async () => {
+      expect(
+        (service as unknown as { onModuleInit?: unknown }).onModuleInit,
+      ).toBeUndefined();
+
       (prisma.event.findFirst as jest.Mock).mockResolvedValue({
         id: 'event-1',
         status: 'DRAFT',
@@ -476,43 +484,140 @@ describe('EventsService', () => {
       };
       expect(updateArg.data.content._mediaFallback).toBeUndefined();
 
-      // Also verify migrateLegacyMediaFallbacks writes files to MediaStorageService and strips _mediaFallback from DB
-      const mediaStorage = (
-        service as unknown as {
-          mediaStorageService: { writeFile: jest.Mock };
-        }
-      ).mediaStorageService;
-      (prisma.event.findMany as jest.Mock).mockResolvedValueOnce([
-        {
-          id: 'event-legacy-1',
-          content: {
-            partnerOneName: 'Sarah',
-            partnerTwoName: 'Michael',
-            clientKey: 'a1b2c3d4e5f60718293a4b5c',
-            _mediaFallback: {
-              'media/legacy-hero.jpg':
-                Buffer.from('legacy-jpg-data').toString('base64'),
-            },
+      // 1. Aborts immediately in production if BLOB_READ_WRITE_TOKEN is missing
+      await expect(
+        runMediaFallbackMigration({
+          prisma: prisma,
+          mediaStorageService: {
+            writeFile: jest.fn(),
+            ensureFileLocal: jest.fn(),
+            isBlob: () => false,
           },
-        },
-      ]);
+          env: { NODE_ENV: 'production' },
+        }),
+      ).rejects.toThrow(/BLOB_READ_WRITE_TOKEN is required/);
 
-      const migrationRes = await service.migrateLegacyMediaFallbacks();
-      expect(migrationRes).toEqual({ migratedEvents: 1, migratedFiles: 1 });
-      expect(mediaStorage.writeFile).toHaveBeenCalledWith(
-        'media/legacy-hero.jpg',
-        Buffer.from('legacy-jpg-data'),
+      // 2. Processes events one by one (findMany selects only id, then findUnique per event) and verifies file before removing key
+      const tmpDir = fs.mkdtempSync(
+        path.join(os.tmpdir(), 'irvite-fallback-mig-'),
       );
-      expect(prisma.event.update).toHaveBeenLastCalledWith({
-        where: { id: 'event-legacy-1' },
-        data: {
-          content: {
-            partnerOneName: 'Sarah',
-            partnerTwoName: 'Michael',
-            clientKey: 'a1b2c3d4e5f60718293a4b5c',
+      const writtenFilePath = path.join(tmpDir, 'legacy-hero.jpg');
+      const payloadBuf = Buffer.from('legacy-jpg-data');
+
+      const writeFileMock = jest.fn().mockImplementation(async () => {
+        await fs.promises.writeFile(writtenFilePath, payloadBuf);
+      });
+      const ensureFileLocalMock = jest
+        .fn()
+        .mockImplementation((key: string) => {
+          if (key === 'media/legacy-hero.jpg') {
+            return Promise.resolve(writtenFilePath);
+          }
+          return Promise.resolve(path.join(tmpDir, 'missing.jpg'));
+        });
+
+      (prisma.event.findMany as jest.Mock).mockResolvedValueOnce([
+        { id: 'event-legacy-1' },
+      ]);
+      (prisma.event.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: 'event-legacy-1',
+        content: {
+          partnerOneName: 'Sarah',
+          partnerTwoName: 'Michael',
+          clientKey: 'a1b2c3d4e5f60718293a4b5c',
+          _mediaFallback: {
+            'media/legacy-hero.jpg': payloadBuf.toString('base64'),
           },
         },
       });
+
+      try {
+        const migrationRes = await runMediaFallbackMigration({
+          prisma: prisma,
+          mediaStorageService: {
+            writeFile: writeFileMock,
+            ensureFileLocal: ensureFileLocalMock,
+            isBlob: () => false,
+          },
+          env: { NODE_ENV: 'development' },
+          logger: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        });
+
+        expect(prisma.event.findMany).toHaveBeenCalledWith({
+          select: { id: true },
+          orderBy: { createdAt: 'asc' },
+        });
+        expect(prisma.event.findUnique).toHaveBeenCalledWith({
+          where: { id: 'event-legacy-1' },
+          select: { id: true, content: true },
+        });
+        expect(writeFileMock).toHaveBeenCalledWith(
+          'media/legacy-hero.jpg',
+          payloadBuf,
+        );
+        expect(ensureFileLocalMock).toHaveBeenCalledWith(
+          'media/legacy-hero.jpg',
+        );
+        expect(migrationRes).toMatchObject({
+          scannedEvents: 1,
+          migratedEvents: 1,
+          migratedFiles: 1,
+          failedFiles: 0,
+        });
+        expect(prisma.event.update).toHaveBeenLastCalledWith({
+          where: { id: 'event-legacy-1' },
+          data: {
+            content: {
+              partnerOneName: 'Sarah',
+              partnerTwoName: 'Michael',
+              clientKey: 'a1b2c3d4e5f60718293a4b5c',
+            },
+          },
+        });
+
+        // 3. Keeps key in _mediaFallback when file verification fails
+        (prisma.event.findMany as jest.Mock).mockResolvedValueOnce([
+          { id: 'event-unverified-1' },
+        ]);
+        (prisma.event.findUnique as jest.Mock).mockResolvedValueOnce({
+          id: 'event-unverified-1',
+          content: {
+            partnerOneName: 'Sarah',
+            _mediaFallback: {
+              'media/unverified.jpg': payloadBuf.toString('base64'),
+            },
+          },
+        });
+        const updateCallCountBefore = (prisma.event.update as jest.Mock).mock
+          .calls.length;
+
+        const failedRes = await runMediaFallbackMigration({
+          prisma: prisma,
+          mediaStorageService: {
+            writeFile: jest.fn().mockResolvedValue(undefined),
+            ensureFileLocal: ensureFileLocalMock,
+            isBlob: () => false,
+          },
+          env: { NODE_ENV: 'development' },
+          logger: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+          },
+        });
+
+        expect(failedRes.failedFiles).toBe(1);
+        expect(failedRes.migratedFiles).toBe(0);
+        expect((prisma.event.update as jest.Mock).mock.calls.length).toBe(
+          updateCallCountBefore,
+        );
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 

@@ -1,14 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MediaStorageService } from './media-storage.service';
+import {
+  MediaStorageService,
+  warnIfVercelBlobMissingOnStartup,
+} from './media-storage.service';
 import * as path from 'path';
 import * as fs from 'fs';
-import { InternalServerErrorException } from '@nestjs/common';
+import { InternalServerErrorException, Logger } from '@nestjs/common';
 import * as vercelBlob from '@vercel/blob';
 
 jest.mock('@vercel/blob', () => ({
-  put: jest.fn().mockResolvedValue({ url: 'https://blob.vercel-storage.com/test.png' }),
+  put: jest
+    .fn()
+    .mockResolvedValue({ url: 'https://blob.vercel-storage.com/test.png' }),
   del: jest.fn().mockResolvedValue(undefined),
-  head: jest.fn().mockResolvedValue({ downloadUrl: 'https://blob.vercel-storage.com/test.png', size: 4 }),
+  head: jest.fn().mockResolvedValue({
+    downloadUrl: 'https://blob.vercel-storage.com/test.png',
+    size: 4,
+  }),
 }));
 
 describe('MediaStorageService', () => {
@@ -31,7 +39,8 @@ describe('MediaStorageService', () => {
     if (originalEnv === undefined) delete process.env.MEDIA_STORAGE_PATH;
     else process.env.MEDIA_STORAGE_PATH = originalEnv;
 
-    if (originalBlobToken === undefined) delete process.env.BLOB_READ_WRITE_TOKEN;
+    if (originalBlobToken === undefined)
+      delete process.env.BLOB_READ_WRITE_TOKEN;
     else process.env.BLOB_READ_WRITE_TOKEN = originalBlobToken;
 
     const testDir = path.join(__dirname, 'test-storage');
@@ -124,6 +133,47 @@ describe('MediaStorageService', () => {
           token: 'test-blob-token-123',
         }),
       );
+    });
+
+    it('logs a loud warning on startup when VERCEL is active but BLOB_READ_WRITE_TOKEN is empty', () => {
+      const warnMock = jest.fn();
+      const warned = warnIfVercelBlobMissingOnStartup(
+        { warn: warnMock },
+        { NODE_ENV: 'production', VERCEL: '1', BLOB_READ_WRITE_TOKEN: '' },
+      );
+      expect(warned).toBe(true);
+      expect(warnMock).toHaveBeenCalledWith(
+        expect.stringContaining('BLOB_READ_WRITE_TOKEN is empty'),
+      );
+
+      warnMock.mockClear();
+      const notWarned = warnIfVercelBlobMissingOnStartup(
+        { warn: warnMock },
+        {
+          NODE_ENV: 'production',
+          VERCEL: '1',
+          BLOB_READ_WRITE_TOKEN: 'vercel_blob_rw_live_token',
+        },
+      );
+      expect(notWarned).toBe(false);
+      expect(warnMock).not.toHaveBeenCalled();
+
+      const loggerWarnSpy = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const prevVercel = process.env.VERCEL;
+      try {
+        process.env.VERCEL = '1';
+        delete process.env.BLOB_READ_WRITE_TOKEN;
+        new MediaStorageService();
+        expect(loggerWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('BLOB_READ_WRITE_TOKEN is empty'),
+        );
+      } finally {
+        if (prevVercel === undefined) delete process.env.VERCEL;
+        else process.env.VERCEL = prevVercel;
+        loggerWarnSpy.mockRestore();
+      }
     });
   });
 });

@@ -1,8 +1,33 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { put, del, head } from '@vercel/blob';
+
+export function warnIfVercelBlobMissingOnStartup(
+  logger: Pick<Logger, 'warn'>,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const isVercelActive =
+    Boolean(env.VERCEL && String(env.VERCEL).trim() !== '') &&
+    String(env.VERCEL).trim() !== '0' &&
+    String(env.VERCEL).trim().toLowerCase() !== 'false';
+  const hasBlobToken = Boolean(
+    env.BLOB_READ_WRITE_TOKEN && env.BLOB_READ_WRITE_TOKEN.trim() !== '',
+  );
+
+  if (isVercelActive && !hasBlobToken) {
+    logger.warn(
+      'CRITICAL WARNING: VERCEL environment is active but BLOB_READ_WRITE_TOKEN is empty! Media written to /tmp is ephemeral and will be lost in production.',
+    );
+    return true;
+  }
+  return false;
+}
 
 @Injectable()
 export class MediaStorageService {
@@ -12,8 +37,10 @@ export class MediaStorageService {
   private readonly blobToken?: string;
 
   constructor() {
-    this.blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    this.blobToken = process.env.BLOB_READ_WRITE_TOKEN?.trim() || undefined;
     this.isBlobConfigured = Boolean(this.blobToken);
+
+    warnIfVercelBlobMissingOnStartup(this.logger, process.env);
 
     // Read at construction, after ConfigModule has loaded .env.
     const storagePath = process.env.MEDIA_STORAGE_PATH;
@@ -32,9 +59,13 @@ export class MediaStorageService {
     }
 
     if (this.isBlobConfigured) {
-      this.logger.log('Vercel Blob storage driver initialized for persistent media.');
+      this.logger.log(
+        'Vercel Blob storage driver initialized for persistent media.',
+      );
     } else {
-      this.logger.log(`Local disk storage driver initialized at: ${this.storageRoot}`);
+      this.logger.log(
+        `Local disk storage driver initialized at: ${this.storageRoot}`,
+      );
     }
   }
 
@@ -91,7 +122,9 @@ export class MediaStorageService {
       } catch (blobErr) {
         this.logger.error(`Vercel Blob put failed for ${key}:`, blobErr);
         if (!fs.existsSync(target)) {
-          throw new InternalServerErrorException('Failed to write media to permanent storage');
+          throw new InternalServerErrorException(
+            'Failed to write media to permanent storage',
+          );
         }
       }
     }
@@ -107,7 +140,9 @@ export class MediaStorageService {
     } catch (error: unknown) {
       const err = error as NodeJS.ErrnoException;
       if (err.code !== 'ENOENT') {
-        this.logger.warn(`Failed to unlink local file ${target}: ${err.message}`);
+        this.logger.warn(
+          `Failed to unlink local file ${target}: ${err.message}`,
+        );
       }
     }
 
@@ -139,12 +174,16 @@ export class MediaStorageService {
               await fs.promises.mkdir(dir, { recursive: true });
             }
             await fs.promises.writeFile(target, buf);
-            this.logger.debug(`Rehydrated missing local file from Vercel Blob: ${key}`);
+            this.logger.debug(
+              `Rehydrated missing local file from Vercel Blob: ${key}`,
+            );
             return target;
           }
         }
       } catch (blobErr) {
-        this.logger.debug(`Could not rehydrate from Vercel Blob for key ${key}: ${blobErr}`);
+        this.logger.debug(
+          `Could not rehydrate from Vercel Blob for key ${key}: ${blobErr}`,
+        );
       }
     }
 
