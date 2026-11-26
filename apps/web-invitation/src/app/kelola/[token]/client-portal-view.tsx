@@ -1688,6 +1688,8 @@ export function ClientPortalView({
                   <option value="VIP">VIP</option>
                   <option value="VVIP">VVIP</option>
                   <option value="FAMILY">FAMILY (Keluarga)</option>
+                  <option value="FAMILY_GROOM">FAMILY_GROOM (Keluarga Pria)</option>
+                  <option value="FAMILY_BRIDE">FAMILY_BRIDE (Keluarga Wanita)</option>
                   <option value="FRIEND">FRIEND (Teman)</option>
                   <option value="COLLEAGUE">COLLEAGUE (Teman Kantor)</option>
                 </select>

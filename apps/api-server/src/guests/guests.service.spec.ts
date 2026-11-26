@@ -183,7 +183,7 @@ describe('GuestsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('rejects unknown guest category and maps aliases like KELUARGA -> FAMILY', async () => {
+    it('rejects unknown guest category and maps aliases like KELUARGA -> FAMILY, KELUARGA PRIA -> FAMILY_GROOM, KELUARGA WANITA -> FAMILY_BRIDE', async () => {
       mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-id' });
       mockPrisma.guest.create.mockResolvedValue({
         id: 'g-1',
@@ -197,6 +197,26 @@ describe('GuestsService', () => {
       expect(mockPrisma.guest.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ category: 'FAMILY' }),
+        }),
+      );
+
+      await service.create('event-id', 'user-id', Role.ADMIN, {
+        name: 'Tamu Keluarga Pria',
+        category: 'KELUARGA PRIA',
+      });
+      expect(mockPrisma.guest.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'FAMILY_GROOM' }),
+        }),
+      );
+
+      await service.create('event-id', 'user-id', Role.ADMIN, {
+        name: 'Tamu Keluarga Wanita',
+        category: 'KELUARGA WANITA',
+      });
+      expect(mockPrisma.guest.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'FAMILY_BRIDE' }),
         }),
       );
 

@@ -215,19 +215,22 @@ describe('spreadsheet-parser', () => {
       expect(result.rows[0].phoneNumber).toBe('6281234567899');
     });
 
-    it('enforces allowed category enum list and maps Indonesian aliases (KELUARGA -> FAMILY)', async () => {
+    it('enforces allowed category enum list (including FAMILY_GROOM & FAMILY_BRIDE) and maps Indonesian aliases', async () => {
       const csv =
-        'Nama Tamu,Kategori\nGuest Family,KELUARGA\nGuest Invalid,UNKNOWN_CAT';
+        'Nama Tamu,Kategori\nGuest Family,KELUARGA\nGuest Groom,KELUARGA PRIA\nGuest Bride,KELUARGA WANITA\nGuest Invalid,UNKNOWN_CAT';
       const buffer = Buffer.from(csv, 'utf8');
 
       const result = await parseSpreadsheetBuffer(buffer, 'csv');
-      expect(result.totalRows).toBe(2);
+      expect(result.totalRows).toBe(4);
       expect(result.rows[0].isValid).toBe(true);
       expect(result.rows[0].category).toBe('FAMILY');
-      expect(result.rows[0].errors).toEqual([]);
+      expect(result.rows[1].isValid).toBe(true);
+      expect(result.rows[1].category).toBe('FAMILY_GROOM');
+      expect(result.rows[2].isValid).toBe(true);
+      expect(result.rows[2].category).toBe('FAMILY_BRIDE');
 
-      expect(result.rows[1].isValid).toBe(false);
-      expect(result.rows[1].errors).toContain('INVALID_CATEGORY');
+      expect(result.rows[3].isValid).toBe(false);
+      expect(result.rows[3].errors).toContain('INVALID_CATEGORY');
     });
   });
 });
