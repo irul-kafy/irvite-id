@@ -227,5 +227,28 @@ describe('GuestsService', () => {
         select: { id: true },
       });
     });
+
+    it('migration 20261124073000 records guests_migration_audit before UPDATE and strips spaces/hyphens in phone numbers', () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs') as typeof import('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path') as typeof import('path');
+      const migrationPath = path.resolve(
+        __dirname,
+        '../../../../packages/database/prisma/migrations/20261124073000_guest_category_and_unique_event_phone/migration.sql',
+      );
+      const sql = fs.readFileSync(migrationPath, 'utf8');
+
+      const auditTableIdx = sql.indexOf(
+        'CREATE TABLE IF NOT EXISTS `guests_migration_audit`',
+      );
+      const firstUpdateIdx = sql.indexOf('UPDATE `guests`');
+      expect(auditTableIdx).toBeGreaterThanOrEqual(0);
+      expect(firstUpdateIdx).toBeGreaterThan(auditTableIdx);
+      expect(sql).toContain('`old_category`');
+      expect(sql).toContain('`old_phone_number`');
+      expect(sql).toContain("REPLACE(TRIM(`phone_number`), ' ', ''), '-', ''");
+      expect(sql).toContain('PHONE_DEDUP_CLEARED');
+    });
   });
 });
