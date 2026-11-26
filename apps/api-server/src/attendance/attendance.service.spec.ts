@@ -1569,5 +1569,28 @@ describe('AttendanceService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('migration 20261124075000_backfill_walk_in_zero_check_ins marks is_walk_in=true for ON_THE_SPOT guests with attendance and zero attendance_check_ins without editing 20261124071000', () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs') as typeof import('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path') as typeof import('path');
+      const originalMigrationPath = path.resolve(
+        __dirname,
+        '../../../../packages/database/prisma/migrations/20261124071000_add_guest_is_walk_in/migration.sql',
+      );
+      const newMigrationPath = path.resolve(
+        __dirname,
+        '../../../../packages/database/prisma/migrations/20261124075000_backfill_walk_in_zero_check_ins/migration.sql',
+      );
+      const originalSql = fs.readFileSync(originalMigrationPath, 'utf8');
+      const newSql = fs.readFileSync(newMigrationPath, 'utf8');
+
+      expect(originalSql).toContain(') = 1;');
+      expect(newSql).toContain('SET g.`is_walk_in` = true');
+      expect(newSql).toContain("IN ('ON_THE_SPOT', 'ON THE SPOT')");
+      expect(newSql).toContain('FROM `attendance_check_ins` aci');
+      expect(newSql).toContain(') = 0;');
+    });
   });
 });
