@@ -22,12 +22,34 @@ test('Proxy navigation protection (API still verifies signatures)', async (t) =>
     assert.strictEqual(result.status, 307);
     assert.match(result.headers.get('set-cookie') || '', /auth_token=;/);
   });
-  await t.test('config matcher includes /staff/:path* and other protected routes', () => {
+  await t.test('config matcher includes /staff/:path*, /orders/:path*, /activity-logs/:path*, and other protected routes', () => {
     assert.ok(config.matcher.includes('/staff/:path*'));
     assert.ok(config.matcher.includes('/dashboard/:path*'));
     assert.ok(config.matcher.includes('/events/:path*'));
     assert.ok(config.matcher.includes('/templates/:path*'));
+    assert.ok(config.matcher.includes('/orders/:path*'));
+    assert.ok(config.matcher.includes('/activity-logs/:path*'));
     assert.ok(config.matcher.includes('/login'));
+  });
+
+  await t.test('anonymous user requesting /orders or /activity-logs is redirected to /login', () => {
+    const ordersRes = middleware(createMockRequest('/orders'));
+    assert.strictEqual(ordersRes.status, 307);
+    assert.strictEqual(ordersRes.headers.get('location'), 'http://localhost:3001/login');
+
+    const logsRes = middleware(createMockRequest('/activity-logs'));
+    assert.strictEqual(logsRes.status, 307);
+    assert.strictEqual(logsRes.headers.get('location'), 'http://localhost:3001/login');
+  });
+
+  await t.test('authenticated user accessing /orders or /activity-logs proceeds', () => {
+    const ordersRes = middleware(createMockRequest('/orders', 'valid_token'));
+    assert.strictEqual(ordersRes.status, 200);
+    assert.strictEqual(ordersRes.headers.get('location'), null);
+
+    const logsRes = middleware(createMockRequest('/activity-logs', 'valid_token'));
+    assert.strictEqual(logsRes.status, 200);
+    assert.strictEqual(logsRes.headers.get('location'), null);
   });
 
   await t.test('anonymous user requesting /staff is redirected to /login', () => {
