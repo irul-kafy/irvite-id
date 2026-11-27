@@ -1211,7 +1211,7 @@ export function buildWhatsappOrderUrl(params: {
     ``,
     `▸ *Kode Draf Dashboard:* #${params.referenceCode}`,
     `▸ *Template:* ${params.templateDisplayName} (Ketentuan Desain IRVITE)`,
-    `▸ *Paket Layanan:* ${getPackageDisplayLabel(pkgCode || 'UNSELECTED')}`,
+    `▸ *Paket Layanan:* ${getPackageDisplayLabel(pkgCode || 'UNSELECTED')}${priceCalc ? ` (hingga ${priceCalc.entitlements.maxGuests} undangan — 1 undangan bisa untuk keluarga)` : ''}`,
     `▸ *Mempelai:* ${p1} & ${p2}`,
     `▸ *Jadwal Utama:* ${dateStr} (${params.state.timeZone})`,
     `▸ *Lokasi:* ${venueStr}`,

@@ -2076,7 +2076,8 @@ export function TemplateCustomizerStudio({
                           {formatRupiah(price)}
                         </div>
                         <div style={{ fontSize: '0.73rem', color: '#475569' }}>
-                          {pkg.baseCapacity} tamu • {pkg.includedPetugas} petugas
+                          hingga {pkg.baseCapacity} undangan (1 undangan bisa untuk keluarga) •{' '}
+                          {pkg.includedPetugas} petugas
                           {pkg.includedSupervisor ? ' + 1 spv' : ''}
                           {pkg.includesAkrilik ? ' • akrilik' : ''}
                         </div>
@@ -2157,7 +2158,7 @@ export function TemplateCustomizerStudio({
                     }}
                   >
                     <span style={{ fontSize: '0.78rem', color: '#334155' }}>
-                      Kapasitas Tamu Undangan
+                      Kapasitas Undangan (1 undangan bisa untuk keluarga)
                     </span>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {CAPACITY_TIERS.map((tier) => {
@@ -2202,7 +2203,7 @@ export function TemplateCustomizerStudio({
                               cursor: isDisabled ? 'not-allowed' : 'pointer',
                             }}
                           >
-                            {tier} tamu
+                            hingga {tier} undangan
                           </button>
                         );
                       })}
@@ -2628,8 +2629,9 @@ export function TemplateCustomizerStudio({
                   <div className="irv-studio-summary-item">
                     <span>Paket Dipilih</span>
                     <strong>
-                      {getPackageDisplayLabel(selectedPackageCode)} (Maks.{' '}
-                      {livePricing.entitlements.maxGuests} tamu)
+                      {getPackageDisplayLabel(selectedPackageCode)} (hingga{' '}
+                      {livePricing.entitlements.maxGuests} undangan — 1 undangan
+                      bisa untuk keluarga)
                     </strong>
                   </div>
                   {livePricing.lineItems.map((item) => (

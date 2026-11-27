@@ -427,11 +427,11 @@ export class ClientPortalService {
       resolveOrderMaxGuests(eventOrder) ?? MAX_PORTAL_GUESTS_PER_EVENT;
 
     const currentGuestsCount = await this.prisma.guest.count({
-      where: { eventId },
+      where: { eventId, isWalkIn: false },
     });
     if (currentGuestsCount >= maxAllowedGuests) {
       throw new BadRequestException(
-        `Batas maksimum tamu per acara (${maxAllowedGuests} tamu) telah tercapai.`,
+        `Batas maksimum kuota hingga ${maxAllowedGuests} undangan (1 undangan bisa untuk keluarga) telah tercapai.`,
       );
     }
 

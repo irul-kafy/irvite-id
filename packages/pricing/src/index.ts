@@ -88,7 +88,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     name: 'Sacred',
     tagline: 'Akad & syukuran hangat',
     description:
-      'Undangan digital pernikahan dan buku tamu QR mandiri untuk acara akad atau syukuran intim hingga 50 tamu.',
+      'Undangan digital pernikahan dan buku tamu QR mandiri untuk acara akad atau syukuran intim hingga 50 undangan (1 undangan bisa untuk keluarga).',
     baseCapacity: 50,
     includedPetugas: 0,
     includedSupervisor: 0,
@@ -97,7 +97,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesGoogleSheetLive: false,
     includesPostEventReport: false,
     features: [
-      'Kapasitas hingga 50 tamu undangan',
+      'Kapasitas hingga 50 undangan (1 undangan bisa untuk keluarga)',
       'Semua tema katalog & kustomisasi penuh',
       'RSVP, ucapan & amplop digital / QRIS',
       'QR check-in tamu mandiri (tanpa petugas)',
@@ -109,7 +109,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     name: 'Intimate',
     tagline: 'Resepsi intim terkelola',
     description:
-      'Didampingi 1 petugas check-in di lokasi serta 1 set stand akrilik QRIS meja untuk resepsi hingga 150 tamu.',
+      'Didampingi 1 petugas check-in di lokasi serta 1 set stand akrilik QRIS meja untuk resepsi hingga 150 undangan (1 undangan bisa untuk keluarga).',
     baseCapacity: 150,
     includedPetugas: 1,
     includedSupervisor: 0,
@@ -118,7 +118,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesGoogleSheetLive: false,
     includesPostEventReport: false,
     features: [
-      'Kapasitas hingga 150 tamu undangan',
+      'Kapasitas hingga 150 undangan (1 undangan bisa untuk keluarga)',
       '1 petugas check-in di lokasi (4 jam kerja)',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Semua tema katalog, RSVP, ucapan & amplop digital',
@@ -140,7 +140,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesGoogleSheetLive: true,
     includesPostEventReport: false,
     features: [
-      'Kapasitas hingga 300 tamu undangan',
+      'Kapasitas hingga 300 undangan (1 undangan bisa untuk keluarga)',
       '2 petugas check-in di lokasi (masing-masing 4 jam)',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Sesi gladi bersih & uji sistem H-1',
@@ -161,7 +161,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesGoogleSheetLive: true,
     includesPostEventReport: true,
     features: [
-      'Kapasitas hingga 600 tamu undangan',
+      'Kapasitas hingga 600 undangan (1 undangan bisa untuk keluarga)',
       '4 petugas check-in (4 jam) + 1 supervisor lapangan',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Sesi gladi bersih H-1 & Google Sheet live',
@@ -385,7 +385,7 @@ export function calculateOrderPrice(
     const baseAmount = CAPACITY_BASE_PRICES[effectiveCapacity];
     lineItems.push({
       code: `CUSTOM_BASE_${effectiveCapacity}`,
-      label: `Dasar Undangan Digital (${effectiveCapacity} tamu)`,
+      label: `Dasar Undangan Digital (hingga ${effectiveCapacity} undangan — 1 undangan bisa untuk keluarga)`,
       quantity: 1,
       unitPrice: baseAmount,
       amount: baseAmount,
@@ -479,7 +479,7 @@ export function calculateOrderPrice(
 
   lineItems.push({
     code: `PACKAGE_${rawCode}`,
-    label: `Paket ${pkg.name} (${pkg.baseCapacity} tamu)`,
+    label: `Paket ${pkg.name} (hingga ${pkg.baseCapacity} undangan — 1 undangan bisa untuk keluarga)`,
     quantity: 1,
     unitPrice: basePackagePrice,
     amount: basePackagePrice,
@@ -497,7 +497,7 @@ export function calculateOrderPrice(
       CAPACITY_BASE_PRICES[pkg.baseCapacity];
     lineItems.push({
       code: 'CAPACITY_UPGRADE',
-      label: `Upgrade Kapasitas Tamu (${pkg.baseCapacity} → ${effectiveCapacity} tamu)`,
+      label: `Upgrade Kapasitas Tamu (hingga ${effectiveCapacity} undangan — 1 undangan bisa untuk keluarga)`,
       quantity: 1,
       unitPrice: upgradeAmount,
       amount: upgradeAmount,

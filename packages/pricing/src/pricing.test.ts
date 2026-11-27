@@ -280,5 +280,11 @@ test('catalog features do not promise non-existent features', () => {
         `Package ${pkg.code} matched forbidden promise: ${pattern}`,
       );
     }
+    assert.ok(
+      pkg.features[0].includes(
+        `hingga ${pkg.baseCapacity} undangan (1 undangan bisa untuk keluarga)`,
+      ),
+      `Package ${pkg.code} must describe capacity as hingga N undangan (1 undangan bisa untuk keluarga)`,
+    );
   }
 });

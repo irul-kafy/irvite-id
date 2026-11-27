@@ -286,8 +286,9 @@ function PackagesSection() {
                 Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
               </div>
               <p className="package-desc">
-                Pilih sendiri kuota tamu (50/150/300/600), jumlah petugas check-in,
-                jam tambahan, stand akrilik QRIS, hingga sesi gladi H-1.
+                Pilih sendiri kuota hingga 50–600 undangan (1 undangan bisa untuk
+                keluarga), jumlah petugas check-in, jam tambahan, stand akrilik
+                QRIS, hingga sesi gladi H-1.
               </p>
             </div>
             <div className="package-divider" aria-hidden="true" />
@@ -297,7 +298,8 @@ function PackagesSection() {
                   <IconCheck />
                 </span>
                 <span>
-                  Dasar undangan 50–600 tamu ({formatRupiah(CAPACITY_BASE_PRICES[50])} –{' '}
+                  Dasar hingga 50–600 undangan (1 undangan bisa untuk keluarga:{' '}
+                  {formatRupiah(CAPACITY_BASE_PRICES[50])} –{' '}
                   {formatRupiah(CAPACITY_BASE_PRICES[600])})
                 </span>
               </li>

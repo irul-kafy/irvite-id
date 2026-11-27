@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
   buildWhatsAppShareUrl,
@@ -978,9 +978,11 @@ export function ClientPortalView({
         {/* Stats Grid */}
         <section className="portal-stats-grid">
           <div className="portal-stat-card">
-            <span className="portal-stat-label">👥 Total Tamu</span>
+            <span className="portal-stat-label">👥 Total Undangan</span>
             <span className="portal-stat-value">{stats.totalGuests}</span>
-            <span className="portal-stat-sub">Kapasitas: {stats.totalPax} Pax</span>
+            <span className="portal-stat-sub">
+              Total Pax: {stats.totalPax} orang (1 undangan bisa untuk keluarga)
+            </span>
           </div>
 
           <div className="portal-stat-card stat-success">

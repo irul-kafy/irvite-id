@@ -516,7 +516,7 @@ describe('ClientPortalService', () => {
           name: 'Tamu ke-51',
           maxPax: 1,
         }),
-      ).rejects.toThrow(/50 tamu/);
+      ).rejects.toThrow(/hingga 50 undangan \(1 undangan bisa untuk keluarga\)/);
 
       // Event without an order allows > 50 guests up to MAX_PORTAL_GUESTS_PER_EVENT (2000)
       prisma.event.findUnique.mockResolvedValue({
