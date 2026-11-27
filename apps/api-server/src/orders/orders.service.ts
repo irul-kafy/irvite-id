@@ -381,11 +381,17 @@ export class OrdersService {
         order.options &&
         typeof order.options === 'object' &&
         !Array.isArray(order.options) &&
-        (order.options as { input?: OrderPricingOptionsInput }).input &&
-        typeof (order.options as { input?: OrderPricingOptionsInput }).input ===
-          'object'
+        (order.options as unknown as { input?: OrderPricingOptionsInput })
+          .input &&
+        typeof (
+          order.options as unknown as { input?: OrderPricingOptionsInput }
+        ).input === 'object'
           ? {
-              ...(order.options as { input: OrderPricingOptionsInput }).input,
+              ...(
+                order.options as unknown as {
+                  input: OrderPricingOptionsInput;
+                }
+              ).input,
             }
           : {};
 
