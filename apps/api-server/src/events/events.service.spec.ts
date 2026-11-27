@@ -1471,5 +1471,59 @@ describe('EventsService', () => {
       // Because the transaction threw when order.create failed, no event was committed
       expect(persistedEvents).toHaveLength(0);
     });
+
+    it('accepts special qris photo slot on any template and returns honest savedPhotosCount and droppedPhotosCount when invalid photos are dropped', async () => {
+      const validPngBase64 =
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const validDataUrl = `data:image/png;base64,${validPngBase64}`;
+
+      const mediaStorage = (
+        service as unknown as {
+          mediaStorageService: {
+            generateKey: jest.Mock;
+            writeFile: jest.Mock;
+          };
+        }
+      ).mediaStorageService;
+      mediaStorage.generateKey = jest
+        .fn()
+        .mockReturnValue('events/ev-draft-1/qris.png');
+      (
+        prisma.media as unknown as { create: jest.Mock }
+      ).create.mockResolvedValue({
+        id: 'media-qris-1',
+      });
+
+      const res = await service.createPublicDraft({
+        themeCode: 'IVORY_GARDEN',
+        clientName: 'Romeo',
+        clientWhatsapp: '081234567890',
+        packageCode: 'SACRED',
+        content: {
+          partnerOneName: 'Romeo',
+          partnerTwoName: 'Juliet',
+        },
+        photos: [
+          { slot: 'qris', dataUrl: validDataUrl, order: 0 },
+          { slot: 'unknown-slot', dataUrl: validDataUrl, order: 0 },
+          { slot: 'hero', dataUrl: 'data:image/png;base64,NOT_A_REAL_PNG', order: 0 },
+        ],
+      });
+
+      expect(res.savedPhotosCount).toBe(1);
+      expect(res.droppedPhotosCount).toBe(2);
+      expect(
+        (prisma.media as unknown as { create: jest.Mock }).create,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        (prisma.media as unknown as { create: jest.Mock }).create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            slot: 'qris',
+          }),
+        }),
+      );
+    });
   });
 });

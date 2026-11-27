@@ -1481,6 +1481,9 @@ export class EventsService {
     }
 
     // Save optional compressed client preview photos into event media slots via MediaStorageService + Media table (no base64 in Event.content)
+    const submittedPhotosCount = Array.isArray(dto.photos)
+      ? dto.photos.length
+      : 0;
     let savedPhotosCount = 0;
     const slotCounts = new Map<string, number>();
     const definition = getTemplateDefinition(template.themeCode);
@@ -1496,9 +1499,20 @@ export class EventsService {
           continue;
         }
         const slotKey = photoInput.slot.trim();
-        const slotDef = definition.mediaSlots.find(
-          (s) => s.key === slotKey && s.mediaType === 'PHOTO',
-        );
+        const slotDef =
+          definition.mediaSlots.find(
+            (s) => s.key === slotKey && s.mediaType === 'PHOTO',
+          ) ??
+          (slotKey === 'qris'
+            ? {
+                key: 'qris',
+                label: 'Barcode QRIS',
+                mediaType: 'PHOTO' as const,
+                multiple: false,
+                maxItems: 1,
+                maxSizeBytes: 5 * 1024 * 1024,
+              }
+            : undefined);
         if (!slotDef) continue;
 
         const currentSlotCount = slotCounts.get(slotKey) ?? 0;
@@ -1548,6 +1562,11 @@ export class EventsService {
       }
     }
 
+    const droppedPhotosCount = Math.max(
+      0,
+      submittedPhotosCount - savedPhotosCount,
+    );
+
     return {
       id: newEvent.id,
       referenceCode,
@@ -1557,6 +1576,7 @@ export class EventsService {
       templateName: template.name,
       status: newEvent.status,
       savedPhotosCount,
+      droppedPhotosCount,
     };
   }
 }

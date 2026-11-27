@@ -200,6 +200,9 @@ export function TemplateCustomizerStudio({
     referenceCode: string;
     whatsappUrl: string;
     savedToServer: boolean;
+    submittedPhotosCount: number;
+    savedPhotosCount: number;
+    droppedPhotosCount: number;
   } | null>(null);
 
   useEffect(() => {
@@ -655,8 +658,11 @@ export function TemplateCustomizerStudio({
       state,
     });
 
+    const submittedPhotosCount = payload.photos.length;
     let referenceCode = `IRV-${Math.random().toString(16).substring(2, 8).toUpperCase()}`;
     let savedToServer = false;
+    let savedPhotosCount = 0;
+    let usedPhotoFallbackRetry = false;
 
     try {
       let res = await fetch('/api-proxy/events/public/draft', {
@@ -667,6 +673,7 @@ export function TemplateCustomizerStudio({
 
       // Fallback retry without photos if payload size exceeds an un-restarted server's body limit
       if (!res.ok && payload.photos.length > 0) {
+        usedPhotoFallbackRetry = true;
         res = await fetch('/api-proxy/events/public/draft', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -679,12 +686,21 @@ export function TemplateCustomizerStudio({
         if (data?.referenceCode) {
           referenceCode = data.referenceCode;
         }
+        savedPhotosCount =
+          !usedPhotoFallbackRetry && typeof data?.savedPhotosCount === 'number'
+            ? data.savedPhotosCount
+            : 0;
         savedToServer = true;
       }
     } catch {
       // Fallback reference code if backend is unreachable in local static preview
       savedToServer = false;
+      savedPhotosCount = 0;
     } finally {
+      const droppedPhotosCount = Math.max(
+        0,
+        submittedPhotosCount - savedPhotosCount,
+      );
       const whatsappUrl = buildWhatsappOrderUrl({
         referenceCode,
         templateDisplayName,
@@ -702,6 +718,9 @@ export function TemplateCustomizerStudio({
         referenceCode,
         whatsappUrl,
         savedToServer,
+        submittedPhotosCount,
+        savedPhotosCount,
+        droppedPhotosCount,
       });
       setSubmitting(false);
 
@@ -2759,8 +2778,30 @@ export function TemplateCustomizerStudio({
                       <br />
                       Data pernikahan, paket, &amp; foto Anda telah tersimpan
                       otomatis di Dashboard Super Admin IRVITE dengan status
-                      DRAFT.
+                      DRAFT ({submittedResult.savedPhotosCount} dari{' '}
+                      {submittedResult.submittedPhotosCount} foto tersimpan).
                     </div>
+
+                    {submittedResult.droppedPhotosCount > 0 && (
+                      <div
+                        data-testid="draft-dropped-photos-warning"
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          background: '#fffbeb',
+                          border: '1px solid #fde68a',
+                          color: '#92400e',
+                          fontSize: '0.78rem',
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        ⚠️ {submittedResult.droppedPhotosCount} dari{' '}
+                        {submittedResult.submittedPhotosCount} foto tidak
+                        berhasil disimpan di server (tersimpan:{' '}
+                        {submittedResult.savedPhotosCount} foto). Mohon kirimkan
+                        foto tersebut secara manual melalui chat WhatsApp Admin.
+                      </div>
+                    )}
 
                     <a
                       href={submittedResult.whatsappUrl}
