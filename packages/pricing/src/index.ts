@@ -119,7 +119,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: false,
     features: [
       'Kapasitas hingga 150 undangan (1 undangan bisa untuk keluarga)',
-      '1 petugas check-in di lokasi (4 jam kerja)',
+      '1 petugas check-in di lokasi (24/hari)',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Semua tema katalog, RSVP, ucapan & amplop digital',
       'Dashboard portal pengantin & ekspor data tamu',
@@ -141,7 +141,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: false,
     features: [
       'Kapasitas hingga 300 undangan (1 undangan bisa untuk keluarga)',
-      '2 petugas check-in di lokasi (masing-masing 4 jam)',
+      '2 petugas check-in di lokasi (24/hari)',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Sesi gladi bersih & uji sistem H-1',
       'Sinkronisasi kehadiran ke Google Sheet live',
@@ -162,7 +162,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: true,
     features: [
       'Kapasitas hingga 600 undangan (1 undangan bisa untuk keluarga)',
-      '4 petugas check-in (4 jam) + 1 supervisor lapangan',
+      '4 petugas check-in (24/hari) + 1 supervisor lapangan',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Sesi gladi bersih H-1 & Google Sheet live',
       'Laporan rekapitulasi kehadiran pasca-acara',
@@ -395,7 +395,7 @@ export function calculateOrderPrice(
       const petugasAmount = extraPetugas * PETUGAS_UNIT;
       lineItems.push({
         code: 'EXTRA_PETUGAS',
-        label: `Petugas Check-in (${extraPetugas} orang × 4 jam)`,
+        label: `Petugas Check-in (${extraPetugas} orang × 24/hari)`,
         quantity: extraPetugas,
         unitPrice: PETUGAS_UNIT,
         amount: petugasAmount,
@@ -508,7 +508,7 @@ export function calculateOrderPrice(
     const petugasAmount = extraPetugas * PETUGAS_UNIT;
     lineItems.push({
       code: 'EXTRA_PETUGAS',
-      label: `Tambahan Petugas Check-in (${extraPetugas} orang × 4 jam)`,
+      label: `Tambahan Petugas Check-in (${extraPetugas} orang × 24/hari)`,
       quantity: extraPetugas,
       unitPrice: PETUGAS_UNIT,
       amount: petugasAmount,

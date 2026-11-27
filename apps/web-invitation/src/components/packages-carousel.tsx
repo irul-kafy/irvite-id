@@ -377,7 +377,7 @@ export function PackagesCarousel() {
                 <IconCheck />
               </span>
               <span>
-                Petugas check-in {formatRupiah(PETUGAS_UNIT)}/orang (4 jam) +{' '}
+                Petugas check-in {formatRupiah(PETUGAS_UNIT)}/orang (24/hari) +{' '}
                 {formatRupiah(PETUGAS_EXTRA_HOUR)}/jam tambahan
               </span>
             </li>

@@ -260,7 +260,7 @@ test('tamper attempts: unknown package, invalid capacityTier, capacity downgrade
   );
 });
 
-test('catalog features do not promise non-existent features', () => {
+test('catalog features do not promise non-existent features and specify 24/hari duration for petugas', () => {
   const forbiddenPatterns = [
     /multi-sesi/i,
     /multi sesi/i,
@@ -268,6 +268,7 @@ test('catalog features do not promise non-existent features', () => {
     /custom domain/i,
     /blast whatsapp otomatis/i,
     /cetak kartu qr/i,
+    /4\s*jam(?!\s*selesai)/i,
   ];
   for (const pkg of Object.values(WEDDING_PACKAGE_CATALOG)) {
     const combinedText = [pkg.tagline, pkg.description, ...pkg.features].join(
@@ -277,7 +278,7 @@ test('catalog features do not promise non-existent features', () => {
       assert.equal(
         pattern.test(combinedText),
         false,
-        `Package ${pkg.code} matched forbidden promise: ${pattern}`,
+        `Package ${pkg.code} matched forbidden promise or deprecated 4 jam: ${pattern}`,
       );
     }
     assert.ok(
@@ -287,4 +288,42 @@ test('catalog features do not promise non-existent features', () => {
       `Package ${pkg.code} must describe capacity as hingga N undangan (1 undangan bisa untuk keluarga)`,
     );
   }
+
+  // Check specific 24/hari phrasing for packages that include petugas check-in
+  assert.ok(
+    WEDDING_PACKAGE_CATALOG.INTIMATE.features.some((f) =>
+      f.includes('1 petugas check-in di lokasi (24/hari)'),
+    ),
+  );
+  assert.ok(
+    WEDDING_PACKAGE_CATALOG.SIGNATURE.features.some((f) =>
+      f.includes('2 petugas check-in di lokasi (24/hari)'),
+    ),
+  );
+  assert.ok(
+    WEDDING_PACKAGE_CATALOG.MAJESTIC.features.some((f) =>
+      f.includes('4 petugas check-in (24/hari) + 1 supervisor lapangan'),
+    ),
+  );
+
+  // Line item labels for CUSTOM and preset must also use 24/hari instead of 4 jam
+  const customOrder = calculateOrderPrice({
+    packageCode: 'CUSTOM',
+    options: { extraPetugas: 2 },
+  });
+  const customPetugasItem = customOrder.lineItems.find(
+    (item) => item.code === 'EXTRA_PETUGAS',
+  );
+  assert.ok(customPetugasItem);
+  assert.equal(customPetugasItem.label, 'Petugas Check-in (2 orang × 24/hari)');
+
+  const presetOrder = calculateOrderPrice({
+    packageCode: 'SIGNATURE',
+    options: { extraPetugas: 1 },
+  });
+  const presetPetugasItem = presetOrder.lineItems.find(
+    (item) => item.code === 'EXTRA_PETUGAS',
+  );
+  assert.ok(presetPetugasItem);
+  assert.equal(presetPetugasItem.label, 'Tambahan Petugas Check-in (1 orang × 24/hari)');
 });

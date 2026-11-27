@@ -2242,7 +2242,7 @@ export function TemplateCustomizerStudio({
                     <div>
                       <div style={{ fontSize: '0.78rem', color: '#334155' }}>
                         {selectedPackageCode === 'CUSTOM'
-                          ? 'Jumlah Petugas Check-in (4 jam)'
+                          ? 'Jumlah Petugas Check-in (24/hari)'
                           : `Tambahan Petugas Check-in (Bawaan: ${WEDDING_PACKAGE_CATALOG[selectedPackageCode].includedPetugas})`}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: '#64748b' }}>

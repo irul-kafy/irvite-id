@@ -48,5 +48,13 @@ describe('PackagesCarousel (3 visible cards + horizontal scroll)', () => {
     assert.ok(carouselSrc.includes('data-testid={`package-card-${code}`}'));
     assert.ok(carouselSrc.includes('data-testid="package-card-CUSTOM"'));
     assert.ok(carouselSrc.includes('href="/templates?paket=CUSTOM"'));
+    assert.ok(
+      carouselSrc.includes('24/hari'),
+      'Rakit Sendiri card must specify 24/hari for petugas check-in',
+    );
+    assert.ok(
+      !carouselSrc.includes('(4 jam)'),
+      'Rakit Sendiri card must not contain deprecated (4 jam) wording',
+    );
   });
 });
