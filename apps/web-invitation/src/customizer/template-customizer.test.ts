@@ -5,13 +5,17 @@ import path from 'node:path';
 import { getDemoFixture } from '../demo';
 import {
   PATENTED_DESIGN_RULES,
+  PACKAGE_SELECTION_STORAGE_KEY,
   extractInitialCustomizationState,
   applyClientCustomizationToFixture,
   buildDraftSubmissionPayload,
   buildWhatsappOrderUrl,
   getTemplatePhotoSlotsConfig,
   countSupportedUploadedPhotos,
+  loadPackageSelectionFromSession,
+  savePackageSelectionToSession,
 } from './template-customizer';
+import { calculateOrderPrice } from 'pricing';
 
 test('Client Personalization Studio & Draft Submission Contract', async (t) => {
   await t.test('PATENTED_DESIGN_RULES enforces locked design rules for IRVITE', () => {
@@ -505,5 +509,107 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
         'Data draf ini sudah saya kirimkan ke Dashboard Super Admin IRVITE',
       ),
     );
+  });
+
+  await t.test('loadPackageSelectionFromSession sanitizes corrupted sessionStorage options and falls back to defaults safely', () => {
+    const store = new Map<string, string>();
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {
+      sessionStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          store.set(k, v);
+        },
+      },
+    };
+
+    try {
+      // 1. Out-of-bounds numbers, invalid types, and invalid capacityTier
+      store.set(
+        PACKAGE_SELECTION_STORAGE_KEY,
+        JSON.stringify({
+          packageCode: 'SIGNATURE',
+          options: {
+            extraPetugas: 999,
+            extraHoursPerPetugas: -15,
+            supervisor: 'invalid-string',
+            akrilik: 'not-a-bool',
+            gladi: 12345,
+            capacityTier: 777, // invalid tier -> falls back to SIGNATURE baseCapacity 300
+          },
+        }),
+      );
+
+      const loaded = loadPackageSelectionFromSession();
+      assert.ok(loaded);
+      assert.equal(loaded.packageCode, 'SIGNATURE');
+      assert.deepEqual(loaded.options, {
+        extraPetugas: 20, // clamped to max 20
+        extraHoursPerPetugas: 0, // clamped to min 0
+        supervisor: 0, // fallback to default 0
+        akrilik: true, // SIGNATURE includes akrilik
+        gladi: true, // SIGNATURE includes gladi
+        capacityTier: 300, // fallback to SIGNATURE baseCapacity 300
+      });
+
+      // Must pass directly into calculateOrderPrice without throwing
+      const calc = calculateOrderPrice({
+        packageCode: loaded.packageCode,
+        capacityTier: loaded.options.capacityTier,
+        options: loaded.options,
+      });
+      assert.ok(calc.total > 0);
+
+      // 2. Non-object options falls back completely to package defaults
+      store.set(
+        PACKAGE_SELECTION_STORAGE_KEY,
+        JSON.stringify({
+          packageCode: 'CUSTOM',
+          options: 'corrupted-options-payload',
+        }),
+      );
+      const loadedCustom = loadPackageSelectionFromSession();
+      assert.ok(loadedCustom);
+      assert.equal(loadedCustom.packageCode, 'CUSTOM');
+      assert.deepEqual(loadedCustom.options, {
+        extraPetugas: 0,
+        extraHoursPerPetugas: 0,
+        supervisor: 0,
+        akrilik: false,
+        gladi: false,
+        capacityTier: 50,
+      });
+
+      // 3. Corrupted JSON or unknown packageCode returns null safely
+      store.set(PACKAGE_SELECTION_STORAGE_KEY, '{not-valid-json');
+      assert.equal(loadPackageSelectionFromSession(), null);
+
+      store.set(
+        PACKAGE_SELECTION_STORAGE_KEY,
+        JSON.stringify({ packageCode: 'UNKNOWN_PKG', options: {} }),
+      );
+      assert.equal(loadPackageSelectionFromSession(), null);
+
+      // 4. savePackageSelectionToSession also sanitizes before writing
+      savePackageSelectionToSession({
+        packageCode: 'SACRED',
+        options: {
+          extraPetugas: -5,
+          extraHoursPerPetugas: 5, // totalPetugas is 0 -> clamped to 0
+          capacityTier: 999 as unknown as 50,
+        },
+      });
+      const roundTrip = loadPackageSelectionFromSession();
+      assert.ok(roundTrip);
+      assert.equal(roundTrip.options.extraPetugas, 0);
+      assert.equal(roundTrip.options.extraHoursPerPetugas, 0);
+      assert.equal(roundTrip.options.capacityTier, 50);
+    } finally {
+      if (prevWindow === undefined) {
+        delete (globalThis as { window?: unknown }).window;
+      } else {
+        (globalThis as { window?: unknown }).window = prevWindow;
+      }
+    }
   });
 });

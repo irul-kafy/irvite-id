@@ -53,6 +53,94 @@ export function getDefaultOptionsForPackage(
   };
 }
 
+export function sanitizePackageOptions(
+  packageCode: SelectablePackageCode,
+  rawOptions: unknown,
+): OrderPricingOptionsInput {
+  const defaults = getDefaultOptionsForPackage(packageCode);
+  if (
+    !rawOptions ||
+    typeof rawOptions !== 'object' ||
+    Array.isArray(rawOptions)
+  ) {
+    return defaults;
+  }
+
+  const record = rawOptions as Record<string, unknown>;
+
+  const extraPetugas =
+    typeof record.extraPetugas === 'number' &&
+    Number.isFinite(record.extraPetugas)
+      ? Math.max(0, Math.min(20, Math.trunc(record.extraPetugas)))
+      : (defaults.extraPetugas ?? 0);
+
+  const rawExtraHours =
+    typeof record.extraHoursPerPetugas === 'number' &&
+    Number.isFinite(record.extraHoursPerPetugas)
+      ? Math.max(0, Math.min(8, Math.trunc(record.extraHoursPerPetugas)))
+      : (defaults.extraHoursPerPetugas ?? 0);
+
+  const basePetugas = isPresetPackageCode(packageCode)
+    ? WEDDING_PACKAGE_CATALOG[packageCode].includedPetugas
+    : 0;
+  const totalPetugas = basePetugas + extraPetugas;
+  const extraHoursPerPetugas = totalPetugas > 0 ? rawExtraHours : 0;
+
+  let supervisor: 0 | 1 = defaults.supervisor === 1 ? 1 : 0;
+  if (
+    isPresetPackageCode(packageCode) &&
+    WEDDING_PACKAGE_CATALOG[packageCode].includedSupervisor === 1
+  ) {
+    supervisor = 1;
+  } else if (
+    typeof record.supervisor === 'number' &&
+    Number.isFinite(record.supervisor)
+  ) {
+    supervisor = Math.trunc(record.supervisor) >= 1 ? 1 : 0;
+  } else if (typeof record.supervisor === 'boolean') {
+    supervisor = record.supervisor ? 1 : 0;
+  }
+
+  let akrilik = Boolean(defaults.akrilik);
+  if (
+    isPresetPackageCode(packageCode) &&
+    WEDDING_PACKAGE_CATALOG[packageCode].includesAkrilik
+  ) {
+    akrilik = true;
+  } else if (typeof record.akrilik === 'boolean') {
+    akrilik = record.akrilik;
+  }
+
+  let gladi = Boolean(defaults.gladi);
+  if (
+    isPresetPackageCode(packageCode) &&
+    WEDDING_PACKAGE_CATALOG[packageCode].includesGladi
+  ) {
+    gladi = true;
+  } else if (typeof record.gladi === 'boolean') {
+    gladi = record.gladi;
+  }
+
+  const minCapacity: CapacityTier = isPresetPackageCode(packageCode)
+    ? WEDDING_PACKAGE_CATALOG[packageCode].baseCapacity
+    : (CAPACITY_TIERS[0] as CapacityTier);
+
+  const capacityTier: CapacityTier = isCapacityTier(record.capacityTier)
+    ? record.capacityTier >= minCapacity
+      ? record.capacityTier
+      : minCapacity
+    : minCapacity;
+
+  return {
+    extraPetugas,
+    extraHoursPerPetugas,
+    supervisor,
+    akrilik,
+    gladi,
+    capacityTier,
+  };
+}
+
 export function savePackageSelectionToSession(
   selection: StoredPackageSelection,
 ): void {
@@ -60,19 +148,7 @@ export function savePackageSelectionToSession(
   try {
     const safePayload: StoredPackageSelection = {
       packageCode: selection.packageCode,
-      options: {
-        extraPetugas: Number(selection.options?.extraPetugas) || 0,
-        extraHoursPerPetugas:
-          Number(selection.options?.extraHoursPerPetugas) || 0,
-        supervisor: selection.options?.supervisor ? 1 : 0,
-        akrilik: Boolean(selection.options?.akrilik),
-        gladi: Boolean(selection.options?.gladi),
-        capacityTier: isCapacityTier(selection.options?.capacityTier)
-          ? selection.options.capacityTier
-          : isPresetPackageCode(selection.packageCode)
-            ? WEDDING_PACKAGE_CATALOG[selection.packageCode].baseCapacity
-            : (CAPACITY_TIERS[0] as CapacityTier),
-      },
+      options: sanitizePackageOptions(selection.packageCode, selection.options),
     };
     window.sessionStorage.setItem(
       PACKAGE_SELECTION_STORAGE_KEY,
@@ -90,20 +166,18 @@ export function loadPackageSelectionFromSession(): StoredPackageSelection | null
     if (!raw) return null;
     const parsed = JSON.parse(raw) as {
       packageCode?: unknown;
-      options?: OrderPricingOptionsInput;
+      options?: unknown;
     };
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
     const code = parsePackageCodeParam(
-      typeof parsed?.packageCode === 'string' ? parsed.packageCode : null,
+      typeof parsed.packageCode === 'string' ? parsed.packageCode : null,
     );
     if (!code) return null;
     return {
       packageCode: code,
-      options: {
-        ...getDefaultOptionsForPackage(code),
-        ...(parsed.options && typeof parsed.options === 'object'
-          ? parsed.options
-          : {}),
-      },
+      options: sanitizePackageOptions(code, parsed.options),
     };
   } catch {
     return null;
