@@ -293,7 +293,7 @@ export class GuestsImportService {
 
     // Re-query database to ensure fresh duplicate check at moment of confirm
     const existingGuests = await this.getExistingGuests(eventId);
-    const eventOrder = await this.prisma.order?.findUnique?.({
+    const eventOrder = await this.prisma.order.findUnique({
       where: { eventId },
       select: { packageCode: true, options: true },
     });

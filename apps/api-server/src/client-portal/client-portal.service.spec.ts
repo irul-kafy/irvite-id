@@ -22,6 +22,9 @@ describe('ClientPortalService', () => {
     event: {
       findUnique: jest.Mock;
     };
+    order: {
+      findUnique: jest.Mock;
+    };
     guest: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
@@ -61,6 +64,9 @@ describe('ClientPortalService', () => {
     prisma = {
       event: {
         findUnique: jest.fn(),
+      },
+      order: {
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       guest: {
         findMany: jest.fn(),

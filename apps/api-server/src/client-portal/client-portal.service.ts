@@ -419,7 +419,7 @@ export class ClientPortalService {
               order?: { packageCode?: string | null; options?: unknown } | null;
             }
           ).order
-        : await this.prisma.order?.findUnique?.({
+        : await this.prisma.order.findUnique({
             where: { eventId },
             select: { packageCode: true, options: true },
           });

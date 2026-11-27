@@ -119,7 +119,7 @@ export class GuestsService {
   ) {
     await this.assertEventAccessible(eventId, currentUserId, role);
 
-    const eventOrder = await this.prisma.order?.findUnique?.({
+    const eventOrder = await this.prisma.order.findUnique({
       where: { eventId },
       select: { packageCode: true, options: true },
     });
