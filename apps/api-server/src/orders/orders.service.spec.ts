@@ -422,6 +422,27 @@ describe('OrdersService', () => {
       );
       expect(patchRoles).toEqual([Role.SUPER_ADMIN, Role.ADMIN]);
     });
+
+    it('resolveOrderMaxGuests returns null for legacy SILVER/GOLD/PLATINUM orders and orders without options', () => {
+      expect(
+        resolveOrderMaxGuests({ packageCode: 'GOLD', options: null }),
+      ).toBeNull();
+      expect(
+        resolveOrderMaxGuests({
+          packageCode: 'GOLD',
+          options: { entitlements: { maxGuests: 300 } },
+        }),
+      ).toBeNull();
+      expect(
+        resolveOrderMaxGuests({ packageCode: 'SILVER', options: null }),
+      ).toBeNull();
+      expect(
+        resolveOrderMaxGuests({ packageCode: 'PLATINUM', options: null }),
+      ).toBeNull();
+      expect(
+        resolveOrderMaxGuests({ packageCode: 'SIGNATURE', options: null }),
+      ).toBeNull();
+    });
   });
 
   describe('expireEventsCron', () => {

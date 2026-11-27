@@ -291,5 +291,30 @@ describe('GuestsService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(mockPrisma.guest.create).not.toHaveBeenCalled();
     });
+
+    it('does not restrict guest count for legacy GOLD order with 400 existing guests or orders without options', async () => {
+      mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-legacy-gold' });
+      mockPrisma.order.findUnique.mockResolvedValue({
+        packageCode: 'GOLD',
+        options: null,
+      });
+      mockPrisma.guest.count.mockResolvedValue(400);
+      mockPrisma.guest.create.mockResolvedValue({
+        id: 'guest-401',
+        eventId: 'event-legacy-gold',
+        name: 'Tamu ke-401 Legacy Gold',
+      });
+
+      const created = await service.create(
+        'event-legacy-gold',
+        'user-id',
+        Role.ADMIN,
+        {
+          name: 'Tamu ke-401 Legacy Gold',
+        },
+      );
+      expect(created.id).toBe('guest-401');
+      expect(mockPrisma.guest.create).toHaveBeenCalledTimes(1);
+    });
   });
 });

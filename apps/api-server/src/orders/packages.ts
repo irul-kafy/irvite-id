@@ -259,7 +259,8 @@ export function buildOrderPricingSnapshot(
 
 /**
  * Resolves the maximum allowed invited guests for an event that has an Order.
- * Returns null if the event does not have an Order.
+ * Returns null if the event does not have an Order, if the Order uses a legacy
+ * package code (SILVER/GOLD/PLATINUM), or if Order.options is missing/null.
  */
 export function resolveOrderMaxGuests(
   order?: { packageCode?: string | null; options?: unknown } | null,
@@ -268,37 +269,41 @@ export function resolveOrderMaxGuests(
     return null;
   }
 
-  if (
-    order.options &&
-    typeof order.options === 'object' &&
-    !Array.isArray(order.options)
-  ) {
-    const record = order.options as {
-      entitlements?: { maxGuests?: unknown };
-      input?: { capacityTier?: unknown };
-    };
-    const entMax = record.entitlements?.maxGuests;
-    if (typeof entMax === 'number' && Number.isFinite(entMax) && entMax > 0) {
-      return Math.trunc(entMax);
-    }
-    const inputCap = record.input?.capacityTier;
-    if (
-      typeof inputCap === 'number' &&
-      Number.isFinite(inputCap) &&
-      inputCap > 0
-    ) {
-      return Math.trunc(inputCap);
-    }
+  const normalized = (order.packageCode || '').trim().toUpperCase();
+  if (normalized in LEGACY_PACKAGE_CAPACITY) {
+    return null;
   }
 
-  const normalized = (order.packageCode || '').trim().toUpperCase();
+  if (
+    !order.options ||
+    typeof order.options !== 'object' ||
+    Array.isArray(order.options)
+  ) {
+    return null;
+  }
+
+  const record = order.options as {
+    entitlements?: { maxGuests?: unknown };
+    input?: { capacityTier?: unknown };
+  };
+  const entMax = record.entitlements?.maxGuests;
+  if (typeof entMax === 'number' && Number.isFinite(entMax) && entMax > 0) {
+    return Math.trunc(entMax);
+  }
+  const inputCap = record.input?.capacityTier;
+  if (
+    typeof inputCap === 'number' &&
+    Number.isFinite(inputCap) &&
+    inputCap > 0
+  ) {
+    return Math.trunc(inputCap);
+  }
+
   if (isPresetPackageCode(normalized)) {
     return WEDDING_PACKAGE_CATALOG[normalized].baseCapacity;
   }
-  if (normalized in LEGACY_PACKAGE_CAPACITY) {
-    return LEGACY_PACKAGE_CAPACITY[
-      normalized as keyof typeof LEGACY_PACKAGE_CAPACITY
-    ];
+  if (normalized === 'CUSTOM' || normalized === 'UNSELECTED') {
+    return PACKAGES.UNSELECTED.maxGuests;
   }
-  return PACKAGES.UNSELECTED.maxGuests;
+  return null;
 }
