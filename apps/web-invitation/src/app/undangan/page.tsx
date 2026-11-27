@@ -4,21 +4,9 @@ import { fetchPublicTemplateAvailability } from '../../api/client';
 import { LandingNavbar } from '../../components/landing-navbar';
 import { PublicTemplateShowcase } from '../../components/public-template-showcase';
 import { HeroPhoneShowcase } from '../../components/hero-phone-showcase';
+import { PackagesCarousel } from '../../components/packages-carousel';
 import '../landing.css';
 import { getGeneralContactUrl } from '../../utils/contact';
-import {
-  ACTIVE_PRICE_TIER,
-  AKRILIK_QRIS,
-  CAPACITY_BASE_PRICES,
-  GLADI_H1,
-  PACKAGE_PRICES,
-  PETUGAS_EXTRA_HOUR,
-  PETUGAS_UNIT,
-  PRESET_PACKAGE_CODES,
-  SUPERVISOR,
-  WEDDING_PACKAGE_CATALOG,
-} from 'pricing';
-import { formatRupiah } from '../../customizer/template-customizer';
 
 // ── Contact Messages ─────────────────────────────────────────────────────────
 const MSG_GENERAL = 'Halo IRVITE, saya tertarik dengan layanan undangan digitalnya.';
@@ -191,7 +179,7 @@ function PackagesSection() {
       <div className="packages-orbit packages-orbit--right" aria-hidden="true" />
 
       <div className="shell">
-        <div className="section-heading compact">
+        <div className="section-heading packages-section-heading">
           <div>
             <p className="eyebrow">Paket layanan</p>
             <h2>Pilih sesuai cara Anda merayakan.</h2>
@@ -202,144 +190,7 @@ function PackagesSection() {
           </p>
         </div>
 
-        <div
-          className="package-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: '1.25rem',
-          }}
-        >
-          {PRESET_PACKAGE_CODES.map((code) => {
-            const pkg = WEDDING_PACKAGE_CATALOG[code];
-            const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
-            const isFeatured = Boolean(pkg.popular);
-
-            return (
-              <article
-                key={code}
-                className={`package-card ${isFeatured ? 'featured' : ''}`}
-                data-testid={`package-card-${code}`}
-              >
-                {isFeatured && (
-                  <span className="recommended">
-                    <span aria-hidden="true">✨</span> Paling diminati
-                  </span>
-                )}
-                <div className="package-card-header">
-                  <span className="package-label">Paket {pkg.name}</span>
-                  <h3>{pkg.tagline}</h3>
-                  <div
-                    style={{
-                      fontSize: '1.55rem',
-                      fontWeight: 700,
-                      margin: '0.45rem 0 0.35rem',
-                      fontFamily: 'var(--serif)',
-                    }}
-                  >
-                    {formatRupiah(price)}
-                  </div>
-                  <p className="package-desc">{pkg.description}</p>
-                </div>
-                <div className="package-divider" aria-hidden="true" />
-                <ul className="package-features">
-                  {pkg.features.map((feat) => (
-                    <li key={feat}>
-                      <span
-                        className={`pkg-feature-icon ${isFeatured ? 'pkg-feature-icon--featured' : ''}`}
-                        aria-hidden="true"
-                      >
-                        <IconCheck />
-                      </span>
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  id={`pkg-select-${code.toLowerCase()}`}
-                  className={`button ${isFeatured ? 'primary exclusive-cta' : 'outline'}`}
-                  href={`/templates?paket=${code}`}
-                >
-                  <span>Pilih Paket {pkg.name}</span>
-                  <span aria-hidden="true">→</span>
-                </Link>
-              </article>
-            );
-          })}
-
-          {/* Rakit Sendiri (CUSTOM) Card */}
-          <article
-            className="package-card"
-            data-testid="package-card-CUSTOM"
-          >
-            <div className="package-card-header">
-              <span className="package-label">Rakit Sendiri</span>
-              <h3>Sesuaikan kapasitas &amp; komponen</h3>
-              <div
-                style={{
-                  fontSize: '1.55rem',
-                  fontWeight: 700,
-                  margin: '0.45rem 0 0.35rem',
-                  fontFamily: 'var(--serif)',
-                }}
-              >
-                Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
-              </div>
-              <p className="package-desc">
-                Pilih sendiri kuota hingga 50–600 undangan (1 undangan bisa untuk
-                keluarga), jumlah petugas check-in, jam tambahan, stand akrilik
-                QRIS, hingga sesi gladi H-1.
-              </p>
-            </div>
-            <div className="package-divider" aria-hidden="true" />
-            <ul className="package-features">
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>
-                  Dasar hingga 50–600 undangan (1 undangan bisa untuk keluarga:{' '}
-                  {formatRupiah(CAPACITY_BASE_PRICES[50])} –{' '}
-                  {formatRupiah(CAPACITY_BASE_PRICES[600])})
-                </span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>
-                  Petugas check-in {formatRupiah(PETUGAS_UNIT)}/orang (4 jam) +{' '}
-                  {formatRupiah(PETUGAS_EXTRA_HOUR)}/jam tambahan
-                </span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>
-                  Stand akrilik QRIS meja ({formatRupiah(AKRILIK_QRIS)}) &amp; Gladi H-1 (
-                  {formatRupiah(GLADI_H1)})
-                </span>
-              </li>
-              <li>
-                <span className="pkg-feature-icon" aria-hidden="true">
-                  <IconCheck />
-                </span>
-                <span>
-                  Supervisor lapangan opsional ({formatRupiah(SUPERVISOR)})
-                </span>
-              </li>
-            </ul>
-            <Link
-              id="pkg-select-custom"
-              className="button outline"
-              href="/templates?paket=CUSTOM"
-            >
-              <span>Rakit Sendiri</span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </article>
-        </div>
+        <PackagesCarousel />
 
         {/* Single subtle WhatsApp consultation link below the grid */}
         {askWaUrl && (
