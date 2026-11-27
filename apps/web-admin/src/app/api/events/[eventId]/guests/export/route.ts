@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -74,7 +75,7 @@ export async function GET(
     if (category) queryParams.set('category', category);
 
     const internalUrl =
-      process.env.INTERNAL_API_URL || 'http://localhost:3000';
+      getInternalApiBaseUrl();
     const targetUrl = `${internalUrl}/events/${eventId}/guests/export?${queryParams.toString()}`;
 
     const res = await fetch(targetUrl, {

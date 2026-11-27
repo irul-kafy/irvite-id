@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { isValidAdminOrigin } from '@/utils/origin';
-import { getInternalApiBaseUrl } from '@/utils/url';
+import {
+  getInternalApiBaseUrl,
+  isPreviewApiUnconfiguredError,
+  PREVIEW_API_UNCONFIGURED_MESSAGE,
+} from '@/utils/url';
 
 export async function GET(
   _request: Request,
@@ -42,7 +46,16 @@ export async function GET(
 
     const data = await res.json();
     return NextResponse.json(data);
-  } catch {
+  } catch (error: unknown) {
+    if (isPreviewApiUnconfiguredError(error)) {
+      return NextResponse.json(
+        {
+          message: PREVIEW_API_UNCONFIGURED_MESSAGE,
+          error: PREVIEW_API_UNCONFIGURED_MESSAGE,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -93,7 +106,16 @@ export async function PATCH(
 
     const data = await res.json();
     return NextResponse.json(data);
-  } catch {
+  } catch (error: unknown) {
+    if (isPreviewApiUnconfiguredError(error)) {
+      return NextResponse.json(
+        {
+          message: PREVIEW_API_UNCONFIGURED_MESSAGE,
+          error: PREVIEW_API_UNCONFIGURED_MESSAGE,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
 }

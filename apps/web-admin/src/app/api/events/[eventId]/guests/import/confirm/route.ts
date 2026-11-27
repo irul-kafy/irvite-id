@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCanonicalPublicInvitationUrl } from '@/utils/url';
@@ -21,7 +22,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
 
     const res = await fetch(`${internalUrl}/events/${eventId}/guests/import/confirm`, {
       method: 'POST',

@@ -79,4 +79,27 @@ test('Proxy navigation protection (API still verifies signatures)', async (t) =>
     assert.strictEqual(res.status, 307);
     assert.strictEqual(res.headers.get('location'), 'http://localhost:3001/dashboard');
   });
+
+  await t.test('blocks /api/* with 503 JSON "API preview tidak dikonfigurasi" when VERCEL_ENV=preview and PREVIEW_API_URL is unset', async () => {
+    const prevVercelEnv = process.env.VERCEL_ENV;
+    const prevPreviewUrl = process.env.PREVIEW_API_URL;
+    try {
+      process.env.VERCEL_ENV = 'preview';
+      delete process.env.PREVIEW_API_URL;
+
+      const res = middleware(createMockRequest('/api/orders', 'valid_token'));
+      assert.strictEqual(res.status, 503);
+      const body = (await res.json()) as { message: string };
+      assert.strictEqual(body.message, 'API preview tidak dikonfigurasi');
+
+      process.env.PREVIEW_API_URL = 'https://preview-api.example.com';
+      const allowedRes = middleware(createMockRequest('/api/orders', 'valid_token'));
+      assert.strictEqual(allowedRes.status, 200);
+    } finally {
+      if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prevVercelEnv;
+      if (prevPreviewUrl === undefined) delete process.env.PREVIEW_API_URL;
+      else process.env.PREVIEW_API_URL = prevPreviewUrl;
+    }
+  });
 });

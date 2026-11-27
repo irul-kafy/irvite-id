@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { isValidAdminOrigin } from '@/utils/origin';
@@ -15,7 +16,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/events/${eventId}/staff`, {
       method: 'GET',
       headers: {
@@ -69,7 +70,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     
     const res = await fetch(`${internalUrl}/events/${eventId}/staff`, {
       method: 'POST',

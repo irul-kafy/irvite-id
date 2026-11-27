@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { remainingSessionSeconds } from '../../../../utils/session-expiry';
 import { isValidAdminOrigin } from '../../../../utils/origin';
-import { getInternalApiBaseUrl } from '../../../../utils/url';
+import {
+  getInternalApiBaseUrl,
+  isPreviewApiUnconfiguredError,
+  PREVIEW_API_UNCONFIGURED_MESSAGE,
+} from '../../../../utils/url';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,12 +60,19 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error: unknown) {
-    const internalUrl = getInternalApiBaseUrl();
+    if (isPreviewApiUnconfiguredError(error)) {
+      return NextResponse.json(
+        {
+          message: PREVIEW_API_UNCONFIGURED_MESSAGE,
+          error: PREVIEW_API_UNCONFIGURED_MESSAGE,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({
       message: 'Internal Server Error',
       debug: {
         error: error instanceof Error ? error.message : String(error),
-        target: internalUrl,
       },
     }, { status: 500 });
   }

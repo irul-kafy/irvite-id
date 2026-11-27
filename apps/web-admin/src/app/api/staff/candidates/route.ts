@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -9,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/staff/candidates`, {
       method: 'GET',
       headers: {

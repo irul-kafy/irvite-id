@@ -10,41 +10,58 @@ function setOrDeleteEnv(key: string, val: string | undefined) {
 import assert from 'node:assert';
 import {
   getInternalApiBaseUrl,
+  resolveInternalApiBaseUrl,
+  isPreviewApiUnconfigured,
+  isPreviewApiUnconfiguredError,
+  PREVIEW_API_UNCONFIGURED_MESSAGE,
   getCanonicalPublicInvitationUrl,
   getCanonicalPublicEventUrl,
   getTrustedInvitationOrigin,
   getCanonicalTemplateDemoUrl,
   getCanonicalClientPortalUrl,
 } from './url';
+import {
+  resolveAdminApiBaseUrl,
+  buildAdminPreviewRewrites,
+} from '../../next.config.mjs';
+import { GET as PreviewUnconfiguredGet } from '../app/api/preview-unconfigured/route';
 
 test('getInternalApiBaseUrl', async (t) => {
   const origInternal = process.env.INTERNAL_API_URL;
   const origNextPublic = process.env.NEXT_PUBLIC_API_URL;
+  const origPreviewApi = process.env.PREVIEW_API_URL;
   const origNodeEnv = process.env.NODE_ENV;
   const origVercel = process.env.VERCEL;
+  const origVercelEnv = process.env.VERCEL_ENV;
 
   t.afterEach(() => {
     setOrDeleteEnv('INTERNAL_API_URL', origInternal);
     setOrDeleteEnv('NEXT_PUBLIC_API_URL', origNextPublic);
+    setOrDeleteEnv('PREVIEW_API_URL', origPreviewApi);
     setOrDeleteEnv('NODE_ENV', origNodeEnv);
     setOrDeleteEnv('VERCEL', origVercel);
+    setOrDeleteEnv('VERCEL_ENV', origVercelEnv);
   });
 
   await t.test('defaults to localhost:3000 in dev when unset', () => {
     delete process.env.INTERNAL_API_URL;
     delete process.env.NEXT_PUBLIC_API_URL;
+    delete process.env.PREVIEW_API_URL;
     delete process.env.VERCEL;
+    delete process.env.VERCEL_ENV;
     // @ts-expect-error Mock process.env
     process.env.NODE_ENV = 'development';
     assert.strictEqual(getInternalApiBaseUrl(), 'http://localhost:3000');
   });
 
-  await t.test('uses INTERNAL_API_URL when set', () => {
+  await t.test('uses INTERNAL_API_URL when set outside preview', () => {
+    delete process.env.VERCEL_ENV;
     process.env.INTERNAL_API_URL = 'https://custom-api.example.com/';
     assert.strictEqual(getInternalApiBaseUrl(), 'https://custom-api.example.com');
   });
 
   await t.test('strips accidental trailing /api/v1 from INTERNAL_API_URL', () => {
+    delete process.env.VERCEL_ENV;
     process.env.INTERNAL_API_URL = 'https://custom-api.example.com/api/v1/';
     assert.strictEqual(getInternalApiBaseUrl(), 'https://custom-api.example.com');
   });
@@ -52,9 +69,71 @@ test('getInternalApiBaseUrl', async (t) => {
   await t.test('falls back to irvite-api.vercel.app in production', () => {
     delete process.env.INTERNAL_API_URL;
     delete process.env.NEXT_PUBLIC_API_URL;
+    delete process.env.VERCEL_ENV;
     // @ts-expect-error Mock process.env
     process.env.NODE_ENV = 'production';
     assert.strictEqual(getInternalApiBaseUrl(), 'https://irvite-api.vercel.app');
+  });
+
+  await t.test('in VERCEL_ENV=preview uses PREVIEW_API_URL and never uses INTERNAL_API_URL/NEXT_PUBLIC_API_URL production URL', () => {
+    process.env.VERCEL = '1';
+    process.env.VERCEL_ENV = 'preview';
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'production';
+    process.env.INTERNAL_API_URL = 'https://irvite-api.vercel.app';
+    process.env.NEXT_PUBLIC_API_URL = 'https://irvite-api.vercel.app';
+    process.env.PREVIEW_API_URL = 'https://irvite-api-git-preview.vercel.app/api/v1/';
+
+    assert.strictEqual(isPreviewApiUnconfigured(), false);
+    assert.strictEqual(
+      getInternalApiBaseUrl(),
+      'https://irvite-api-git-preview.vercel.app',
+    );
+    assert.strictEqual(
+      resolveAdminApiBaseUrl(process.env),
+      'https://irvite-api-git-preview.vercel.app',
+    );
+    assert.deepStrictEqual(buildAdminPreviewRewrites(process.env), {
+      beforeFiles: [],
+    });
+  });
+
+  await t.test('in VERCEL_ENV=preview throws 503 PreviewApiUnconfiguredError and rewrites /api/* when PREVIEW_API_URL is missing or points to production', async () => {
+    process.env.VERCEL = '1';
+    process.env.VERCEL_ENV = 'preview';
+    // @ts-expect-error Mock process.env
+    process.env.NODE_ENV = 'production';
+    process.env.INTERNAL_API_URL = 'https://irvite-api.vercel.app';
+    process.env.NEXT_PUBLIC_API_URL = 'https://irvite-api.vercel.app';
+    delete process.env.PREVIEW_API_URL;
+
+    assert.strictEqual(resolveInternalApiBaseUrl(), null);
+    assert.strictEqual(isPreviewApiUnconfigured(), true);
+    assert.throws(
+      () => getInternalApiBaseUrl(),
+      (err: unknown) =>
+        isPreviewApiUnconfiguredError(err) &&
+        err.status === 503 &&
+        err.message === PREVIEW_API_UNCONFIGURED_MESSAGE,
+    );
+
+    // Also rejects if someone sets PREVIEW_API_URL to production URL
+    process.env.PREVIEW_API_URL = 'https://irvite-api.vercel.app/';
+    assert.strictEqual(resolveInternalApiBaseUrl(), null);
+    assert.strictEqual(resolveAdminApiBaseUrl(process.env), null);
+    assert.deepStrictEqual(buildAdminPreviewRewrites(process.env), {
+      beforeFiles: [
+        {
+          source: '/api/:path((?!preview-unconfigured$).*)',
+          destination: '/api/preview-unconfigured',
+        },
+      ],
+    });
+
+    const res = await PreviewUnconfiguredGet();
+    assert.strictEqual(res.status, 503);
+    const body = (await res.json()) as { message: string };
+    assert.strictEqual(body.message, 'API preview tidak dikonfigurasi');
   });
 });
 

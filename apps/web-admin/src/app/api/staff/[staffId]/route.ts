@@ -1,4 +1,5 @@
-﻿import { NextResponse } from "next/server";
+import { getInternalApiBaseUrl } from '@/utils/url';
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isValidAdminOrigin } from '@/utils/origin';
 
@@ -15,7 +16,7 @@ export async function GET(
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || "http://localhost:3000";
+    const internalUrl = getInternalApiBaseUrl();
     const res = await fetch(`${internalUrl}/staff/${staffId}`, {
       method: "GET",
       headers: {
@@ -85,7 +86,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const internalUrl = process.env.INTERNAL_API_URL || "http://localhost:3000";
+    const internalUrl = getInternalApiBaseUrl();
 
     const payload: { email?: string; isActive?: boolean } = {};
     if (body.email !== undefined) payload.email = body.email;

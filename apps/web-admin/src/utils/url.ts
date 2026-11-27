@@ -10,17 +10,66 @@ function remapLegacyPreviewOrigin(baseUrl: string): string {
   return baseUrl;
 }
 
-export function getInternalApiBaseUrl(): string {
-  if (process.env.INTERNAL_API_URL && process.env.INTERNAL_API_URL.trim()) {
-    return process.env.INTERNAL_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+export const PREVIEW_API_UNCONFIGURED_MESSAGE = 'API preview tidak dikonfigurasi';
+
+export class PreviewApiUnconfiguredError extends Error {
+  readonly status = 503;
+
+  constructor() {
+    super(PREVIEW_API_UNCONFIGURED_MESSAGE);
+    this.name = 'PreviewApiUnconfiguredError';
   }
-  if (process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.trim()) {
-    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+}
+
+export function isPreviewApiUnconfiguredError(
+  error: unknown,
+): error is PreviewApiUnconfiguredError {
+  return (
+    error instanceof PreviewApiUnconfiguredError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      (error as { name?: string }).name === 'PreviewApiUnconfiguredError')
+  );
+}
+
+export function resolveInternalApiBaseUrl(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  if (env.VERCEL_ENV === 'preview') {
+    const previewUrl = env.PREVIEW_API_URL?.trim()
+      .replace(/\/+$/, '')
+      .replace(/\/api\/v1\/?$/, '');
+    if (!previewUrl || previewUrl === 'https://irvite-api.vercel.app') {
+      return null;
+    }
+    return previewUrl;
   }
-  if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  if (env.INTERNAL_API_URL && env.INTERNAL_API_URL.trim()) {
+    return env.INTERNAL_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+  }
+  if (env.NEXT_PUBLIC_API_URL && env.NEXT_PUBLIC_API_URL.trim()) {
+    return env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '').replace(/\/api\/v1\/?$/, '');
+  }
+  if (env.NODE_ENV === 'production' || env.VERCEL) {
     return 'https://irvite-api.vercel.app';
   }
   return 'http://localhost:3000';
+}
+
+export function isPreviewApiUnconfigured(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.VERCEL_ENV === 'preview' && resolveInternalApiBaseUrl(env) === null;
+}
+
+export function getInternalApiBaseUrl(
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const resolved = resolveInternalApiBaseUrl(env);
+  if (!resolved) {
+    throw new PreviewApiUnconfiguredError();
+  }
+  return resolved;
 }
 
 export function getCanonicalPublicInvitationUrl(uniqueCode: string): string {

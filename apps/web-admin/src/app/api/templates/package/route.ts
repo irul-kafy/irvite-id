@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { isValidAdminOrigin } from '@/utils/origin';
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+    const internalUrl = getInternalApiBaseUrl();
     const response = await fetch(`${internalUrl}/templates/package`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

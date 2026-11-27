@@ -1,8 +1,25 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { remainingSessionSeconds } from './utils/session-expiry';
+import {
+  isPreviewApiUnconfigured,
+  PREVIEW_API_UNCONFIGURED_MESSAGE,
+} from './utils/url';
 
 export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    if (isPreviewApiUnconfigured()) {
+      return NextResponse.json(
+        {
+          message: PREVIEW_API_UNCONFIGURED_MESSAGE,
+          error: PREVIEW_API_UNCONFIGURED_MESSAGE,
+        },
+        { status: 503 },
+      );
+    }
+    return NextResponse.next();
+  }
+
   // Static assets (like template thumbnails .webp/.png) under any path must never be intercepted
   const isStaticFile = /\.(webp|png|jpg|jpeg|svg|ico|css|js|woff|woff2)$/i.test(request.nextUrl.pathname);
   if (isStaticFile) {
@@ -34,5 +51,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/events/:path*', '/templates/:path*', '/staff/:path*', '/login'],
+  matcher: [
+    '/api/:path*',
+    '/dashboard/:path*',
+    '/events/:path*',
+    '/templates/:path*',
+    '/staff/:path*',
+    '/login',
+  ],
 };

@@ -1,6 +1,10 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { getInternalApiBaseUrl } from '@/utils/url';
+import {
+  getInternalApiBaseUrl,
+  isPreviewApiUnconfiguredError,
+  PREVIEW_API_UNCONFIGURED_MESSAGE,
+} from '@/utils/url';
 
 export async function GET() {
   const token = (await cookies()).get('auth_token')?.value;
@@ -8,8 +12,8 @@ export async function GET() {
     status, headers: { 'Cache-Control': 'no-store' },
   });
   if (!token) return json({ message: 'Unauthorized' }, 401);
-  const base = getInternalApiBaseUrl();
   try {
+    const base = getInternalApiBaseUrl();
     const me = await fetch(base + '/api/v1/auth/me', {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store', signal: AbortSignal.timeout(20000),
@@ -35,7 +39,16 @@ export async function GET() {
       { label: 'API', ok: apiOk, detail: apiOk ? 'Backend merespons pemeriksaan kesehatan.' : 'Backend belum merespons pemeriksaan kesehatan.' },
       { label: 'Database', ok: dbOk, detail: dbOk ? 'Koneksi database berhasil.' : 'Koneksi database belum berhasil. Periksa layanan dan konfigurasi database.' },
     ] });
-  } catch {
+  } catch (error: unknown) {
+    if (isPreviewApiUnconfiguredError(error)) {
+      return json(
+        {
+          message: PREVIEW_API_UNCONFIGURED_MESSAGE,
+          error: PREVIEW_API_UNCONFIGURED_MESSAGE,
+        },
+        503,
+      );
+    }
     return json({ message: 'Service unavailable' }, 503);
   }
 }

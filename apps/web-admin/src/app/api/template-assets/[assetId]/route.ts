@@ -1,3 +1,4 @@
+import { getInternalApiBaseUrl } from '@/utils/url';
 import { cookies } from 'next/headers';
 
 export async function GET(
@@ -13,7 +14,7 @@ export async function GET(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(assetId)) {
     return failure('Invalid asset', 400);
   }
-  const internalUrl = process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  const internalUrl = getInternalApiBaseUrl();
   try {
     const upstream = await fetch(`${internalUrl}/templates/assets/${assetId}/file`, {
       cache: 'no-store',
