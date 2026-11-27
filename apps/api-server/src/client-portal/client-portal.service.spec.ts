@@ -148,6 +148,22 @@ describe('ClientPortalService', () => {
       expect(sql).toContain('< 2');
       expect(sql).not.toContain('REGEXP');
     });
+
+    it('migration 20261127105500_reconcile_audit_table_client_key_v2_and_walkin rotates unflagged UUID v1 keys, stamps unflagged non-UUID-v1 keys without rotating, and backfills ON_THE_SPOT walk-ins', () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs') as typeof import('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path') as typeof import('path');
+      const migrationPath = path.resolve(
+        __dirname,
+        '../../../../packages/database/prisma/migrations/20261127105500_reconcile_audit_table_client_key_v2_and_walkin/migration.sql',
+      );
+      const sql = fs.readFileSync(migrationPath, 'utf8');
+      expect(sql).toContain('CREATE TABLE IF NOT EXISTS `guests_migration_audit`');
+      expect(sql).toContain('^[0-9a-f]{12}1[0-9a-f]{3}[89ab][0-9a-f]{7}$');
+      expect(sql).toContain("JSON_SET(`content`, '$.clientKeyVersion', 2)");
+      expect(sql).toContain("SET g.`is_walk_in` = true");
+    });
   });
 
   describe('Access Control', () => {
