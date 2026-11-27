@@ -443,6 +443,131 @@ describe('OrdersService', () => {
         resolveOrderMaxGuests({ packageCode: 'SIGNATURE', options: null }),
       ).toBeNull();
     });
+
+    it('allows SUPER_ADMIN to build a custom package with arbitrary guests, custom per-service prices, and strikethrough originalPriceAmount', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'CUSTOM',
+        priceAmount: 149_000,
+        options: {
+          computedTotal: 149_000,
+          entitlements: { maxGuests: 50 },
+        },
+      });
+      prisma.guest.count.mockResolvedValue(200);
+      prisma.order.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({
+          ...mockOrder,
+          ...data,
+        }),
+      );
+
+      const updated = await service.updateOrder(
+        'ord-123',
+        {
+          packageCode: 'CUSTOM',
+          options: {
+            akrilik: true,
+            gladi: true,
+            supervisor: 1,
+          },
+          superAdminCustom: {
+            customPackageName: 'Paket VVIP Ballroom 1500 Tamu',
+            customMaxGuests: 1500,
+            extraPetugas: 6,
+            extraHoursPerPetugas: 2,
+            unitPrices: {
+              basePrice: 1_000_000,
+              petugasUnit: 100_000,
+              petugasExtraHour: 20_000,
+              supervisor: 150_000,
+              akrilik: 0,
+              gladi: 100_000,
+            },
+            customLineItems: [
+              { label: 'Layar Sapa LED', quantity: 1, unitPrice: 300_000 },
+            ],
+            entitlements: {
+              googleSheetLive: true,
+              postEventReport: true,
+            },
+          },
+          originalPriceAmount: 2_390_000,
+          priceAmount: 2_100_000,
+        },
+        { id: 'super-1', role: Role.SUPER_ADMIN },
+      );
+
+      expect(updated.priceAmount).toBe(2_100_000);
+      const savedOpts = updated.options as {
+        computedTotal: number;
+        originalPriceAmount: number;
+        customPackageName: string;
+        entitlements: {
+          maxGuests: number;
+          petugasCount: number;
+          googleSheetLive: boolean;
+          postEventReport: boolean;
+        };
+      };
+      // 1,000k + (6*100k=600k) + (6*2*20k=240k) + 150k + 0 + 100k + 300k = 2,390,000
+      expect(savedOpts.computedTotal).toBe(2_390_000);
+      expect(savedOpts.originalPriceAmount).toBe(2_390_000);
+      expect(savedOpts.customPackageName).toBe('Paket VVIP Ballroom 1500 Tamu');
+      expect(savedOpts.entitlements.maxGuests).toBe(1500);
+      expect(savedOpts.entitlements.petugasCount).toBe(6);
+      expect(savedOpts.entitlements.googleSheetLive).toBe(true);
+      expect(savedOpts.entitlements.postEventReport).toBe(true);
+      expect(
+        resolveOrderMaxGuests({
+          packageCode: updated.packageCode,
+          options: updated.options,
+        }),
+      ).toBe(1500);
+    });
+
+    it('forbids regular ADMIN from using superAdminCustom, originalPriceAmount, or overriding priceAmount', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'SIGNATURE',
+        priceAmount: 499_000,
+      });
+
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          {
+            superAdminCustom: {
+              customMaxGuests: 2000,
+              unitPrices: { petugasUnit: 50_000 },
+            },
+          },
+          { id: 'adm-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          {
+            originalPriceAmount: 649_000,
+          },
+          { id: 'adm-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          {
+            priceAmount: 350_000,
+          },
+          { id: 'adm-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('expireEventsCron', () => {

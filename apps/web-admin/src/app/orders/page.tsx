@@ -7,8 +7,14 @@ import { TableSkeleton } from '@/components/table-skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { PUBLIC_TICKETING_ORDERS, type TicketOrderRecord } from '@/lib/ticketing-store';
 import {
+  AKRILIK_QRIS,
   ALL_ORDER_PACKAGE_CODES,
+  CAPACITY_BASE_PRICES,
   CAPACITY_TIERS,
+  GLADI_H1,
+  PETUGAS_EXTRA_HOUR,
+  PETUGAS_UNIT,
+  SUPERVISOR,
   WEDDING_PACKAGE_CATALOG,
   calculateOrderPrice,
   getPackageDisplayLabel,
@@ -16,14 +22,21 @@ import {
   isPresetPackageCode,
   isSelectablePackageCode,
   type CapacityTier,
+  type CustomExtraLineItemInput,
+  type CustomServiceUnitPrices,
   type OrderPriceLineItem,
   type OrderPricingOptionsInput,
+  type SuperAdminPricingOverride,
 } from 'pricing';
 
 export interface OrderOptionsSnapshot {
   input?: OrderPricingOptionsInput;
   lineItems?: OrderPriceLineItem[];
   computedTotal?: number;
+  normalTotal?: number;
+  originalPriceAmount?: number | null;
+  customPackageName?: string;
+  superAdminCustom?: SuperAdminPricingOverride;
   priceTier?: string;
   entitlements?: {
     maxGuests?: number;
@@ -145,6 +158,8 @@ export default function OrdersPage() {
   const [ticketSearchQuery, setTicketSearchQuery] = useState('');
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'CANCELLED'>('ALL');
   const [updatingOrder, setUpdatingOrder] = useState<OrderItem | null>(null);
+  const [userRole, setUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'STAFF' | null>(null);
+  const isSuperAdmin = userRole === 'SUPER_ADMIN';
   const [newStatus, setNewStatus] = useState<string>('');
   const [newPackageCode, setNewPackageCode] = useState<string>('');
   const [newOptions, setNewOptions] = useState<OrderPricingOptionsInput>({
@@ -155,11 +170,30 @@ export default function OrdersPage() {
     gladi: false,
     capacityTier: 50,
   });
+  const [enableSuperAdminCustom, setEnableSuperAdminCustom] = useState<boolean>(false);
+  const [customPackageName, setCustomPackageName] = useState<string>('');
+  const [customMaxGuests, setCustomMaxGuests] = useState<string>('');
+  const [customUnitPrices, setCustomUnitPrices] = useState<CustomServiceUnitPrices>({});
+  const [customLineItems, setCustomLineItems] = useState<CustomExtraLineItemInput[]>([]);
+  const [customGoogleSheetLive, setCustomGoogleSheetLive] = useState<boolean>(false);
+  const [customPostEventReport, setCustomPostEventReport] = useState<boolean>(false);
+  const [newOriginalPriceAmount, setNewOriginalPriceAmount] = useState<string>('');
   const [newPriceAmount, setNewPriceAmount] = useState<string>('');
   const [newActiveUntil, setNewActiveUntil] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.user?.role) {
+          setUserRole(data.user.role);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -250,6 +284,7 @@ export default function OrdersPage() {
     const baseOpts = buildDefaultOptionsForCode(code);
     const savedInput = order.options?.input;
     const savedMaxGuests = order.options?.entitlements?.maxGuests;
+    const savedSa = order.options?.superAdminCustom;
     setUpdatingOrder(order);
     setNewStatus(order.status);
     setNewPackageCode(code);
@@ -262,6 +297,48 @@ export default function OrdersPage() {
           ? savedMaxGuests
           : baseOpts.capacityTier,
     });
+    const hasSaCustom = Boolean(
+      savedSa &&
+        (savedSa.customPackageName ||
+          savedSa.customMaxGuests ||
+          savedSa.unitPrices ||
+          (savedSa.customLineItems && savedSa.customLineItems.length > 0) ||
+          savedSa.entitlements),
+    );
+    setEnableSuperAdminCustom(hasSaCustom);
+    setCustomPackageName(
+      savedSa?.customPackageName || order.options?.customPackageName || '',
+    );
+    setCustomMaxGuests(
+      savedSa?.customMaxGuests
+        ? String(savedSa.customMaxGuests)
+        : savedMaxGuests && !isCapacityTier(savedMaxGuests)
+          ? String(savedMaxGuests)
+          : '',
+    );
+    setCustomUnitPrices(savedSa?.unitPrices ? { ...savedSa.unitPrices } : {});
+    setCustomLineItems(
+      Array.isArray(savedSa?.customLineItems)
+        ? savedSa!.customLineItems!.map((i) => ({ ...i }))
+        : [],
+    );
+    setCustomGoogleSheetLive(
+      Boolean(
+        savedSa?.entitlements?.googleSheetLive ??
+          order.options?.entitlements?.googleSheetLive,
+      ),
+    );
+    setCustomPostEventReport(
+      Boolean(
+        savedSa?.entitlements?.postEventReport ??
+          order.options?.entitlements?.postEventReport,
+      ),
+    );
+    const origPrice =
+      order.options?.originalPriceAmount ?? order.options?.normalTotal ?? null;
+    setNewOriginalPriceAmount(
+      typeof origPrice === 'number' && origPrice > 0 ? String(origPrice) : '',
+    );
     setNewPriceAmount(String(order.priceAmount ?? 0));
     setNotes(order.notes || '');
     if (order.event.activeUntil) {
@@ -270,6 +347,75 @@ export default function OrdersPage() {
     } else {
       setNewActiveUntil('');
     }
+  };
+
+  const buildSuperAdminOverrideFromState = (): SuperAdminPricingOverride | undefined => {
+    if (!isSuperAdmin) return undefined;
+    const parsedOriginal =
+      newOriginalPriceAmount.trim() !== ''
+        ? Math.max(0, Math.round(Number(newOriginalPriceAmount) || 0))
+        : undefined;
+
+    if (!enableSuperAdminCustom) {
+      return parsedOriginal !== undefined
+        ? { originalPriceAmount: parsedOriginal }
+        : undefined;
+    }
+
+    const cleanedUnitPrices: CustomServiceUnitPrices = {};
+    (
+      [
+        'basePrice',
+        'petugasUnit',
+        'petugasExtraHour',
+        'supervisor',
+        'akrilik',
+        'gladi',
+      ] as const
+    ).forEach((k) => {
+      const val = customUnitPrices[k];
+      if (typeof val === 'number' && Number.isFinite(val) && val >= 0) {
+        cleanedUnitPrices[k] = Math.round(val);
+      }
+    });
+
+    const parsedMax =
+      customMaxGuests.trim() !== ''
+        ? Math.max(1, Math.round(Number(customMaxGuests) || 50))
+        : undefined;
+
+    const cleanedExtraItems = customLineItems
+      .filter((i) => i.label.trim() !== '')
+      .map((i) => ({
+        label: i.label.trim(),
+        quantity: Math.max(1, Math.round(Number(i.quantity) || 1)),
+        unitPrice: Math.max(0, Math.round(Number(i.unitPrice) || 0)),
+      }));
+
+    return {
+      ...(customPackageName.trim()
+        ? { customPackageName: customPackageName.trim() }
+        : {}),
+      ...(parsedMax !== undefined ? { customMaxGuests: parsedMax } : {}),
+      extraPetugas: Math.max(0, Math.min(100, Number(newOptions.extraPetugas) || 0)),
+      extraHoursPerPetugas: Math.max(
+        0,
+        Math.min(24, Number(newOptions.extraHoursPerPetugas) || 0),
+      ),
+      ...(Object.keys(cleanedUnitPrices).length > 0
+        ? { unitPrices: cleanedUnitPrices }
+        : {}),
+      ...(cleanedExtraItems.length > 0
+        ? { customLineItems: cleanedExtraItems }
+        : {}),
+      entitlements: {
+        googleSheetLive: customGoogleSheetLive,
+        postEventReport: customPostEventReport,
+      },
+      ...(parsedOriginal !== undefined
+        ? { originalPriceAmount: parsedOriginal }
+        : {}),
+    };
   };
 
   const handleAdminPackageCodeChange = (nextCode: string) => {
@@ -289,6 +435,7 @@ export default function OrdersPage() {
         options: defaults,
       });
       setNewPriceAmount(String(calc.total));
+      setNewOriginalPriceAmount(String(calc.normalTotal));
     }
   };
 
@@ -300,6 +447,12 @@ export default function OrdersPage() {
       return;
     }
     const isSelectable = isSelectablePackageCode(newPackageCode);
+    const superAdminPayload = buildSuperAdminOverrideFromState();
+    const parsedOriginal =
+      isSuperAdmin && newOriginalPriceAmount.trim() !== ''
+        ? Math.max(0, Math.round(Number(newOriginalPriceAmount) || 0))
+        : undefined;
+
     try {
       setSubmitting(true);
       const res = await fetch(`/api/orders/${updatingOrder.id}`, {
@@ -321,7 +474,18 @@ export default function OrdersPage() {
                   : 50,
               }
             : undefined,
-          priceAmount: Math.round(parsedPrice),
+          ...(isSuperAdmin
+            ? {
+                superAdminCustom: enableSuperAdminCustom
+                  ? superAdminPayload
+                  : parsedOriginal !== undefined
+                    ? { originalPriceAmount: parsedOriginal }
+                    : null,
+                originalPriceAmount:
+                  parsedOriginal !== undefined ? parsedOriginal : null,
+                priceAmount: Math.round(parsedPrice),
+              }
+            : {}),
           notes: notes || undefined,
           activeUntil: newActiveUntil ? new Date(newActiveUntil).toISOString() : undefined,
         }),
@@ -790,6 +954,13 @@ export default function OrdersPage() {
                             : [];
                           const maxGuests =
                             order.options?.entitlements?.maxGuests;
+                          const originalPrice =
+                            typeof order.options?.originalPriceAmount === 'number'
+                              ? order.options.originalPriceAmount
+                              : typeof order.options?.normalTotal === 'number'
+                                ? order.options.normalTotal
+                                : null;
+                          const customName = order.options?.customPackageName;
 
                           return (
                             <div>
@@ -811,7 +982,7 @@ export default function OrdersPage() {
                               >
                                 {isUnselected
                                   ? '⚠️ Paket belum dipilih'
-                                  : `${getPackageDisplayLabel(order.packageCode)} (${order.packageCode})`}
+                                  : `${getPackageDisplayLabel(order.packageCode, customName)} (${order.packageCode})`}
                               </span>
                               {maxGuests ? (
                                 <span
@@ -824,15 +995,35 @@ export default function OrdersPage() {
                                   • Maks. {maxGuests} tamu
                                 </span>
                               ) : null}
+                              {originalPrice !== null &&
+                                originalPrice > order.priceAmount && (
+                                  <div
+                                    style={{
+                                      fontSize: '0.74rem',
+                                      color: '#64748b',
+                                      marginTop: '4px',
+                                      lineHeight: 1.2,
+                                    }}
+                                  >
+                                    Rp{' '}
+                                    <span style={{ textDecoration: 'line-through' }}>
+                                      {Math.round(originalPrice).toLocaleString('id-ID')}
+                                    </span>
+                                  </div>
+                                )}
                               <div
                                 style={{
-                                  fontSize: '0.8125rem',
+                                  fontSize: '0.875rem',
                                   fontWeight: 700,
                                   color: '#111814',
-                                  marginTop: '4px',
+                                  marginTop:
+                                    originalPrice !== null &&
+                                    originalPrice > order.priceAmount
+                                      ? '1px'
+                                      : '4px',
                                 }}
                               >
-                                Harga Final: {formatRupiah(order.priceAmount)}
+                                {formatRupiah(order.priceAmount)}
                               </div>
                               {computedTotal !== null &&
                                 computedTotal !== order.priceAmount && (
@@ -932,21 +1123,28 @@ export default function OrdersPage() {
             if (e.target === e.currentTarget && !submitting) setUpdatingOrder(null);
           }}
         >
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '640px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h3 id="order-modal-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem', fontWeight: 700 }}>
               Detail &amp; Ubah Pesanan ({updatingOrder.referenceCode})
             </h3>
             <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.85rem' }}>
               Klien: <strong>{updatingOrder.clientName}</strong> · Paket:{' '}
-              <strong>{getPackageDisplayLabel(newPackageCode)}</strong>
+              <strong>
+                {getPackageDisplayLabel(
+                  newPackageCode,
+                  enableSuperAdminCustom ? customPackageName : updatingOrder.options?.customPackageName,
+                )}
+              </strong>
             </div>
 
             {(() => {
+              const liveSaOverride = buildSuperAdminOverrideFromState();
               const liveCalc = isSelectablePackageCode(newPackageCode)
                 ? calculateOrderPrice({
                     packageCode: newPackageCode,
                     capacityTier: newOptions.capacityTier,
                     options: newOptions,
+                    superAdminOverride: liveSaOverride,
                   })
                 : null;
               const displayLineItems = liveCalc
@@ -959,9 +1157,21 @@ export default function OrdersPage() {
                 : typeof updatingOrder.options?.computedTotal === 'number'
                   ? updatingOrder.options.computedTotal
                   : updatingOrder.priceAmount;
+              const displayNormalTotal = liveCalc
+                ? liveCalc.normalTotal
+                : typeof updatingOrder.options?.originalPriceAmount === 'number'
+                  ? updatingOrder.options.originalPriceAmount
+                  : typeof updatingOrder.options?.normalTotal === 'number'
+                    ? updatingOrder.options.normalTotal
+                    : null;
               const displayMaxGuests = liveCalc
                 ? liveCalc.entitlements.maxGuests
                 : updatingOrder.options?.entitlements?.maxGuests;
+              const previewOriginalNum =
+                newOriginalPriceAmount.trim() !== ''
+                  ? Number(newOriginalPriceAmount)
+                  : displayNormalTotal;
+              const previewFinalNum = Number(newPriceAmount) || 0;
 
               return (
                 <>
@@ -1075,11 +1285,12 @@ export default function OrdersPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                         <div>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
-                            Kapasitas
+                            Kapasitas Tier
                           </label>
                           <select
                             data-testid="admin-order-capacity-select"
-                            value={liveCalc.entitlements.maxGuests}
+                            disabled={isSuperAdmin && enableSuperAdminCustom && customMaxGuests.trim() !== ''}
+                            value={liveCalc.normalizedOptions.capacityTier}
                             onChange={(e) =>
                               setNewOptions((prev) => ({
                                 ...prev,
@@ -1107,17 +1318,23 @@ export default function OrdersPage() {
 
                         <div>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
-                            Extra Petugas (0-20)
+                            Extra Petugas ({isSuperAdmin && enableSuperAdminCustom ? '0-100' : '0-20'})
                           </label>
                           <input
                             type="number"
                             min={0}
-                            max={20}
+                            max={isSuperAdmin && enableSuperAdminCustom ? 100 : 20}
                             value={liveCalc.normalizedOptions.extraPetugas}
                             onChange={(e) =>
                               setNewOptions((prev) => ({
                                 ...prev,
-                                extraPetugas: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+                                extraPetugas: Math.max(
+                                  0,
+                                  Math.min(
+                                    isSuperAdmin && enableSuperAdminCustom ? 100 : 20,
+                                    Number(e.target.value) || 0,
+                                  ),
+                                ),
                               }))
                             }
                             style={{ width: '100%', padding: '0.38rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
@@ -1126,18 +1343,24 @@ export default function OrdersPage() {
 
                         <div>
                           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
-                            Extra Jam/Org (0-8)
+                            Extra Jam/Org ({isSuperAdmin && enableSuperAdminCustom ? '0-24' : '0-8'})
                           </label>
                           <input
                             type="number"
                             min={0}
-                            max={8}
+                            max={isSuperAdmin && enableSuperAdminCustom ? 24 : 8}
                             disabled={liveCalc.entitlements.petugasCount === 0}
                             value={liveCalc.normalizedOptions.extraHoursPerPetugas}
                             onChange={(e) =>
                               setNewOptions((prev) => ({
                                 ...prev,
-                                extraHoursPerPetugas: Math.max(0, Math.min(8, Number(e.target.value) || 0)),
+                                extraHoursPerPetugas: Math.max(
+                                  0,
+                                  Math.min(
+                                    isSuperAdmin && enableSuperAdminCustom ? 24 : 8,
+                                    Number(e.target.value) || 0,
+                                  ),
+                                ),
                               }))
                             }
                             style={{ width: '100%', padding: '0.38rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
@@ -1197,43 +1420,373 @@ export default function OrdersPage() {
                     </div>
                   )}
 
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  {/* ── SUPER ADMIN ONLY: Custom Package Builder & Per-Service Unit Pricing ── */}
+                  {isSuperAdmin && isSelectablePackageCode(newPackageCode) && (
+                    <div
+                      data-testid="super-admin-custom-pricing-panel"
+                      style={{
+                        background: '#fffbeb',
+                        border: '1px solid #fcd34d',
+                        borderRadius: '10px',
+                        padding: '0.85rem',
+                        marginBottom: '1rem',
+                        fontSize: '0.8rem',
+                      }}
+                    >
                       <label
-                        htmlFor="order-final-price-input"
-                        style={{ fontSize: '0.8125rem', fontWeight: 600 }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          color: '#92400e',
+                        }}
                       >
-                        Harga Final (Rp):
+                        <span>👑 Mode Paket Khusus &amp; Kustom Harga Per Layanan (Super Admin)</span>
+                        <input
+                          type="checkbox"
+                          checked={enableSuperAdminCustom}
+                          onChange={(e) => setEnableSuperAdminCustom(e.target.checked)}
+                        />
                       </label>
-                      {liveCalc && Number(newPriceAmount) !== liveCalc.total && (
-                        <button
-                          type="button"
-                          onClick={() => setNewPriceAmount(String(liveCalc.total))}
-                          style={{
-                            fontSize: '0.72rem',
-                            color: '#0f766e',
-                            background: 'transparent',
-                            border: 'none',
-                            textDecoration: 'underline',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                          }}
-                        >
-                          Gunakan Hasil Hitung ({formatRupiah(liveCalc.total)})
-                        </button>
+
+                      {enableSuperAdminCustom && (
+                        <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '8px' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#78350f', marginBottom: '3px' }}>
+                                Nama Paket Kustom (Opsional)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Contoh: Paket Royal VVIP 1500 Tamu"
+                                value={customPackageName}
+                                onChange={(e) => setCustomPackageName(e.target.value)}
+                                style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.8rem' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#78350f', marginBottom: '3px' }}>
+                                Kuota Tamu Bebas (Angka Berapapun)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                placeholder="Misal: 1200"
+                                value={customMaxGuests}
+                                onChange={(e) => setCustomMaxGuests(e.target.value)}
+                                style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.8rem' }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Custom Per-Service Unit Prices */}
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#78350f', marginBottom: '6px' }}>
+                              Kustom Harga Satuan Per Layanan (Rp — kosongkan untuk harga default):
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                              {(
+                                [
+                                  {
+                                    key: 'basePrice',
+                                    label: 'Dasar Undangan/Paket',
+                                    placeholder: String(
+                                      isPresetPackageCode(newPackageCode)
+                                        ? liveCalc?.lineItems[0]?.unitPrice ?? 149000
+                                        : CAPACITY_BASE_PRICES[newOptions.capacityTier as CapacityTier] ?? 149000,
+                                    ),
+                                  },
+                                  {
+                                    key: 'petugasUnit',
+                                    label: 'Petugas (24/hari)',
+                                    placeholder: String(PETUGAS_UNIT),
+                                  },
+                                  {
+                                    key: 'petugasExtraHour',
+                                    label: 'Jam Tambahan/Org',
+                                    placeholder: String(PETUGAS_EXTRA_HOUR),
+                                  },
+                                  {
+                                    key: 'supervisor',
+                                    label: 'Supervisor',
+                                    placeholder: String(SUPERVISOR),
+                                  },
+                                  {
+                                    key: 'akrilik',
+                                    label: 'Stand Akrilik QRIS',
+                                    placeholder: String(AKRILIK_QRIS),
+                                  },
+                                  {
+                                    key: 'gladi',
+                                    label: 'Sesi Gladi H-1',
+                                    placeholder: String(GLADI_H1),
+                                  },
+                                ] as const
+                              ).map((svc) => (
+                                <div key={svc.key}>
+                                  <label style={{ display: 'block', fontSize: '0.7rem', color: '#92400e', marginBottom: '2px' }}>
+                                    {svc.label}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step={1000}
+                                    placeholder={svc.placeholder}
+                                    value={
+                                      customUnitPrices[svc.key] !== undefined
+                                        ? String(customUnitPrices[svc.key])
+                                        : ''
+                                    }
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      setCustomUnitPrices((prev) => {
+                                        const next = { ...prev };
+                                        if (raw.trim() === '') {
+                                          delete next[svc.key];
+                                        } else {
+                                          next[svc.key] = Math.max(0, Number(raw) || 0);
+                                        }
+                                        return next;
+                                      });
+                                    }}
+                                    style={{ width: '100%', padding: '0.35rem 0.45rem', borderRadius: '6px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.78rem' }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Extra Custom Line Items */}
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#78350f' }}>
+                                Layanan Tambahan Bebas:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCustomLineItems((prev) => [
+                                    ...prev,
+                                    { label: '', quantity: 1, unitPrice: 50000 },
+                                  ])
+                                }
+                                style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '5px', border: '1px solid #d97706', background: '#fff', color: '#b45309', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                + Tambah Layanan
+                              </button>
+                            </div>
+                            {customLineItems.map((item, idx) => (
+                              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.55fr 1fr auto', gap: '6px', marginBottom: '5px' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Nama layanan (mis. Layar Sapa Tamu)"
+                                  value={item.label}
+                                  onChange={(e) =>
+                                    setCustomLineItems((prev) =>
+                                      prev.map((row, i) =>
+                                        i === idx ? { ...row, label: e.target.value } : row,
+                                      ),
+                                    )
+                                  }
+                                  style={{ padding: '0.32rem 0.45rem', borderRadius: '5px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.76rem' }}
+                                />
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="Qty"
+                                  value={item.quantity}
+                                  onChange={(e) =>
+                                    setCustomLineItems((prev) =>
+                                      prev.map((row, i) =>
+                                        i === idx
+                                          ? { ...row, quantity: Math.max(1, Number(e.target.value) || 1) }
+                                          : row,
+                                      ),
+                                    )
+                                  }
+                                  style={{ padding: '0.32rem 0.45rem', borderRadius: '5px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.76rem' }}
+                                />
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step={5000}
+                                  placeholder="Harga Satuan"
+                                  value={item.unitPrice}
+                                  onChange={(e) =>
+                                    setCustomLineItems((prev) =>
+                                      prev.map((row, i) =>
+                                        i === idx
+                                          ? { ...row, unitPrice: Math.max(0, Number(e.target.value) || 0) }
+                                          : row,
+                                      ),
+                                    )
+                                  }
+                                  style={{ padding: '0.32rem 0.45rem', borderRadius: '5px', border: '1px solid #fcd34d', background: '#fff', fontSize: '0.76rem' }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setCustomLineItems((prev) => prev.filter((_, i) => i !== idx))
+                                  }
+                                  style={{ padding: '0 8px', borderRadius: '5px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', fontWeight: 700 }}
+                                  aria-label="Hapus layanan tambahan"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Extra VIP Entitlements */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px' }}>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#78350f' }}>
+                              <input
+                                type="checkbox"
+                                checked={customGoogleSheetLive}
+                                onChange={(e) => setCustomGoogleSheetLive(e.target.checked)}
+                              />
+                              <span>Aktifkan Google Sheet Live</span>
+                            </label>
+                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#78350f' }}>
+                              <input
+                                type="checkbox"
+                                checked={customPostEventReport}
+                                onChange={(e) => setCustomPostEventReport(e.target.checked)}
+                              />
+                              <span>Aktifkan Laporan Pasca-Acara</span>
+                            </label>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <input
-                      id="order-final-price-input"
-                      type="number"
-                      min={0}
-                      step={1000}
-                      value={newPriceAmount}
-                      onChange={(e) => setNewPriceAmount(e.target.value)}
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-                    />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Harga final (diskon) yang sudah diisi admin tetap dipertahankan saat paket/opsi diubah.
+                  )}
+
+                  {/* ── Harga Asli (Coret) & Harga Final (Deal) ── */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isSuperAdmin ? '1fr 1fr' : '1fr', gap: '10px', marginBottom: '0.75rem' }}>
+                    {isSuperAdmin && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                          <label
+                            htmlFor="order-original-price-input"
+                            style={{ fontSize: '0.8125rem', fontWeight: 600 }}
+                          >
+                            Harga Asli / Coret (Rp):
+                          </label>
+                          {liveCalc && Number(newOriginalPriceAmount) !== liveCalc.normalTotal && (
+                            <button
+                              type="button"
+                              onClick={() => setNewOriginalPriceAmount(String(liveCalc.normalTotal))}
+                              style={{
+                                fontSize: '0.7rem',
+                                color: '#64748b',
+                                background: 'transparent',
+                                border: 'none',
+                                textDecoration: 'underline',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Normal ({formatRupiah(liveCalc.normalTotal)})
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          id="order-original-price-input"
+                          type="number"
+                          min={0}
+                          step={1000}
+                          placeholder="Misal: 2390000"
+                          value={newOriginalPriceAmount}
+                          onChange={(e) => setNewOriginalPriceAmount(e.target.value)}
+                          style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                        <label
+                          htmlFor="order-final-price-input"
+                          style={{ fontSize: '0.8125rem', fontWeight: 600 }}
+                        >
+                          Harga Final (Rp):
+                        </label>
+                        {isSuperAdmin && liveCalc && Number(newPriceAmount) !== liveCalc.total && (
+                          <button
+                            type="button"
+                            onClick={() => setNewPriceAmount(String(liveCalc.total))}
+                            style={{
+                              fontSize: '0.72rem',
+                              color: '#0f766e',
+                              background: 'transparent',
+                              border: 'none',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Gunakan Hasil Hitung ({formatRupiah(liveCalc.total)})
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        id="order-final-price-input"
+                        type="number"
+                        min={0}
+                        step={1000}
+                        disabled={!isSuperAdmin}
+                        value={newPriceAmount}
+                        onChange={(e) => setNewPriceAmount(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          borderRadius: '6px',
+                          border: '1px solid #cbd5e1',
+                          fontSize: '0.875rem',
+                          background: isSuperAdmin ? '#fff' : '#f1f5f9',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live Strikethrough Price Preview matching reference style */}
+                  <div
+                    style={{
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginBottom: '2px' }}>
+                        Pratinjau Tampilan Harga Klien:
+                      </div>
+                      {typeof previewOriginalNum === 'number' &&
+                        Number.isFinite(previewOriginalNum) &&
+                        previewOriginalNum > previewFinalNum && (
+                          <div style={{ fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.2 }}>
+                            Rp{' '}
+                            <span style={{ textDecoration: 'line-through' }}>
+                              {Math.round(previewOriginalNum).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        )}
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#374151', fontFamily: 'Georgia, serif' }}>
+                        {formatRupiah(previewFinalNum)}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', maxWidth: '240px', textAlign: 'right' }}>
+                      {isSuperAdmin
+                        ? 'Harga asli (coret) dan harga final yang diisi Super Admin tetap dipertahankan.'
+                        : 'Hanya Super Admin yang dapat mengubah harga final, harga coret, atau harga per layanan.'}
                     </span>
                   </div>
                 </>

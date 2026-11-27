@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { OrderStatus, Prisma, Role } from 'database';
-import { type OrderPricingOptionsInput } from 'pricing';
+import {
+  type OrderPricingOptionsInput,
+  type SuperAdminPricingOverride,
+} from 'pricing';
 import { PrismaService } from '../database/prisma.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -318,6 +321,22 @@ export class OrdersService {
       );
     }
 
+    const hasSuperAdminOnlyFields =
+      dto.superAdminCustom !== undefined ||
+      dto.originalPriceAmount !== undefined;
+
+    if (hasSuperAdminOnlyFields && actor?.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang diizinkan merakit paket khusus, mengubah harga per layanan, atau mengatur harga coret.',
+      );
+    }
+
+    if (actor?.role === Role.ADMIN && dto.priceAmount !== undefined) {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang diizinkan mengubah harga final (diskon/custom) pesanan.',
+      );
+    }
+
     const order = await this.prisma.order.findFirst({
       where: {
         OR: [{ id }, { referenceCode: id }],
@@ -369,7 +388,11 @@ export class OrdersService {
       }
     }
 
-    if (dto.packageCode !== undefined || dto.options !== undefined) {
+    if (
+      dto.packageCode !== undefined ||
+      dto.options !== undefined ||
+      dto.superAdminCustom !== undefined
+    ) {
       const targetPackageCode = (
         dto.packageCode ??
         order.packageCode ??
@@ -377,23 +400,26 @@ export class OrdersService {
       )
         .trim()
         .toUpperCase();
-      const existingInput: OrderPricingOptionsInput =
+      const existingOptionsObj =
         order.options &&
         typeof order.options === 'object' &&
-        !Array.isArray(order.options) &&
-        (order.options as unknown as { input?: OrderPricingOptionsInput })
-          .input &&
-        typeof (
-          order.options as unknown as { input?: OrderPricingOptionsInput }
-        ).input === 'object'
-          ? {
-              ...(
-                order.options as unknown as {
-                  input: OrderPricingOptionsInput;
-                }
-              ).input,
-            }
+        !Array.isArray(order.options)
+          ? (order.options as Record<string, unknown>)
           : {};
+      const existingInput: OrderPricingOptionsInput =
+        existingOptionsObj.input &&
+        typeof existingOptionsObj.input === 'object' &&
+        !Array.isArray(existingOptionsObj.input)
+          ? { ...(existingOptionsObj.input as OrderPricingOptionsInput) }
+          : {};
+      const existingSuperAdminCustom: SuperAdminPricingOverride | undefined =
+        existingOptionsObj.superAdminCustom &&
+        typeof existingOptionsObj.superAdminCustom === 'object' &&
+        !Array.isArray(existingOptionsObj.superAdminCustom)
+          ? {
+              ...(existingOptionsObj.superAdminCustom as SuperAdminPricingOverride),
+            }
+          : undefined;
 
       const packageChanged =
         dto.packageCode !== undefined &&
@@ -403,7 +429,35 @@ export class OrdersService {
         ? { ...(dto.options ?? {}) }
         : { ...existingInput, ...(dto.options ?? {}) };
 
-      const snap = buildOrderPricingSnapshot(targetPackageCode, mergedOptions);
+      let resolvedSuperAdminOverride: SuperAdminPricingOverride | null = null;
+      if (dto.superAdminCustom === null) {
+        resolvedSuperAdminOverride = null;
+      } else if (dto.superAdminCustom !== undefined) {
+        resolvedSuperAdminOverride = {
+          ...(packageChanged ? {} : (existingSuperAdminCustom ?? {})),
+          ...dto.superAdminCustom,
+          ...(dto.originalPriceAmount !== undefined
+            ? { originalPriceAmount: dto.originalPriceAmount }
+            : {}),
+        };
+      } else if (!packageChanged && existingSuperAdminCustom) {
+        resolvedSuperAdminOverride = {
+          ...existingSuperAdminCustom,
+          ...(dto.originalPriceAmount !== undefined
+            ? { originalPriceAmount: dto.originalPriceAmount }
+            : {}),
+        };
+      } else if (dto.originalPriceAmount !== undefined) {
+        resolvedSuperAdminOverride = {
+          originalPriceAmount: dto.originalPriceAmount,
+        };
+      }
+
+      const snap = buildOrderPricingSnapshot(
+        targetPackageCode,
+        mergedOptions,
+        resolvedSuperAdminOverride,
+      );
       const nextMaxGuests = resolveOrderMaxGuests({
         packageCode: snap.packageCode,
         options: snap.options,
@@ -435,6 +489,16 @@ export class OrdersService {
           ? snap.priceAmount
           : order.priceAmount;
       }
+    } else if (dto.originalPriceAmount !== undefined) {
+      const existingOptionsObj =
+        order.options &&
+        typeof order.options === 'object' &&
+        !Array.isArray(order.options)
+          ? { ...(order.options as Record<string, unknown>) }
+          : {};
+      existingOptionsObj.originalPriceAmount = dto.originalPriceAmount;
+      updateData.options =
+        existingOptionsObj as unknown as Prisma.InputJsonValue;
     }
 
     if (typeof dto.priceAmount === 'number' && dto.priceAmount >= 0) {

@@ -11,6 +11,10 @@ test('Admin Orders page displays package breakdown, UNSELECTED badge, and editab
   assert.equal(getPackageDisplayLabel('UNSELECTED'), 'Paket belum dipilih');
   assert.equal(getPackageDisplayLabel('SACRED'), 'Sacred');
   assert.equal(getPackageDisplayLabel('CUSTOM'), 'Rakit Sendiri (Custom)');
+  assert.equal(
+    getPackageDisplayLabel('CUSTOM', 'Paket Royal VVIP'),
+    'Paket Royal VVIP',
+  );
 
   assert.ok(
     content.includes('Paket belum dipilih'),
@@ -19,6 +23,15 @@ test('Admin Orders page displays package breakdown, UNSELECTED badge, and editab
   assert.ok(
     content.includes('Harga Final (Rp)'),
     'Must render editable Harga Final (Rp) input in admin order modal',
+  );
+  assert.ok(
+    content.includes('Harga Asli / Coret (Rp)'),
+    'Must render strikethrough original price input for Super Admin',
+  );
+  assert.ok(
+    content.includes('super-admin-custom-pricing-panel') &&
+      content.includes("userRole === 'SUPER_ADMIN'"),
+    'Must restrict custom package & per-service pricing panel strictly to SUPER_ADMIN',
   );
   assert.ok(
     content.includes('computedTotal'),

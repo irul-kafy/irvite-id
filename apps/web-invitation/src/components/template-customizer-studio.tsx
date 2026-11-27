@@ -2039,6 +2039,7 @@ export function TemplateCustomizerStudio({
                   {PRESET_PACKAGE_CODES.map((code) => {
                     const pkg = WEDDING_PACKAGE_CATALOG[code];
                     const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
+                    const originalPrice = PACKAGE_PRICES.NORMAL[code];
                     const isSelected = selectedPackageCode === code;
                     return (
                       <button
@@ -2086,6 +2087,14 @@ export function TemplateCustomizerStudio({
                             </span>
                           )}
                         </div>
+                        {originalPrice > price && (
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.1 }}>
+                            Rp{' '}
+                            <span style={{ textDecoration: 'line-through' }}>
+                              {Math.round(originalPrice).toLocaleString('id-ID')}
+                            </span>
+                          </div>
+                        )}
                         <div
                           style={{
                             fontSize: '0.95rem',

@@ -14,6 +14,44 @@ export const CAPACITY_BASE_PRICES: Record<CapacityTier, number> = {
   600: 449_000,
 };
 
+export const CAPACITY_NORMAL_PRICES: Record<CapacityTier, number> = {
+  50: 199_000,
+  150: 269_000,
+  300: 399_000,
+  600: 599_000,
+};
+
+export type WeddingServiceTab = 'UNDANGAN' | 'BUKU_TAMU' | 'CUSTOM';
+
+export const WEDDING_SERVICE_TABS: ReadonlyArray<{
+  id: WeddingServiceTab;
+  label: string;
+  shortLabel: string;
+  subtitle: string;
+}> = [
+  {
+    id: 'UNDANGAN',
+    label: 'Undangan Digital',
+    shortLabel: 'Undangan Digital',
+    subtitle:
+      'Undangan web eksklusif, tautan nama tamu personal, RSVP & amplop digital untuk disebar secara online.',
+  },
+  {
+    id: 'BUKU_TAMU',
+    label: 'Buku Tamu Digital',
+    shortLabel: 'Buku Tamu Digital',
+    subtitle:
+      'Sudah termasuk Undangan Digital penuh + sistem check-in QR meja resepsi, petugas di lokasi (24/hari), dan stand akrilik.',
+  },
+  {
+    id: 'CUSTOM',
+    label: 'Custom',
+    shortLabel: 'Custom',
+    subtitle:
+      'Pilih sesuka hati komponen layanan dan kuota undangan secara fleksibel sesuai kebutuhan acaramu tanpa terikat paket.',
+  },
+];
+
 export type PriceTier = 'LAUNCH' | 'NORMAL';
 
 /**
@@ -65,10 +103,12 @@ export const PACKAGE_PRICES: Record<
 
 export interface WeddingPackageCatalogItem {
   code: PresetPackageCode;
+  serviceCategory: 'UNDANGAN' | 'BUKU_TAMU';
   name: string;
   tagline: string;
   description: string;
   popular?: boolean;
+  includesUndanganDigital: boolean;
   baseCapacity: CapacityTier;
   includedPetugas: number;
   includedSupervisor: 0 | 1;
@@ -79,16 +119,96 @@ export interface WeddingPackageCatalogItem {
   features: string[];
 }
 
+export const BUKU_TAMU_PACKAGE_CODES = [
+  'INTIMATE',
+  'SIGNATURE',
+  'MAJESTIC',
+] as const;
+export type BukuTamuPackageCode = (typeof BUKU_TAMU_PACKAGE_CODES)[number];
+
+export interface UndanganShowcaseCard {
+  id: string;
+  packageCode: 'SACRED';
+  capacityTier: CapacityTier;
+  name: string;
+  tagline: string;
+  description: string;
+  popular?: boolean;
+  price: number;
+  originalPrice: number;
+  features: string[];
+}
+
+export const UNDANGAN_SHOWCASE_CARDS: readonly UndanganShowcaseCard[] = [
+  {
+    id: 'UNDANGAN_50',
+    packageCode: 'SACRED',
+    capacityTier: 50,
+    name: 'Sacred 50',
+    tagline: 'Akad & syukuran hangat',
+    description:
+      'Undangan digital pernikahan eksklusif dan buku tamu QR mandiri untuk acara akad atau syukuran intim hingga 50 undangan.',
+    price: 149_000,
+    originalPrice: 199_000,
+    features: [
+      'Kapasitas hingga 50 undangan (1 undangan bisa untuk keluarga)',
+      'Semua tema katalog & kustomisasi konten penuh',
+      'Tautan personal nama tamu via WhatsApp',
+      'RSVP real-time, ucapan doa & amplop digital / QRIS',
+      'QR check-in tamu mandiri (tanpa petugas lokasi)',
+    ],
+  },
+  {
+    id: 'UNDANGAN_150',
+    packageCode: 'SACRED',
+    capacityTier: 150,
+    name: 'Sacred 150',
+    tagline: 'Pilihan favorit undangan mandiri',
+    description:
+      'Solusi undangan digital elegan dengan kuota lebih lega hingga 150 undangan tanpa biaya pendampingan petugas lapangan.',
+    popular: true,
+    price: 199_000,
+    originalPrice: 269_000,
+    features: [
+      'Kapasitas hingga 150 undangan (1 undangan bisa untuk keluarga)',
+      'Semua tema katalog & kustomisasi konten penuh',
+      'Tautan personal nama tamu & ekspor daftar tamu',
+      'RSVP real-time, ucapan doa & amplop digital / QRIS',
+      'Dashboard portal pengantin & QR check-in mandiri',
+    ],
+  },
+  {
+    id: 'UNDANGAN_300',
+    packageCode: 'SACRED',
+    capacityTier: 300,
+    name: 'Sacred 300',
+    tagline: 'Sebar undangan keluarga besar',
+    description:
+      'Kuota leluasa hingga 300 undangan untuk penyebaran undangan online masif dengan pengelolaan RSVP terpusat.',
+    price: 299_000,
+    originalPrice: 399_000,
+    features: [
+      'Kapasitas hingga 300 undangan (1 undangan bisa untuk keluarga)',
+      'Semua tema katalog & kustomisasi konten penuh',
+      'Tautan personal nama tamu & ekspor CSV kehadiran',
+      'RSVP real-time, ucapan doa & amplop digital / QRIS',
+      'Dapat di-upgrade ke Buku Tamu Digital kapan saja',
+    ],
+  },
+];
+
 export const WEDDING_PACKAGE_CATALOG: Record<
   PresetPackageCode,
   WeddingPackageCatalogItem
 > = {
   SACRED: {
     code: 'SACRED',
+    serviceCategory: 'UNDANGAN',
     name: 'Sacred',
     tagline: 'Akad & syukuran hangat',
     description:
       'Undangan digital pernikahan dan buku tamu QR mandiri untuk acara akad atau syukuran intim hingga 50 undangan (1 undangan bisa untuk keluarga).',
+    includesUndanganDigital: true,
     baseCapacity: 50,
     includedPetugas: 0,
     includedSupervisor: 0,
@@ -106,10 +226,12 @@ export const WEDDING_PACKAGE_CATALOG: Record<
   },
   INTIMATE: {
     code: 'INTIMATE',
+    serviceCategory: 'BUKU_TAMU',
     name: 'Intimate',
     tagline: 'Resepsi intim terkelola',
     description:
-      'Didampingi 1 petugas check-in di lokasi serta 1 set stand akrilik QRIS meja untuk resepsi hingga 150 undangan (1 undangan bisa untuk keluarga).',
+      'Sudah termasuk Undangan Digital penuh, didampingi 1 petugas check-in di lokasi serta 1 set stand akrilik QRIS meja hingga 150 undangan.',
+    includesUndanganDigital: true,
     baseCapacity: 150,
     includedPetugas: 1,
     includedSupervisor: 0,
@@ -119,19 +241,21 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: false,
     features: [
       'Kapasitas hingga 150 undangan (1 undangan bisa untuk keluarga)',
+      'Sudah termasuk Undangan Digital semua tema katalog',
       '1 petugas check-in di lokasi (24/hari)',
       'Termasuk 1 set stand akrilik QRIS meja',
-      'Semua tema katalog, RSVP, ucapan & amplop digital',
-      'Dashboard portal pengantin & ekspor data tamu',
+      'Dashboard buku tamu real-time, RSVP & amplop digital',
     ],
   },
   SIGNATURE: {
     code: 'SIGNATURE',
+    serviceCategory: 'BUKU_TAMU',
     name: 'Signature',
     tagline: 'Pilihan terpopuler resepsi menengah',
     description:
-      'Alur penerimaan tamu cepat dengan 2 petugas check-in, sesi gladi H-1, stand akrilik QRIS, dan sinkronisasi Google Sheet live.',
+      'Sudah termasuk Undangan Digital penuh dengan 2 petugas check-in, sesi gladi H-1, stand akrilik QRIS, dan sinkronisasi Google Sheet live.',
     popular: true,
+    includesUndanganDigital: true,
     baseCapacity: 300,
     includedPetugas: 2,
     includedSupervisor: 0,
@@ -141,18 +265,20 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: false,
     features: [
       'Kapasitas hingga 300 undangan (1 undangan bisa untuk keluarga)',
+      'Sudah termasuk Undangan Digital semua tema katalog',
       '2 petugas check-in di lokasi (24/hari)',
-      'Termasuk 1 set stand akrilik QRIS meja',
-      'Sesi gladi bersih & uji sistem H-1',
-      'Sinkronisasi kehadiran ke Google Sheet live',
+      'Termasuk 1 set stand akrilik QRIS meja & sesi gladi bersih H-1',
+      'Sinkronisasi kehadiran buku tamu ke Google Sheet live',
     ],
   },
   MAJESTIC: {
     code: 'MAJESTIC',
+    serviceCategory: 'BUKU_TAMU',
     name: 'Majestic',
     tagline: 'Resepsi besar dengan tim penuh',
     description:
-      'Didukung 4 petugas check-in dan 1 supervisor lapangan, gladi H-1, Google Sheet live, serta laporan kehadiran pasca-acara.',
+      'Sudah termasuk Undangan Digital penuh, didukung 4 petugas check-in dan 1 supervisor lapangan, gladi H-1, Google Sheet live, serta laporan pasca-acara.',
+    includesUndanganDigital: true,
     baseCapacity: 600,
     includedPetugas: 4,
     includedSupervisor: 1,
@@ -162,10 +288,10 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     includesPostEventReport: true,
     features: [
       'Kapasitas hingga 600 undangan (1 undangan bisa untuk keluarga)',
+      'Sudah termasuk Undangan Digital semua tema katalog',
       '4 petugas check-in (24/hari) + 1 supervisor lapangan',
-      'Termasuk 1 set stand akrilik QRIS meja',
-      'Sesi gladi bersih H-1 & Google Sheet live',
-      'Laporan rekapitulasi kehadiran pasca-acara',
+      'Termasuk 1 set stand akrilik QRIS meja & sesi gladi H-1',
+      'Google Sheet live & laporan rekapitulasi kehadiran pasca-acara',
     ],
   },
 };
@@ -203,8 +329,40 @@ export interface OrderPriceLineItem {
   amount: number;
 }
 
+export interface CustomServiceUnitPrices {
+  basePrice?: number;
+  petugasUnit?: number;
+  petugasExtraHour?: number;
+  supervisor?: number;
+  akrilik?: number;
+  gladi?: number;
+}
+
+export interface CustomExtraLineItemInput {
+  label: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface SuperAdminPricingOverride {
+  customPackageName?: string;
+  customMaxGuests?: number;
+  extraPetugas?: number;
+  extraHoursPerPetugas?: number;
+  unitPrices?: CustomServiceUnitPrices;
+  customLineItems?: CustomExtraLineItemInput[];
+  entitlements?: {
+    googleSheetLive?: boolean;
+    postEventReport?: boolean;
+    akrilikQris?: boolean;
+    gladiH1?: boolean;
+    supervisorCount?: 0 | 1;
+  };
+  originalPriceAmount?: number | null;
+}
+
 export interface OrderEntitlements {
-  maxGuests: CapacityTier;
+  maxGuests: number;
   petugasCount: number;
   extraHoursPerPetugas: number;
   supervisorCount: 0 | 1;
@@ -219,12 +377,15 @@ export interface CalculateOrderPriceInput {
   capacityTier?: CapacityTier | number;
   options?: OrderPricingOptionsInput | null;
   priceTier?: PriceTier;
+  superAdminOverride?: SuperAdminPricingOverride | null;
 }
 
 export interface CalculateOrderPriceResult {
   packageCode: SelectablePackageCode;
+  customPackageName?: string;
   priceTier: PriceTier;
   total: number;
+  normalTotal: number;
   lineItems: OrderPriceLineItem[];
   entitlements: OrderEntitlements;
   normalizedOptions: NormalizedOrderPricingOptions;
@@ -302,7 +463,17 @@ export function getPackageBasePrice(
   return PACKAGE_PRICES[tier][packageCode];
 }
 
-export function getPackageDisplayLabel(packageCode?: string | null): string {
+export function getPackageOriginalPrice(packageCode: PresetPackageCode): number {
+  return PACKAGE_PRICES.NORMAL[packageCode];
+}
+
+export function getPackageDisplayLabel(
+  packageCode?: string | null,
+  customPackageName?: string | null,
+): string {
+  if (typeof customPackageName === 'string' && customPackageName.trim()) {
+    return customPackageName.trim();
+  }
   const normalized = (packageCode || '').trim().toUpperCase();
   if (!normalized || normalized === 'UNSELECTED') {
     return 'Paket belum dipilih';
@@ -317,6 +488,18 @@ export function getPackageDisplayLabel(packageCode?: string | null): string {
   if (normalized === 'GOLD') return 'Gold (Legacy)';
   if (normalized === 'PLATINUM') return 'Platinum (Legacy)';
   return normalized;
+}
+
+function resolveNonNegativeInt(
+  value: unknown,
+  fallback: number,
+  fieldName: string,
+): number {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`Invalid unit price for ${fieldName}`);
+  }
+  return Math.round(value);
 }
 
 export function calculateOrderPrice(
@@ -345,28 +528,71 @@ export function calculateOrderPrice(
     throw new Error('Invalid pricing options object');
   }
 
+  const sa = input.superAdminOverride ?? null;
+  const maxPetugasLimit = sa ? 100 : 20;
+  const maxHoursLimit = sa ? 24 : 8;
+
   const extraPetugas = clampInteger(
-    rawOptions.extraPetugas,
+    sa?.extraPetugas !== undefined ? sa.extraPetugas : rawOptions.extraPetugas,
     0,
-    20,
+    maxPetugasLimit,
     'extraPetugas',
   );
   const rawExtraHours = clampInteger(
-    rawOptions.extraHoursPerPetugas,
+    sa?.extraHoursPerPetugas !== undefined
+      ? sa.extraHoursPerPetugas
+      : rawOptions.extraHoursPerPetugas,
     0,
-    8,
+    maxHoursLimit,
     'extraHoursPerPetugas',
   );
   const supervisor = normalizeSupervisor(rawOptions.supervisor);
   const akrilik = normalizeBoolean(rawOptions.akrilik, 'akrilik');
   const gladi = normalizeBoolean(rawOptions.gladi, 'gladi');
 
+  const unitPetugas = resolveNonNegativeInt(
+    sa?.unitPrices?.petugasUnit,
+    PETUGAS_UNIT,
+    'petugasUnit',
+  );
+  const unitExtraHour = resolveNonNegativeInt(
+    sa?.unitPrices?.petugasExtraHour,
+    PETUGAS_EXTRA_HOUR,
+    'petugasExtraHour',
+  );
+  const unitSupervisor = resolveNonNegativeInt(
+    sa?.unitPrices?.supervisor,
+    SUPERVISOR,
+    'supervisor',
+  );
+  const unitAkrilik = resolveNonNegativeInt(
+    sa?.unitPrices?.akrilik,
+    AKRILIK_QRIS,
+    'akrilik',
+  );
+  const unitGladi = resolveNonNegativeInt(
+    sa?.unitPrices?.gladi,
+    GLADI_H1,
+    'gladi',
+  );
+
   const requestedCapacity =
     input.capacityTier !== undefined
       ? input.capacityTier
       : rawOptions.capacityTier;
 
-  if (
+  const hasCustomMaxGuests =
+    sa?.customMaxGuests !== undefined && sa.customMaxGuests !== null;
+
+  if (hasCustomMaxGuests) {
+    if (
+      typeof sa.customMaxGuests !== 'number' ||
+      !Number.isFinite(sa.customMaxGuests) ||
+      Math.trunc(sa.customMaxGuests) < 1
+    ) {
+      throw new Error('Invalid customMaxGuests for Super Admin override');
+    }
+  } else if (
     requestedCapacity !== undefined &&
     requestedCapacity !== null &&
     !isCapacityTier(requestedCapacity)
@@ -376,28 +602,65 @@ export function calculateOrderPrice(
     );
   }
 
+  const customPackageName =
+    typeof sa?.customPackageName === 'string' && sa.customPackageName.trim()
+      ? sa.customPackageName.trim()
+      : undefined;
+
+  const extraCustomLineItems: OrderPriceLineItem[] = [];
+  if (Array.isArray(sa?.customLineItems)) {
+    sa.customLineItems.forEach((item, idx) => {
+      if (!item || typeof item !== 'object') return;
+      const lbl = typeof item.label === 'string' ? item.label.trim() : '';
+      if (!lbl) return;
+      const qty = clampInteger(item.quantity ?? 1, 1, 1000, `customLineItems[${idx}].quantity`);
+      const uPrice = resolveNonNegativeInt(
+        item.unitPrice,
+        0,
+        `customLineItems[${idx}].unitPrice`,
+      );
+      extraCustomLineItems.push({
+        code: `CUSTOM_ITEM_${idx + 1}`,
+        label: lbl,
+        quantity: qty,
+        unitPrice: uPrice,
+        amount: qty * uPrice,
+      });
+    });
+  }
+
   const lineItems: OrderPriceLineItem[] = [];
 
   if (rawCode === 'CUSTOM') {
-    const effectiveCapacity: CapacityTier = isCapacityTier(requestedCapacity)
+    const effectiveCapacityTier: CapacityTier = isCapacityTier(requestedCapacity)
       ? requestedCapacity
       : 50;
-    const baseAmount = CAPACITY_BASE_PRICES[effectiveCapacity];
+    const effectiveMaxGuests = hasCustomMaxGuests
+      ? Math.trunc(sa!.customMaxGuests!)
+      : effectiveCapacityTier;
+
+    const defaultBaseAmount = CAPACITY_BASE_PRICES[effectiveCapacityTier];
+    const baseAmount = resolveNonNegativeInt(
+      sa?.unitPrices?.basePrice,
+      defaultBaseAmount,
+      'basePrice',
+    );
+
     lineItems.push({
-      code: `CUSTOM_BASE_${effectiveCapacity}`,
-      label: `Dasar Undangan Digital (hingga ${effectiveCapacity} undangan — 1 undangan bisa untuk keluarga)`,
+      code: `CUSTOM_BASE_${effectiveMaxGuests}`,
+      label: `Dasar Undangan Digital (hingga ${effectiveMaxGuests} undangan — 1 undangan bisa untuk keluarga)`,
       quantity: 1,
       unitPrice: baseAmount,
       amount: baseAmount,
     });
 
     if (extraPetugas > 0) {
-      const petugasAmount = extraPetugas * PETUGAS_UNIT;
+      const petugasAmount = extraPetugas * unitPetugas;
       lineItems.push({
         code: 'EXTRA_PETUGAS',
         label: `Petugas Check-in (${extraPetugas} orang × 24/hari)`,
         quantity: extraPetugas,
-        unitPrice: PETUGAS_UNIT,
+        unitPrice: unitPetugas,
         amount: petugasAmount,
       });
     }
@@ -405,81 +668,121 @@ export function calculateOrderPrice(
     const effectiveExtraHours = extraPetugas > 0 ? rawExtraHours : 0;
     if (extraPetugas > 0 && effectiveExtraHours > 0) {
       const totalExtraHourUnits = extraPetugas * effectiveExtraHours;
-      const extraHourAmount = totalExtraHourUnits * PETUGAS_EXTRA_HOUR;
+      const extraHourAmount = totalExtraHourUnits * unitExtraHour;
       lineItems.push({
         code: 'PETUGAS_EXTRA_HOUR',
         label: `Tambahan Jam Petugas (${extraPetugas} orang × ${effectiveExtraHours} jam)`,
         quantity: totalExtraHourUnits,
-        unitPrice: PETUGAS_EXTRA_HOUR,
+        unitPrice: unitExtraHour,
         amount: extraHourAmount,
       });
     }
 
-    if (supervisor === 1) {
+    const finalSupervisor: 0 | 1 =
+      sa?.entitlements?.supervisorCount !== undefined
+        ? sa.entitlements.supervisorCount
+        : supervisor;
+
+    if (finalSupervisor === 1) {
       lineItems.push({
         code: 'SUPERVISOR',
         label: 'Supervisor Lapangan',
         quantity: 1,
-        unitPrice: SUPERVISOR,
-        amount: SUPERVISOR,
+        unitPrice: unitSupervisor,
+        amount: unitSupervisor,
       });
     }
 
-    if (akrilik) {
+    const finalAkrilik =
+      sa?.entitlements?.akrilikQris !== undefined
+        ? Boolean(sa.entitlements.akrilikQris)
+        : akrilik;
+
+    if (finalAkrilik) {
       lineItems.push({
         code: 'AKRILIK_QRIS',
         label: 'Stand Akrilik QRIS Meja (1 set)',
         quantity: 1,
-        unitPrice: AKRILIK_QRIS,
-        amount: AKRILIK_QRIS,
+        unitPrice: unitAkrilik,
+        amount: unitAkrilik,
       });
     }
 
-    if (gladi) {
+    const finalGladi =
+      sa?.entitlements?.gladiH1 !== undefined
+        ? Boolean(sa.entitlements.gladiH1)
+        : gladi;
+
+    if (finalGladi) {
       lineItems.push({
         code: 'GLADI_H1',
         label: 'Sesi Gladi Bersih H-1',
         quantity: 1,
-        unitPrice: GLADI_H1,
-        amount: GLADI_H1,
+        unitPrice: unitGladi,
+        amount: unitGladi,
       });
     }
 
+    lineItems.push(...extraCustomLineItems);
+
     const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
+
+    const standardNormalTotal =
+      CAPACITY_NORMAL_PRICES[effectiveCapacityTier] +
+      extraPetugas * PETUGAS_UNIT +
+      (extraPetugas > 0 ? extraPetugas * effectiveExtraHours * PETUGAS_EXTRA_HOUR : 0) +
+      (finalSupervisor === 1 ? SUPERVISOR : 0) +
+      (finalAkrilik ? AKRILIK_QRIS : 0) +
+      (finalGladi ? GLADI_H1 : 0) +
+      extraCustomLineItems.reduce((s, i) => s + i.amount, 0);
+
+    const normalTotal =
+      typeof sa?.originalPriceAmount === 'number' &&
+      Number.isFinite(sa.originalPriceAmount) &&
+      sa.originalPriceAmount >= 0
+        ? Math.round(sa.originalPriceAmount)
+        : standardNormalTotal;
 
     return {
       packageCode: 'CUSTOM',
+      ...(customPackageName ? { customPackageName } : {}),
       priceTier,
       total,
+      normalTotal,
       lineItems,
       entitlements: {
-        maxGuests: effectiveCapacity,
+        maxGuests: effectiveMaxGuests,
         petugasCount: extraPetugas,
         extraHoursPerPetugas: effectiveExtraHours,
-        supervisorCount: supervisor,
-        akrilikQris: akrilik,
-        gladiH1: gladi,
-        googleSheetLive: false,
-        postEventReport: false,
+        supervisorCount: finalSupervisor,
+        akrilikQris: finalAkrilik,
+        gladiH1: finalGladi,
+        googleSheetLive: Boolean(sa?.entitlements?.googleSheetLive),
+        postEventReport: Boolean(sa?.entitlements?.postEventReport),
       },
       normalizedOptions: {
         extraPetugas,
         extraHoursPerPetugas: effectiveExtraHours,
-        supervisor,
-        akrilik,
-        gladi,
-        capacityTier: effectiveCapacity,
+        supervisor: finalSupervisor,
+        akrilik: finalAkrilik,
+        gladi: finalGladi,
+        capacityTier: effectiveCapacityTier,
       },
     };
   }
 
   // Preset packages: SACRED, INTIMATE, SIGNATURE, MAJESTIC
   const pkg = WEDDING_PACKAGE_CATALOG[rawCode];
-  const basePackagePrice = PACKAGE_PRICES[priceTier][rawCode];
+  const defaultBasePackagePrice = PACKAGE_PRICES[priceTier][rawCode];
+  const basePackagePrice = resolveNonNegativeInt(
+    sa?.unitPrices?.basePrice,
+    defaultBasePackagePrice,
+    'basePrice',
+  );
 
   lineItems.push({
     code: `PACKAGE_${rawCode}`,
-    label: `Paket ${pkg.name} (hingga ${pkg.baseCapacity} undangan — 1 undangan bisa untuk keluarga)`,
+    label: `Paket ${customPackageName ?? pkg.name} (hingga ${hasCustomMaxGuests ? Math.trunc(sa!.customMaxGuests!) : pkg.baseCapacity} undangan — 1 undangan bisa untuk keluarga)`,
     quantity: 1,
     unitPrice: basePackagePrice,
     amount: basePackagePrice,
@@ -490,8 +793,11 @@ export function calculateOrderPrice(
     isCapacityTier(requestedCapacity) && requestedCapacity > pkg.baseCapacity
       ? requestedCapacity
       : pkg.baseCapacity;
+  const effectiveMaxGuests = hasCustomMaxGuests
+    ? Math.trunc(sa!.customMaxGuests!)
+    : effectiveCapacity;
 
-  if (effectiveCapacity > pkg.baseCapacity) {
+  if (!hasCustomMaxGuests && effectiveCapacity > pkg.baseCapacity) {
     const upgradeAmount =
       CAPACITY_BASE_PRICES[effectiveCapacity] -
       CAPACITY_BASE_PRICES[pkg.baseCapacity];
@@ -505,12 +811,12 @@ export function calculateOrderPrice(
   }
 
   if (extraPetugas > 0) {
-    const petugasAmount = extraPetugas * PETUGAS_UNIT;
+    const petugasAmount = extraPetugas * unitPetugas;
     lineItems.push({
       code: 'EXTRA_PETUGAS',
       label: `Tambahan Petugas Check-in (${extraPetugas} orang × 24/hari)`,
       quantity: extraPetugas,
-      unitPrice: PETUGAS_UNIT,
+      unitPrice: unitPetugas,
       amount: petugasAmount,
     });
   }
@@ -520,12 +826,12 @@ export function calculateOrderPrice(
 
   if (totalPetugas > 0 && effectiveExtraHours > 0) {
     const totalExtraHourUnits = totalPetugas * effectiveExtraHours;
-    const extraHourAmount = totalExtraHourUnits * PETUGAS_EXTRA_HOUR;
+    const extraHourAmount = totalExtraHourUnits * unitExtraHour;
     lineItems.push({
       code: 'PETUGAS_EXTRA_HOUR',
       label: `Tambahan Jam Petugas (${totalPetugas} orang × ${effectiveExtraHours} jam)`,
       quantity: totalExtraHourUnits,
-      unitPrice: PETUGAS_EXTRA_HOUR,
+      unitPrice: unitExtraHour,
       amount: extraHourAmount,
     });
   }
@@ -536,8 +842,8 @@ export function calculateOrderPrice(
       code: 'SUPERVISOR',
       label: 'Supervisor Lapangan',
       quantity: 1,
-      unitPrice: SUPERVISOR,
-      amount: SUPERVISOR,
+      unitPrice: unitSupervisor,
+      amount: unitSupervisor,
     });
   }
 
@@ -547,8 +853,8 @@ export function calculateOrderPrice(
       code: 'AKRILIK_QRIS',
       label: 'Stand Akrilik QRIS Meja (1 set)',
       quantity: 1,
-      unitPrice: AKRILIK_QRIS,
-      amount: AKRILIK_QRIS,
+      unitPrice: unitAkrilik,
+      amount: unitAkrilik,
     });
   }
 
@@ -558,27 +864,71 @@ export function calculateOrderPrice(
       code: 'GLADI_H1',
       label: 'Sesi Gladi Bersih H-1',
       quantity: 1,
-      unitPrice: GLADI_H1,
-      amount: GLADI_H1,
+      unitPrice: unitGladi,
+      amount: unitGladi,
     });
   }
 
+  lineItems.push(...extraCustomLineItems);
+
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0);
+
+  const normalUpgrade =
+    !hasCustomMaxGuests && effectiveCapacity > pkg.baseCapacity
+      ? CAPACITY_NORMAL_PRICES[effectiveCapacity] -
+        CAPACITY_NORMAL_PRICES[pkg.baseCapacity]
+      : 0;
+
+  const standardNormalTotal =
+    PACKAGE_PRICES.NORMAL[rawCode] +
+    normalUpgrade +
+    extraPetugas * PETUGAS_UNIT +
+    (totalPetugas > 0 ? totalPetugas * effectiveExtraHours * PETUGAS_EXTRA_HOUR : 0) +
+    (addSupervisor ? SUPERVISOR : 0) +
+    (addAkrilik ? AKRILIK_QRIS : 0) +
+    (addGladi ? GLADI_H1 : 0) +
+    extraCustomLineItems.reduce((s, i) => s + i.amount, 0);
+
+  const normalTotal =
+    typeof sa?.originalPriceAmount === 'number' &&
+    Number.isFinite(sa.originalPriceAmount) &&
+    sa.originalPriceAmount >= 0
+      ? Math.round(sa.originalPriceAmount)
+      : standardNormalTotal;
 
   return {
     packageCode: rawCode,
+    ...(customPackageName ? { customPackageName } : {}),
     priceTier,
     total,
+    normalTotal,
     lineItems,
     entitlements: {
-      maxGuests: effectiveCapacity,
+      maxGuests: effectiveMaxGuests,
       petugasCount: totalPetugas,
       extraHoursPerPetugas: effectiveExtraHours,
-      supervisorCount: pkg.includedSupervisor === 1 || supervisor === 1 ? 1 : 0,
-      akrilikQris: pkg.includesAkrilik || akrilik,
-      gladiH1: pkg.includesGladi || gladi,
-      googleSheetLive: pkg.includesGoogleSheetLive,
-      postEventReport: pkg.includesPostEventReport,
+      supervisorCount:
+        sa?.entitlements?.supervisorCount !== undefined
+          ? sa.entitlements.supervisorCount
+          : pkg.includedSupervisor === 1 || supervisor === 1
+            ? 1
+            : 0,
+      akrilikQris:
+        sa?.entitlements?.akrilikQris !== undefined
+          ? Boolean(sa.entitlements.akrilikQris)
+          : pkg.includesAkrilik || akrilik,
+      gladiH1:
+        sa?.entitlements?.gladiH1 !== undefined
+          ? Boolean(sa.entitlements.gladiH1)
+          : pkg.includesGladi || gladi,
+      googleSheetLive:
+        sa?.entitlements?.googleSheetLive !== undefined
+          ? Boolean(sa.entitlements.googleSheetLive)
+          : pkg.includesGoogleSheetLive,
+      postEventReport:
+        sa?.entitlements?.postEventReport !== undefined
+          ? Boolean(sa.entitlements.postEventReport)
+          : pkg.includesPostEventReport,
     },
     normalizedOptions: {
       extraPetugas,

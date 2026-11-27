@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -10,6 +11,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { OrderStatus } from 'database';
@@ -19,13 +21,13 @@ export class UpdateOrderOptionsDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(20)
+  @Max(100)
   extraPetugas?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(8)
+  @Max(24)
   extraHoursPerPetugas?: number;
 
   @IsOptional()
@@ -48,6 +50,123 @@ export class UpdateOrderOptionsDto {
   capacityTier?: (typeof CAPACITY_TIERS)[number];
 }
 
+export class CustomServiceUnitPricesDto {
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  basePrice?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  petugasUnit?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  petugasExtraHour?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  supervisor?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  akrilik?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  gladi?: number;
+}
+
+export class CustomExtraLineItemDto {
+  @IsString()
+  @MaxLength(160)
+  label!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  quantity!: number;
+
+  @IsInt()
+  @Min(0)
+  unitPrice!: number;
+}
+
+export class SuperAdminEntitlementsOverrideDto {
+  @IsOptional()
+  @IsBoolean()
+  googleSheetLive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  postEventReport?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  akrilikQris?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  gladiH1?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @IsIn([0, 1])
+  supervisorCount?: 0 | 1;
+}
+
+export class SuperAdminCustomOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  customPackageName?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100000)
+  customMaxGuests?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  extraPetugas?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(24)
+  extraHoursPerPetugas?: number;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CustomServiceUnitPricesDto)
+  unitPrices?: CustomServiceUnitPricesDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CustomExtraLineItemDto)
+  customLineItems?: CustomExtraLineItemDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SuperAdminEntitlementsOverrideDto)
+  entitlements?: SuperAdminEntitlementsOverrideDto;
+
+  @IsOptional()
+  @ValidateIf((_, val) => val !== null)
+  @IsInt()
+  @Min(0)
+  originalPriceAmount?: number | null;
+}
+
 export class UpdateOrderDto {
   @IsOptional()
   @IsEnum(OrderStatus)
@@ -62,6 +181,18 @@ export class UpdateOrderDto {
   @ValidateNested()
   @Type(() => UpdateOrderOptionsDto)
   options?: UpdateOrderOptionsDto;
+
+  @IsOptional()
+  @ValidateIf((_, val) => val !== null)
+  @ValidateNested()
+  @Type(() => SuperAdminCustomOrderDto)
+  superAdminCustom?: SuperAdminCustomOrderDto | null;
+
+  @IsOptional()
+  @ValidateIf((_, val) => val !== null)
+  @IsInt()
+  @Min(0)
+  originalPriceAmount?: number | null;
 
   @IsOptional()
   @IsInt()

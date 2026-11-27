@@ -179,14 +179,13 @@ function PackagesSection() {
       <div className="packages-orbit packages-orbit--right" aria-hidden="true" />
 
       <div className="shell">
-        <div className="section-heading packages-section-heading">
-          <div>
-            <p className="eyebrow">Paket layanan</p>
-            <h2>Pilih sesuai cara Anda merayakan.</h2>
-          </div>
-          <p>
-            Harga transparan sesuai kapasitas tamu dan pendampingan di lokasi.
-            Setiap paket masih dapat disesuaikan komponennya saat memesan.
+        <div className="packages-centered-header">
+          <p className="eyebrow">Paket Layanan</p>
+          <h2>Temukan Paket Terbaikmu</h2>
+          <p className="packages-centered-subtitle">
+            Kami menawarkan berbagai pilihan layanan undangan digital, buku tamu
+            resepsi, maupun rakitan bebas yang dapat disesuaikan dengan gaya dan
+            anggaranmu.
           </p>
         </div>
 

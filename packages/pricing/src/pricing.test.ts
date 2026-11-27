@@ -3,14 +3,20 @@ import assert from 'node:assert/strict';
 import {
   ACTIVE_PRICE_TIER,
   AKRILIK_QRIS,
+  BUKU_TAMU_PACKAGE_CODES,
   CAPACITY_BASE_PRICES,
+  CAPACITY_NORMAL_PRICES,
   GLADI_H1,
   PACKAGE_PRICES,
   PETUGAS_EXTRA_HOUR,
   PETUGAS_UNIT,
   SUPERVISOR,
+  UNDANGAN_SHOWCASE_CARDS,
   WEDDING_PACKAGE_CATALOG,
+  WEDDING_SERVICE_TABS,
   calculateOrderPrice,
+  getPackageDisplayLabel,
+  getPackageOriginalPrice,
 } from './index';
 
 test('unit constants and active price tier match specification', () => {
@@ -326,4 +332,88 @@ test('catalog features do not promise non-existent features and specify 24/hari 
   );
   assert.ok(presetPetugasItem);
   assert.equal(presetPetugasItem.label, 'Tambahan Petugas Check-in (1 orang × 24/hari)');
+});
+
+test('3-tab service structure (Undangan, Buku Tamu, Custom) and strikethrough original prices match catalog calculations', () => {
+  assert.deepEqual(
+    WEDDING_SERVICE_TABS.map((t) => t.id),
+    ['UNDANGAN', 'BUKU_TAMU', 'CUSTOM'],
+  );
+  assert.deepEqual(BUKU_TAMU_PACKAGE_CODES, [
+    'INTIMATE',
+    'SIGNATURE',
+    'MAJESTIC',
+  ]);
+
+  // Every Buku Tamu package automatically includes full Undangan Digital
+  for (const code of BUKU_TAMU_PACKAGE_CODES) {
+    assert.equal(WEDDING_PACKAGE_CATALOG[code].serviceCategory, 'BUKU_TAMU');
+    assert.equal(WEDDING_PACKAGE_CATALOG[code].includesUndanganDigital, true);
+    assert.ok(
+      getPackageOriginalPrice(code) > PACKAGE_PRICES.LAUNCH[code],
+      `Original price for ${code} must be higher than launch promo price`,
+    );
+  }
+
+  // Every Undangan showcase card price equals exact calculateOrderPrice(SACRED, capacityTier)
+  for (const card of UNDANGAN_SHOWCASE_CARDS) {
+    const calc = calculateOrderPrice({
+      packageCode: card.packageCode,
+      capacityTier: card.capacityTier,
+      priceTier: 'LAUNCH',
+    });
+    assert.equal(card.price, calc.total);
+    assert.equal(card.originalPrice, CAPACITY_NORMAL_PRICES[card.capacityTier]);
+    assert.ok(card.originalPrice > card.price);
+  }
+});
+
+test('Super Admin custom package override supports arbitrary guests, per-service unit prices, custom items, and strikethrough originalPriceAmount', () => {
+  const customDeal = calculateOrderPrice({
+    packageCode: 'CUSTOM',
+    options: {
+      akrilik: true,
+      gladi: true,
+      supervisor: 1,
+    },
+    superAdminOverride: {
+      customPackageName: 'Paket Royal VVIP 1500 Tamu',
+      customMaxGuests: 1500,
+      extraPetugas: 6,
+      extraHoursPerPetugas: 2,
+      unitPrices: {
+        basePrice: 900_000,
+        petugasUnit: 100_000,
+        petugasExtraHour: 20_000,
+        supervisor: 150_000,
+        akrilik: 0, // Free bonus
+        gladi: 50_000,
+      },
+      customLineItems: [
+        {
+          label: 'Sewa Layar Sapa Tamu LED',
+          quantity: 1,
+          unitPrice: 260_000,
+        },
+      ],
+      entitlements: {
+        googleSheetLive: true,
+        postEventReport: true,
+      },
+      originalPriceAmount: 2_390_000,
+    },
+  });
+
+  // 900k + (6*100k=600k) + (6*2*20k=240k) + 150k + 0 + 50k + 260k = 2,200,000
+  assert.equal(customDeal.total, 2_200_000);
+  assert.equal(customDeal.normalTotal, 2_390_000);
+  assert.equal(customDeal.customPackageName, 'Paket Royal VVIP 1500 Tamu');
+  assert.equal(
+    getPackageDisplayLabel('CUSTOM', customDeal.customPackageName),
+    'Paket Royal VVIP 1500 Tamu',
+  );
+  assert.equal(customDeal.entitlements.maxGuests, 1500);
+  assert.equal(customDeal.entitlements.petugasCount, 6);
+  assert.equal(customDeal.entitlements.googleSheetLive, true);
+  assert.equal(customDeal.entitlements.postEventReport, true);
 });

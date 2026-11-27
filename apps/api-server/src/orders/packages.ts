@@ -12,6 +12,7 @@ import {
   type OrderPackageCode,
   type OrderPriceLineItem,
   type OrderPricingOptionsInput,
+  type SuperAdminPricingOverride,
 } from 'pricing';
 
 export type PackageCode = OrderPackageCode;
@@ -149,6 +150,10 @@ export interface OrderOptionsSnapshot {
   lineItems: OrderPriceLineItem[];
   entitlements: OrderEntitlements;
   computedTotal: number;
+  normalTotal?: number;
+  originalPriceAmount?: number | null;
+  customPackageName?: string;
+  superAdminCustom?: SuperAdminPricingOverride;
   priceTier?: string;
 }
 
@@ -174,6 +179,7 @@ export function calculateActiveUntil(
 export function buildOrderPricingSnapshot(
   packageCode?: string | null,
   options?: OrderPricingOptionsInput | null,
+  superAdminOverride?: SuperAdminPricingOverride | null,
 ): {
   packageCode: PackageCode;
   priceAmount: number;
@@ -200,6 +206,8 @@ export function buildOrderPricingSnapshot(
           postEventReport: false,
         },
         computedTotal: 0,
+        normalTotal: 0,
+        originalPriceAmount: null,
         priceTier: ACTIVE_PRICE_TIER,
       },
     };
@@ -210,7 +218,12 @@ export function buildOrderPricingSnapshot(
       packageCode: normalized,
       capacityTier: options?.capacityTier,
       options: options ?? undefined,
+      superAdminOverride: superAdminOverride ?? undefined,
     });
+    const resolvedOriginalPrice =
+      superAdminOverride?.originalPriceAmount !== undefined
+        ? superAdminOverride.originalPriceAmount
+        : calculated.normalTotal;
     return {
       packageCode: calculated.packageCode,
       priceAmount: calculated.total,
@@ -220,6 +233,12 @@ export function buildOrderPricingSnapshot(
         lineItems: calculated.lineItems,
         entitlements: calculated.entitlements,
         computedTotal: calculated.total,
+        normalTotal: calculated.normalTotal,
+        originalPriceAmount: resolvedOriginalPrice,
+        ...(calculated.customPackageName
+          ? { customPackageName: calculated.customPackageName }
+          : {}),
+        ...(superAdminOverride ? { superAdminCustom: superAdminOverride } : {}),
         priceTier: calculated.priceTier,
       },
     };
