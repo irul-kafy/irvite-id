@@ -63,6 +63,7 @@ describe('EventsService', () => {
               findFirst: jest.fn(),
               delete: jest.fn(),
             },
+            $transaction: jest.fn(),
           },
         },
       ],
@@ -70,6 +71,9 @@ describe('EventsService', () => {
 
     service = module.get<EventsService>(EventsService);
     prisma = module.get<PrismaService>(PrismaService);
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      (cb: (tx: PrismaService) => unknown) => cb(prisma),
+    );
   });
 
   it('should be defined', () => {
@@ -1415,6 +1419,57 @@ describe('EventsService', () => {
           }),
         }),
       );
+    });
+
+    it('rolls back event creation and throws clear BadRequestException when order creation fails in transaction', async () => {
+      const persistedEvents: unknown[] = [];
+      (prisma.$transaction as jest.Mock).mockImplementationOnce(
+        async (cb: (tx: PrismaService) => Promise<unknown>) => {
+          const stagedEvents: unknown[] = [];
+          const txMock = {
+            ...prisma,
+            event: {
+              ...prisma.event,
+              create: jest.fn().mockImplementation((args: unknown) => {
+                const created = {
+                  id: 'ev-rolled-back',
+                  slug: 'romeo-juliet-rollback',
+                  title: 'Pernikahan Romeo & Juliet',
+                  status: 'DRAFT',
+                  args,
+                };
+                stagedEvents.push(created);
+                return Promise.resolve(created);
+              }),
+            },
+            order: {
+              create: jest
+                .fn()
+                .mockRejectedValue(new Error('Unique constraint on order')),
+            },
+          } as unknown as PrismaService;
+
+          const res = await cb(txMock);
+          persistedEvents.push(...stagedEvents);
+          return res;
+        },
+      );
+
+      await expect(
+        service.createPublicDraft({
+          themeCode: 'IVORY_GARDEN',
+          clientName: 'Romeo',
+          clientWhatsapp: '081234567890',
+          packageCode: 'SACRED',
+          content: {
+            partnerOneName: 'Romeo',
+            partnerTwoName: 'Juliet',
+          },
+        }),
+      ).rejects.toThrow(/Gagal menyimpan draf dan pesanan ke server/);
+
+      // Because the transaction threw when order.create failed, no event was committed
+      expect(persistedEvents).toHaveLength(0);
     });
   });
 });

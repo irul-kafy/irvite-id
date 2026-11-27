@@ -1414,46 +1414,69 @@ export class EventsService {
       parsedDate.getTime() + 180 * 24 * 60 * 60 * 1000,
     );
 
-    const newEvent = await this.prisma.event.create({
-      data: {
-        userId: adminUser.id,
-        templateId: template.id,
-        title: `Pernikahan ${p1} & ${p2} (Draf Klien #${referenceCode})`,
-        slug,
-        description: descriptionLines.join('\n'),
-        eventDate: parsedDate,
-        activeUntil,
-        locationDetails: resolvedLocation.slice(0, 255),
-        content: contentWithClientKey,
-        status: EVENT_STATUS.DRAFT,
-      },
-      select: this.selectSafeEvent(),
-    });
-
-    const pricingSnapshot = buildOrderPricingSnapshot(
-      dto.packageCode,
-      dto.options,
-    );
-
+    let pricingSnapshot: ReturnType<typeof buildOrderPricingSnapshot>;
     try {
-      await this.prisma.order.create({
-        data: {
-          eventId: newEvent.id,
-          referenceCode,
-          clientName: clientNameClean,
-          clientWhatsapp: clientWaClean,
-          packageCode: pricingSnapshot.packageCode,
-          priceAmount: pricingSnapshot.priceAmount,
-          pricingVersion: pricingSnapshot.pricingVersion,
-          options:
-            pricingSnapshot.options as unknown as Prisma.InputJsonValue,
-          status: 'DRAFT',
-          notes: clientNotesClean || null,
-        },
+      pricingSnapshot = buildOrderPricingSnapshot(
+        dto.packageCode,
+        dto.options,
+      );
+    } catch (pricingErr) {
+      throw new BadRequestException(
+        `Konfigurasi paket tidak valid: ${pricingErr instanceof Error ? pricingErr.message : String(pricingErr)}`,
+      );
+    }
+
+    let newEvent: {
+      id: string;
+      slug: string;
+      title: string;
+      status: string;
+    };
+    try {
+      newEvent = await this.prisma.$transaction(async (tx) => {
+        const createdEvent = await tx.event.create({
+          data: {
+            userId: adminUser.id,
+            templateId: template.id,
+            title: `Pernikahan ${p1} & ${p2} (Draf Klien #${referenceCode})`,
+            slug,
+            description: descriptionLines.join('\n'),
+            eventDate: parsedDate,
+            activeUntil,
+            locationDetails: resolvedLocation.slice(0, 255),
+            content: contentWithClientKey,
+            status: EVENT_STATUS.DRAFT,
+          },
+          select: this.selectSafeEvent(),
+        });
+
+        await tx.order.create({
+          data: {
+            eventId: createdEvent.id,
+            referenceCode,
+            clientName: clientNameClean,
+            clientWhatsapp: clientWaClean,
+            packageCode: pricingSnapshot.packageCode,
+            priceAmount: pricingSnapshot.priceAmount,
+            pricingVersion: pricingSnapshot.pricingVersion,
+            options:
+              pricingSnapshot.options as unknown as Prisma.InputJsonValue,
+            status: 'DRAFT',
+            notes: clientNotesClean || null,
+          },
+        });
+
+        return createdEvent;
       });
-    } catch (orderErr) {
-      this.logger.warn(
-        `Failed to create order record for public draft ${newEvent.id}: ${orderErr instanceof Error ? orderErr.message : String(orderErr)}`,
+    } catch (txErr) {
+      this.logger.error(
+        `Failed to create atomic public draft event+order (${referenceCode}): ${txErr instanceof Error ? txErr.message : String(txErr)}`,
+      );
+      if (txErr instanceof BadRequestException) {
+        throw txErr;
+      }
+      throw new BadRequestException(
+        `Gagal menyimpan draf dan pesanan ke server: ${txErr instanceof Error ? txErr.message : 'Terjadi kesalahan transaksi database.'}`,
       );
     }
 
