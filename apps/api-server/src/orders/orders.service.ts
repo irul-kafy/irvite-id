@@ -1,13 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { OrderStatus, Prisma } from 'database';
+import { OrderStatus, Prisma, Role } from 'database';
+import { type OrderPricingOptionsInput } from 'pricing';
 import { PrismaService } from '../database/prisma.service';
 import { ActivityLogsService } from '../activity-logs/activity-logs.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -17,6 +19,7 @@ import {
   buildOrderPricingSnapshot,
   calculateActiveUntil,
   getPackageDefinition,
+  resolveOrderMaxGuests,
 } from './packages';
 
 // Valid transitions mapping
@@ -298,9 +301,23 @@ export class OrdersService {
   }
 
   /**
-   * Update order status, package, payment proof, or notes.
+   * Update order status, package, options, final price, payment proof, or notes.
    */
-  async updateOrder(id: string, dto: UpdateOrderDto) {
+  async updateOrder(
+    id: string,
+    dto: UpdateOrderDto,
+    actor?: { userId?: string; id?: string; role?: Role },
+  ) {
+    if (
+      actor?.role &&
+      actor.role !== Role.SUPER_ADMIN &&
+      actor.role !== Role.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Hanya Admin atau Super Admin yang diizinkan mengubah pesanan.',
+      );
+    }
+
     const order = await this.prisma.order.findFirst({
       where: {
         OR: [{ id }, { referenceCode: id }],
@@ -352,24 +369,65 @@ export class OrdersService {
       }
     }
 
-    if (dto.packageCode) {
-      const pkg = getPackageDefinition(dto.packageCode);
-      updateData.packageCode = pkg.code;
-      const existingHasComputed =
+    if (dto.packageCode !== undefined || dto.options !== undefined) {
+      const targetPackageCode = (
+        dto.packageCode ??
+        order.packageCode ??
+        'UNSELECTED'
+      )
+        .trim()
+        .toUpperCase();
+      const existingInput: OrderPricingOptionsInput =
         order.options &&
         typeof order.options === 'object' &&
         !Array.isArray(order.options) &&
-        typeof (order.options as { computedTotal?: unknown }).computedTotal ===
-          'number' &&
-        (order.options as { computedTotal: number }).computedTotal > 0;
-      if (!existingHasComputed || dto.packageCode !== order.packageCode) {
-        const snap = buildOrderPricingSnapshot(pkg.code);
-        updateData.options = snap.options as unknown as Prisma.InputJsonValue;
-        if (dto.priceAmount === undefined) {
-          updateData.priceAmount = snap.priceAmount;
+        (order.options as { input?: OrderPricingOptionsInput }).input &&
+        typeof (order.options as { input?: OrderPricingOptionsInput }).input ===
+          'object'
+          ? {
+              ...(order.options as { input: OrderPricingOptionsInput }).input,
+            }
+          : {};
+
+      const packageChanged =
+        dto.packageCode !== undefined &&
+        targetPackageCode !== (order.packageCode || '').trim().toUpperCase();
+
+      const mergedOptions: OrderPricingOptionsInput = packageChanged
+        ? { ...(dto.options ?? {}) }
+        : { ...existingInput, ...(dto.options ?? {}) };
+
+      const snap = buildOrderPricingSnapshot(targetPackageCode, mergedOptions);
+      const nextMaxGuests = resolveOrderMaxGuests({
+        packageCode: snap.packageCode,
+        options: snap.options,
+      });
+
+      if (order.eventId && nextMaxGuests !== null) {
+        const existingGuestCount = await this.prisma.guest.count({
+          where: {
+            eventId: order.eventId,
+            isWalkIn: false,
+          },
+        });
+        if (nextMaxGuests < existingGuestCount) {
+          throw new BadRequestException(
+            `Tidak dapat mengubah paket/kapasitas ke batas ${nextMaxGuests} undangan karena acara ini sudah memiliki ${existingGuestCount} tamu terdaftar.`,
+          );
         }
-      } else if (dto.priceAmount === undefined) {
-        updateData.priceAmount = pkg.priceAmount;
+      }
+
+      updateData.packageCode = snap.packageCode;
+      updateData.options = snap.options as unknown as Prisma.InputJsonValue;
+
+      // Preserve admin's existing final price (discount) unless the order previously had no price (UNSELECTED / 0)
+      const wasUnselectedOrZero =
+        (order.packageCode || '').trim().toUpperCase() === 'UNSELECTED' ||
+        order.priceAmount <= 0;
+      if (dto.priceAmount === undefined) {
+        updateData.priceAmount = wasUnselectedOrZero
+          ? snap.priceAmount
+          : order.priceAmount;
       }
     }
 

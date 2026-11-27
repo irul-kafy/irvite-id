@@ -8,11 +8,20 @@ import { EmptyState } from '@/components/empty-state';
 import { PUBLIC_TICKETING_ORDERS, type TicketOrderRecord } from '@/lib/ticketing-store';
 import {
   ALL_ORDER_PACKAGE_CODES,
+  CAPACITY_TIERS,
+  WEDDING_PACKAGE_CATALOG,
+  calculateOrderPrice,
   getPackageDisplayLabel,
+  isCapacityTier,
+  isPresetPackageCode,
+  isSelectablePackageCode,
+  type CapacityTier,
   type OrderPriceLineItem,
+  type OrderPricingOptionsInput,
 } from 'pricing';
 
 export interface OrderOptionsSnapshot {
+  input?: OrderPricingOptionsInput;
   lineItems?: OrderPriceLineItem[];
   computedTotal?: number;
   priceTier?: string;
@@ -138,6 +147,14 @@ export default function OrdersPage() {
   const [updatingOrder, setUpdatingOrder] = useState<OrderItem | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
   const [newPackageCode, setNewPackageCode] = useState<string>('');
+  const [newOptions, setNewOptions] = useState<OrderPricingOptionsInput>({
+    extraPetugas: 0,
+    extraHoursPerPetugas: 0,
+    supervisor: 0,
+    akrilik: false,
+    gladi: false,
+    capacityTier: 50,
+  });
   const [newPriceAmount, setNewPriceAmount] = useState<string>('');
   const [newActiveUntil, setNewActiveUntil] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -205,10 +222,46 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
+  const buildDefaultOptionsForCode = (code: string): OrderPricingOptionsInput => {
+    const upper = (code || '').trim().toUpperCase();
+    if (isPresetPackageCode(upper)) {
+      const pkg = WEDDING_PACKAGE_CATALOG[upper];
+      return {
+        extraPetugas: 0,
+        extraHoursPerPetugas: 0,
+        supervisor: pkg.includedSupervisor,
+        akrilik: pkg.includesAkrilik,
+        gladi: pkg.includesGladi,
+        capacityTier: pkg.baseCapacity,
+      };
+    }
+    return {
+      extraPetugas: 0,
+      extraHoursPerPetugas: 0,
+      supervisor: 0,
+      akrilik: false,
+      gladi: false,
+      capacityTier: 50,
+    };
+  };
+
   const openUpdateModal = (order: OrderItem) => {
+    const code = (order.packageCode || 'UNSELECTED').trim().toUpperCase();
+    const baseOpts = buildDefaultOptionsForCode(code);
+    const savedInput = order.options?.input;
+    const savedMaxGuests = order.options?.entitlements?.maxGuests;
     setUpdatingOrder(order);
     setNewStatus(order.status);
-    setNewPackageCode(order.packageCode || 'UNSELECTED');
+    setNewPackageCode(code);
+    setNewOptions({
+      ...baseOpts,
+      ...(savedInput && typeof savedInput === 'object' ? savedInput : {}),
+      capacityTier: isCapacityTier(savedInput?.capacityTier)
+        ? savedInput.capacityTier
+        : isCapacityTier(savedMaxGuests)
+          ? savedMaxGuests
+          : baseOpts.capacityTier,
+    });
     setNewPriceAmount(String(order.priceAmount ?? 0));
     setNotes(order.notes || '');
     if (order.event.activeUntil) {
@@ -219,6 +272,26 @@ export default function OrdersPage() {
     }
   };
 
+  const handleAdminPackageCodeChange = (nextCode: string) => {
+    const defaults = buildDefaultOptionsForCode(nextCode);
+    setNewPackageCode(nextCode);
+    setNewOptions(defaults);
+    // Only auto-fill final price if the order was previously UNSELECTED / 0; otherwise preserve admin's final price
+    if (
+      updatingOrder &&
+      ((updatingOrder.packageCode || '').toUpperCase() === 'UNSELECTED' ||
+        updatingOrder.priceAmount <= 0) &&
+      isSelectablePackageCode(nextCode)
+    ) {
+      const calc = calculateOrderPrice({
+        packageCode: nextCode,
+        capacityTier: defaults.capacityTier,
+        options: defaults,
+      });
+      setNewPriceAmount(String(calc.total));
+    }
+  };
+
   const handleSaveStatus = async () => {
     if (!updatingOrder) return;
     const parsedPrice = Number(newPriceAmount);
@@ -226,6 +299,7 @@ export default function OrdersPage() {
       alert('Harga Final (Rp) harus berupa angka >= 0');
       return;
     }
+    const isSelectable = isSelectablePackageCode(newPackageCode);
     try {
       setSubmitting(true);
       const res = await fetch(`/api/orders/${updatingOrder.id}`, {
@@ -233,10 +307,20 @@ export default function OrdersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: newStatus,
-          packageCode:
-            newPackageCode && newPackageCode !== updatingOrder.packageCode
-              ? newPackageCode
-              : undefined,
+          packageCode: newPackageCode || undefined,
+          options: isSelectable
+            ? {
+                extraPetugas: Number(newOptions.extraPetugas) || 0,
+                extraHoursPerPetugas:
+                  Number(newOptions.extraHoursPerPetugas) || 0,
+                supervisor: newOptions.supervisor ? 1 : 0,
+                akrilik: Boolean(newOptions.akrilik),
+                gladi: Boolean(newOptions.gladi),
+                capacityTier: isCapacityTier(newOptions.capacityTier)
+                  ? newOptions.capacityTier
+                  : 50,
+              }
+            : undefined,
           priceAmount: Math.round(parsedPrice),
           notes: notes || undefined,
           activeUntil: newActiveUntil ? new Date(newActiveUntil).toISOString() : undefined,
@@ -848,124 +932,313 @@ export default function OrdersPage() {
             if (e.target === e.currentTarget && !submitting) setUpdatingOrder(null);
           }}
         >
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '540px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h3 id="order-modal-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem', fontWeight: 700 }}>
               Detail &amp; Ubah Pesanan ({updatingOrder.referenceCode})
             </h3>
             <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.85rem' }}>
               Klien: <strong>{updatingOrder.clientName}</strong> · Paket:{' '}
-              <strong>{getPackageDisplayLabel(updatingOrder.packageCode)}</strong>
+              <strong>{getPackageDisplayLabel(newPackageCode)}</strong>
             </div>
 
-            {/* Rincian Komponen & Total Hasil Hitung */}
-            <div
-              data-testid="admin-order-pricing-breakdown"
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                padding: '0.75rem',
-                marginBottom: '1rem',
-                fontSize: '0.8rem',
-              }}
-            >
-              <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.4rem' }}>
-                Rincian Komponen Paket
-              </div>
-              {Array.isArray(updatingOrder.options?.lineItems) &&
-              updatingOrder.options.lineItems.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {updatingOrder.options.lineItems.map((item) => (
+            {(() => {
+              const liveCalc = isSelectablePackageCode(newPackageCode)
+                ? calculateOrderPrice({
+                    packageCode: newPackageCode,
+                    capacityTier: newOptions.capacityTier,
+                    options: newOptions,
+                  })
+                : null;
+              const displayLineItems = liveCalc
+                ? liveCalc.lineItems
+                : Array.isArray(updatingOrder.options?.lineItems)
+                  ? updatingOrder.options.lineItems
+                  : [];
+              const displayComputedTotal = liveCalc
+                ? liveCalc.total
+                : typeof updatingOrder.options?.computedTotal === 'number'
+                  ? updatingOrder.options.computedTotal
+                  : updatingOrder.priceAmount;
+              const displayMaxGuests = liveCalc
+                ? liveCalc.entitlements.maxGuests
+                : updatingOrder.options?.entitlements?.maxGuests;
+
+              return (
+                <>
+                  {/* Rincian Komponen & Total Hasil Hitung */}
+                  <div
+                    data-testid="admin-order-pricing-breakdown"
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '0.75rem',
+                      marginBottom: '1rem',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#1e293b', marginBottom: '0.4rem' }}>
+                      <span>Rincian Komponen Paket</span>
+                      {displayMaxGuests ? (
+                        <span style={{ color: '#0f766e' }}>
+                          Kapasitas: {displayMaxGuests} tamu
+                        </span>
+                      ) : null}
+                    </div>
+                    {displayLineItems.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {displayLineItems.map((item) => (
+                          <div
+                            key={item.code}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: '8px',
+                              color: '#334155',
+                            }}
+                          >
+                            <span>{item.label}</span>
+                            <strong>{formatRupiah(item.amount)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ color: '#64748b' }}>
+                        {newPackageCode === 'UNSELECTED'
+                          ? 'Paket belum dipilih oleh klien saat membuat draf.'
+                          : `Paket ${getPackageDisplayLabel(newPackageCode)}`}
+                      </div>
+                    )}
                     <div
-                      key={item.code}
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
-                        gap: '8px',
-                        color: '#334155',
+                        borderTop: '1px dashed #cbd5e1',
+                        marginTop: '6px',
+                        paddingTop: '6px',
+                        color: '#0f172a',
                       }}
                     >
-                      <span>{item.label}</span>
-                      <strong>{formatRupiah(item.amount)}</strong>
+                      <span>Total Hasil Hitung (computedTotal):</span>
+                      <strong>{formatRupiah(displayComputedTotal)}</strong>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ color: '#64748b' }}>
-                  {updatingOrder.packageCode === 'UNSELECTED'
-                    ? 'Paket belum dipilih oleh klien saat membuat draf.'
-                    : `Paket ${getPackageDisplayLabel(updatingOrder.packageCode)}`}
-                </div>
-              )}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  borderTop: '1px dashed #cbd5e1',
-                  marginTop: '6px',
-                  paddingTop: '6px',
-                  color: '#0f172a',
-                }}
-              >
-                <span>Total Hasil Hitung (computedTotal):</span>
-                <strong>
-                  {formatRupiah(
-                    typeof updatingOrder.options?.computedTotal === 'number'
-                      ? updatingOrder.options.computedTotal
-                      : updatingOrder.priceAmount,
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginTop: '2px',
+                        color: '#0f766e',
+                      }}
+                    >
+                      <span>Harga Final Tersimpan:</span>
+                      <strong>{formatRupiah(updatingOrder.priceAmount)}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                      Paket Layanan:
+                    </label>
+                    <select
+                      data-testid="admin-order-package-select"
+                      value={newPackageCode}
+                      onChange={(e) => handleAdminPackageCodeChange(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                    >
+                      {ALL_ORDER_PACKAGE_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {getPackageDisplayLabel(code)} ({code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {liveCalc && (
+                    <div
+                      data-testid="admin-order-options-panel"
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '0.75rem',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.6rem',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                        Kapasitas &amp; Opsi Tambahan ({getPackageDisplayLabel(newPackageCode)})
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
+                            Kapasitas
+                          </label>
+                          <select
+                            data-testid="admin-order-capacity-select"
+                            value={liveCalc.entitlements.maxGuests}
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({
+                                ...prev,
+                                capacityTier: Number(e.target.value) as CapacityTier,
+                              }))
+                            }
+                            style={{ width: '100%', padding: '0.38rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                          >
+                            {CAPACITY_TIERS.map((tier) => {
+                              const baseCap = isPresetPackageCode(newPackageCode)
+                                ? WEDDING_PACKAGE_CATALOG[newPackageCode].baseCapacity
+                                : 50;
+                              return (
+                                <option
+                                  key={tier}
+                                  value={tier}
+                                  disabled={isPresetPackageCode(newPackageCode) && tier < baseCap}
+                                >
+                                  {tier} tamu
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
+                            Extra Petugas (0-20)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={20}
+                            value={liveCalc.normalizedOptions.extraPetugas}
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({
+                                ...prev,
+                                extraPetugas: Math.max(0, Math.min(20, Number(e.target.value) || 0)),
+                              }))
+                            }
+                            style={{ width: '100%', padding: '0.38rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                          />
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '3px' }}>
+                            Extra Jam/Org (0-8)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={8}
+                            disabled={liveCalc.entitlements.petugasCount === 0}
+                            value={liveCalc.normalizedOptions.extraHoursPerPetugas}
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({
+                                ...prev,
+                                extraHoursPerPetugas: Math.max(0, Math.min(8, Number(e.target.value) || 0)),
+                              }))
+                            }
+                            style={{ width: '100%', padding: '0.38rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={liveCalc.entitlements.akrilikQris}
+                            disabled={
+                              isPresetPackageCode(newPackageCode) &&
+                              WEDDING_PACKAGE_CATALOG[newPackageCode].includesAkrilik
+                            }
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({ ...prev, akrilik: e.target.checked }))
+                            }
+                          />
+                          <span>Akrilik QRIS</span>
+                        </label>
+
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={liveCalc.entitlements.gladiH1}
+                            disabled={
+                              isPresetPackageCode(newPackageCode) &&
+                              WEDDING_PACKAGE_CATALOG[newPackageCode].includesGladi
+                            }
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({ ...prev, gladi: e.target.checked }))
+                            }
+                          />
+                          <span>Gladi H-1</span>
+                        </label>
+
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={liveCalc.entitlements.supervisorCount === 1}
+                            disabled={
+                              isPresetPackageCode(newPackageCode) &&
+                              WEDDING_PACKAGE_CATALOG[newPackageCode].includedSupervisor === 1
+                            }
+                            onChange={(e) =>
+                              setNewOptions((prev) => ({
+                                ...prev,
+                                supervisor: e.target.checked ? 1 : 0,
+                              }))
+                            }
+                          />
+                          <span>Supervisor</span>
+                        </label>
+                      </div>
+                    </div>
                   )}
-                </strong>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: '2px',
-                  color: '#0f766e',
-                }}
-              >
-                <span>Harga Final Tersimpan:</span>
-                <strong>{formatRupiah(updatingOrder.priceAmount)}</strong>
-              </div>
-            </div>
 
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Paket Layanan:
-              </label>
-              <select
-                value={newPackageCode}
-                onChange={(e) => setNewPackageCode(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-              >
-                {ALL_ORDER_PACKAGE_CODES.map((code) => (
-                  <option key={code} value={code}>
-                    {getPackageDisplayLabel(code)} ({code})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label
-                htmlFor="order-final-price-input"
-                style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}
-              >
-                Harga Final (Rp):
-              </label>
-              <input
-                id="order-final-price-input"
-                type="number"
-                min={0}
-                step={1000}
-                value={newPriceAmount}
-                onChange={(e) => setNewPriceAmount(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-              />
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                Admin dapat menyesuaikan harga final (mis. diskon) tanpa menghapus total hasil hitung di atas.
-              </span>
-            </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                      <label
+                        htmlFor="order-final-price-input"
+                        style={{ fontSize: '0.8125rem', fontWeight: 600 }}
+                      >
+                        Harga Final (Rp):
+                      </label>
+                      {liveCalc && Number(newPriceAmount) !== liveCalc.total && (
+                        <button
+                          type="button"
+                          onClick={() => setNewPriceAmount(String(liveCalc.total))}
+                          style={{
+                            fontSize: '0.72rem',
+                            color: '#0f766e',
+                            background: 'transparent',
+                            border: 'none',
+                            textDecoration: 'underline',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Gunakan Hasil Hitung ({formatRupiah(liveCalc.total)})
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      id="order-final-price-input"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={newPriceAmount}
+                      onChange={(e) => setNewPriceAmount(e.target.value)}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Harga final (diskon) yang sudah diisi admin tetap dipertahankan saat paket/opsi diubah.
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
 
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>

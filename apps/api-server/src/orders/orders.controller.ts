@@ -57,21 +57,21 @@ export class OrdersController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Patch(':id')
   updateOrder(
-    @CurrentUser() _user: AuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateOrderDto,
   ) {
-    return this.ordersService.updateOrder(id, dto);
+    return this.ordersService.updateOrder(id, dto, user);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Patch(':id/status')
   updateOrderStatus(
-    @CurrentUser() _user: AuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateOrderDto,
   ) {
-    return this.ordersService.updateOrder(id, dto);
+    return this.ordersService.updateOrder(id, dto, user);
   }
 
   /**

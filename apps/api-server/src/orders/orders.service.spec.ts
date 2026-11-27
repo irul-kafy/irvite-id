@@ -2,12 +2,16 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrderStatus } from 'database';
+import { OrderStatus, Role } from 'database';
+import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { PrismaService } from '../database/prisma.service';
+import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { resolveOrderMaxGuests } from './packages';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -25,6 +29,9 @@ describe('OrdersService', () => {
       groupBy: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+    };
+    guest: {
+      count: jest.Mock;
     };
   };
 
@@ -70,6 +77,9 @@ describe('OrdersService', () => {
         groupBy: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+      },
+      guest: {
+        count: jest.fn().mockResolvedValue(0),
       },
     };
 
@@ -290,6 +300,127 @@ describe('OrdersService', () => {
       )[0].data;
       expect(updateCallData.options).toBeUndefined();
       expect(updated.priceAmount).toBe(450_000);
+    });
+
+    it('changes package and options to raise or lower maxGuests while preserving admin discounted priceAmount', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'INTIMATE',
+        priceAmount: 250_000, // Admin had given a discount from 299_000
+        options: {
+          computedTotal: 299_000,
+          entitlements: { maxGuests: 150 },
+        },
+      });
+      prisma.guest.count.mockResolvedValue(40);
+      prisma.order.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({
+          ...mockOrder,
+          ...data,
+        }),
+      );
+
+      // 1) Upgrade to SIGNATURE with capacityTier 600 and 1 extra petugas
+      const upgraded = await service.updateOrder('ord-123', {
+        packageCode: 'SIGNATURE',
+        options: {
+          capacityTier: 600,
+          extraPetugas: 1,
+        },
+      });
+
+      expect(upgraded.packageCode).toBe('SIGNATURE');
+      // Discounted final price (250_000) is preserved when priceAmount is not overridden
+      expect(upgraded.priceAmount).toBe(250_000);
+      const upgradedOptions = upgraded.options as {
+        computedTotal: number;
+        entitlements: { maxGuests: number; petugasCount: number };
+      };
+      // SIGNATURE (499_000) + upgrade 300->600 (150_000) + 1 petugas (80_000) = 729_000
+      expect(upgradedOptions.computedTotal).toBe(729_000);
+      expect(upgradedOptions.entitlements.maxGuests).toBe(600);
+      expect(upgradedOptions.entitlements.petugasCount).toBe(3);
+
+      // 2) Lower package to SACRED (maxGuests 50) when event has 40 guests -> allowed
+      const lowered = await service.updateOrder('ord-123', {
+        packageCode: 'SACRED',
+      });
+      const loweredOptions = lowered.options as {
+        computedTotal: number;
+        entitlements: { maxGuests: number };
+      };
+      expect(lowered.packageCode).toBe('SACRED');
+      expect(loweredOptions.entitlements.maxGuests).toBe(50);
+      expect(loweredOptions.computedTotal).toBe(149_000);
+      expect(lowered.priceAmount).toBe(250_000);
+    });
+
+    it('upgrades UNSELECTED order to SIGNATURE and updates event maxGuests from 50 to 300', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'UNSELECTED',
+        priceAmount: 0,
+        options: {
+          computedTotal: 0,
+          entitlements: { maxGuests: 50 },
+        },
+      });
+      prisma.guest.count.mockResolvedValue(50);
+      prisma.order.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({
+          ...mockOrder,
+          ...data,
+        }),
+      );
+
+      const updated = await service.updateOrder('ord-123', {
+        packageCode: 'SIGNATURE',
+      });
+
+      expect(updated.packageCode).toBe('SIGNATURE');
+      expect(updated.priceAmount).toBe(499_000);
+      expect(
+        resolveOrderMaxGuests({
+          packageCode: updated.packageCode,
+          options: updated.options,
+        }),
+      ).toBe(300);
+    });
+
+    it('rejects lowering package/capacity below existing guest count with a clear error message', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'SIGNATURE',
+        priceAmount: 499_000,
+        options: {
+          computedTotal: 499_000,
+          entitlements: { maxGuests: 300 },
+        },
+      });
+      prisma.guest.count.mockResolvedValue(120);
+
+      await expect(
+        service.updateOrder('ord-123', {
+          packageCode: 'SACRED',
+        }),
+      ).rejects.toThrow(/sudah memiliki 120 tamu terdaftar/);
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+
+    it('enforces role access: rejects STAFF in updateOrder and restricts OrdersController endpoints to SUPER_ADMIN and ADMIN', async () => {
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          { packageCode: 'INTIMATE' },
+          { id: 'staff-1', role: Role.STAFF },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      const patchRoles = Reflect.getMetadata(
+        ROLES_KEY,
+        OrdersController.prototype.updateOrder,
+      );
+      expect(patchRoles).toEqual([Role.SUPER_ADMIN, Role.ADMIN]);
     });
   });
 

@@ -28,4 +28,12 @@ test('Admin Orders page displays package breakdown, UNSELECTED badge, and editab
     content.includes('lineItems'),
     'Must display itemized lineItems breakdown in admin order list and modal',
   );
+  assert.ok(
+    content.includes('admin-order-options-panel'),
+    'Must allow admin to change package capacityTier and options in modal',
+  );
+  assert.ok(
+    content.includes('calculateOrderPrice'),
+    'Must recalculate live total and entitlements via calculateOrderPrice in admin modal',
+  );
 });
