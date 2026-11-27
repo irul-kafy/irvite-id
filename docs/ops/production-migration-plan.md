@@ -98,7 +98,11 @@ do
   npx prisma@5.22.0 migrate resolve --applied "$mig" --schema=packages/database/prisma/schema.prisma
 done
 ```
-*(Catatan: यदि salah satu dari migrasi di atas ternyata belum ada efeknya di produksi berdasarkan `migrate diff`, jangan di-`resolve --applied` agar ikut dieksekusi oleh `migrate deploy`.)*
+*(Catatan:
+- Jika salah satu dari migrasi di atas ternyata belum ada efeknya di produksi berdasarkan `migrate diff`, jangan di-`resolve --applied` agar ikut dieksekusi oleh `migrate deploy`.
+- `20261124060000_backfill_event_client_portal_key` adalah migrasi data-saja (mengisi `$.clientKey` pada `events.content`), sehingga **tidak terdeteksi oleh `prisma migrate diff`**. Namun migrasi pemulihan `20261127105500_reconcile_audit_table_client_key_v2_and_walkin` akan tetap membuat `clientKey` baru untuk event yang `clientKey`-nya masih kosong.
+- `20261124063000_retain_orders_and_activity_logs_on_event_delete` mengubah foreign key `orders.event_id` dan `activity_logs.event_id` menjadi `ON DELETE SET NULL`; periksa `SHOW CREATE TABLE orders;` dan `SHOW CREATE TABLE activity_logs;` sebelum menandainya `--applied`.
+- Seluruh prosedur baselining Skenario B **wajib dilatih terlebih dahulu pada salinan dump di MySQL lokal**.)*
 
 ### 3. Urutan dan Risiko 6 Migrasi Baru (Jalankan via `prisma migrate deploy`)
 
@@ -203,9 +207,9 @@ ORDER BY created_at DESC;
 2. **Kapan Boleh / Tidak Boleh Dipakai**:
    - **TIDAK BOLEH** dijadikan pengganti `npx prisma@5.22.0 migrate deploy` karena tidak akan pernah menerapkan migrasi baru (`guests.is_walk_in`, `guests_migration_audit`, unique index `(event_id, phone_number)`, `orders.options`, `orders.pricing_version`, maupun rotasi `clientKey`).
    - **BOLEH** dijalankan hanya sebagai pemeriksaan *smoke* konektivitas pasca-migrasi (karena seluruh DDL di dalamnya bersifat `IF NOT EXISTS` / mengabaikan `Duplicate column`), tetapi redundant bila `prisma migrate deploy` sudah digunakan.
-3. **Usulan Pensiun / Penggantian (Menunggu Persetujuan Anda Sebelum Mengubah Kode)**:
-   - Direkomendasikan untuk **memensiunkan DDL hardcoded** di `migrate-deploy-safe.cjs` setelah database produksi di-*baseline* dengan `_prisma_migrations`, dan mengganti script `"db:migrate"` di `apps/api-server/package.json` menjadi `npx prisma@5.22.0 migrate deploy --schema=../../packages/database/prisma/schema.prisma` (atau memindahkan `migrate-deploy-safe.cjs` ke `docs/ops/legacy/`).
-   - *Sesuai aturan operasional, skrip `migrate-deploy-safe.cjs` belum diubah pada commit ini dan menunggu keputusan Anda.*
+3. **Keputusan Operasional (`migrate-deploy-safe.cjs`)**:
+   - **Sekarang**: Biarkan `migrate-deploy-safe.cjs` apa adanya, dan **jangan** menggunakan `npm run db:migrate` untuk menjalankan migrasi baru. Gunakan `npx prisma@5.22.0 migrate deploy --schema=packages/database/prisma/schema.prisma`.
+   - **Setelah Produksi Berhasil Di-baseline**: Pensiunkan DDL hardcoded di `migrate-deploy-safe.cjs` dan ganti script `"db:migrate"` di `apps/api-server/package.json` menjadi `prisma migrate deploy`.
 
 ---
 
@@ -217,15 +221,17 @@ ORDER BY created_at DESC;
 2. **Jalankan Migrasi Database Produksi (Sebelum Merge PR)**:
    Jalankan `npx prisma@5.22.0 migrate deploy --schema=packages/database/prisma/schema.prisma` dari mesin operator terhadap database produksi, lalu verifikasi dengan query pada Bagian (d.5).
    - **Mengapa aman dijalankan sebelum merge**: Seluruh perubahan skema (`guests.is_walk_in DEFAULT false`, `orders.options NULL`, `orders.pricing_version DEFAULT 1`, tabel baru `guests_migration_audit`, dan index unik `(event_id, phone_number)`) bersifat **additive / backward-compatible**, sehingga kode produksi yang sedang berjalan di `main` tetap berfungsi normal selama jeda antara selesainya migrasi dan selesainya deploy Vercel.
+   - **Perhatian Rotasi `clientKey`**: Rotasi `clientKey` (untuk kunci lama berpola UUID v1) terjadi **pada saat migrasi dijalankan** (sebelum merge PR). Artinya, URL portal klien (`/kelola/[eventId]~[clientKey]`) untuk event yang terdampak langsung berubah saat itu juga. Siapkan pemberitahuan *"link portal diperbarui"* bagi klien yang sedang aktif menggunakan portal.
 3. **Merge PR `feature/wedding-packages` ke `main` & Pantau Deploy Vercel**:
-   - Pastikan deployment **`irvite-api`** berstatus **Ready** dan endpoint `/health` serta `/health/db` merespons `200 OK`.
+   - Pastikan deployment **`irvite-api`** berstatus **Ready** dan endpoint `/health` serta `/health/db` (atau `/templates/public/availability`) merespons `200 OK` tanpa error `"Cannot find module 'pricing'"`.
    - Pastikan deployment **`web-invitation`** dan **`web-admin`** berstatus **Ready**.
 4. **Rebase & Merge `chore/next-security-upgrade` (Terpisah Setelah Rilis Paket Stabil)**:
    Setelah rilis paket pernikahan terverifikasi stabil di produksi, rebase branch `chore/next-security-upgrade` di atas `main` terbaru, jalankan `test:unit` dan `build`, lalu merge dalam PR terpisah.
 
 ### Prosedur Rollback
 1. **Rollback Aplikasi (Tanpa Restore DB)**:
-   Karena migrasi database bersifat *additive* (hanya menambah kolom dengan nilai default/nullable dan tabel audit baru), apabila ditemukan regresi pada kode aplikasi di `irvite-api`, `web-invitation`, atau `web-admin`, Anda dapat langsung melakukan **Instant Rollback** ke deployment sebelumnya di dashboard Vercel **tanpa** harus membatalkan kolom `is_walk_in`, `options`, atau `pricing_version`.
+   Karena migrasi database bersifat *additive* (menambah kolom dengan nilai default/nullable dan tabel audit baru), apabila ditemukan regresi pada kode aplikasi di `irvite-api`, `web-invitation`, atau `web-admin`, Anda dapat langsung melakukan **Instant Rollback** ke deployment sebelumnya di dashboard Vercel **tanpa** harus membatalkan kolom `is_walk_in`, `options`, atau `pricing_version`.
+   - *Catatan Indeks Unik*: Indeks unik `guests_event_id_phone_number_key` (`(event_id, phone_number)`) tetap aktif di database kecuali di-drop manual (`DROP INDEX guests_event_id_phone_number_key ON guests;`). Kode lama yang mencoba membuat dua tamu dengan nomor HP sama di satu event akan ditolak oleh indeks unik tersebut.
 2. **Pemulihan Data Tamu Selektif dari `guests_migration_audit`**:
    Jika ada nomor HP atau kategori tamu tertentu yang perlu dikembalikan ke nilai sebelum normalisasi tanpa merestore seluruh database:
    ```sql
