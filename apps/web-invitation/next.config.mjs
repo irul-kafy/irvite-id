@@ -1,18 +1,50 @@
-/** @type {import('next').NextConfig} */
-const apiBase =
-  process.env.INTERNAL_API_URL ||
-  (process.env.NODE_ENV === 'production' || process.env.VERCEL
-    ? 'https://irvite-api.vercel.app'
-    : 'http://127.0.0.1:3000');
+/**
+ * @param {Record<string, string | undefined>} [env]
+ * @returns {string | null}
+ */
+export function resolveApiProxyBaseUrl(env = process.env) {
+  if (env.VERCEL_ENV === 'preview') {
+    const previewUrl = env.PREVIEW_API_URL?.trim().replace(/\/+$/, '');
+    return previewUrl || null;
+  }
 
-const nextConfig = {
-  async rewrites() {
+  const internalUrl = env.INTERNAL_API_URL?.trim().replace(/\/+$/, '');
+  if (internalUrl) {
+    return internalUrl;
+  }
+
+  if (env.NODE_ENV === 'production' || env.VERCEL) {
+    return 'https://irvite-api.vercel.app';
+  }
+
+  return 'http://127.0.0.1:3000';
+}
+
+/**
+ * @param {Record<string, string | undefined>} [env]
+ */
+export function buildApiProxyRewrites(env = process.env) {
+  const apiBase = resolveApiProxyBaseUrl(env);
+  if (!apiBase) {
     return [
       {
         source: '/api-proxy/:path*',
-        destination: `${apiBase}/:path*`, // Proxy to Backend
+        destination: '/api/preview-unconfigured',
       },
     ];
+  }
+  return [
+    {
+      source: '/api-proxy/:path*',
+      destination: `${apiBase}/:path*`, // Proxy to Backend
+    },
+  ];
+}
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async rewrites() {
+    return buildApiProxyRewrites(process.env);
   },
   async headers() {
     const adminOrigin =
