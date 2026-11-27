@@ -1171,8 +1171,10 @@ export function buildWhatsappOrderUrl(params: {
   clientNotes?: string;
   packageCode?: SelectablePackageCode | 'UNSELECTED';
   options?: OrderPricingOptionsInput;
+  saved?: boolean;
   state: ClientCustomizationState;
 }): string {
+  const isSaved = params.saved !== false;
   const configuredPhone = params.adminPhone
     ? params.adminPhone.replace(/[^0-9]/g, '')
     : getPublicWhatsAppNumber() || '';
@@ -1209,7 +1211,9 @@ export function buildWhatsappOrderUrl(params: {
   const lines = [
     `Halo Admin *IRVITE*, saya sudah melakukan simulasi personalisasi undangan dan ingin memesan dengan rincian berikut:`,
     ``,
-    `▸ *Kode Draf Dashboard:* #${params.referenceCode}`,
+    isSaved
+      ? `▸ *Kode Draf Dashboard:* #${params.referenceCode}`
+      : `▸ *Status Draf:* Draf belum tersimpan di sistem, mohon dicatat manual (Kode: #${params.referenceCode})`,
     `▸ *Template:* ${params.templateDisplayName} (Ketentuan Desain IRVITE)`,
     `▸ *Paket Layanan:* ${getPackageDisplayLabel(pkgCode || 'UNSELECTED')}${priceCalc ? ` (hingga ${priceCalc.entitlements.maxGuests} undangan — 1 undangan bisa untuk keluarga)` : ''}`,
     `▸ *Mempelai:* ${p1} & ${p2}`,
@@ -1241,7 +1245,9 @@ export function buildWhatsappOrderUrl(params: {
 
   lines.push(
     ``,
-    `Data draf ini sudah saya kirimkan ke Dashboard Super Admin IRVITE. Mohon dibantu proses selanjutnya hingga undangan siap dipublikasikan. Terima kasih!`,
+    isSaved
+      ? `Data draf ini sudah saya kirimkan ke Dashboard Super Admin IRVITE. Mohon dibantu proses selanjutnya hingga undangan siap dipublikasikan. Terima kasih!`
+      : `Draf belum tersimpan di sistem, mohon dicatat manual. Mohon dibantu proses selanjutnya hingga undangan siap dipublikasikan. Terima kasih!`,
   );
 
   const text = encodeURIComponent(lines.join('\n'));

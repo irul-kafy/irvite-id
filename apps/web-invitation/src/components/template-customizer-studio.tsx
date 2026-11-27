@@ -694,6 +694,7 @@ export function TemplateCustomizerStudio({
         clientNotes,
         packageCode: selectedPackageCode,
         options: packageOptions,
+        saved: savedToServer,
         state,
       });
 

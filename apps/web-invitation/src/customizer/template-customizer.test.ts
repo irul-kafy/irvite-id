@@ -455,5 +455,55 @@ test('Client Personalization Studio & Draft Submission Contract', async (t) => {
     assert.ok(decoded.includes('Upgrade Kapasitas Tamu'));
     assert.ok(decoded.includes('Sesi Gladi Bersih H-1'));
     assert.ok(decoded.includes('estimasi, final dikonfirmasi admin'));
+    assert.ok(decoded.includes('hingga 300 undangan — 1 undangan bisa untuk keluarga'));
+
+    // Verify saved: true vs saved: false behavior
+    const savedUrl = buildWhatsappOrderUrl({
+      adminPhone: '6281122334455',
+      referenceCode: 'IRV-SAVED1',
+      templateDisplayName: 'Sekar Kedaton',
+      themeCode: 'SEKAR_KEDATON',
+      clientName: 'Alya Kusuma',
+      clientWhatsapp: '081234567890',
+      packageCode: 'SACRED',
+      saved: true,
+      state,
+    });
+    const savedDecoded = decodeURIComponent(savedUrl.split('?text=')[1]);
+    assert.ok(savedDecoded.includes('Kode Draf Dashboard'));
+    assert.ok(
+      savedDecoded.includes(
+        'Data draf ini sudah saya kirimkan ke Dashboard Super Admin IRVITE',
+      ),
+    );
+    assert.ok(
+      !savedDecoded.includes(
+        'Draf belum tersimpan di sistem, mohon dicatat manual',
+      ),
+    );
+
+    const unsavedUrl = buildWhatsappOrderUrl({
+      adminPhone: '6281122334455',
+      referenceCode: 'IRV-UNSAV1',
+      templateDisplayName: 'Sekar Kedaton',
+      themeCode: 'SEKAR_KEDATON',
+      clientName: 'Alya Kusuma',
+      clientWhatsapp: '081234567890',
+      packageCode: 'SACRED',
+      saved: false,
+      state,
+    });
+    const unsavedDecoded = decodeURIComponent(unsavedUrl.split('?text=')[1]);
+    assert.ok(
+      unsavedDecoded.includes(
+        'Draf belum tersimpan di sistem, mohon dicatat manual',
+      ),
+    );
+    assert.ok(!unsavedDecoded.includes('Kode Draf Dashboard'));
+    assert.ok(
+      !unsavedDecoded.includes(
+        'Data draf ini sudah saya kirimkan ke Dashboard Super Admin IRVITE',
+      ),
+    );
   });
 });
