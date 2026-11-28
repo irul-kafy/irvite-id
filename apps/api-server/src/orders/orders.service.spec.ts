@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrderStatus, Role } from 'database';
@@ -172,13 +173,22 @@ describe('OrdersService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it('fails clearly with BadRequestException when master pricing cannot be read', async () => {
+    it('fails clearly with ServiceUnavailableException (503) when master pricing cannot be read', async () => {
       prisma.masterPricingConfig.findFirst.mockRejectedValue(
         new Error('Database cluster unavailable'),
       );
       prisma.activityLog.findFirst.mockRejectedValue(
         new Error('Database cluster unavailable'),
       );
+
+      await expect(
+        service.createOrder({
+          eventId: 'evt-123',
+          clientName: 'Test Client',
+          clientWhatsapp: '081234567890',
+          packageCode: 'GOLD',
+        }),
+      ).rejects.toThrow(ServiceUnavailableException);
 
       await expect(
         service.createOrder({

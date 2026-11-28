@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
   Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { OrderStatus, Prisma, Role } from 'database';
@@ -312,7 +313,7 @@ export class OrdersService {
         { strict: true },
       );
     } catch (pricingErr) {
-      throw new BadRequestException(
+      throw new ServiceUnavailableException(
         `Gagal memproses pesanan: konfigurasi harga master tidak dapat dibaca (${pricingErr instanceof Error ? pricingErr.message : String(pricingErr)})`,
       );
     }

@@ -7,6 +7,7 @@ import {
   BadRequestException,
   Logger,
   ForbiddenException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { MediaStorageService } from '../media/media-storage.service';
@@ -1442,13 +1443,22 @@ export class EventsService {
     );
 
     let pricingSnapshot: ReturnType<typeof buildOrderPricingSnapshot>;
+    let masterConfig: Awaited<
+      ReturnType<typeof loadMasterPricingConfigFromPrisma>
+    >;
     try {
-      const masterConfig = await loadMasterPricingConfigFromPrisma(
+      masterConfig = await loadMasterPricingConfigFromPrisma(
         this.prisma as unknown as Parameters<
           typeof loadMasterPricingConfigFromPrisma
         >[0],
         { strict: true },
       );
+    } catch (pricingLoadErr) {
+      throw new ServiceUnavailableException(
+        `Gagal memproses pesanan: konfigurasi harga master tidak dapat dibaca (${pricingLoadErr instanceof Error ? pricingLoadErr.message : String(pricingLoadErr)})`,
+      );
+    }
+    try {
       pricingSnapshot = buildOrderPricingSnapshot(
         dto.packageCode,
         dto.options,

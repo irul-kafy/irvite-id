@@ -1480,7 +1480,7 @@ describe('EventsService', () => {
       expect(persistedEvents).toHaveLength(0);
     });
 
-    it('fails with BadRequestException when master pricing configuration cannot be read', async () => {
+    it('fails with ServiceUnavailableException (503) when master pricing configuration cannot be read', async () => {
       (
         prisma as unknown as {
           masterPricingConfig: { findFirst: jest.Mock };
@@ -1501,8 +1501,9 @@ describe('EventsService', () => {
           .mockRejectedValue(new Error('Activity log unreachable')),
       };
 
-      await expect(
-        service.createPublicDraft({
+      let caughtError: unknown;
+      try {
+        await service.createPublicDraft({
           themeCode: 'IVORY_GARDEN',
           clientName: 'Romeo',
           clientWhatsapp: '081234567890',
@@ -1511,9 +1512,15 @@ describe('EventsService', () => {
             partnerOneName: 'Romeo',
             partnerTwoName: 'Juliet',
           },
-        }),
-      ).rejects.toThrow(
-        /Konfigurasi paket tidak valid: Gagal membaca konfigurasi harga master dari database: Master pricing unreachable/,
+        });
+      } catch (err) {
+        caughtError = err;
+      }
+
+      expect(caughtError).toBeDefined();
+      expect((caughtError as { status?: number }).status).toBe(503);
+      expect((caughtError as Error).message).toMatch(
+        /konfigurasi harga master tidak dapat dibaca \(Gagal membaca konfigurasi harga master dari database: Master pricing unreachable\)/,
       );
     });
 
