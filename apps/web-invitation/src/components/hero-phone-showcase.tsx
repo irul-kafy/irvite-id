@@ -21,6 +21,39 @@ interface TemplateHeroItem {
   emblemType: 'gunungan' | 'stars' | 'minang' | 'nocturne';
 }
 
+const INDO_MONTHS = [
+  'JANUARI',
+  'FEBRUARI',
+  'MARET',
+  'APRIL',
+  'MEI',
+  'JUNI',
+  'JULI',
+  'AGUSTUS',
+  'SEPTEMBER',
+  'OKTOBER',
+  'NOVEMBER',
+  'DESEMBER',
+] as const;
+
+/**
+ * Menghasilkan string tanggal demo yang dinamis dan tidak pernah kedaluwarsa.
+ * Jika bulan/tanggal pada tahun berjalan sudah lewat, otomatis bergulir ke tahun berikutnya.
+ */
+function getFutureDemoDate(targetMonthIdx: number, targetDay: number, dayName: 'MINGGU' | 'SABTU'): string {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const currentDate = now.getDate();
+
+  const isPast =
+    currentMonth > targetMonthIdx ||
+    (currentMonth === targetMonthIdx && currentDate >= targetDay);
+
+  const year = isPast ? currentYear + 1 : currentYear;
+  return `${dayName} · ${targetDay} ${INDO_MONTHS[targetMonthIdx]} ${year}`;
+}
+
 const HERO_TEMPLATES: TemplateHeroItem[] = [
   {
     id: 'aetheria',
@@ -29,7 +62,7 @@ const HERO_TEMPLATES: TemplateHeroItem[] = [
     badge: 'Celestial Fantasy',
     eyebrow: 'THE FIRST PAGE OF FOREVER',
     coupleNames: 'Rayyan & Kiara',
-    dateStr: 'MINGGU · 18 OKTOBER 2026',
+    dateStr: getFutureDemoDate(9, 18, 'MINGGU'),
     locationStr: 'The Glass House, Plataran Hutan Kota',
     demoUrl: '/templates/aetheria/demo',
     bgImage: '/templates/aetheria/thumbnail.webp',
@@ -45,7 +78,7 @@ const HERO_TEMPLATES: TemplateHeroItem[] = [
     badge: 'Traditional Javanese',
     eyebrow: 'UNDANGAN PERNIKAHAN ADAT JAWA',
     coupleNames: 'Laras & Bagas',
-    dateStr: 'SABTU · 20 JUNI 2027',
+    dateStr: getFutureDemoDate(5, 20, 'SABTU'),
     locationStr: 'Pendopo Agung Royal Ambarrukmo',
     demoUrl: '/templates/sekar-kedaton/demo',
     bgImage: '/templates/sekar-kedaton/thumbnail.webp',
@@ -60,7 +93,7 @@ const HERO_TEMPLATES: TemplateHeroItem[] = [
     badge: 'Minang Traditional',
     eyebrow: 'UNDANGAN PERNIKAHAN MINANGKABAU',
     coupleNames: 'Salma & Fadli',
-    dateStr: 'MINGGU · 22 NOVEMBER 2026',
+    dateStr: getFutureDemoDate(10, 22, 'MINGGU'),
     locationStr: 'Balai Sarwono, Jakarta Selatan',
     demoUrl: '/templates/ranah-cinta/demo',
     bgImage: '/templates/ranah-cinta/thumbnail.webp',
@@ -75,7 +108,7 @@ const HERO_TEMPLATES: TemplateHeroItem[] = [
     badge: 'Enchanted Woodland',
     eyebrow: 'THE WEDDING CELEBRATION',
     coupleNames: 'Danis & Althea',
-    dateStr: 'SABTU · 12 DESEMBER 2026',
+    dateStr: getFutureDemoDate(11, 12, 'SABTU'),
     locationStr: 'The Forest Glasshouse, Lembang',
     demoUrl: '/templates/opaline-nocturne/demo',
     bgImage: '/templates/opaline-nocturne/thumbnail.webp',
@@ -186,7 +219,7 @@ export function HeroPhoneShowcase() {
           <div className="irv-screen-divider" style={{ background: current.accentColor }} />
 
           {/* Date & Location */}
-          <p className="irv-screen-date">{current.dateStr}</p>
+          <p className="irv-screen-date" suppressHydrationWarning>{current.dateStr}</p>
           <p className="irv-screen-location">{current.locationStr}</p>
 
           {/* Luxury Guest Card (Kepada Yth) */}

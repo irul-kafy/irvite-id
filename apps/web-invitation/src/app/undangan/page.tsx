@@ -1,5 +1,33 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import type { MasterPricingConfig } from 'pricing';
+
+export const metadata: Metadata = {
+  title: 'IRVITE — Platform Undangan Digital & Kelola Tamu Eksklusif',
+  description:
+    'Platform undangan digital personal dan kelola buku tamu resepsi dengan sistem check-in QR Code, RSVP real-time, dan pendampingan petugas profesional.',
+  openGraph: {
+    title: 'IRVITE — Platform Undangan Digital & Kelola Tamu Eksklusif',
+    description:
+      'Platform undangan digital personal dan kelola buku tamu resepsi dengan sistem check-in QR Code, RSVP real-time, dan pendampingan petugas profesional.',
+    type: 'website',
+    images: [
+      {
+        url: '/images/gateway-undangan.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'IRVITE - Platform Undangan Digital & Kelola Tamu',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'IRVITE — Platform Undangan Digital & Kelola Tamu Eksklusif',
+    description:
+      'Platform undangan digital personal dan kelola buku tamu resepsi dengan sistem check-in QR Code, RSVP real-time, dan pendampingan petugas profesional.',
+    images: ['/images/gateway-undangan.jpg'],
+  },
+};
 import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '../../catalog';
 import {
   fetchPublicPricingConfig,
@@ -287,7 +315,7 @@ function ProcessSection() {
     {
       num: '04',
       title: 'Verifikasi admin, data tamu & publikasi',
-      body: 'Tim kami memverifikasi detail undangan Anda, menyiapkan daftar tamu serta QR Code kehadiran (khusus Paket Personal), dan mengaktifkan tautan resmi yang siap dibagikan.',
+      body: 'Tim kami memverifikasi detail undangan Anda, menyiapkan daftar tamu serta QR Code kehadiran, dan mengaktifkan tautan resmi yang siap dibagikan.',
       note: 'Siap dibagikan',
     },
   ];

@@ -372,13 +372,7 @@ export function HomeGatewayClient() {
             >
               <span>Segera Hadir</span>
             </div>
-            <div
-              id="gw-card-partnership"
-              className="irv-landing-gateway__link irv-landing-gateway__link--disabled"
-              aria-disabled="true"
-            >
-              Daftarkan Event
-            </div>
+            {/* Tombol 'Daftarkan Event' disembunyikan selagi E-Tiket 'Segera Hadir' */}
           </div>
         </div>
 

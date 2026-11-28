@@ -271,7 +271,7 @@ test('tamper attempts: unknown package, invalid capacityTier, capacity downgrade
   );
 });
 
-test('catalog features do not promise non-existent features and specify 24/hari duration for petugas', () => {
+test('catalog features do not promise non-existent features and specify per acara, maks. 6 jam duration for petugas', () => {
   const forbiddenPatterns = [
     /multi-sesi/i,
     /multi sesi/i,
@@ -300,24 +300,24 @@ test('catalog features do not promise non-existent features and specify 24/hari 
     );
   }
 
-  // Check specific 24/hari phrasing for packages that include petugas check-in
+  // Check specific per acara, maks. 6 jam phrasing for packages that include petugas check-in
   assert.ok(
     WEDDING_PACKAGE_CATALOG.INTIMATE.features.some((f) =>
-      f.includes('1 petugas check-in di lokasi (24/hari)'),
+      f.includes('1 petugas check-in di lokasi (per acara, maks. 6 jam)'),
     ),
   );
   assert.ok(
     WEDDING_PACKAGE_CATALOG.SIGNATURE.features.some((f) =>
-      f.includes('2 petugas check-in di lokasi (24/hari)'),
+      f.includes('2 petugas check-in di lokasi (per acara, maks. 6 jam)'),
     ),
   );
   assert.ok(
     WEDDING_PACKAGE_CATALOG.MAJESTIC.features.some((f) =>
-      f.includes('4 petugas check-in (24/hari) + 1 supervisor lapangan'),
+      f.includes('4 petugas check-in (per acara, maks. 6 jam) + 1 supervisor lapangan'),
     ),
   );
 
-  // Line item labels for CUSTOM and preset must also use 24/hari instead of 4 jam
+  // Line item labels for CUSTOM and preset must also use per acara, maks. 6 jam instead of 4 jam or 24/hari
   const customOrder = calculateOrderPrice({
     packageCode: 'CUSTOM',
     options: { extraPetugas: 2 },
@@ -326,7 +326,7 @@ test('catalog features do not promise non-existent features and specify 24/hari 
     (item) => item.code === 'EXTRA_PETUGAS',
   );
   assert.ok(customPetugasItem);
-  assert.equal(customPetugasItem.label, 'Petugas Check-in (2 orang × 24/hari)');
+  assert.equal(customPetugasItem.label, 'Petugas Check-in (2 orang × per acara, maks. 6 jam)');
 
   const presetOrder = calculateOrderPrice({
     packageCode: 'SIGNATURE',
@@ -336,7 +336,7 @@ test('catalog features do not promise non-existent features and specify 24/hari 
     (item) => item.code === 'EXTRA_PETUGAS',
   );
   assert.ok(presetPetugasItem);
-  assert.equal(presetPetugasItem.label, 'Tambahan Petugas Check-in (1 orang × 24/hari)');
+  assert.equal(presetPetugasItem.label, 'Tambahan Petugas Check-in (1 orang × per acara, maks. 6 jam)');
 });
 
 test('3-tab service structure (Undangan, Buku Tamu, Custom) and strikethrough original prices match catalog calculations', () => {

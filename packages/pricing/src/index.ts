@@ -41,7 +41,7 @@ export const WEDDING_SERVICE_TABS: ReadonlyArray<{
       label: 'Buku Tamu Digital',
       shortLabel: 'Buku Tamu Digital',
       subtitle:
-        'Sudah termasuk Undangan Digital penuh + sistem check-in QR meja resepsi, petugas di lokasi (24/hari), dan stand akrilik.',
+        'Sudah termasuk Undangan Digital penuh + sistem check-in QR meja resepsi, petugas di lokasi (per acara, maks. 6 jam), dan stand akrilik.',
     },
     {
       id: 'CUSTOM',
@@ -273,7 +273,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     features: [
       'Kapasitas hingga 150 undangan (1 undangan bisa untuk keluarga)',
       'Sudah termasuk Undangan Digital + Tiket QR Check-in Tamu',
-      '1 petugas check-in di lokasi (24/hari)',
+      '1 petugas check-in di lokasi (per acara, maks. 6 jam)',
       'Termasuk 1 set stand akrilik QRIS meja',
       'Dashboard buku tamu real-time, RSVP & amplop digital',
     ],
@@ -298,7 +298,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     features: [
       'Kapasitas hingga 300 undangan (1 undangan bisa untuk keluarga)',
       'Sudah termasuk Undangan Digital + Tiket QR Check-in Tamu',
-      '2 petugas check-in di lokasi (24/hari)',
+      '2 petugas check-in di lokasi (per acara, maks. 6 jam)',
       'Termasuk 1 set stand akrilik QRIS meja & sesi gladi bersih H-1',
       'Sinkronisasi kehadiran buku tamu ke Google Sheet live',
     ],
@@ -322,7 +322,7 @@ export const WEDDING_PACKAGE_CATALOG: Record<
     features: [
       'Kapasitas hingga 600 undangan (1 undangan bisa untuk keluarga)',
       'Sudah termasuk Undangan Digital + Tiket QR Check-in Tamu',
-      '4 petugas check-in (24/hari) + 1 supervisor lapangan',
+      '4 petugas check-in (per acara, maks. 6 jam) + 1 supervisor lapangan',
       'Termasuk 1 set stand akrilik QRIS meja & sesi gladi H-1',
       'Google Sheet live & laporan rekapitulasi kehadiran pasca-acara',
     ],
@@ -1051,7 +1051,7 @@ export function calculateOrderPrice(
       const petugasAmount = extraPetugas * unitPetugas;
       lineItems.push({
         code: 'EXTRA_PETUGAS',
-        label: `Petugas Check-in (${extraPetugas} orang × 24/hari)`,
+        label: `Petugas Check-in (${extraPetugas} orang × per acara, maks. 6 jam)`,
         quantity: extraPetugas,
         unitPrice: unitPetugas,
         amount: petugasAmount,
@@ -1225,7 +1225,7 @@ export function calculateOrderPrice(
     const petugasAmount = extraPetugas * unitPetugas;
     lineItems.push({
       code: 'EXTRA_PETUGAS',
-      label: `Tambahan Petugas Check-in (${extraPetugas} orang × 24/hari)`,
+      label: `Tambahan Petugas Check-in (${extraPetugas} orang × per acara, maks. 6 jam)`,
       quantity: extraPetugas,
       unitPrice: unitPetugas,
       amount: petugasAmount,

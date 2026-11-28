@@ -733,15 +733,15 @@ export function PackagesCarousel({
                 </div>
               </div>
 
-              {/* 2. Petugas Check-in (24/hari) & Jam Tambahan */}
+              {/* 2. Petugas Check-in (per acara, maks. 6 jam) & Jam Tambahan */}
               <div className="packages-custom-stepper-row">
                 <div className="packages-custom-stepper-box">
                   <div>
                     <div className="packages-custom-field__label">
-                      2. Petugas Check-in (24/hari)
+                      2. Petugas Check-in (per acara, maks. 6 jam)
                     </div>
                     <div className="packages-custom-field__sub">
-                      Petugas check-in {formatRupiah(rates.petugasUnit)}/orang (24/hari)
+                      Petugas check-in {formatRupiah(rates.petugasUnit)}/orang (per acara, maks. 6 jam)
                     </div>
                   </div>
                   <div className="packages-custom-stepper">

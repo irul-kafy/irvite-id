@@ -63,7 +63,7 @@ describe('PackagesShowcase (3-Tab Service Switcher + Center-Peeking Carousel + S
     );
   });
 
-  it('displays strikethrough original prices, interactive Custom a la carte builder, and 24/hari petugas duration', () => {
+  it('displays strikethrough original prices, interactive Custom a la carte builder, and per acara, maks. 6 jam petugas duration', () => {
     assert.ok(carouselSrc.includes('aria-roledescription="carousel"'));
     assert.ok(carouselSrc.includes('aria-roledescription="slide"'));
     assert.ok(carouselSrc.includes('data-direction="previous"'));
@@ -77,8 +77,8 @@ describe('PackagesShowcase (3-Tab Service Switcher + Center-Peeking Carousel + S
     assert.ok(carouselSrc.includes('data-testid="package-card-CUSTOM"'));
     assert.ok(carouselSrc.includes('href="/templates?paket=CUSTOM"'));
     assert.ok(
-      carouselSrc.includes('24/hari'),
-      'Custom builder must specify 24/hari for petugas check-in',
+      carouselSrc.includes('per acara, maks. 6 jam'),
+      'Custom builder must specify per acara, maks. 6 jam for petugas check-in',
     );
     assert.ok(
       !carouselSrc.includes('(4 jam)'),
