@@ -12,6 +12,7 @@
     "test:unit": "npm run test --workspace packages/pricing && npm run test --workspace apps/api-server -- --runInBand && npm run test --workspace apps/web-admin && npm run test --workspace apps/web-invitation && npm run test:smoke:unit && npm run test:tooling && node --test apps/api-server/scripts/schema-sync.test.cjs",
     "verify": "npm run test:unit && npm run build",
     "schema:sync": "node scripts/schema-sync.cjs",
+    "schema:report": "node scripts/schema-sync.cjs --report",
     "test:smoke": "node apps/api-server/scripts/smoke-local.cjs",
     "test:smoke:unit": "node --test apps/api-server/scripts/smoke-local.test.cjs",
     "test:tooling": "node --test apps/api-server/scripts/tooling-dependencies.test.cjs"

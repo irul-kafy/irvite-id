@@ -4,10 +4,12 @@ const path = require('node:path');
 const {
   SCHEMA_STATEMENTS,
   ORPHAN_CLEANUP_STEPS,
+  CANONICAL_GUEST_CATEGORIES,
   syncOrdersForeignKey,
   syncGuestUniqueIndex,
   importLegacyMasterPricingConfig,
   cleanOrphansWithSafety,
+  runSchemaReport,
   runSchemaSync,
 } = require(path.resolve(__dirname, '../../../scripts/schema-sync.cjs'));
 
@@ -534,4 +536,46 @@ test('syncGuestUniqueIndex: normalizes phone numbers on read side (0->62, +62->6
   const resCleanApply = await syncGuestUniqueIndex({ prisma: mockPrismaClean, apply: true, logger: silentLogger });
   assert.equal(resCleanApply.status, 'APPLIED');
   assert.ok(executedSql.some((s) => s.includes('CREATE UNIQUE INDEX `guests_event_id_phone_number_key`')));
+});
+
+test('runSchemaReport executes read-only count queries for all 4 data integrity metrics without any mutations', async () => {
+  const executedQueries = [];
+  const loggedLines = [];
+  const captureLogger = {
+    log: (msg) => loggedLines.push(msg),
+    warn: (msg) => loggedLines.push(msg),
+    error: (msg) => loggedLines.push(msg),
+  };
+
+  const mockPrisma = {
+    $queryRawUnsafe: async (sql) => {
+      executedQueries.push(sql);
+      if (sql.includes('$.clientKey')) return [{ cnt: 3 }];
+      if (sql.includes('NOT IN') && sql.includes('REGULAR')) return [{ cnt: 7 }];
+      if (sql.includes('ON_THE_SPOT') && sql.includes('attendance_check_ins')) return [{ cnt: 2 }];
+      if (sql.includes('FROM `orders` WHERE `event_id` IS NULL')) return [{ cnt: 4 }];
+      return [{ cnt: 0 }];
+    },
+    $executeRawUnsafe: async () => {
+      assert.fail('runSchemaReport must NEVER execute mutations ($executeRawUnsafe)');
+    },
+  };
+
+  const report = await runSchemaReport({ prisma: mockPrisma, logger: captureLogger });
+
+  assert.equal(report.mode, 'REPORT');
+  assert.equal(report.eventsMissingClientKey, 3);
+  assert.equal(report.guestsInvalidCategory, 7);
+  assert.equal(report.guestsOnTheSpotUnflaggedWalkIn, 2);
+  assert.equal(report.ordersNullEventId, 4);
+  assert.equal(executedQueries.length, 4);
+  for (const q of executedQueries) {
+    assert.ok(q.trim().toUpperCase().startsWith('SELECT COUNT(*)'), `Expected SELECT COUNT(*) query, got: ${q}`);
+  }
+  assert.ok(Array.isArray(CANONICAL_GUEST_CATEGORIES) && CANONICAL_GUEST_CATEGORIES.includes('ON_THE_SPOT'));
+  const outputText = loggedLines.join('\n');
+  assert.ok(outputText.includes('events without content.clientKey'));
+  assert.ok(outputText.includes('guests with category outside canonical enum'));
+  assert.ok(outputText.includes('guests ON_THE_SPOT without attendance_check_ins'));
+  assert.ok(outputText.includes('orders with event_id IS NULL'));
 });

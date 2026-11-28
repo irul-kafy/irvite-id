@@ -260,6 +260,66 @@ const ORPHAN_CLEANUP_STEPS = [
   },
 ];
 
+const CANONICAL_GUEST_CATEGORIES = [
+  'REGULAR',
+  'VIP',
+  'VVIP',
+  'FAMILY',
+  'FAMILY_GROOM',
+  'FAMILY_BRIDE',
+  'FRIEND',
+  'COLLEAGUE',
+  'ON_THE_SPOT',
+];
+
+async function runSchemaReport({ prisma, logger = console }) {
+  logger.log('====================================================');
+  logger.log(' [Irvite] Schema & Data Integrity Report (READ-ONLY)');
+  logger.log(' No database mutations are executed in report mode.');
+  logger.log('====================================================');
+
+  const queryCount = async (label, sql) => {
+    const res = await prisma.$queryRawUnsafe(sql);
+    const cnt = Array.isArray(res) && res[0] ? (res[0].cnt ?? res[0].count ?? 0) : 0;
+    return Number(cnt);
+  };
+
+  const eventsMissingClientKey = await queryCount(
+    'eventsMissingClientKey',
+    "SELECT COUNT(*) AS cnt FROM `events` WHERE `content` IS NULL OR JSON_TYPE(`content`) != 'OBJECT' OR JSON_UNQUOTE(JSON_EXTRACT(`content`, '$.clientKey')) IS NULL OR TRIM(JSON_UNQUOTE(JSON_EXTRACT(`content`, '$.clientKey'))) = ''"
+  );
+
+  const enumListSql = CANONICAL_GUEST_CATEGORIES.map((c) => `'${c}'`).join(', ');
+  const guestsInvalidCategory = await queryCount(
+    'guestsInvalidCategory',
+    `SELECT COUNT(*) AS cnt FROM \`guests\` WHERE \`category\` IS NULL OR BINARY \`category\` NOT IN (${enumListSql})`
+  );
+
+  const guestsOnTheSpotUnflaggedWalkIn = await queryCount(
+    'guestsOnTheSpotUnflaggedWalkIn',
+    "SELECT COUNT(*) AS cnt FROM `guests` g LEFT JOIN `invitations` i ON i.`guest_id` = g.`id` LEFT JOIN `attendances` a ON a.`invitation_id` = i.`id` WHERE UPPER(TRIM(g.`category`)) IN ('ON_THE_SPOT', 'ON THE SPOT') AND (g.`is_walk_in` = 0 OR g.`is_walk_in` IS NULL) AND (a.`id` IS NULL OR (SELECT COUNT(*) FROM `attendance_check_ins` aci WHERE aci.`attendance_id` = a.`id`) = 0)"
+  );
+
+  const ordersNullEventId = await queryCount(
+    'ordersNullEventId',
+    'SELECT COUNT(*) AS cnt FROM `orders` WHERE `event_id` IS NULL'
+  );
+
+  logger.log(`  1. events without content.clientKey                          : ${eventsMissingClientKey}`);
+  logger.log(`  2. guests with category outside canonical enum               : ${guestsInvalidCategory}`);
+  logger.log(`  3. guests ON_THE_SPOT without attendance_check_ins (!walk_in): ${guestsOnTheSpotUnflaggedWalkIn}`);
+  logger.log(`  4. orders with event_id IS NULL                              : ${ordersNullEventId}`);
+  logger.log('====================================================');
+
+  return {
+    mode: 'REPORT',
+    eventsMissingClientKey,
+    guestsInvalidCategory,
+    guestsOnTheSpotUnflaggedWalkIn,
+    ordersNullEventId,
+  };
+}
+
 function isAlreadyAppliedError(err) {
   const msg = err && err.message ? err.message : String(err);
   return (
@@ -930,7 +990,8 @@ async function main(argv = process.argv.slice(2)) {
     process.exit(1);
   }
 
-  const apply = argv.includes('--apply');
+  const reportOnly = argv.includes('--report');
+  const apply = !reportOnly && argv.includes('--apply');
   const cleanOrphans = argv.includes('--clean-orphans');
   const force = argv.includes('--force');
   const withGuestUnique = argv.includes('--with-guest-unique');
@@ -954,6 +1015,11 @@ async function main(argv = process.argv.slice(2)) {
   try {
     await prisma.$connect();
     console.log(' Connected to database successfully.\n');
+
+    if (reportOnly) {
+      await runSchemaReport({ prisma, logger: console });
+      return;
+    }
 
     const outcome = await runSchemaSync({
       prisma,
@@ -982,12 +1048,14 @@ if (require.main === module) {
 module.exports = {
   SCHEMA_STATEMENTS,
   ORPHAN_CLEANUP_STEPS,
+  CANONICAL_GUEST_CATEGORIES,
   inspectSchemaState,
   syncOrdersForeignKey,
   syncGuestUniqueIndex,
   normalizePhoneForComparison,
   importLegacyMasterPricingConfig,
   cleanOrphansWithSafety,
+  runSchemaReport,
   runSchemaSync,
   isAlreadyAppliedError,
   main,
