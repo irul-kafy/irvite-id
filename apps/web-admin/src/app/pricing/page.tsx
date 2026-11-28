@@ -993,6 +993,101 @@ export default function MasterPricingPage() {
                           </div>
                         </div>
 
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>
+                            Deskripsi Paragraf Paket
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={item.description || ''}
+                            onChange={(e) =>
+                              setConfig((prev) => ({
+                                ...prev,
+                                presetPackages: {
+                                  ...prev.presetPackages,
+                                  [code]: {
+                                    ...prev.presetPackages[code],
+                                    description: e.target.value,
+                                  },
+                                },
+                              }))
+                            }
+                            placeholder="Deskripsi singkat yang tampil di bawah harga..."
+                            style={{ width: '100%', padding: '0.42rem 0.55rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', resize: 'vertical' }}
+                          />
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+                              Fasilitas Paket (Checklist [✓])
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setConfig((prev) => ({
+                                  ...prev,
+                                  presetPackages: {
+                                    ...prev.presetPackages,
+                                    [code]: {
+                                      ...prev.presetPackages[code],
+                                      features: [...(prev.presetPackages[code].features || []), 'Poin fasilitas baru'],
+                                    },
+                                  },
+                                }))
+                              }
+                              style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
+                            >
+                              + Tambah
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '150px', overflowY: 'auto' }}>
+                            {(item.features || []).map((feat, fIdx) => (
+                              <div key={fIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 700 }}>✓</span>
+                                <input
+                                  type="text"
+                                  value={feat}
+                                  onChange={(e) =>
+                                    setConfig((prev) => ({
+                                      ...prev,
+                                      presetPackages: {
+                                        ...prev.presetPackages,
+                                        [code]: {
+                                          ...prev.presetPackages[code],
+                                          features: (prev.presetPackages[code].features || []).map((f, fi) =>
+                                            fi === fIdx ? e.target.value : f
+                                          ),
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.76rem' }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfig((prev) => ({
+                                      ...prev,
+                                      presetPackages: {
+                                        ...prev.presetPackages,
+                                        [code]: {
+                                          ...prev.presetPackages[code],
+                                          features: (prev.presetPackages[code].features || []).filter((_, fi) => fi !== fIdx),
+                                        },
+                                      },
+                                    }))
+                                  }
+                                  title="Hapus fasilitas"
+                                  style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '4px', fontSize: '0.72rem', width: '22px', height: '22px', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
                         <StrikethroughPreviewCard
                           label="Pratinjau Kartu Landing Page:"
                           price={item.price}
@@ -1332,6 +1427,94 @@ export default function MasterPricingPage() {
                             }
                             style={{ width: '100%', padding: '0.42rem 0.55rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 700 }}
                           />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: '#475569', marginBottom: '2px' }}>
+                          Deskripsi Paragraf
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={card.description || ''}
+                          onChange={(e) =>
+                            setConfig((prev) => ({
+                              ...prev,
+                              undanganShowcaseCards: prev.undanganShowcaseCards.map((c, i) =>
+                                i === idx ? { ...c, description: e.target.value } : c
+                              ),
+                            }))
+                          }
+                          placeholder="Deskripsi singkat yang tampil di bawah harga..."
+                          style={{ width: '100%', padding: '0.42rem 0.55rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+                            Fasilitas (Checklist [✓])
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfig((prev) => ({
+                                ...prev,
+                                undanganShowcaseCards: prev.undanganShowcaseCards.map((c, i) =>
+                                  i === idx
+                                    ? { ...c, features: [...(c.features || []), 'Poin fasilitas baru'] }
+                                    : c
+                                ),
+                              }))
+                            }
+                            style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, padding: '2px 6px', cursor: 'pointer' }}
+                          >
+                            + Tambah
+                          </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '130px', overflowY: 'auto' }}>
+                          {(card.features || []).map((feat, fIdx) => (
+                            <div key={fIdx} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 700 }}>✓</span>
+                              <input
+                                type="text"
+                                value={feat}
+                                onChange={(e) =>
+                                  setConfig((prev) => ({
+                                    ...prev,
+                                    undanganShowcaseCards: prev.undanganShowcaseCards.map((c, i) =>
+                                      i === idx
+                                        ? {
+                                            ...c,
+                                            features: (c.features || []).map((f, fi) =>
+                                              fi === fIdx ? e.target.value : f
+                                            ),
+                                          }
+                                        : c
+                                    ),
+                                  }))
+                                }
+                                style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.76rem' }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setConfig((prev) => ({
+                                    ...prev,
+                                    undanganShowcaseCards: prev.undanganShowcaseCards.map((c, i) =>
+                                      i === idx
+                                        ? { ...c, features: (c.features || []).filter((_, fi) => fi !== fIdx) }
+                                        : c
+                                    ),
+                                  }))
+                                }
+                                title="Hapus fasilitas"
+                                style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '4px', fontSize: '0.72rem', width: '22px', height: '22px', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
 

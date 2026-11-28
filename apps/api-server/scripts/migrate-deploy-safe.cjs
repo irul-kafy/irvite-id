@@ -94,6 +94,31 @@ const IDEMPOTENT_DDL_STEPS = [
     name: 'invitations.open_count column',
     sql: 'ALTER TABLE `invitations` ADD COLUMN `open_count` INTEGER NOT NULL DEFAULT 0',
   },
+  {
+    name: 'guests.is_walk_in column',
+    sql: 'ALTER TABLE `guests` ADD COLUMN `is_walk_in` BOOLEAN NOT NULL DEFAULT false',
+  },
+  {
+    name: 'orders.options column',
+    sql: 'ALTER TABLE `orders` ADD COLUMN `options` JSON NULL',
+  },
+  {
+    name: 'orders.pricing_version column',
+    sql: 'ALTER TABLE `orders` ADD COLUMN `pricing_version` INT NOT NULL DEFAULT 1',
+  },
+  {
+    name: 'guests_migration_audit table',
+    sql: `CREATE TABLE IF NOT EXISTS \`guests_migration_audit\` (
+      \`guest_id\` VARCHAR(191) NOT NULL,
+      \`event_id\` VARCHAR(191) NOT NULL,
+      \`old_category\` VARCHAR(191) NULL,
+      \`old_phone_number\` VARCHAR(191) NULL,
+      \`change_reason\` VARCHAR(191) NOT NULL,
+      \`captured_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (\`guest_id\`),
+      INDEX \`guests_migration_audit_event_id_idx\`(\`event_id\`)
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+  },
 ];
 
 async function ensureSchemaObjects(prisma) {

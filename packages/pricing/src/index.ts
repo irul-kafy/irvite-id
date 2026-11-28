@@ -421,6 +421,7 @@ export interface MasterPresetPackageOverride {
   name: string;
   tagline: string;
   description: string;
+  features?: string[];
   price: number;
   originalPrice: number;
   popular: boolean;
@@ -433,6 +434,7 @@ export interface MasterUndanganCardOverride {
   name: string;
   tagline: string;
   description: string;
+  features?: string[];
   price: number;
   originalPrice: number;
   popular: boolean;
@@ -480,6 +482,7 @@ export function createDefaultMasterPricingConfig(): MasterPricingConfig {
       name: item.name,
       tagline: item.tagline,
       description: item.description,
+      features: [...item.features],
       price: PACKAGE_PRICES[ACTIVE_PRICE_TIER][code],
       originalPrice: PACKAGE_PRICES.NORMAL[code],
       popular: Boolean(item.popular),
@@ -505,6 +508,13 @@ export function createDefaultMasterPricingConfig(): MasterPricingConfig {
       name: card.name,
       tagline: card.tagline,
       description: card.description,
+      features: [
+        `Kapasitas hingga ${card.capacityTier} undangan (1 undangan bisa untuk keluarga)`,
+        'Semua tema katalog & kustomisasi konten penuh',
+        'Tautan personal nama tamu via WhatsApp',
+        'RSVP real-time, ucapan doa & amplop digital / QRIS',
+        'Khusus sebar undangan online (tanpa QR check-in lokasi)',
+      ],
       price: card.price,
       originalPrice: card.originalPrice,
       popular: Boolean(card.popular),
@@ -599,6 +609,9 @@ export function normalizeMasterPricingConfig(raw: unknown): MasterPricingConfig 
         name: safeString(pObj.name, def.name, 80),
         tagline: safeString(pObj.tagline, def.tagline, 160),
         description: safeString(pObj.description, def.description, 500),
+        features: Array.isArray(pObj.features)
+          ? pObj.features.map((f) => safeString(f, '', 200)).filter(Boolean)
+          : (def.features ? [...def.features] : []),
         price: safeNonNegativeInt(pObj.price, def.price),
         originalPrice: safeNonNegativeInt(pObj.originalPrice, def.originalPrice),
         popular:
@@ -632,6 +645,9 @@ export function normalizeMasterPricingConfig(raw: unknown): MasterPricingConfig 
         name: safeString(found.name, defCard.name, 80),
         tagline: safeString(found.tagline, defCard.tagline, 160),
         description: safeString(found.description, defCard.description, 500),
+        features: Array.isArray(found.features)
+          ? found.features.map((f) => safeString(f, '', 200)).filter(Boolean)
+          : (defCard.features ? [...defCard.features] : []),
         price: safeNonNegativeInt(found.price, defCard.price),
         originalPrice: safeNonNegativeInt(
           found.originalPrice,
