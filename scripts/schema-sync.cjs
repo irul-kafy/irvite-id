@@ -193,6 +193,20 @@ const SCHEMA_STATEMENTS = [
       INDEX \`guests_migration_audit_event_id_idx\`(\`event_id\`)
     ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
   },
+  {
+    id: 'master_pricing_configs_table',
+    name: 'master_pricing_configs table',
+    sql: `CREATE TABLE IF NOT EXISTS \`master_pricing_configs\` (
+      \`id\` VARCHAR(191) NOT NULL,
+      \`version\` INT NOT NULL DEFAULT 1,
+      \`config\` JSON NOT NULL,
+      \`created_by\` VARCHAR(191) NULL,
+      \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+      PRIMARY KEY (\`id\`),
+      INDEX \`master_pricing_configs_created_at_idx\`(\`created_at\`),
+      INDEX \`master_pricing_configs_version_created_at_idx\`(\`version\`, \`created_at\`)
+    ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+  },
 ];
 
 const ORPHAN_CLEANUP_STEPS = [

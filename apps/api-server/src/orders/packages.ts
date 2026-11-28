@@ -206,6 +206,15 @@ export function resetMasterPricingCacheForTests(): void {
 }
 
 export async function loadMasterPricingConfigFromPrisma(prisma?: {
+  masterPricingConfig?: {
+    findFirst?: (args: unknown) => Promise<{
+      id?: string;
+      version?: number;
+      config?: unknown;
+      createdBy?: string | null;
+      createdAt?: Date | string;
+    } | null>;
+  };
   activityLog?: {
     findFirst?: (args: unknown) => Promise<{
       metadata?: unknown;
@@ -221,6 +230,33 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
     return inMemoryMasterPricingCache.config;
   }
 
+  // 1. Primary storage: dedicated masterPricingConfig table
+  if (prisma?.masterPricingConfig?.findFirst) {
+    try {
+      const latest = await prisma.masterPricingConfig.findFirst({
+        orderBy: [{ version: 'desc' }, { createdAt: 'desc' }],
+      });
+      if (latest?.config) {
+        const normalized = normalizeMasterPricingConfig(latest.config);
+        const withTs: MasterPricingConfig = {
+          ...normalized,
+          updatedAt:
+            normalized.updatedAt ||
+            (latest.createdAt instanceof Date
+              ? latest.createdAt.toISOString()
+              : typeof latest.createdAt === 'string'
+                ? latest.createdAt
+                : undefined),
+        };
+        inMemoryMasterPricingCache = { config: withTs, fetchedAt: now };
+        return withTs;
+      }
+    } catch {
+      // Fallback safely to legacy activity log or defaults if error
+    }
+  }
+
+  // 2. Legacy fallback: activityLog
   if (prisma?.activityLog?.findFirst) {
     try {
       const latest = await prisma.activityLog.findFirst({
@@ -257,6 +293,10 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
 export async function saveMasterPricingConfigToPrisma(
   prisma:
     | {
+        masterPricingConfig?: {
+          findFirst?: (args: unknown) => Promise<{ version?: number } | null>;
+          create: (args: unknown) => Promise<unknown>;
+        };
         activityLog?: {
           create?: (args: unknown) => Promise<unknown>;
         };
@@ -265,18 +305,46 @@ export async function saveMasterPricingConfigToPrisma(
   rawConfig: unknown,
   actor?: { userId?: string; id?: string; role?: unknown },
 ): Promise<MasterPricingConfig> {
+  if (!prisma?.masterPricingConfig?.create) {
+    throw new Error('Master pricing database model is unavailable');
+  }
+
   const normalized = normalizeMasterPricingConfig(rawConfig);
   const saved: MasterPricingConfig = {
     ...normalized,
     updatedAt: new Date().toISOString(),
   };
 
+  let nextVersion = 1;
+  if (typeof prisma.masterPricingConfig.findFirst === 'function') {
+    try {
+      const latest = await prisma.masterPricingConfig.findFirst({
+        orderBy: [{ version: 'desc' }, { createdAt: 'desc' }],
+      });
+      if (typeof latest?.version === 'number') {
+        nextVersion = latest.version + 1;
+      }
+    } catch {
+      nextVersion = 1;
+    }
+  }
+
+  // Must throw if create fails - do NOT swallow error!
+  await prisma.masterPricingConfig.create({
+    data: {
+      version: nextVersion,
+      config: saved,
+      createdBy: actor?.userId ?? actor?.id ?? null,
+    },
+  });
+
   inMemoryMasterPricingCache = {
     config: saved,
     fetchedAt: Date.now(),
   };
 
-  if (prisma?.activityLog?.create) {
+  // ActivityLog records ONLY an audit of the modification event
+  if (prisma.activityLog?.create) {
     try {
       await prisma.activityLog.create({
         data: {
@@ -285,11 +353,16 @@ export async function saveMasterPricingConfigToPrisma(
           action: PRICING_MASTER_LOG_ACTION,
           entityType: PRICING_MASTER_ENTITY_TYPE,
           entityId: PRICING_MASTER_ENTITY_ID,
-          metadata: saved,
+          metadata: {
+            version: nextVersion,
+            updatedAt: saved.updatedAt,
+            actorId: actor?.userId ?? actor?.id ?? null,
+            action: 'UPDATE_MASTER_PRICING',
+          },
         },
       });
     } catch {
-      // Ignore transient DB write failure in unit-test mocks without activityLog
+      // Audit log failures do not invalidate the successfully persisted pricing config
     }
   }
 

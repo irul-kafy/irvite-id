@@ -82,6 +82,14 @@ describe('OrdersService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
+      masterPricingConfig: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'mpc-1', version: 1 }),
+      },
+      activityLog: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'log-1' }),
+      },
       guest: {
         count: jest.fn().mockResolvedValue(0),
       },
@@ -605,6 +613,25 @@ describe('OrdersService', () => {
       expect(saved.serviceRates.petugasUnit).toBe(95_000);
       expect(saved.presetPackages.SIGNATURE.price).toBe(2_100_000);
       expect(saved.presetPackages.SIGNATURE.originalPrice).toBe(2_390_000);
+      expect(prisma.masterPricingConfig.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            version: 1,
+            createdBy: 'super-1',
+          }),
+        }),
+      );
+      expect(prisma.activityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: 'PRICING_MASTER_CONFIG',
+            metadata: expect.objectContaining({
+              version: 1,
+              action: 'UPDATE_MASTER_PRICING',
+            }),
+          }),
+        }),
+      );
 
       const loaded = await service.getMasterPricingConfig();
       expect(loaded.presetPackages.SIGNATURE.price).toBe(2_100_000);
@@ -653,6 +680,19 @@ describe('OrdersService', () => {
         OrdersController.prototype.updatePricingConfig,
       );
       expect(putRoles).toEqual([Role.SUPER_ADMIN]);
+    });
+
+    it('throws error directly when masterPricingConfig.create fails to persist (does not swallow)', async () => {
+      prisma.masterPricingConfig.create.mockRejectedValue(
+        new Error('Database disk full or write failed'),
+      );
+
+      await expect(
+        service.saveMasterPricingConfig(
+          { serviceRates: { petugasUnit: 50_000 } },
+          { id: 'super-1', role: Role.SUPER_ADMIN },
+        ),
+      ).rejects.toThrow('Database disk full or write failed');
     });
   });
 

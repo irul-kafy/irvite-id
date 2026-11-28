@@ -420,3 +420,16 @@ model TicketCheckInLog {
   @@index([issuedTicketId])
   @@map("ticket_check_in_logs")
 }
+
+model MasterPricingConfig {
+  id        String   @id @default(uuid())
+  version   Int      @default(1)
+  config    Json
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([version, createdAt])
+  @@map("master_pricing_configs")
+}
+

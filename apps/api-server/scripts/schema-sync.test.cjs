@@ -18,6 +18,7 @@ test('schema-sync exports required idempotent DDL statements', () => {
   assert.ok(statementNames.some((n) => n.includes('guests.is_walk_in')));
   assert.ok(statementNames.some((n) => n.includes('orders.options')));
   assert.ok(statementNames.some((n) => n.includes('orders.pricing_version')));
+  assert.ok(statementNames.some((n) => n.includes('master_pricing_configs table')));
 
   for (const step of SCHEMA_STATEMENTS) {
     assert.ok(typeof step.name === 'string');
