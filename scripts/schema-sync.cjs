@@ -479,24 +479,23 @@ async function importLegacyMasterPricingConfig({ prisma, apply, logger = console
 
   const newId = crypto.randomUUID ? crypto.randomUUID() : `cfg_${Date.now()}`;
 
-  if (prisma.masterPricingConfig && typeof prisma.masterPricingConfig.create === 'function') {
-    await prisma.masterPricingConfig.create({
-      data: {
-        id: newId,
-        version: 1,
-        config: typeof configObj === 'object' ? configObj : JSON.parse(configJson),
-        createdBy: author,
-        createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt),
-      },
-    });
-  } else {
-    const safeJson = configJson.replace(/'/g, "''");
-    const safeAuthor = author ? `'${String(author).replace(/'/g, "''")}'` : 'NULL';
-    const safeCreated = createdAt instanceof Date ? createdAt.toISOString() : String(createdAt);
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO \`master_pricing_configs\` (\`id\`, \`version\`, \`config\`, \`created_by\`, \`created_at\`) VALUES ('${newId}', 1, '${safeJson}', ${safeAuthor}, '${safeCreated}')`
+  if (!prisma.masterPricingConfig || typeof prisma.masterPricingConfig.create !== 'function') {
+    const err = new Error(
+      'Gagal mengimpor konfigurasi harga: Model database MasterPricingConfig belum ter-generate di Prisma Client. Jalankan "npx prisma generate" sebelum sinkronisasi.',
     );
+    logger.error(`  [IMPORT ERROR] ${err.message}`);
+    throw err;
   }
+
+  await prisma.masterPricingConfig.create({
+    data: {
+      id: newId,
+      version: 1,
+      config: typeof configObj === 'object' ? configObj : JSON.parse(configJson),
+      createdBy: author,
+      createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt),
+    },
+  });
 
   logger.log(`  [IMPORTED] Imported latest PRICING_MASTER_CONFIG (${legacyLog.id}) into master_pricing_configs (id: ${newId}, version: 1).`);
   return { status: 'IMPORTED', id: newId, sourceLogId: legacyLog.id };

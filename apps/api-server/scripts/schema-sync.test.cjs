@@ -295,6 +295,40 @@ test('importLegacyMasterPricingConfig: Case B: skips import when table already c
   assert.equal(createdCount, 0);
 });
 
+test('importLegacyMasterPricingConfig: Case C: throws clear error if Prisma Client model is missing', async () => {
+  const mockConfig = { rates: { petugasUnit: 85000 } };
+  const mockPrisma = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('COUNT(*) AS cnt FROM `master_pricing_configs`')) {
+        return [{ cnt: 0 }];
+      }
+      if (sql.includes('PRICING_MASTER_CONFIG')) {
+        return [
+          {
+            id: 'log-123',
+            actor_user_id: 'user-admin',
+            metadata: JSON.stringify(mockConfig),
+            created_at: new Date('2026-11-20T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    },
+    // No masterPricingConfig model on prisma
+  };
+
+  await assert.rejects(
+    async () => {
+      await importLegacyMasterPricingConfig({
+        prisma: mockPrisma,
+        apply: true,
+        logger: silentLogger,
+      });
+    },
+    /Model database MasterPricingConfig belum ter-generate di Prisma Client/,
+  );
+});
+
 test('syncOrdersForeignKey: skips when already SET NULL, applies drop & add when different', async () => {
   // Case A: already SET NULL
   const mockPrismaSetNull = {
