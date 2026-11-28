@@ -954,31 +954,56 @@ export default function OrdersPage() {
           <TableSkeleton rows={5} columns={7} label="Memuat daftar pesanan..." />
         ) : error ? (
           <div style={{ padding: '2.5rem 1rem', textAlign: 'center' }}>
-            <div style={{ color: '#dc2626', fontWeight: 600, marginBottom: '0.75rem', fontSize: '0.95rem' }}>
-              {error === 'Internal server error' || error === 'Internal Server Error'
-                ? 'Terjadi kendala saat memuat data pesanan dari server.'
-                : error}
-            </div>
-            <button
-              type="button"
-              onClick={fetchOrders}
-              className="btn-sm-action"
+            <div
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '7px 16px',
+                gap: '8px',
+                padding: '12px 20px',
                 borderRadius: '8px',
-                background: '#fdfaf5',
-                color: '#9c7333',
-                border: '1px solid #e0c89e',
-                fontSize: '0.8125rem',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
                 fontWeight: 600,
-                cursor: 'pointer',
+                marginBottom: '1rem',
+                fontSize: '0.95rem',
+                maxWidth: '650px',
+                textAlign: 'left',
+                lineHeight: 1.5,
               }}
             >
-              🔄 Coba Muat Ulang Pesanan
-            </button>
+              <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+              <div>
+                <div>Gagal Memuat Daftar Pesanan</div>
+                <div style={{ fontWeight: 400, fontSize: '0.85rem', color: '#991b1b', marginTop: '2px' }}>
+                  {error === 'Internal server error' || error === 'Internal Server Error'
+                    ? 'Terjadi kendala saat memuat data pesanan dari server. Silakan muat ulang atau hubungi administrator.'
+                    : error}
+                </div>
+              </div>
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={fetchOrders}
+                className="btn-sm-action"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 18px',
+                  borderRadius: '8px',
+                  background: '#fdfaf5',
+                  color: '#9c7333',
+                  border: '1px solid #e0c89e',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                🔄 Coba Muat Ulang Pesanan
+              </button>
+            </div>
           </div>
         ) : orders.length === 0 ? (
           <EmptyState

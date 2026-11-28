@@ -76,9 +76,9 @@ describe('OrdersService', () => {
       },
       order: {
         findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        groupBy: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+        groupBy: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -198,6 +198,32 @@ describe('OrdersService', () => {
 
       await expect(service.getOrder('unknown')).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('listOrders', () => {
+    it('returns orders list, pagination metadata, and status counts', async () => {
+      prisma.order.count.mockResolvedValue(1);
+      prisma.order.findMany.mockResolvedValue([mockOrder]);
+      prisma.order.groupBy.mockResolvedValue([
+        { status: OrderStatus.DRAFT, _count: { _all: 1 } },
+      ]);
+
+      const result = await service.listOrders({ page: 1, limit: 10 });
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(result.counts.DRAFT).toBe(1);
+      expect(result.counts.TOTAL).toBe(1);
+    });
+
+    it('propagates error without swallowing when order query fails', async () => {
+      prisma.order.count.mockRejectedValue(
+        new Error('Database query connection timeout'),
+      );
+
+      await expect(service.listOrders({})).rejects.toThrow(
+        'Database query connection timeout',
       );
     });
   });

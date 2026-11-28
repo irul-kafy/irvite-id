@@ -138,62 +138,46 @@ export class OrdersService {
       ];
     }
 
-    let total = 0;
-    let orders: unknown[] = [];
-    let counts: Array<{
-      status?: string;
-      _count?: { _all?: number } | number;
-    }> = [];
-
-    try {
-      const [fetchedTotal, fetchedOrders, fetchedCounts] = await Promise.all([
-        this.prisma.order.count({ where }),
-        this.prisma.order.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            event: {
-              select: {
-                id: true,
-                title: true,
-                slug: true,
-                eventDate: true,
-                activeUntil: true,
-                status: true,
-                template: {
-                  select: {
-                    id: true,
-                    name: true,
-                    themeCode: true,
-                  },
+    // Do not swallow database errors; propagate to caller with clear reporting.
+    const [total, orders, fetchedCounts] = await Promise.all([
+      this.prisma.order.count({ where }),
+      this.prisma.order.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          event: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              eventDate: true,
+              activeUntil: true,
+              status: true,
+              template: {
+                select: {
+                  id: true,
+                  name: true,
+                  themeCode: true,
                 },
               },
             },
           },
-        }),
-        this.prisma.order
-          .groupBy({
-            by: ['status'],
-            _count: { _all: true },
-          })
-          .catch(() => []),
-      ]);
-      total = fetchedTotal;
-      orders = fetchedOrders;
-      counts = fetchedCounts as Array<{
-        status?: string;
-        _count?: { _all?: number } | number;
-      }>;
-    } catch (queryErr) {
-      this.logger.warn(
-        `[OrdersService.listOrders] Query error: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`,
-      );
-      total = 0;
-      orders = [];
-      counts = [];
-    }
+        },
+      }),
+      this.prisma.order
+        .groupBy({
+          by: ['status'],
+          _count: { _all: true },
+        })
+        .catch(() => []),
+    ]);
+
+    const counts = fetchedCounts as Array<{
+      status?: string;
+      _count?: { _all?: number } | number;
+    }>;
 
     const statusCounts: Record<string, number> = {
       TOTAL: 0,
