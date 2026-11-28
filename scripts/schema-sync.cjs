@@ -811,8 +811,26 @@ async function runSchemaSync({
   let pricingImportResult = null;
   try {
     pricingImportResult = await importLegacyMasterPricingConfig({ prisma, apply, logger });
+    if (pricingImportResult && pricingImportResult.status === 'FAILED') {
+      results.push({
+        name: 'import_legacy_master_pricing_config',
+        status: 'FAILED',
+        message: pricingImportResult.message || 'Legacy master pricing import failed',
+      });
+    }
   } catch (err) {
-    logger.warn(`  [IMPORT ERROR] ${err.message}`);
+    const errMsg = err && err.message ? err.message : String(err);
+    pricingImportResult = { status: 'FAILED', message: errMsg };
+    if (apply) {
+      logger.error(`  [FAILED] import_legacy_master_pricing_config: ${errMsg}`);
+      results.push({
+        name: 'import_legacy_master_pricing_config',
+        status: 'FAILED',
+        message: errMsg,
+      });
+    } else {
+      logger.warn(`  [IMPORT ERROR] ${errMsg}`);
+    }
   }
 
   let orphanResult = null;

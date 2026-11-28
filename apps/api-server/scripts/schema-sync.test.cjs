@@ -329,6 +329,47 @@ test('importLegacyMasterPricingConfig: Case C: throws clear error if Prisma Clie
   );
 });
 
+test('runSchemaSync records FAILED (success=false, exit code 1) when importLegacyMasterPricingConfig fails on --apply', async () => {
+  const mockPrisma = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('information_schema.TABLES')) return [];
+      if (sql.includes('information_schema.COLUMNS')) return [];
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'SET NULL' }];
+      }
+      if (sql.includes('COUNT(*) AS cnt FROM `master_pricing_configs`')) {
+        return [{ cnt: 0 }];
+      }
+      if (sql.includes('PRICING_MASTER_CONFIG')) {
+        return [
+          {
+            id: 'log-err-1',
+            actor_user_id: 'admin-1',
+            metadata: JSON.stringify({ serviceRates: { petugasUnit: 85000 } }),
+            created_at: new Date('2026-11-20T10:00:00Z'),
+          },
+        ];
+      }
+      return [];
+    },
+    $executeRawUnsafe: async () => 1,
+    // Missing masterPricingConfig.create causes importLegacyMasterPricingConfig to fail on apply=true
+  };
+
+  const outcome = await runSchemaSync({
+    prisma: mockPrisma,
+    apply: true,
+    cleanOrphans: false,
+    logger: silentLogger,
+  });
+
+  assert.equal(outcome.success, false, 'runSchemaSync must report success=false when legacy pricing import fails');
+  assert.equal(outcome.pricingImportResult.status, 'FAILED');
+  const failedStep = outcome.results.find((r) => r.name === 'import_legacy_master_pricing_config');
+  assert.ok(failedStep, 'results must include import_legacy_master_pricing_config entry');
+  assert.equal(failedStep.status, 'FAILED');
+});
+
 test('syncOrdersForeignKey: skips when already SET NULL, applies drop & add when different', async () => {
   // Case A: already SET NULL
   const mockPrismaSetNull = {
