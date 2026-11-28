@@ -53,7 +53,7 @@ test('schema-sync exports required idempotent DDL statements including master_pr
 
 test('schema-sync exports orphan cleanup steps with count queries', () => {
   assert.ok(Array.isArray(ORPHAN_CLEANUP_STEPS));
-  assert.equal(ORPHAN_CLEANUP_STEPS.length, 3);
+  assert.equal(ORPHAN_CLEANUP_STEPS.length, 2);
   for (const step of ORPHAN_CLEANUP_STEPS) {
     assert.ok(step.sql.startsWith('DELETE FROM'));
     assert.ok(step.countSql.startsWith('SELECT COUNT(*)'));
@@ -110,6 +110,13 @@ test('runSchemaSync with apply=true executes statements', async () => {
   assert.ok(outcome.success);
 });
 
+test('ORPHAN_CLEANUP_STEPS excludes orders (orders are never deleted)', () => {
+  assert.equal(ORPHAN_CLEANUP_STEPS.length, 2);
+  const tables = ORPHAN_CLEANUP_STEPS.map((s) => s.table);
+  assert.ok(!tables.includes('orders'), 'orders must not be in ORPHAN_CLEANUP_STEPS');
+  assert.deepEqual(tables.sort(), ['offline_sync_ops', 'wishes'].sort());
+});
+
 test('cleanOrphansWithSafety rejects when COUNT(events) is 0', async () => {
   const mockPrisma = {
     $queryRawUnsafe: async (sql) => {
@@ -131,14 +138,57 @@ test('cleanOrphansWithSafety rejects when COUNT(events) is 0', async () => {
   );
 });
 
+test('cleanOrphansWithSafety preserves orphaned orders by setting event_id NULL instead of deleting', async () => {
+  let executedQueries = [];
+  const mockPrisma = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('COUNT(*) AS cnt FROM `events`')) return [{ cnt: 10 }];
+      if (sql.includes('FROM `orders` WHERE `event_id` IS NOT NULL')) {
+        return [
+          { id: 'order-orphan-1', reference_code: 'REF001', event_id: 'missing-event-1' },
+          { id: 'order-orphan-2', reference_code: 'REF002', event_id: 'missing-event-2' },
+        ];
+      }
+      return [{ cnt: 0 }];
+    },
+    $executeRawUnsafe: async (sql) => {
+      executedQueries.push(sql);
+      return 2;
+    },
+  };
+
+  // Case 1: dry run does not execute UPDATE or DELETE
+  const dryRes = await cleanOrphansWithSafety({
+    prisma: mockPrisma,
+    apply: false,
+    force: false,
+    logger: silentLogger,
+  });
+  assert.equal(dryRes.orphanedOrdersCount, 2);
+  assert.deepEqual(dryRes.orphanedOrderIds, ['order-orphan-1', 'order-orphan-2']);
+  assert.equal(executedQueries.length, 0);
+
+  // Case 2: apply=true executes UPDATE orders SET event_id = NULL, never DELETE FROM orders
+  const applyRes = await cleanOrphansWithSafety({
+    prisma: mockPrisma,
+    apply: true,
+    force: false,
+    logger: silentLogger,
+  });
+  assert.equal(applyRes.orphanedOrdersCount, 2);
+  assert.equal(executedQueries.length, 1);
+  assert.ok(executedQueries[0].includes('UPDATE `orders` SET `event_id` = NULL'));
+  assert.ok(!executedQueries.some((q) => q.includes('DELETE FROM `orders`')));
+});
+
 test('cleanOrphansWithSafety rejects when candidates > 50 without --force and allows with --force', async () => {
   let deletedCount = 0;
   const mockPrisma = {
     $queryRawUnsafe: async (sql) => {
       if (sql.includes('COUNT(*) AS cnt FROM `events`')) return [{ cnt: 15 }];
-      if (sql.includes('orders')) return [{ cnt: 30 }];
-      if (sql.includes('wishes')) return [{ cnt: 25 }];
-      if (sql.includes('offline_sync_ops')) return [{ cnt: 5 }];
+      if (sql.includes('FROM `orders`')) return [];
+      if (sql.includes('wishes')) return [{ cnt: 35 }];
+      if (sql.includes('offline_sync_ops')) return [{ cnt: 20 }];
       return [{ cnt: 0 }];
     },
     $executeRawUnsafe: async () => {
@@ -147,7 +197,7 @@ test('cleanOrphansWithSafety rejects when candidates > 50 without --force and al
     },
   };
 
-  // 1. Without force (total: 30+25+5 = 60 > 50) -> must reject
+  // 1. Without force (total: 35+20 = 55 > 50) -> must reject
   await assert.rejects(
     async () => {
       await cleanOrphansWithSafety({ prisma: mockPrisma, apply: true, force: false, logger: silentLogger });
@@ -156,7 +206,7 @@ test('cleanOrphansWithSafety rejects when candidates > 50 without --force and al
   );
   assert.equal(deletedCount, 0);
 
-  // 2. With force=true -> must proceed and delete
+  // 2. With force=true -> must proceed and delete wishes + offline_sync_ops
   const res = await cleanOrphansWithSafety({
     prisma: mockPrisma,
     apply: true,
@@ -164,8 +214,8 @@ test('cleanOrphansWithSafety rejects when candidates > 50 without --force and al
     logger: silentLogger,
   });
   assert.equal(res.status, 'DELETED');
-  assert.equal(res.totalDeleted, 60);
-  assert.equal(deletedCount, 3);
+  assert.equal(res.totalDeleted, 55);
+  assert.equal(deletedCount, 2);
 });
 
 test('importLegacyMasterPricingConfig: Case A: imports once when table is empty and ActivityLog has config', async () => {

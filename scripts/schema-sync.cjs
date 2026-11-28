@@ -247,12 +247,6 @@ const SCHEMA_STATEMENTS = [
 
 const ORPHAN_CLEANUP_STEPS = [
   {
-    name: 'Orphaned orders cleanup',
-    table: 'orders',
-    countSql: 'SELECT COUNT(*) AS cnt FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-    sql: 'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-  },
-  {
     name: 'Orphaned wishes cleanup',
     table: 'wishes',
     countSql: 'SELECT COUNT(*) AS cnt FROM `wishes` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
@@ -525,6 +519,51 @@ async function cleanOrphansWithSafety({ prisma, apply, force, logger = console }
     throw new Error(msg);
   }
 
+  // 1. Orphaned orders: NEVER deleted. Only reported (count + IDs) and set event_id = NULL on apply.
+  let orphanedOrders = [];
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      'SELECT `id`, `reference_code`, `event_id` FROM `orders` WHERE `event_id` IS NOT NULL AND `event_id` NOT IN (SELECT `id` FROM `events`)'
+    );
+    if (Array.isArray(rows)) {
+      orphanedOrders = rows;
+    }
+  } catch (err) {
+    logger.warn(`  [ORPHAN ORDERS WARN] Could not query orphaned orders: ${err.message}`);
+  }
+
+  const orphanedOrdersCount = orphanedOrders.length;
+  const orphanedOrderIds = orphanedOrders.map((o) => o.id || o.ID);
+
+  if (orphanedOrdersCount > 0) {
+    logger.warn(`  [ORPHANED ORDERS PRESERVED] Found ${orphanedOrdersCount} order(s) pointing to non-existent events. ORDERS ARE NEVER DELETED.`);
+    for (const o of orphanedOrders.slice(0, 10)) {
+      const ref = o.reference_code || o.referenceCode || '-';
+      const evId = o.event_id || o.eventId;
+      logger.warn(`    - Order ID: ${o.id} (ref: ${ref}, invalid event_id: ${evId})`);
+    }
+    if (orphanedOrdersCount > 10) {
+      logger.warn(`    ... and ${orphanedOrdersCount - 10} more orphaned order(s)`);
+    }
+
+    if (apply) {
+      try {
+        const updated = await prisma.$executeRawUnsafe(
+          'UPDATE `orders` SET `event_id` = NULL WHERE `event_id` IS NOT NULL AND `event_id` NOT IN (SELECT `id` FROM `events`)'
+        );
+        logger.log(`  [PRESERVED] Set event_id = NULL for ${updated} orphaned order(s). No order data deleted.`);
+      } catch (err) {
+        logger.error(`  [PRESERVE ERROR] Failed to set event_id = NULL for orphaned orders: ${err.message}`);
+        throw err;
+      }
+    } else {
+      logger.log(`  [DRY-RUN] Would set event_id = NULL for ${orphanedOrdersCount} orphaned order(s) (NEVER deleted).`);
+    }
+  } else {
+    logger.log('  [ORPHANED ORDERS] 0 orphaned orders found.');
+  }
+
+  // 2. Count candidates for wishes & offline_sync_ops
   const tableCounts = {};
   let totalCandidates = 0;
 
@@ -541,15 +580,19 @@ async function cleanOrphansWithSafety({ prisma, apply, force, logger = console }
     }
   }
 
-  logger.log('  [ORPHAN CANDIDATES COUNT]:');
-  for (const [table, count] of Object.entries(tableCounts)) {
-    logger.log(`    - ${table}: ${count} orphaned row(s)`);
-  }
+  logger.log('  [ORPHAN CANDIDATES COUNT (wishes, offline_sync_ops)]:\n' +
+    Object.entries(tableCounts).map(([t, c]) => `    - ${t}: ${c} orphaned row(s)`).join('\n'));
   logger.log(`    Total deletion candidates: ${totalCandidates}`);
 
   if (totalCandidates === 0) {
-    logger.log('  [CLEAN] No orphaned records found. Nothing to delete.');
-    return { status: 'CLEAN', totalCandidates: 0, tableCounts };
+    logger.log('  [CLEAN] No orphaned records found in wishes/offline_sync_ops. Nothing to delete.');
+    return {
+      status: 'CLEAN',
+      totalCandidates: 0,
+      tableCounts,
+      orphanedOrdersCount,
+      orphanedOrderIds,
+    };
   }
 
   if (totalCandidates > 50 && !force) {
@@ -560,7 +603,13 @@ async function cleanOrphansWithSafety({ prisma, apply, force, logger = console }
 
   if (!apply) {
     logger.log(`  [DRY-RUN] Safety checks passed. Would delete ${totalCandidates} orphaned record(s) across tables. Run with --apply to execute.`);
-    return { status: 'WOULD_DELETE', totalCandidates, tableCounts };
+    return {
+      status: 'WOULD_DELETE',
+      totalCandidates,
+      tableCounts,
+      orphanedOrdersCount,
+      orphanedOrderIds,
+    };
   }
 
   const deletedPerTable = {};
@@ -575,7 +624,14 @@ async function cleanOrphansWithSafety({ prisma, apply, force, logger = console }
     }
   }
 
-  return { status: 'DELETED', totalDeleted: totalCandidates, deletedPerTable, tableCounts };
+  return {
+    status: 'DELETED',
+    totalDeleted: totalCandidates,
+    deletedPerTable,
+    tableCounts,
+    orphanedOrdersCount,
+    orphanedOrderIds,
+  };
 }
 
 async function runSchemaSync({
