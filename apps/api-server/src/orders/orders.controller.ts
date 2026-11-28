@@ -56,16 +56,16 @@ export class OrdersController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get()
   listOrders(
-    @CurrentUser() _user: AuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() query: OrderQueryDto,
   ) {
-    return this.ordersService.listOrders(query);
+    return this.ordersService.listOrders(query, user);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get(':id')
-  getOrder(@CurrentUser() _user: AuthenticatedUser, @Param('id') id: string) {
-    return this.ordersService.getOrder(id);
+  getOrder(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ordersService.getOrder(id, user);
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)

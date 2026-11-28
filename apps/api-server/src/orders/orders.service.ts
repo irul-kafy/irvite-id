@@ -116,13 +116,24 @@ export class OrdersService {
 
   /**
    * List orders with optional status filter, search, and pagination.
+   * Regular ADMINs are restricted to orders of events belonging to their tenant account.
    */
-  async listOrders(query: OrderQueryDto) {
+  async listOrders(
+    query: OrderQueryDto,
+    actor?: { userId?: string; id?: string; role?: Role },
+  ) {
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
     const where: Prisma.OrderWhereInput = {};
+
+    if (actor?.role === Role.ADMIN) {
+      const adminUserId = actor.userId || actor.id;
+      if (adminUserId) {
+        where.event = { userId: adminUserId };
+      }
+    }
 
     if (query.status) {
       where.status = query.status;
@@ -137,6 +148,9 @@ export class OrdersService {
         { event: { title: { contains: term } } },
       ];
     }
+
+    const countWhere: Prisma.OrderWhereInput = { ...where };
+    delete countWhere.status;
 
     // Do not swallow database errors; propagate to caller with clear reporting.
     const [total, orders, fetchedCounts] = await Promise.all([
@@ -169,6 +183,7 @@ export class OrdersService {
       this.prisma.order
         .groupBy({
           by: ['status'],
+          where: countWhere,
           _count: { _all: true },
         })
         .catch(() => []),
@@ -223,12 +238,25 @@ export class OrdersService {
 
   /**
    * Get single order by id or reference code.
+   * Regular ADMINs are restricted to orders belonging to their own tenant events.
    */
-  async getOrder(id: string) {
+  async getOrder(
+    id: string,
+    actor?: { userId?: string; id?: string; role?: Role },
+  ) {
+    const where: Prisma.OrderWhereInput = {
+      OR: [{ id }, { referenceCode: id }],
+    };
+
+    if (actor?.role === Role.ADMIN) {
+      const adminUserId = actor.userId || actor.id;
+      if (adminUserId) {
+        where.event = { userId: adminUserId };
+      }
+    }
+
     const order = await this.prisma.order.findFirst({
-      where: {
-        OR: [{ id }, { referenceCode: id }],
-      },
+      where,
       include: {
         event: {
           include: {
@@ -240,6 +268,15 @@ export class OrdersService {
 
     if (!order) {
       throw new NotFoundException(`Order '${id}' not found`);
+    }
+
+    if (actor?.role === Role.ADMIN) {
+      const adminUserId = actor.userId || actor.id;
+      if (adminUserId && order.event?.userId !== adminUserId) {
+        throw new ForbiddenException(
+          'Akses ditolak: Anda tidak memiliki akses ke pesanan untuk acara ini.',
+        );
+      }
     }
 
     return order;
@@ -373,6 +410,15 @@ export class OrdersService {
 
     if (!order) {
       throw new NotFoundException(`Order '${id}' not found`);
+    }
+
+    if (actor?.role === Role.ADMIN) {
+      const adminUserId = actor.userId || actor.id;
+      if (adminUserId && order.event?.userId !== adminUserId) {
+        throw new ForbiddenException(
+          'Akses ditolak: Anda tidak memiliki akses ke pesanan untuk acara ini.',
+        );
+      }
     }
 
     // Validate status transition if status is being updated

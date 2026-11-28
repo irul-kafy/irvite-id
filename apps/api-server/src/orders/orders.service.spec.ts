@@ -226,6 +226,41 @@ describe('OrdersService', () => {
         'Database query connection timeout',
       );
     });
+
+    it('scopes orders to tenant events for ADMIN role', async () => {
+      prisma.order.count.mockResolvedValue(1);
+      prisma.order.findMany.mockResolvedValue([mockOrder]);
+      prisma.order.groupBy.mockResolvedValue([]);
+
+      await service.listOrders({}, { id: 'adm-tenant-1', role: Role.ADMIN });
+
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          event: { userId: 'adm-tenant-1' },
+        }),
+      });
+      expect(prisma.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            event: { userId: 'adm-tenant-1' },
+          }),
+        }),
+      );
+    });
+
+    it('does not scope orders for SUPER_ADMIN role (sees all tenants)', async () => {
+      prisma.order.count.mockResolvedValue(1);
+      prisma.order.findMany.mockResolvedValue([mockOrder]);
+      prisma.order.groupBy.mockResolvedValue([]);
+
+      await service.listOrders({}, { id: 'super-1', role: Role.SUPER_ADMIN });
+
+      expect(prisma.order.count).toHaveBeenCalledWith({
+        where: expect.not.objectContaining({
+          event: expect.anything(),
+        }),
+      });
+    });
   });
 
   describe('updateOrder', () => {
@@ -254,6 +289,24 @@ describe('OrdersService', () => {
         }),
       );
       expect(updated.status).toBe(OrderStatus.PAID);
+    });
+
+    it('rejects ADMIN updating an order belonging to another tenant', async () => {
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        event: {
+          ...mockEvent,
+          userId: 'other-user-999',
+        },
+      });
+
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          { status: OrderStatus.AWAITING_PAYMENT },
+          { id: 'adm-user-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('publishes event when order becomes LIVE', async () => {
