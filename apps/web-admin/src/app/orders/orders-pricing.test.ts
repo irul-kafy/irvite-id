@@ -49,4 +49,12 @@ test('Admin Orders page displays package breakdown, UNSELECTED badge, and editab
     content.includes('calculateOrderPrice'),
     'Must recalculate live total and entitlements via calculateOrderPrice in admin modal',
   );
+  assert.ok(
+    content.includes('data-testid="order-status-modal"') &&
+      content.includes('data-testid="order-pricing-modal"') &&
+      content.includes('Atur Paket &amp; Harga') &&
+      content.includes('handleSaveStatusOnly') &&
+      content.includes('handleSavePricingOnly'),
+    'Must strictly separate Ubah Status modal from SUPER_ADMIN Atur Paket & Harga modal',
+  );
 });

@@ -88,6 +88,14 @@ interface EventData {
   status: string;
   createdAt: string;
   updatedAt: string;
+  qrCheckInEnabled?: boolean;
+  order?: {
+    id: string;
+    referenceCode?: string | null;
+    packageCode?: string | null;
+    priceAmount?: number | null;
+    status?: string | null;
+  } | null;
 }
 
 interface TemplateData {
@@ -457,6 +465,10 @@ export default function EventDetailPage({
   }
 
   const availability = getPublicAvailabilityState(event.status, event.eventDate);
+  const isQrCheckInEnabled =
+    event.qrCheckInEnabled !== undefined
+      ? event.qrCheckInEnabled
+      : event.order?.packageCode !== 'SACRED';
   const formattedDate = new Date(event.eventDate).toLocaleDateString('id-ID', {
     weekday: 'long',
     year: 'numeric',
@@ -650,14 +662,16 @@ export default function EventDetailPage({
         >
           Tamu Undangan &rarr;
         </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-ghost"
-          onClick={() => router.push(`/events/${event.id}/monitor`)}
-          style={{ color: 'var(--status-success, #059669)', fontWeight: 600 }}
-        >
-          Live Monitor ⚡
-        </button>
+        {isQrCheckInEnabled && (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={() => router.push(`/events/${event.id}/monitor`)}
+            style={{ color: 'var(--status-success, #059669)', fontWeight: 600 }}
+          >
+            Live Monitor ⚡
+          </button>
+        )}
         <button
           type="button"
           role="tab"
@@ -1142,49 +1156,90 @@ export default function EventDetailPage({
             {/* Module: QR Scanner */}
             <div
               className="action-card"
-              onClick={() => router.push(`/events/${event.id}/scanner`)}
+              onClick={() => {
+                if (!isQrCheckInEnabled) {
+                  alert(
+                    'Fitur Scanner Kehadiran QR hanya aktif untuk pemesanan Paket Buku Tamu Digital. Acara ini menggunakan Paket Undangan Digital (tanpa scan QR di lokasi).',
+                  );
+                  return;
+                }
+                router.push(`/events/${event.id}/scanner`);
+              }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/scanner`); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (!isQrCheckInEnabled) return;
+                  router.push(`/events/${event.id}/scanner`);
+                }
+              }}
               id="hub-scanner-card"
+              style={!isQrCheckInEnabled ? { opacity: 0.65 } : undefined}
             >
               <div className="action-card__icon-wrap stat-card__icon-wrap--emerald">
                 <IconScan />
               </div>
               <div>
-                <div className="action-card__title">Scanner Kehadiran QR</div>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span>Scanner Kehadiran QR</span>
+                  {!isQrCheckInEnabled && (
+                    <span className="badge badge--warning" style={{ fontSize: '0.6875rem' }}>
+                      KHUSUS BUKU TAMU
+                    </span>
+                  )}
+                </div>
                 <div className="action-card__desc">
-                  Buka kamera scanner check-in untuk memverifikasi QR Code tamu undangan di pintu masuk acara secara real-time.
+                  {isQrCheckInEnabled
+                    ? 'Buka kamera scanner check-in untuk memverifikasi QR Code tamu undangan di pintu masuk acara secara real-time.'
+                    : 'Tidak aktif pada Paket Undangan Digital. Upgrade ke Paket Buku Tamu Digital untuk mengaktifkan tiket QR & scanner check-in.'}
                 </div>
               </div>
               <div className="action-card__arrow">
-                Buka Scanner QR &rarr;
+                {isQrCheckInEnabled ? 'Buka Scanner QR →' : 'Khusus Paket Buku Tamu'}
               </div>
             </div>
 
             {/* Module: Live Attendance Monitor */}
             <div
               className="action-card"
-              onClick={() => router.push(`/events/${event.id}/monitor`)}
+              onClick={() => {
+                if (!isQrCheckInEnabled) {
+                  alert(
+                    'Fitur Live Monitor Kehadiran hanya aktif untuk pemesanan Paket Buku Tamu Digital.',
+                  );
+                  return;
+                }
+                router.push(`/events/${event.id}/monitor`);
+              }}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/events/${event.id}/monitor`); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (!isQrCheckInEnabled) return;
+                  router.push(`/events/${event.id}/monitor`);
+                }
+              }}
               id="hub-monitor-card"
+              style={!isQrCheckInEnabled ? { opacity: 0.65 } : undefined}
             >
               <div className="action-card__icon-wrap" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#059669' }}>
                 <span style={{ fontSize: '1.25rem' }}>⚡</span>
               </div>
               <div>
-                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="action-card__title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   Live Monitor &amp; WO Hub
-                  <span className="badge badge--success" style={{ fontSize: '0.6875rem' }}>LIVE SYNC</span>
+                  <span className={`badge ${isQrCheckInEnabled ? 'badge--success' : 'badge--warning'}`} style={{ fontSize: '0.6875rem' }}>
+                    {isQrCheckInEnabled ? 'LIVE SYNC' : 'KHUSUS BUKU TAMU'}
+                  </span>
                 </div>
                 <div className="action-card__desc">
-                  Pantau tamu yang sudah hadir secara realtime di HP/tablet, counter kuota porsi pax, dan integrasikan sinkronisasi otomatis ke Google Sheets.
+                  {isQrCheckInEnabled
+                    ? 'Pantau tamu yang sudah hadir secara realtime di HP/tablet, counter kuota porsi pax, dan integrasikan sinkronisasi otomatis ke Google Sheets.'
+                    : 'Pemantauan check-in lokasi dan sinkronisasi kehadiran buku tamu hanya aktif untuk Paket Buku Tamu Digital.'}
                 </div>
               </div>
               <div className="action-card__arrow">
-                Buka Live Monitor &rarr;
+                {isQrCheckInEnabled ? 'Buka Live Monitor →' : 'Khusus Paket Buku Tamu'}
               </div>
             </div>
 

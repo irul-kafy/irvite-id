@@ -21,6 +21,7 @@ import { validateEventContent } from '../templates/definitions';
 import { mapRsvpStatus } from './public-invitation-rsvp';
 import { stripPublicDraftTag } from '../events/events.service';
 import { isBotUserAgent } from './crawler-detector';
+import { isOrderQrCheckInEnabled } from '../orders/packages';
 
 @Injectable()
 export class InvitationsService {
@@ -309,6 +310,10 @@ export class InvitationsService {
         eventDate: Date;
         locationDetails: string | null;
         content: unknown;
+        order?: {
+          packageCode: string;
+          options: unknown;
+        } | null;
         template: {
           themeCode: string;
           config: unknown;
@@ -345,6 +350,12 @@ export class InvitationsService {
               eventDate: true,
               locationDetails: true,
               content: true,
+              order: {
+                select: {
+                  packageCode: true,
+                  options: true,
+                },
+              },
               template: {
                 select: {
                   themeCode: true,
@@ -522,6 +533,8 @@ export class InvitationsService {
         eventDate: invitation.event.eventDate,
         locationDetails: invitation.event.locationDetails,
         content: publicContent,
+        packageCode: invitation.event.order?.packageCode ?? null,
+        qrCheckInEnabled: isOrderQrCheckInEnabled(invitation.event.order),
       },
       template: invitation.event.template
         ? {

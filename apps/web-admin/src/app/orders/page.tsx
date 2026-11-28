@@ -17,13 +17,17 @@ import {
   SUPERVISOR,
   WEDDING_PACKAGE_CATALOG,
   calculateOrderPrice,
+  createDefaultMasterPricingConfig,
   getPackageDisplayLabel,
   isCapacityTier,
   isPresetPackageCode,
   isSelectablePackageCode,
+  normalizeMasterPricingConfig,
   type CapacityTier,
   type CustomExtraLineItemInput,
+  type CustomPackagePreset,
   type CustomServiceUnitPrices,
+  type MasterPricingConfig,
   type OrderPriceLineItem,
   type OrderPricingOptionsInput,
   type SuperAdminPricingOverride,
@@ -157,10 +161,15 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [ticketSearchQuery, setTicketSearchQuery] = useState('');
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'CANCELLED'>('ALL');
-  const [updatingOrder, setUpdatingOrder] = useState<OrderItem | null>(null);
+  const [statusModalOrder, setStatusModalOrder] = useState<OrderItem | null>(null);
+  const [pricingModalOrder, setPricingModalOrder] = useState<OrderItem | null>(null);
+  const [masterConfig, setMasterConfig] = useState<MasterPricingConfig>(() =>
+    createDefaultMasterPricingConfig(),
+  );
   const [userRole, setUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'STAFF' | null>(null);
   const isSuperAdmin = userRole === 'SUPER_ADMIN';
   const [newStatus, setNewStatus] = useState<string>('');
+  const [newPaymentProof, setNewPaymentProof] = useState<string>('');
   const [newPackageCode, setNewPackageCode] = useState<string>('');
   const [newOptions, setNewOptions] = useState<OrderPricingOptionsInput>({
     extraPetugas: 0,
@@ -190,6 +199,15 @@ export default function OrdersPage() {
       .then((data) => {
         if (data?.user?.role) {
           setUserRole(data.user.role);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/pricing-config', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((cfg) => {
+        if (cfg) {
+          setMasterConfig(normalizeMasterPricingConfig(cfg));
         }
       })
       .catch(() => {});
@@ -241,15 +259,16 @@ export default function OrdersPage() {
   }, [selectedStatus]);
 
   useEffect(() => {
-    if (!updatingOrder) return;
+    if (!statusModalOrder && !pricingModalOrder) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !submitting) {
-        setUpdatingOrder(null);
+        setStatusModalOrder(null);
+        setPricingModalOrder(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [updatingOrder, submitting]);
+  }, [statusModalOrder, pricingModalOrder, submitting]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,14 +298,29 @@ export default function OrdersPage() {
     };
   };
 
-  const openUpdateModal = (order: OrderItem) => {
+  const openStatusModal = (order: OrderItem) => {
+    setPricingModalOrder(null);
+    setStatusModalOrder(order);
+    setNewStatus(order.status);
+    setNewPaymentProof(order.paymentProofMediaId || '');
+    setNotes(order.notes || '');
+    if (order.event.activeUntil) {
+      const d = new Date(order.event.activeUntil);
+      setNewActiveUntil(d.toISOString().split('T')[0]);
+    } else {
+      setNewActiveUntil('');
+    }
+  };
+
+  const openPricingModal = (order: OrderItem) => {
+    if (!isSuperAdmin) return;
+    setStatusModalOrder(null);
     const code = (order.packageCode || 'UNSELECTED').trim().toUpperCase();
     const baseOpts = buildDefaultOptionsForCode(code);
     const savedInput = order.options?.input;
     const savedMaxGuests = order.options?.entitlements?.maxGuests;
     const savedSa = order.options?.superAdminCustom;
-    setUpdatingOrder(order);
-    setNewStatus(order.status);
+    setPricingModalOrder(order);
     setNewPackageCode(code);
     setNewOptions({
       ...baseOpts,
@@ -340,13 +374,33 @@ export default function OrdersPage() {
       typeof origPrice === 'number' && origPrice > 0 ? String(origPrice) : '',
     );
     setNewPriceAmount(String(order.priceAmount ?? 0));
-    setNotes(order.notes || '');
-    if (order.event.activeUntil) {
-      const d = new Date(order.event.activeUntil);
-      setNewActiveUntil(d.toISOString().split('T')[0]);
-    } else {
-      setNewActiveUntil('');
-    }
+  };
+
+  const applyMasterCustomPreset = (preset: CustomPackagePreset) => {
+    setNewPackageCode('CUSTOM');
+    const nearestTier: CapacityTier =
+      preset.maxGuests <= 50
+        ? 50
+        : preset.maxGuests <= 150
+          ? 150
+          : preset.maxGuests <= 300
+            ? 300
+            : 600;
+    setNewOptions({
+      capacityTier: nearestTier,
+      extraPetugas: preset.petugasCount,
+      extraHoursPerPetugas: preset.extraHoursPerPetugas,
+      supervisor: preset.supervisorCount,
+      akrilik: preset.akrilikQris,
+      gladi: preset.gladiH1,
+    });
+    setEnableSuperAdminCustom(true);
+    setCustomPackageName(preset.name);
+    setCustomMaxGuests(String(preset.maxGuests));
+    setCustomGoogleSheetLive(preset.googleSheetLive);
+    setCustomPostEventReport(preset.postEventReport);
+    setNewOriginalPriceAmount(String(preset.originalPrice));
+    setNewPriceAmount(String(preset.price));
   };
 
   const buildSuperAdminOverrideFromState = (): SuperAdminPricingOverride | undefined => {
@@ -422,25 +476,56 @@ export default function OrdersPage() {
     const defaults = buildDefaultOptionsForCode(nextCode);
     setNewPackageCode(nextCode);
     setNewOptions(defaults);
-    // Only auto-fill final price if the order was previously UNSELECTED / 0; otherwise preserve admin's final price
     if (
-      updatingOrder &&
-      ((updatingOrder.packageCode || '').toUpperCase() === 'UNSELECTED' ||
-        updatingOrder.priceAmount <= 0) &&
+      pricingModalOrder &&
+      ((pricingModalOrder.packageCode || '').toUpperCase() === 'UNSELECTED' ||
+        pricingModalOrder.priceAmount <= 0) &&
       isSelectablePackageCode(nextCode)
     ) {
       const calc = calculateOrderPrice({
         packageCode: nextCode,
         capacityTier: defaults.capacityTier,
         options: defaults,
+        masterConfig,
       });
       setNewPriceAmount(String(calc.total));
       setNewOriginalPriceAmount(String(calc.normalTotal));
     }
   };
 
-  const handleSaveStatus = async () => {
-    if (!updatingOrder) return;
+  const handleSaveStatusOnly = async () => {
+    if (!statusModalOrder) return;
+    try {
+      setSubmitting(true);
+      const res = await fetch(`/api/orders/${statusModalOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: newStatus,
+          paymentProofMediaId: newPaymentProof.trim() || null,
+          notes: notes || undefined,
+          activeUntil: newActiveUntil ? new Date(newActiveUntil).toISOString() : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || 'Gagal memperbarui status pesanan');
+      }
+
+      setActionSuccess(`Status pesanan ${statusModalOrder.referenceCode} berhasil diperbarui.`);
+      setStatusModalOrder(null);
+      await fetchOrders();
+      setTimeout(() => setActionSuccess(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Gagal memperbarui status');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSavePricingOnly = async () => {
+    if (!pricingModalOrder || !isSuperAdmin) return;
     const parsedPrice = Number(newPriceAmount);
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
       alert('Harga Final (Rp) harus berupa angka >= 0');
@@ -449,17 +534,16 @@ export default function OrdersPage() {
     const isSelectable = isSelectablePackageCode(newPackageCode);
     const superAdminPayload = buildSuperAdminOverrideFromState();
     const parsedOriginal =
-      isSuperAdmin && newOriginalPriceAmount.trim() !== ''
+      newOriginalPriceAmount.trim() !== ''
         ? Math.max(0, Math.round(Number(newOriginalPriceAmount) || 0))
         : undefined;
 
     try {
       setSubmitting(true);
-      const res = await fetch(`/api/orders/${updatingOrder.id}`, {
+      const res = await fetch(`/api/orders/${pricingModalOrder.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: newStatus,
           packageCode: newPackageCode || undefined,
           options: isSelectable
             ? {
@@ -474,34 +558,28 @@ export default function OrdersPage() {
                   : 50,
               }
             : undefined,
-          ...(isSuperAdmin
-            ? {
-                superAdminCustom: enableSuperAdminCustom
-                  ? superAdminPayload
-                  : parsedOriginal !== undefined
-                    ? { originalPriceAmount: parsedOriginal }
-                    : null,
-                originalPriceAmount:
-                  parsedOriginal !== undefined ? parsedOriginal : null,
-                priceAmount: Math.round(parsedPrice),
-              }
-            : {}),
-          notes: notes || undefined,
-          activeUntil: newActiveUntil ? new Date(newActiveUntil).toISOString() : undefined,
+          superAdminCustom: enableSuperAdminCustom
+            ? superAdminPayload
+            : parsedOriginal !== undefined
+              ? { originalPriceAmount: parsedOriginal }
+              : null,
+          originalPriceAmount:
+            parsedOriginal !== undefined ? parsedOriginal : null,
+          priceAmount: Math.round(parsedPrice),
         }),
       });
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || 'Gagal memperbarui pesanan');
+        throw new Error(body.message || 'Gagal memperbarui paket & harga pesanan');
       }
 
-      setActionSuccess(`Pesanan ${updatingOrder.referenceCode} berhasil diperbarui.`);
-      setUpdatingOrder(null);
+      setActionSuccess(`Paket & harga pesanan ${pricingModalOrder.referenceCode} berhasil diperbarui.`);
+      setPricingModalOrder(null);
       await fetchOrders();
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Gagal memperbarui status');
+      alert(err instanceof Error ? err.message : 'Gagal memperbarui paket & harga');
     } finally {
       setSubmitting(false);
     }
@@ -529,6 +607,29 @@ export default function OrdersPage() {
             Pantau status pesanan undangan pernikahan maupun transaksi pembelian e-ticket konser &amp; seminar.
           </p>
         </div>
+
+        {isSuperAdmin && (
+          <Link
+            href="/pricing"
+            data-testid="goto-master-pricing-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '0.55rem 0.95rem',
+              borderRadius: '8px',
+              background: '#fffbeb',
+              border: '1px solid #fcd34d',
+              color: '#92400e',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <span>🏷️</span>
+            <span>Master Paket &amp; Layanan</span>
+          </Link>
+        )}
       </div>
 
       {/* ── Category Switcher: Undangan Pernikahan vs Tiket Event ── */}
@@ -1085,21 +1186,53 @@ export default function OrdersPage() {
                         )}
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <button
-                          onClick={() => openUpdateModal(order)}
+                        <div
                           style={{
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '6px',
-                            border: '1px solid #cbd5e1',
-                            background: '#fff',
-                            color: '#0f172a',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            gap: '6px',
+                            flexWrap: 'wrap',
+                            justifyContent: 'flex-end',
                           }}
                         >
-                          Ubah Status
-                        </button>
+                          <button
+                            type="button"
+                            data-testid={`btn-order-status-${order.referenceCode}`}
+                            onClick={() => openStatusModal(order)}
+                            style={{
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '6px',
+                              border: '1px solid #cbd5e1',
+                              background: '#fff',
+                              color: '#0f172a',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Ubah Status
+                          </button>
+                          {isSuperAdmin && (
+                            <button
+                              type="button"
+                              data-testid={`btn-order-pricing-${order.referenceCode}`}
+                              onClick={() => openPricingModal(order)}
+                              style={{
+                                padding: '0.35rem 0.75rem',
+                                borderRadius: '6px',
+                                border: '1px solid #f59e0b',
+                                background: '#fffbeb',
+                                color: '#92400e',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Atur Paket &amp; Harga
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1112,30 +1245,233 @@ export default function OrdersPage() {
         </>
       )}
 
-      {/* ── Status Update Modal ── */}
-      {updatingOrder && typeof document !== 'undefined' && createPortal(
+      {/* ── MODAL 1: Ubah Status Pesanan (Murni Alur Pembayaran & Publikasi) ── */}
+      {statusModalOrder && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="order-modal-title"
+          aria-labelledby="order-status-modal-title"
+          data-testid="order-status-modal"
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '1rem' }}
           onClick={(e) => {
-            if (e.target === e.currentTarget && !submitting) setUpdatingOrder(null);
+            if (e.target === e.currentTarget && !submitting) setStatusModalOrder(null);
           }}
         >
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '640px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 id="order-modal-title" style={{ margin: '0 0 0.75rem', fontSize: '1.125rem', fontWeight: 700 }}>
-              Detail &amp; Ubah Pesanan ({updatingOrder.referenceCode})
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '500px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <h3 id="order-status-modal-title" style={{ margin: '0 0 0.35rem', fontSize: '1.125rem', fontWeight: 700, color: '#111814' }}>
+              Ubah Status Pesanan ({statusModalOrder.referenceCode})
             </h3>
-            <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '0.85rem' }}>
-              Klien: <strong>{updatingOrder.clientName}</strong> · Paket:{' '}
-              <strong>
-                {getPackageDisplayLabel(
-                  newPackageCode,
-                  enableSuperAdminCustom ? customPackageName : updatingOrder.options?.customPackageName,
-                )}
-              </strong>
+            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: '#64748b' }}>
+              Khusus pengelolaan status pembayaran, bukti transfer, masa aktif undangan, dan catatan operasional.
+            </p>
+
+            {/* Read-only Order Summary */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                padding: '0.75rem 0.9rem',
+                marginBottom: '1rem',
+                fontSize: '0.8125rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '0.75rem',
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, color: '#1e293b' }}>
+                  {statusModalOrder.clientName}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                  Paket:{' '}
+                  <strong>
+                    {getPackageDisplayLabel(
+                      statusModalOrder.packageCode,
+                      statusModalOrder.options?.customPackageName,
+                    )}
+                  </strong>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Tagihan</div>
+                <strong style={{ fontSize: '0.95rem', color: '#0f766e' }}>
+                  {formatRupiah(statusModalOrder.priceAmount)}
+                </strong>
+              </div>
             </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="status-only-select" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                Status Pesanan:
+              </label>
+              <select
+                id="status-only-select"
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+              >
+                <option value="DRAFT">DRAF</option>
+                <option value="AWAITING_PAYMENT">MENUNGGU PEMBAYARAN</option>
+                <option value="PAID">LUNAS (PAID)</option>
+                <option value="IN_PROGRESS">SEDANG DIPROSES</option>
+                <option value="LIVE">LIVE (PUBLIKASI AKTIF)</option>
+                <option value="COMPLETED">SELESAI</option>
+                <option value="CANCELLED">BATAL</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="status-payment-proof" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                Ref / Link Bukti Pembayaran (Opsional):
+              </label>
+              <input
+                id="status-payment-proof"
+                type="text"
+                placeholder="Contoh: TRF-BCA-98234 atau URL bukti bayar..."
+                value={newPaymentProof}
+                onChange={(e) => setNewPaymentProof(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label htmlFor="status-active-until" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                Masa Aktif Acara (activeUntil):
+              </label>
+              <input
+                id="status-active-until"
+                type="date"
+                value={newActiveUntil}
+                onChange={(e) => setNewActiveUntil(e.target.value)}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                Lewat dari tanggal ini, undangan publik otomatis ditutup (netral).
+              </span>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label htmlFor="status-internal-notes" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                Catatan Operasional / Pembayaran:
+              </label>
+              <textarea
+                id="status-internal-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="Catatan transfer bank / no rek / konfirmasi admin..."
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', fontFamily: 'inherit' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setStatusModalOrder(null)}
+                disabled={submitting}
+                style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.875rem', cursor: 'pointer' }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveStatusOnly}
+                disabled={submitting}
+                style={{ padding: '0.5rem 1.25rem', borderRadius: '6px', border: 'none', background: '#111814', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}
+              >
+                {submitting ? 'Menyimpan...' : 'Simpan Status'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── MODAL 2: Atur Paket & Harga Layanan (Khusus Super Admin) ── */}
+      {pricingModalOrder && isSuperAdmin && typeof document !== 'undefined' && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-pricing-modal-title"
+          data-testid="order-pricing-modal"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '1rem' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) setPricingModalOrder(null);
+          }}
+        >
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '660px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <div>
+                <h3 id="order-pricing-modal-title" style={{ margin: 0, fontSize: '1.125rem', fontWeight: 700, color: '#111814' }}>
+                  Atur Paket &amp; Harga Layanan ({pricingModalOrder.referenceCode})
+                </h3>
+                <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '0.2rem' }}>
+                  Klien: <strong>{pricingModalOrder.clientName}</strong> · Paket Aktif:{' '}
+                  <strong>
+                    {getPackageDisplayLabel(
+                      newPackageCode,
+                      enableSuperAdminCustom ? customPackageName : pricingModalOrder.options?.customPackageName,
+                    )}
+                  </strong>
+                </div>
+              </div>
+              <Link
+                href="/pricing"
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: '#92400e',
+                  background: '#fffbeb',
+                  border: '1px solid #fcd34d',
+                  padding: '4px 9px',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ⚙️ Master Tarif
+              </Link>
+            </div>
+
+            {masterConfig.customPresets.length > 0 && (
+              <div
+                style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
+                  padding: '0.6rem 0.75rem',
+                  marginBottom: '0.85rem',
+                  fontSize: '0.78rem',
+                }}
+              >
+                <div style={{ fontWeight: 700, color: '#92400e', marginBottom: '5px' }}>
+                  ⚡ Terapkan Cepat dari Daftar Paket Kustom Super Admin:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {masterConfig.customPresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => applyMasterCustomPreset(preset)}
+                      style={{
+                        padding: '3px 9px',
+                        borderRadius: '999px',
+                        border: '1px solid #f59e0b',
+                        background: '#fff',
+                        color: '#78350f',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {preset.name} ({formatRupiah(preset.price)})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {(() => {
               const liveSaOverride = buildSuperAdminOverrideFromState();
@@ -1145,28 +1481,29 @@ export default function OrdersPage() {
                     capacityTier: newOptions.capacityTier,
                     options: newOptions,
                     superAdminOverride: liveSaOverride,
+                    masterConfig,
                   })
                 : null;
               const displayLineItems = liveCalc
                 ? liveCalc.lineItems
-                : Array.isArray(updatingOrder.options?.lineItems)
-                  ? updatingOrder.options.lineItems
+                : Array.isArray(pricingModalOrder.options?.lineItems)
+                  ? pricingModalOrder.options.lineItems
                   : [];
               const displayComputedTotal = liveCalc
                 ? liveCalc.total
-                : typeof updatingOrder.options?.computedTotal === 'number'
-                  ? updatingOrder.options.computedTotal
-                  : updatingOrder.priceAmount;
+                : typeof pricingModalOrder.options?.computedTotal === 'number'
+                  ? pricingModalOrder.options.computedTotal
+                  : pricingModalOrder.priceAmount;
               const displayNormalTotal = liveCalc
                 ? liveCalc.normalTotal
-                : typeof updatingOrder.options?.originalPriceAmount === 'number'
-                  ? updatingOrder.options.originalPriceAmount
-                  : typeof updatingOrder.options?.normalTotal === 'number'
-                    ? updatingOrder.options.normalTotal
+                : typeof pricingModalOrder.options?.originalPriceAmount === 'number'
+                  ? pricingModalOrder.options.originalPriceAmount
+                  : typeof pricingModalOrder.options?.normalTotal === 'number'
+                    ? pricingModalOrder.options.normalTotal
                     : null;
               const displayMaxGuests = liveCalc
                 ? liveCalc.entitlements.maxGuests
-                : updatingOrder.options?.entitlements?.maxGuests;
+                : pricingModalOrder.options?.entitlements?.maxGuests;
               const previewOriginalNum =
                 newOriginalPriceAmount.trim() !== ''
                   ? Number(newOriginalPriceAmount)
@@ -1241,7 +1578,7 @@ export default function OrdersPage() {
                       }}
                     >
                       <span>Harga Final Tersimpan:</span>
-                      <strong>{formatRupiah(updatingOrder.priceAmount)}</strong>
+                      <strong>{formatRupiah(pricingModalOrder.priceAmount)}</strong>
                     </div>
                   </div>
 
@@ -1496,33 +1833,33 @@ export default function OrdersPage() {
                                     placeholder: String(
                                       isPresetPackageCode(newPackageCode)
                                         ? liveCalc?.lineItems[0]?.unitPrice ?? 149000
-                                        : CAPACITY_BASE_PRICES[newOptions.capacityTier as CapacityTier] ?? 149000,
+                                        : masterConfig.serviceRates.capacityPrices[newOptions.capacityTier as CapacityTier] ?? CAPACITY_BASE_PRICES[newOptions.capacityTier as CapacityTier] ?? 149000,
                                     ),
                                   },
                                   {
                                     key: 'petugasUnit',
                                     label: 'Petugas (24/hari)',
-                                    placeholder: String(PETUGAS_UNIT),
+                                    placeholder: String(masterConfig.serviceRates.petugasUnit ?? PETUGAS_UNIT),
                                   },
                                   {
                                     key: 'petugasExtraHour',
                                     label: 'Jam Tambahan/Org',
-                                    placeholder: String(PETUGAS_EXTRA_HOUR),
+                                    placeholder: String(masterConfig.serviceRates.petugasExtraHour ?? PETUGAS_EXTRA_HOUR),
                                   },
                                   {
                                     key: 'supervisor',
                                     label: 'Supervisor',
-                                    placeholder: String(SUPERVISOR),
+                                    placeholder: String(masterConfig.serviceRates.supervisor ?? SUPERVISOR),
                                   },
                                   {
                                     key: 'akrilik',
                                     label: 'Stand Akrilik QRIS',
-                                    placeholder: String(AKRILIK_QRIS),
+                                    placeholder: String(masterConfig.serviceRates.akrilik ?? AKRILIK_QRIS),
                                   },
                                   {
                                     key: 'gladi',
                                     label: 'Sesi Gladi H-1',
-                                    placeholder: String(GLADI_H1),
+                                    placeholder: String(masterConfig.serviceRates.gladi ?? GLADI_H1),
                                   },
                                 ] as const
                               ).map((svc) => (
@@ -1784,66 +2121,17 @@ export default function OrdersPage() {
                       </div>
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', maxWidth: '240px', textAlign: 'right' }}>
-                      {isSuperAdmin
-                        ? 'Harga asli (coret) dan harga final yang diisi Super Admin tetap dipertahankan.'
-                        : 'Hanya Super Admin yang dapat mengubah harga final, harga coret, atau harga per layanan.'}
+                      Harga asli (coret) dan harga final disimpan terpisah dari status operasional pesanan.
                     </span>
                   </div>
                 </>
               );
             })()}
 
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Status Pesanan:
-              </label>
-              <select
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-              >
-                <option value="DRAFT">DRAF</option>
-                <option value="AWAITING_PAYMENT">MENUNGGU PEMBAYARAN</option>
-                <option value="PAID">LUNAS (PAID)</option>
-                <option value="IN_PROGRESS">SEDANG DIPROSES</option>
-                <option value="LIVE">LIVE (PUBLIKASI AKTIF)</option>
-                <option value="COMPLETED">SELESAI</option>
-                <option value="CANCELLED">BATAL</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Masa Aktif Acara (activeUntil):
-              </label>
-              <input
-                type="date"
-                value={newActiveUntil}
-                onChange={(e) => setNewActiveUntil(e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem' }}
-              />
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                Lewat dari tanggal ini, undangan publik otomatis ditutup (netral).
-              </span>
-            </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Catatan Internal:
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="Catatan transfer bank / no rek / request khusus klien..."
-                style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.875rem', fontFamily: 'inherit' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
               <button
                 type="button"
-                onClick={() => setUpdatingOrder(null)}
+                onClick={() => setPricingModalOrder(null)}
                 disabled={submitting}
                 style={{ padding: '0.5rem 1rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.875rem', cursor: 'pointer' }}
               >
@@ -1851,11 +2139,11 @@ export default function OrdersPage() {
               </button>
               <button
                 type="button"
-                onClick={handleSaveStatus}
+                onClick={handleSavePricingOnly}
                 disabled={submitting}
                 style={{ padding: '0.5rem 1.25rem', borderRadius: '6px', border: 'none', background: '#111814', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}
               >
-                {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                {submitting ? 'Menyimpan...' : 'Simpan Paket & Harga'}
               </button>
             </div>
           </div>

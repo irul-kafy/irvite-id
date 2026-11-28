@@ -25,6 +25,7 @@ import {
 import {
   ACTIVE_PRICE_TIER,
   AKRILIK_QRIS,
+  BUKU_TAMU_PACKAGE_CODES,
   CAPACITY_BASE_PRICES,
   CAPACITY_TIERS,
   GLADI_H1,
@@ -33,6 +34,7 @@ import {
   PETUGAS_UNIT,
   PRESET_PACKAGE_CODES,
   SUPERVISOR,
+  UNDANGAN_SHOWCASE_CARDS,
   WEDDING_PACKAGE_CATALOG,
   calculateOrderPrice,
   getPackageDisplayLabel,
@@ -152,6 +154,9 @@ export function TemplateCustomizerStudio({
   // Order & Admin Submission Modal State (2-Step Flow inside the same modal)
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [orderModalStep, setOrderModalStep] = useState<1 | 2>(1);
+  const [modalCategoryFilter, setModalCategoryFilter] = useState<
+    'ALL' | 'UNDANGAN' | 'BUKU_TAMU' | 'CUSTOM'
+  >('ALL');
   const [selectedPackageCode, setSelectedPackageCode] =
     useState<SelectablePackageCode>(() => {
       const fromProp = parsePackageCodeParam(initialPackageCode);
@@ -2028,128 +2033,385 @@ export function TemplateCustomizerStudio({
                 data-testid="order-modal-step-1"
                 style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
               >
-                {/* 4 Preset Package Cards + Rakit Sendiri */}
+                {/* Tab Filter Kategori Layanan */}
                 <div
+                  role="tablist"
+                  aria-label="Filter kategori paket layanan"
+                  data-testid="order-modal-category-tabs"
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))',
-                    gap: '10px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    padding: '6px',
+                    borderRadius: '10px',
+                    background: '#f1f5f9',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  {PRESET_PACKAGE_CODES.map((code) => {
-                    const pkg = WEDDING_PACKAGE_CATALOG[code];
-                    const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
-                    const originalPrice = PACKAGE_PRICES.NORMAL[code];
-                    const isSelected = selectedPackageCode === code;
+                  {(
+                    [
+                      { id: 'ALL', label: 'Semua Paket' },
+                      { id: 'UNDANGAN', label: '💌 Undangan Digital Saja' },
+                      { id: 'BUKU_TAMU', label: '📱 Undangan + Buku Tamu QR' },
+                      { id: 'CUSTOM', label: '🛠️ Rakit Sendiri' },
+                    ] as const
+                  ).map((tab) => {
+                    const active = modalCategoryFilter === tab.id;
                     return (
                       <button
-                        key={code}
+                        key={tab.id}
                         type="button"
-                        data-testid={`modal-pkg-card-${code}`}
-                        onClick={() => handleSelectPackage(code)}
+                        role="tab"
+                        aria-selected={active}
+                        data-testid={`modal-filter-tab-${tab.id}`}
+                        onClick={() => {
+                          setModalCategoryFilter(tab.id);
+                          if (tab.id === 'CUSTOM') {
+                            handleSelectPackage('CUSTOM');
+                          } else if (
+                            tab.id === 'UNDANGAN' &&
+                            selectedPackageCode !== 'SACRED'
+                          ) {
+                            handleSelectPackage('SACRED');
+                          } else if (
+                            tab.id === 'BUKU_TAMU' &&
+                            (selectedPackageCode === 'SACRED' ||
+                              selectedPackageCode === 'CUSTOM')
+                          ) {
+                            handleSelectPackage('SIGNATURE');
+                          }
+                        }}
                         style={{
-                          textAlign: 'left',
-                          padding: '12px',
-                          borderRadius: '10px',
-                          border: isSelected
-                            ? '2px solid #0f766e'
-                            : '1px solid #d1dbd6',
-                          background: isSelected ? '#f0fdfa' : '#ffffff',
+                          flex: '1 1 auto',
+                          padding: '7px 12px',
+                          borderRadius: '7px',
+                          fontSize: '0.76rem',
+                          fontWeight: 700,
+                          border: active
+                            ? '1px solid #0f766e'
+                            : '1px solid transparent',
+                          background: active ? '#0f766e' : 'transparent',
+                          color: active ? '#ffffff' : '#334155',
                           cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
+                          transition: 'all 0.15s ease',
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <strong style={{ fontSize: '0.88rem', color: '#14261c' }}>
-                            {pkg.name}
-                          </strong>
-                          {pkg.popular && (
-                            <span
-                              style={{
-                                fontSize: '0.66rem',
-                                fontWeight: 700,
-                                background: '#ccfbf1',
-                                color: '#115e59',
-                                padding: '2px 6px',
-                                borderRadius: '999px',
-                              }}
-                            >
-                              Populer
-                            </span>
-                          )}
-                        </div>
-                        {originalPrice > price && (
-                          <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.1 }}>
-                            Rp{' '}
-                            <span style={{ textDecoration: 'line-through' }}>
-                              {Math.round(originalPrice).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-                        )}
-                        <div
-                          style={{
-                            fontSize: '0.95rem',
-                            fontWeight: 700,
-                            color: '#0f766e',
-                          }}
-                        >
-                          {formatRupiah(price)}
-                        </div>
-                        <div style={{ fontSize: '0.73rem', color: '#475569' }}>
-                          hingga {pkg.baseCapacity} undangan (1 undangan bisa untuk keluarga) •{' '}
-                          {pkg.includedPetugas} petugas
-                          {pkg.includedSupervisor ? ' + 1 spv' : ''}
-                          {pkg.includesAkrilik ? ' • akrilik' : ''}
-                        </div>
+                        {tab.label}
                       </button>
                     );
                   })}
+                </div>
 
-                  <button
-                    type="button"
-                    data-testid="modal-pkg-card-CUSTOM"
-                    onClick={() => handleSelectPackage('CUSTOM')}
-                    style={{
-                      textAlign: 'left',
-                      padding: '12px',
-                      borderRadius: '10px',
-                      border:
-                        selectedPackageCode === 'CUSTOM'
-                          ? '2px solid #0f766e'
-                          : '1px solid #d1dbd6',
-                      background:
-                        selectedPackageCode === 'CUSTOM' ? '#f0fdfa' : '#ffffff',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '4px',
-                    }}
-                  >
-                    <strong style={{ fontSize: '0.88rem', color: '#14261c' }}>
-                      Rakit Sendiri
-                    </strong>
-                    <div
+                {/* Preset Package Cards + Rakit Sendiri */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
+                    gap: '10px',
+                  }}
+                >
+                  {/* Undangan Digital Saja Cards (Sacred 50 / 150 / 300 when UNDANGAN filter is active, or Sacred base when ALL) */}
+                  {modalCategoryFilter === 'UNDANGAN'
+                    ? UNDANGAN_SHOWCASE_CARDS.map((card, idx) => {
+                        const isSelected =
+                          selectedPackageCode === 'SACRED' &&
+                          (packageOptions.capacityTier ?? 50) ===
+                            card.capacityTier;
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            data-testid={
+                              idx === 0
+                                ? 'modal-pkg-card-SACRED'
+                                : `modal-pkg-card-${card.id}`
+                            }
+                            onClick={() => {
+                              setSelectedPackageCode('SACRED');
+                              setPackageOptions({
+                                ...getDefaultOptionsForPackage('SACRED'),
+                                capacityTier: card.capacityTier,
+                              });
+                            }}
+                            style={{
+                              textAlign: 'left',
+                              padding: '12px',
+                              borderRadius: '10px',
+                              border: isSelected
+                                ? '2px solid #0f766e'
+                                : '1px solid #d1dbd6',
+                              background: isSelected ? '#f0fdfa' : '#ffffff',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '5px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  background: '#f1f5f9',
+                                  color: '#475569',
+                                  padding: '2px 7px',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                💌 Undangan Saja (Tanpa QR)
+                              </span>
+                              {card.popular && (
+                                <span
+                                  style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    background: '#ccfbf1',
+                                    color: '#115e59',
+                                    padding: '2px 6px',
+                                    borderRadius: '999px',
+                                  }}
+                                >
+                                  Favorit
+                                </span>
+                              )}
+                            </div>
+                            <strong
+                              style={{ fontSize: '0.9rem', color: '#14261c' }}
+                            >
+                              {card.name}
+                            </strong>
+                            {card.originalPrice > card.price && (
+                              <div
+                                style={{
+                                  fontSize: '0.72rem',
+                                  color: '#64748b',
+                                  lineHeight: 1.1,
+                                }}
+                              >
+                                Rp{' '}
+                                <span style={{ textDecoration: 'line-through' }}>
+                                  {Math.round(card.originalPrice).toLocaleString(
+                                    'id-ID',
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                fontSize: '0.95rem',
+                                fontWeight: 700,
+                                color: '#0f766e',
+                              }}
+                            >
+                              {formatRupiah(card.price)}
+                            </div>
+                            <div
+                              style={{ fontSize: '0.73rem', color: '#475569' }}
+                            >
+                              hingga {card.capacityTier} undangan (1 undangan
+                              bisa untuk keluarga) • Sebar WA, RSVP &amp; Amplop
+                              Digital
+                            </div>
+                          </button>
+                        );
+                      })
+                    : PRESET_PACKAGE_CODES.filter((code) => {
+                        if (modalCategoryFilter === 'CUSTOM') return false;
+                        if (modalCategoryFilter === 'BUKU_TAMU') {
+                          return (
+                            WEDDING_PACKAGE_CATALOG[code].serviceCategory ===
+                            'BUKU_TAMU'
+                          );
+                        }
+                        return true;
+                      }).map((code) => {
+                        const pkg = WEDDING_PACKAGE_CATALOG[code];
+                        const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
+                        const originalPrice = PACKAGE_PRICES.NORMAL[code];
+                        const isSelected = selectedPackageCode === code;
+                        const isBukuTamu = pkg.serviceCategory === 'BUKU_TAMU';
+                        return (
+                          <button
+                            key={code}
+                            type="button"
+                            data-testid={`modal-pkg-card-${code}`}
+                            onClick={() => handleSelectPackage(code)}
+                            style={{
+                              textAlign: 'left',
+                              padding: '12px',
+                              borderRadius: '10px',
+                              border: isSelected
+                                ? '2px solid #0f766e'
+                                : '1px solid #d1dbd6',
+                              background: isSelected ? '#f0fdfa' : '#ffffff',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '5px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '4px',
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  background: isBukuTamu
+                                    ? '#eff6ff'
+                                    : '#f1f5f9',
+                                  color: isBukuTamu ? '#1d4ed8' : '#475569',
+                                  padding: '2px 7px',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                {isBukuTamu
+                                  ? '📱 Undangan + Buku Tamu QR'
+                                  : '💌 Undangan Saja'}
+                              </span>
+                              {pkg.popular && (
+                                <span
+                                  style={{
+                                    fontSize: '0.66rem',
+                                    fontWeight: 700,
+                                    background: '#ccfbf1',
+                                    color: '#115e59',
+                                    padding: '2px 6px',
+                                    borderRadius: '999px',
+                                  }}
+                                >
+                                  Populer
+                                </span>
+                              )}
+                            </div>
+                            <strong
+                              style={{ fontSize: '0.88rem', color: '#14261c' }}
+                            >
+                              {pkg.name}
+                            </strong>
+                            {originalPrice > price && (
+                              <div
+                                style={{
+                                  fontSize: '0.72rem',
+                                  color: '#64748b',
+                                  lineHeight: 1.1,
+                                }}
+                              >
+                                Rp{' '}
+                                <span style={{ textDecoration: 'line-through' }}>
+                                  {Math.round(originalPrice).toLocaleString(
+                                    'id-ID',
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            <div
+                              style={{
+                                fontSize: '0.95rem',
+                                fontWeight: 700,
+                                color: '#0f766e',
+                              }}
+                            >
+                              {formatRupiah(price)}
+                            </div>
+                            <div
+                              style={{ fontSize: '0.73rem', color: '#475569' }}
+                            >
+                              hingga {pkg.baseCapacity} undangan (1 undangan bisa
+                              untuk keluarga) •{' '}
+                              {pkg.includedPetugas === 0 && isBukuTamu
+                                ? '0 petugas (Mandiri HP Keluarga)'
+                                : `${pkg.includedPetugas} petugas`}
+                              {pkg.includedSupervisor ? ' + 1 spv' : ''}
+                              {pkg.includesAkrilik ? ' • akrilik' : ''}
+                            </div>
+                            {code === 'SEWA_SISTEM' && (
+                              <div
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  color: '#047857',
+                                  background: '#ecfdf5',
+                                  padding: '3px 6px',
+                                  borderRadius: '5px',
+                                  marginTop: '2px',
+                                }}
+                              >
+                                ✓ Gratis Video &amp; PDF Panduan Panitia Keluarga
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+
+                  {(modalCategoryFilter === 'ALL' ||
+                    modalCategoryFilter === 'CUSTOM') && (
+                    <button
+                      type="button"
+                      data-testid="modal-pkg-card-CUSTOM"
+                      onClick={() => handleSelectPackage('CUSTOM')}
                       style={{
-                        fontSize: '0.95rem',
-                        fontWeight: 700,
-                        color: '#0f766e',
+                        textAlign: 'left',
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border:
+                          selectedPackageCode === 'CUSTOM'
+                            ? '2px solid #0f766e'
+                            : '1px solid #d1dbd6',
+                        background:
+                          selectedPackageCode === 'CUSTOM'
+                            ? '#f0fdfa'
+                            : '#ffffff',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
                       }}
                     >
-                      Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
-                    </div>
-                    <div style={{ fontSize: '0.73rem', color: '#475569' }}>
-                      Atur kapasitas &amp; komponen bebas tanpa paket
-                    </div>
-                  </button>
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          padding: '2px 7px',
+                          borderRadius: '999px',
+                          alignSelf: 'flex-start',
+                        }}
+                      >
+                        🛠️ Fleksibel A La Carte
+                      </span>
+                      <strong style={{ fontSize: '0.88rem', color: '#14261c' }}>
+                        Rakit Sendiri
+                      </strong>
+                      <div
+                        style={{
+                          fontSize: '0.95rem',
+                          fontWeight: 700,
+                          color: '#0f766e',
+                        }}
+                      >
+                        Mulai {formatRupiah(CAPACITY_BASE_PRICES[50])}
+                      </div>
+                      <div style={{ fontSize: '0.73rem', color: '#475569' }}>
+                        Atur kapasitas &amp; komponen bebas tanpa paket
+                      </div>
+                    </button>
+                  )}
                 </div>
 
                 {/* Panel Sesuaikan Komponen */}

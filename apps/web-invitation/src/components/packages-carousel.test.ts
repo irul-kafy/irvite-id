@@ -14,8 +14,9 @@ describe('PackagesShowcase (3-Tab Service Switcher + Center-Peeking Carousel + S
 
   it('renders PackagesCarousel inside full-shell PackagesSection on /undangan', () => {
     assert.ok(
-      undanganPageSrc.includes('<PackagesCarousel />'),
-      '/undangan must render <PackagesCarousel />',
+      undanganPageSrc.includes('<PackagesCarousel') &&
+        undanganPageSrc.includes('fetchPublicPricingConfig'),
+      '/undangan must fetch live pricing config and render <PackagesCarousel />',
     );
     assert.ok(
       undanganPageSrc.includes('Temukan Paket Terbaikmu'),

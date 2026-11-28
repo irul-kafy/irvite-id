@@ -3,22 +3,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  ACTIVE_PRICE_TIER,
-  AKRILIK_QRIS,
   BUKU_TAMU_PACKAGE_CODES,
-  CAPACITY_BASE_PRICES,
   CAPACITY_TIERS,
-  GLADI_H1,
-  PACKAGE_PRICES,
-  PETUGAS_EXTRA_HOUR,
-  PETUGAS_UNIT,
-  SUPERVISOR,
-  UNDANGAN_SHOWCASE_CARDS,
   WEDDING_PACKAGE_CATALOG,
   WEDDING_SERVICE_TABS,
   calculateOrderPrice,
-  getPackageOriginalPrice,
+  createDefaultMasterPricingConfig,
+  normalizeMasterPricingConfig,
   type CapacityTier,
+  type MasterPricingConfig,
   type OrderPricingOptionsInput,
   type SelectablePackageCode,
   type WeddingServiceTab,
@@ -392,7 +385,20 @@ function CenterPeekingCarousel({
   );
 }
 
-export function PackagesCarousel() {
+export function PackagesCarousel({
+  initialPricingConfig,
+}: {
+  initialPricingConfig?: MasterPricingConfig;
+} = {}) {
+  const master = useMemo(
+    () =>
+      initialPricingConfig
+        ? normalizeMasterPricingConfig(initialPricingConfig)
+        : createDefaultMasterPricingConfig(),
+    [initialPricingConfig],
+  );
+  const rates = master.serviceRates;
+
   // Default to center tab ("BUKU_TAMU") matching the reference 3-pill layout
   const [activeTab, setActiveTab] = useState<WeddingServiceTab>('BUKU_TAMU');
   const tabRefs = useRef<Record<WeddingServiceTab, HTMLButtonElement | null>>({
@@ -422,6 +428,7 @@ export function PackagesCarousel() {
           gladi: customGladi,
           supervisor: customSupervisor ? 1 : 0,
         },
+        masterConfig: master,
       }),
     [
       customCapacity,
@@ -430,46 +437,92 @@ export function PackagesCarousel() {
       customAkrilik,
       customGladi,
       customSupervisor,
+      master,
     ],
   );
 
-  const undanganCards: CarouselCardItem[] = useMemo(
-    () =>
-      UNDANGAN_SHOWCASE_CARDS.map((item, idx) => ({
-        key: item.id,
-        testId:
-          idx === 0
-            ? 'package-card-SACRED'
-            : `package-card-SACRED-${item.capacityTier}`,
-        packageCode: 'SACRED',
-        options: {
-          capacityTier: item.capacityTier,
-          extraPetugas: 0,
-          extraHoursPerPetugas: 0,
-          supervisor: 0,
-          akrilik: false,
-          gladi: false,
-        },
-        eyebrow: `Undangan Digital · ${item.name}`,
-        title: item.tagline,
-        price: item.price,
-        originalPrice: item.originalPrice,
-        description: item.description,
-        features: [...item.features],
-        ctaLabel: `Pilih ${item.name}`,
-        href: `/templates?paket=SACRED`,
-        featured: Boolean(item.popular),
-        badgeText: item.popular ? 'Favorit Online' : undefined,
-      })),
-    [],
-  );
+  const undanganCards: CarouselCardItem[] = useMemo(() => {
+    const baseCards: CarouselCardItem[] = master.undanganShowcaseCards
+      .filter((item) => item.active !== false)
+      .map((item, idx) => {
+        const defaultFeatures = [
+          `Kapasitas hingga ${item.capacityTier} undangan (1 undangan bisa untuk keluarga)`,
+          'Semua tema katalog & kustomisasi konten penuh',
+          'Tautan personal nama tamu via WhatsApp',
+          'RSVP real-time, ucapan doa & amplop digital / QRIS',
+          'Khusus sebar undangan online (tanpa QR check-in lokasi)',
+        ];
+        return {
+          key: item.id,
+          testId:
+            idx === 0
+              ? 'package-card-SACRED'
+              : `package-card-SACRED-${item.capacityTier}`,
+          packageCode: 'SACRED',
+          options: {
+            capacityTier: item.capacityTier,
+            extraPetugas: 0,
+            extraHoursPerPetugas: 0,
+            supervisor: 0,
+            akrilik: false,
+            gladi: false,
+          },
+          eyebrow: `Undangan Digital · ${item.name}`,
+          title: item.tagline,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          description: item.description,
+          features: defaultFeatures,
+          ctaLabel: `Pilih ${item.name}`,
+          href: `/templates?paket=SACRED`,
+          featured: Boolean(item.popular),
+          badgeText: item.popular ? 'Favorit Online' : undefined,
+        };
+      },
+    );
 
-  const bukuTamuCards: CarouselCardItem[] = useMemo(
-    () =>
-      BUKU_TAMU_PACKAGE_CODES.map((code) => {
+    const extraLandingCards: CarouselCardItem[] = master.customPresets
+      .filter((p) => p.showOnLanding && p.serviceCategory === 'UNDANGAN')
+      .map((p) => ({
+        key: p.id,
+        testId: `package-card-CUSTOM-${p.id}`,
+        packageCode: 'CUSTOM',
+        options: {
+          capacityTier:
+            p.maxGuests <= 50
+              ? 50
+              : p.maxGuests <= 150
+                ? 150
+                : p.maxGuests <= 300
+                  ? 300
+                  : 600,
+          extraPetugas: p.petugasCount,
+          extraHoursPerPetugas: p.extraHoursPerPetugas,
+          supervisor: p.supervisorCount,
+          akrilik: p.akrilikQris,
+          gladi: p.gladiH1,
+        },
+        eyebrow: `Undangan Digital · ${p.name}`,
+        title: p.tagline,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        description: p.description,
+        features: [...p.features],
+        ctaLabel: `Pilih ${p.name}`,
+        href: `/templates?paket=CUSTOM`,
+        featured: p.popular,
+        badgeText: p.popular ? 'Pilihan Spesial' : undefined,
+      }));
+
+    return [...baseCards, ...extraLandingCards];
+  }, [master]);
+
+  const bukuTamuCards: CarouselCardItem[] = useMemo(() => {
+    const presetCards: CarouselCardItem[] = BUKU_TAMU_PACKAGE_CODES
+      .filter((code) => master.presetPackages[code]?.active !== false)
+      .map((code) => {
         const pkg = WEDDING_PACKAGE_CATALOG[code];
-        const price = PACKAGE_PRICES[ACTIVE_PRICE_TIER][code];
-        const originalPrice = getPackageOriginalPrice(code);
+        const cfgPkg = master.presetPackages[code];
         return {
           key: code,
           testId: `package-card-${code}`,
@@ -482,20 +535,55 @@ export function PackagesCarousel() {
             akrilik: pkg.includesAkrilik,
             gladi: pkg.includesGladi,
           },
-          eyebrow: `Paket ${pkg.name}`,
-          title: pkg.tagline,
-          price,
-          originalPrice,
-          description: pkg.description,
+          eyebrow: `Paket ${cfgPkg.name}`,
+          title: cfgPkg.tagline,
+          price: cfgPkg.price,
+          originalPrice: cfgPkg.originalPrice,
+          description: cfgPkg.description,
           features: [...pkg.features],
-          ctaLabel: `Pilih Paket ${pkg.name}`,
+          ctaLabel: `Pilih Paket ${cfgPkg.name}`,
           href: `/templates?paket=${code}`,
-          featured: Boolean(pkg.popular),
-          badgeText: pkg.popular ? 'Paling diminati' : 'Include Undangan',
+          featured: Boolean(cfgPkg.popular),
+          badgeText: cfgPkg.popular ? 'Paling diminati' : 'Include Undangan',
         };
-      }),
-    [],
-  );
+      },
+    );
+
+    const extraBukuTamuCards: CarouselCardItem[] = master.customPresets
+      .filter((p) => p.showOnLanding && p.serviceCategory === 'BUKU_TAMU')
+      .map((p) => ({
+        key: p.id,
+        testId: `package-card-CUSTOM-${p.id}`,
+        packageCode: 'CUSTOM',
+        options: {
+          capacityTier:
+            p.maxGuests <= 50
+              ? 50
+              : p.maxGuests <= 150
+                ? 150
+                : p.maxGuests <= 300
+                  ? 300
+                  : 600,
+          extraPetugas: p.petugasCount,
+          extraHoursPerPetugas: p.extraHoursPerPetugas,
+          supervisor: p.supervisorCount,
+          akrilik: p.akrilikQris,
+          gladi: p.gladiH1,
+        },
+        eyebrow: p.name,
+        title: p.tagline,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        description: p.description,
+        features: [...p.features],
+        ctaLabel: `Pilih ${p.name}`,
+        href: `/templates?paket=CUSTOM`,
+        featured: p.popular,
+        badgeText: p.popular ? 'Paket Spesial' : 'Include Undangan',
+      }));
+
+    return [...presetCards, ...extraBukuTamuCards];
+  }, [master]);
 
   const handleTabKeyDown = (
     e: React.KeyboardEvent<HTMLButtonElement>,
@@ -638,7 +726,7 @@ export function PackagesCarousel() {
                         onClick={() => setCustomCapacity(tier)}
                       >
                         <strong>{tier} Undangan</strong>
-                        <span>{formatRupiah(CAPACITY_BASE_PRICES[tier])}</span>
+                        <span>{formatRupiah(rates.capacityPrices[tier])}</span>
                       </button>
                     );
                   })}
@@ -653,7 +741,7 @@ export function PackagesCarousel() {
                       2. Petugas Check-in (24/hari)
                     </div>
                     <div className="packages-custom-field__sub">
-                      Petugas check-in {formatRupiah(PETUGAS_UNIT)}/orang (24/hari)
+                      Petugas check-in {formatRupiah(rates.petugasUnit)}/orang (24/hari)
                     </div>
                   </div>
                   <div className="packages-custom-stepper">
@@ -689,7 +777,7 @@ export function PackagesCarousel() {
                       Jam Tambahan Petugas
                     </div>
                     <div className="packages-custom-field__sub">
-                      +{formatRupiah(PETUGAS_EXTRA_HOUR)}/jam/orang
+                      +{formatRupiah(rates.petugasExtraHour)}/jam/orang
                     </div>
                   </div>
                   <div className="packages-custom-stepper">
@@ -734,7 +822,7 @@ export function PackagesCarousel() {
                     />
                     <div>
                       <strong>Stand Akrilik QRIS Meja (1 set)</strong>
-                      <span>+{formatRupiah(AKRILIK_QRIS)}</span>
+                      <span>+{formatRupiah(rates.akrilik)}</span>
                     </div>
                   </label>
 
@@ -748,7 +836,7 @@ export function PackagesCarousel() {
                     />
                     <div>
                       <strong>Sesi Gladi Bersih &amp; Uji Sistem H-1</strong>
-                      <span>+{formatRupiah(GLADI_H1)}</span>
+                      <span>+{formatRupiah(rates.gladi)}</span>
                     </div>
                   </label>
 
@@ -762,7 +850,7 @@ export function PackagesCarousel() {
                     />
                     <div>
                       <strong>Supervisor Lapangan (1 orang)</strong>
-                      <span>+{formatRupiah(SUPERVISOR)}</span>
+                      <span>+{formatRupiah(rates.supervisor)}</span>
                     </div>
                   </label>
                 </div>

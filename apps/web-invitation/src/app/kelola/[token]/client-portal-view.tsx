@@ -1762,14 +1762,15 @@ export function ClientPortalView({
                     setFormData({ ...formData, category: e.target.value })
                   }
                 >
-                  <option value="REGULAR">REGULAR (Umum)</option>
-                  <option value="VIP">VIP</option>
-                  <option value="VVIP">VVIP</option>
-                  <option value="FAMILY">FAMILY (Keluarga)</option>
-                  <option value="FAMILY_GROOM">FAMILY_GROOM (Keluarga Pria)</option>
-                  <option value="FAMILY_BRIDE">FAMILY_BRIDE (Keluarga Wanita)</option>
-                  <option value="FRIEND">FRIEND (Teman)</option>
-                  <option value="COLLEAGUE">COLLEAGUE (Teman Kantor)</option>
+                  <option value="REGULAR">REGULAR (Tamu Umum / Reguler)</option>
+                  <option value="VIP">VIP (Tamu Kehormatan)</option>
+                  <option value="VVIP">VVIP (Tamu Utama)</option>
+                  <option value="FAMILY">FAMILY (Keluarga Besar Mempelai)</option>
+                  <option value="FAMILY_GROOM">FAMILY_GROOM (Keluarga Mempelai Pria)</option>
+                  <option value="FAMILY_BRIDE">FAMILY_BRIDE (Keluarga Mempelai Wanita)</option>
+                  <option value="FRIEND">FRIEND (Teman / Sahabat)</option>
+                  <option value="COLLEAGUE">COLLEAGUE (Rekan Kerja / Kantor)</option>
+                  <option value="CREW_VENDOR">CREW_VENDOR (E-Pass Kru / Vendor: Band, WO, MUA, Catering — Tanpa Kurangi Kuota Tamu)</option>
                 </select>
               </div>
 

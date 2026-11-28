@@ -10,6 +10,7 @@ import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
   shouldRenderSereneGuest,
   extractPublicRecipientFromSearchParams,
 } from '../mode-gating';
@@ -88,6 +89,12 @@ export function RoyalVelvetRenderer({
 
   const guestVisible = shouldRenderSereneGuest(mode, data?.guest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+  const showCheckInQr = shouldRenderCheckInQr(
+    mode,
+    uniqueCode,
+    isPreview,
+    data?.event?.qrCheckInEnabled,
+  );
 
   // Guest Name Resolution
   const [guestName, setGuestName] = useState<string>(() => {
@@ -996,20 +1003,22 @@ export function RoyalVelvetRenderer({
                   variant="royal-velvet"
                 />
               </div>
-              <div className={styles.rsvpSectionSlot}>
-                <QRDisplay
-                  canonicalUrl={
-                    canonicalUrl ||
-                    (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
-                    'https://irvite.id/i/SIMULASI-TAMU'
-                  }
-                  guestName={guestName}
-                  maxPax={data?.guest?.maxPax || 2}
-                  tableNumber={data?.guest?.tableNumber}
-                  eventTitle={data?.event?.title}
-                  variant="royal-velvet"
-                />
-              </div>
+              {showCheckInQr && (
+                <div className={styles.rsvpSectionSlot}>
+                  <QRDisplay
+                    canonicalUrl={
+                      canonicalUrl ||
+                      (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+                      'https://irvite.id/i/SIMULASI-TAMU'
+                    }
+                    guestName={guestName}
+                    maxPax={data?.guest?.maxPax || 2}
+                    tableNumber={data?.guest?.tableNumber}
+                    eventTitle={data?.event?.title}
+                    variant="royal-velvet"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </section>

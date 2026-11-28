@@ -1,5 +1,10 @@
 import { PublicInvitationResponse } from '../types/public-invitation';
 import { PublicEventResponse } from '../types/public-event';
+import {
+  createDefaultMasterPricingConfig,
+  normalizeMasterPricingConfig,
+  type MasterPricingConfig,
+} from 'pricing';
 
 export interface PublicTemplatePackage {
   id: string;
@@ -113,5 +118,26 @@ export async function fetchPublicTemplateAvailability(): Promise<
     );
   } catch {
     return null;
+  }
+}
+
+export async function fetchPublicPricingConfig(): Promise<MasterPricingConfig> {
+  const isServer = typeof window === 'undefined';
+  const url = isServer
+    ? getInternalApiBaseUrl() + '/orders/public/pricing-config'
+    : '/api-proxy/orders/public/pricing-config';
+
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      return createDefaultMasterPricingConfig();
+    }
+    const data = await res.json();
+    return normalizeMasterPricingConfig(data);
+  } catch {
+    return createDefaultMasterPricingConfig();
   }
 }

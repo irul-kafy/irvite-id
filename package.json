@@ -31,5 +31,8 @@
     "exceljs": {
       "uuid": "11.1.1"
     }
+  },
+  "dependencies": {
+    "next": "^16.4.6"
   }
 }

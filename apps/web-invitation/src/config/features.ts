@@ -1,20 +1,14 @@
 /**
  * IRVITE Feature Flags Configuration
- * 
- * Menentukan apakah modul Tiket & Partnership ditampilkan atau disembunyikan.
- * 
+ *
+ * Menentukan apakah modul E-Tiket, Beranda Gateway (E-Tiket + Undangan), & Partnership aktif.
+ *
  * Aturan Kerja:
  * 1. Jika disetel secara eksplisit via `process.env.NEXT_PUBLIC_ENABLE_TICKETING`:
- *    - 'true', '1', atau 'yes' -> AKTIF
  *    - 'false', '0', atau 'no'  -> NON-AKTIF
- * 
- * 2. Jika tidak disetel (default):
- *    - Localhost Development (NODE_ENV !== 'production'):
- *      -> AKTIF (true), agar developer bisa leluasa mengembangkan e-tiket, scanner,
- *         dan partnership di localhost tanpa kendala.
- *    - Production Hosting Vercel (NODE_ENV === 'production'):
- *      -> NON-AKTIF (false), agar pengunjung publik ke irvite.id murni hanya melihat
- *         layanan Undangan Digital Pernikahan (semua tiket dan gateway disembunyikan).
+ *    - selain itu -> AKTIF
+ * 2. Default: AKTIF (true) di semua environment agar halaman awal menampilkan
+ *    Beranda Gateway IRVITE.ID (E-Tiket & Undangan + Buku Tamu Digital).
  */
 export function isTicketingEnabled(): boolean {
   const envVal = process.env.NEXT_PUBLIC_ENABLE_TICKETING;

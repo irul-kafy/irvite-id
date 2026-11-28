@@ -8,6 +8,7 @@ import {
   shouldRenderGiftSection,
   resolveCoverGuestName,
   shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
   sanitizePublicRecipientName,
   extractPublicRecipientFromSearchParams,
   resolveEffectiveDisplayGuest,
@@ -98,6 +99,13 @@ test('Renderer Mode Safety & Gating (Pure Logic Contract)', async (t) => {
     // Template Studio preview: must be true to allow previewing RSVP and QR components
     assert.strictEqual(shouldRenderRsvpAndQr('PUBLIC', undefined, true), true);
     assert.strictEqual(shouldRenderRsvpAndQr('PERSONAL', undefined, true), true);
+
+    // Undangan Digital only (qrCheckInEnabled === false): suppresses QR even in PERSONAL mode while RSVP stays active
+    assert.strictEqual(shouldRenderCheckInQr('PERSONAL', 'ABCD12', false, false), false);
+    assert.strictEqual(shouldRenderCheckInQr('PERSONALIZED', 'ABCD12', false, false), false);
+    // Buku Tamu Digital (qrCheckInEnabled === true): renders QR in PERSONAL mode
+    assert.strictEqual(shouldRenderCheckInQr('PERSONAL', 'ABCD12', false, true), true);
+    assert.strictEqual(shouldRenderCheckInQr('PUBLIC', 'ABCD12', false, true), false);
   });
 
   await t.test('Public Custom Recipient (?to= / ?tamu=) displays custom cover greeting while keeping RSVP & QR locked', () => {

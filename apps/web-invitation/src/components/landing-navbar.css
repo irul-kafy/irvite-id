@@ -2,6 +2,19 @@
    IRVITE — Responsive Mobile Navigation & Hamburger Menu
    ========================================================================== */
 
+/* ── Cross-Service Layanan Dropdown in Wedding Navbar (Identik dengan /tiket) ── */
+.irv-navbar-layanan-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .irv-navbar-layanan-dropdown {
+    display: none;
+  }
+}
+
 /* ── Mobile Hamburger Toggle Button ── */
 .mobile-menu-btn {
   display: none;

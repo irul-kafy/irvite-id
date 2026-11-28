@@ -28,6 +28,7 @@ test('Proxy navigation protection (API still verifies signatures)', async (t) =>
     assert.ok(config.matcher.includes('/events/:path*'));
     assert.ok(config.matcher.includes('/templates/:path*'));
     assert.ok(config.matcher.includes('/orders/:path*'));
+    assert.ok(config.matcher.includes('/pricing/:path*'));
     assert.ok(config.matcher.includes('/activity-logs/:path*'));
     assert.ok(config.matcher.includes('/login'));
   });

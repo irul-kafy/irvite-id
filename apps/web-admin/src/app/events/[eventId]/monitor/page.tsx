@@ -251,7 +251,7 @@ export default function LiveAttendanceMonitorPage({
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'checked-in' | 'pending' | 'vip'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'checked-in' | 'pending' | 'vip' | 'family' | 'crew'>('all');
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   // Google Sheets modal state
@@ -444,6 +444,8 @@ export default function LiveAttendanceMonitorPage({
     if (activeFilter === 'checked-in') return g.isCheckedIn;
     if (activeFilter === 'pending') return !g.isCheckedIn;
     if (activeFilter === 'vip') return g.category.toUpperCase().includes('VIP');
+    if (activeFilter === 'family') return /FAMILY|KELUARGA/i.test(g.category);
+    if (activeFilter === 'crew') return /CREW|VENDOR|BAND|WO/i.test(g.category);
     return true;
   });
 
@@ -742,7 +744,21 @@ export default function LiveAttendanceMonitorPage({
                 className={`monitor-filter-btn ${activeFilter === 'vip' ? 'active' : ''}`}
                 onClick={() => setActiveFilter('vip')}
               >
-                VIP Saja
+                👑 VIP
+              </button>
+              <button
+                type="button"
+                className={`monitor-filter-btn ${activeFilter === 'family' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('family')}
+              >
+                👨‍👩‍👧‍👦 Keluarga
+              </button>
+              <button
+                type="button"
+                className={`monitor-filter-btn ${activeFilter === 'crew' ? 'active' : ''}`}
+                onClick={() => setActiveFilter('crew')}
+              >
+                🎸 Kru/Vendor
               </button>
             </div>
           </div>

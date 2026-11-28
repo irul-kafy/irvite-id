@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import type { MasterPricingConfig } from 'pricing';
 import { getCatalogTemplates, filterAvailableTemplates, CatalogTemplateItem } from '../../catalog';
-import { fetchPublicTemplateAvailability } from '../../api/client';
+import {
+  fetchPublicPricingConfig,
+  fetchPublicTemplateAvailability,
+} from '../../api/client';
 import { LandingNavbar } from '../../components/landing-navbar';
 import { PublicTemplateShowcase } from '../../components/public-template-showcase';
 import { HeroPhoneShowcase } from '../../components/hero-phone-showcase';
@@ -169,7 +173,11 @@ function CatalogSection({ templates }: { templates: CatalogTemplateItem[] }) {
 }
 
 // ── Packages Section ───────────────────────────────────────────────────────────
-function PackagesSection() {
+function PackagesSection({
+  pricingConfig,
+}: {
+  pricingConfig?: MasterPricingConfig;
+}) {
   const askWaUrl = getGeneralContactUrl(MSG_ASK_PACKAGES);
 
   return (
@@ -189,7 +197,7 @@ function PackagesSection() {
           </p>
         </div>
 
-        <PackagesCarousel />
+        <PackagesCarousel initialPricingConfig={pricingConfig} />
 
         {/* Single subtle WhatsApp consultation link below the grid */}
         {askWaUrl && (
@@ -397,7 +405,10 @@ function WaFab() {
 export const dynamic = 'force-dynamic';
 
 export default async function UndanganLandingPage() {
-  const availability = await fetchPublicTemplateAvailability();
+  const [availability, pricingConfig] = await Promise.all([
+    fetchPublicTemplateAvailability(),
+    fetchPublicPricingConfig(),
+  ]);
   const allTemplates = getCatalogTemplates();
   const templates =
     availability && availability.length > 0
@@ -410,7 +421,7 @@ export default async function UndanganLandingPage() {
       <main className="landing-main">
         <HeroSection />
         <CatalogSection templates={templates} />
-        <PackagesSection />
+        <PackagesSection pricingConfig={pricingConfig} />
         <ProcessSection />
         <TestimonialsSection />
         <Footer />

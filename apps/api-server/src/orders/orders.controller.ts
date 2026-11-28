@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,12 +18,34 @@ import type { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { UpdateMasterPricingConfigDto } from './dto/update-pricing-config.dto';
 import { OrdersService } from './orders.service';
 import { PACKAGES } from './packages';
 
 @Controller(['api/v1/orders', 'orders'])
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Public()
+  @Get('public/pricing-config')
+  getPublicPricingConfig() {
+    return this.ordersService.getMasterPricingConfig();
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get('pricing-config')
+  getPricingConfig() {
+    return this.ordersService.getMasterPricingConfig();
+  }
+
+  @Roles(Role.SUPER_ADMIN)
+  @Put('pricing-config')
+  updatePricingConfig(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateMasterPricingConfigDto,
+  ) {
+    return this.ordersService.saveMasterPricingConfig(dto.config, user);
+  }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get('packages')

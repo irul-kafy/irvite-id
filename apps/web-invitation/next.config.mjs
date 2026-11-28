@@ -43,6 +43,9 @@ export function buildApiProxyRewrites(env = process.env) {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    agentUpgrade: 'security',
+  },
   async rewrites() {
     return buildApiProxyRewrites(process.env);
   },

@@ -143,6 +143,22 @@ export function shouldRenderRsvpAndQr(
   return Boolean(isPersonal && uniqueCode && uniqueCode.trim().length > 0);
 }
 
+/**
+ * Gate for Check-in QR ticket display on guest invitations:
+ * - If the event package does not include Buku Tamu / QR check-in (qrCheckInEnabled === false, e.g. Undangan Digital only),
+ *   strictly suppress QR code rendering while keeping online RSVP enabled.
+ * - When qrCheckInEnabled is true (Buku Tamu Digital packages) or undefined, follows shouldRenderRsvpAndQr.
+ */
+export function shouldRenderCheckInQr(
+  mode?: InvitationMode,
+  uniqueCode?: string | null,
+  isPreview?: boolean,
+  qrCheckInEnabled?: boolean | null,
+): boolean {
+  if (qrCheckInEnabled === false) return false;
+  return shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+}
+
 export function countSereneRendererQr(): number {
   return 0;
 }

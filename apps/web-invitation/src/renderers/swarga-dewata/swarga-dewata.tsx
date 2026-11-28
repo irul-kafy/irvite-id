@@ -12,6 +12,7 @@ import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import {
   shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
   shouldRenderSereneGuest,
 } from '../mode-gating';
 import { useEffectiveDisplayGuest } from '../use-effective-guest';
@@ -131,6 +132,12 @@ export function SwargaDewataRenderer({
   const effectiveGuest = useEffectiveDisplayGuest(mode, data?.guest);
   const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+  const showCheckInQr = shouldRenderCheckInQr(
+    mode,
+    uniqueCode,
+    isPreview,
+    data?.event?.qrCheckInEnabled,
+  );
 
   const [isGateOpen, setIsGateOpen] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -1007,22 +1014,24 @@ export function SwargaDewataRenderer({
                   variant="balinese"
                 />
               </div>
-              <div className={styles.rsvpSectionSlot}>
-                <QRDisplay
-                  canonicalUrl={
-                    canonicalUrl ||
-                    (uniqueCode
-                      ? getCanonicalInvitationUrl(uniqueCode)
-                      : null) ||
-                    'https://irvite.id/i/SIMULASI-TAMU'
-                  }
-                  guestName={guestDisplayName}
-                  maxPax={data?.guest?.maxPax || 2}
-                  tableNumber={data?.guest?.tableNumber}
-                  eventTitle={data?.event?.title}
-                  variant="balinese"
-                />
-              </div>
+              {showCheckInQr && (
+                <div className={styles.rsvpSectionSlot}>
+                  <QRDisplay
+                    canonicalUrl={
+                      canonicalUrl ||
+                      (uniqueCode
+                        ? getCanonicalInvitationUrl(uniqueCode)
+                        : null) ||
+                      'https://irvite.id/i/SIMULASI-TAMU'
+                    }
+                    guestName={guestDisplayName}
+                    maxPax={data?.guest?.maxPax || 2}
+                    tableNumber={data?.guest?.tableNumber}
+                    eventTitle={data?.event?.title}
+                    variant="balinese"
+                  />
+                </div>
+              )}
             </div>
           </section>
         )}

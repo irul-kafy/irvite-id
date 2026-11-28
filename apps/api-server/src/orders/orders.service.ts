@@ -10,6 +10,7 @@ import {
 import * as crypto from 'crypto';
 import { OrderStatus, Prisma, Role } from 'database';
 import {
+  type MasterPricingConfig,
   type OrderPricingOptionsInput,
   type SuperAdminPricingOverride,
 } from 'pricing';
@@ -22,7 +23,9 @@ import {
   buildOrderPricingSnapshot,
   calculateActiveUntil,
   getPackageDefinition,
+  loadMasterPricingConfigFromPrisma,
   resolveOrderMaxGuests,
+  saveMasterPricingConfigToPrisma,
 } from './packages';
 
 // Valid transitions mapping
@@ -77,6 +80,39 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     @Optional() private readonly activityLogs?: ActivityLogsService,
   ) {}
+
+  /**
+   * Read active Master Pricing Configuration (service rates, strikethrough catalog prices, custom presets).
+   */
+  async getMasterPricingConfig(): Promise<MasterPricingConfig> {
+    return loadMasterPricingConfigFromPrisma(
+      this.prisma as unknown as Parameters<
+        typeof loadMasterPricingConfigFromPrisma
+      >[0],
+    );
+  }
+
+  /**
+   * Save Master Pricing Configuration (Strictly SUPER_ADMIN).
+   */
+  async saveMasterPricingConfig(
+    rawConfig: unknown,
+    actor?: { userId?: string; id?: string; role?: Role },
+  ): Promise<MasterPricingConfig> {
+    if (actor?.role !== Role.SUPER_ADMIN) {
+      throw new ForbiddenException(
+        'Hanya Super Admin yang diizinkan mengelola pengaturan master paket dan harga layanan.',
+      );
+    }
+
+    return saveMasterPricingConfigToPrisma(
+      this.prisma as unknown as Parameters<
+        typeof saveMasterPricingConfigToPrisma
+      >[0],
+      rawConfig,
+      actor,
+    );
+  }
 
   /**
    * List orders with optional status filter, search, and pagination.
@@ -331,9 +367,14 @@ export class OrdersService {
       );
     }
 
-    if (actor?.role === Role.ADMIN && dto.priceAmount !== undefined) {
+    if (
+      actor?.role === Role.ADMIN &&
+      (dto.priceAmount !== undefined ||
+        dto.packageCode !== undefined ||
+        dto.options !== undefined)
+    ) {
       throw new ForbiddenException(
-        'Hanya Super Admin yang diizinkan mengubah harga final (diskon/custom) pesanan.',
+        'Hanya Super Admin yang diizinkan mengatur paket layanan atau mengubah harga pesanan.',
       );
     }
 
@@ -453,10 +494,12 @@ export class OrdersService {
         };
       }
 
+      const masterConfig = await this.getMasterPricingConfig();
       const snap = buildOrderPricingSnapshot(
         targetPackageCode,
         mergedOptions,
         resolvedSuperAdminOverride,
+        masterConfig,
       );
       const nextMaxGuests = resolveOrderMaxGuests({
         packageCode: snap.packageCode,

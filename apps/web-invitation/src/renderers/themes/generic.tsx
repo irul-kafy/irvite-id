@@ -10,6 +10,7 @@ import {
   shouldRenderRsvp,
   shouldRenderGuestQr,
   shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
   resolveCoverGuestName,
   shouldRenderGiftSection,
 } from '../mode-gating';
@@ -667,6 +668,12 @@ export default function GenericTheme({
     ((shouldRenderRsvp(effectiveMode, !!guest, !!rsvp) && Boolean(guest && rsvp)) ||
       shouldRenderGuestQr(effectiveMode, isPreview) ||
       isPreview);
+  const showCheckInQr = shouldRenderCheckInQr(
+    effectiveMode,
+    uniqueCode,
+    isPreview,
+    event?.qrCheckInEnabled ?? data.event?.qrCheckInEnabled,
+  );
 
   let sectionIndex = 0;
 
@@ -899,16 +906,18 @@ export default function GenericTheme({
                       variant={themeVariant}
                     />
                   </div>
-                  <div className="gt-rsvp-qr-col">
-                    <QRDisplay
-                      canonicalUrl={resolvedQrUrl}
-                      guestName={guest?.name || 'Tamu Undangan'}
-                      maxPax={guest?.maxPax ?? 2}
-                      tableNumber={data.guest?.tableNumber}
-                      eventTitle={event?.title || data.event?.title}
-                      variant={themeVariant}
-                    />
-                  </div>
+                  {showCheckInQr && (
+                    <div className="gt-rsvp-qr-col">
+                      <QRDisplay
+                        canonicalUrl={resolvedQrUrl}
+                        guestName={guest?.name || 'Tamu Undangan'}
+                        maxPax={guest?.maxPax ?? 2}
+                        tableNumber={data.guest?.tableNumber}
+                        eventTitle={event?.title || data.event?.title}
+                        variant={themeVariant}
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
             </Reveal>

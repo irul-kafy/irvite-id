@@ -20,6 +20,7 @@ import { Prisma, Event, StaffEvent } from '@prisma/client';
 import { ReportsService } from '../reports/reports.service';
 import { ExportQueryDto } from '../reports/dto/export-query.dto';
 import { parseOrThrowGuestCategory } from '../guests/utils/guest-category';
+import { isOrderQrCheckInEnabled } from '../orders/packages';
 
 type EventWithStaff = Event & { staffEvents: StaffEvent[] };
 
@@ -149,6 +150,33 @@ export class AttendanceService {
       isPublicInvitationExpired(event.eventDate, new Date(), event.activeUntil)
     ) {
       throw new ConflictException('Event has expired');
+    }
+
+    const eventOrder =
+      (
+        event as {
+          order?: { packageCode?: string | null; options?: unknown } | null;
+        }
+      ).order !== undefined
+        ? (
+            event as {
+              order?: { packageCode?: string | null; options?: unknown } | null;
+            }
+          ).order
+        : typeof (this.db as { order?: { findUnique?: unknown } }).order
+              ?.findUnique === 'function'
+          ? await this.db.order
+              .findUnique({
+                where: { eventId },
+                select: { packageCode: true, options: true },
+              })
+              .catch(() => null)
+          : null;
+
+    if (eventOrder && !isOrderQrCheckInEnabled(eventOrder)) {
+      throw new ForbiddenException(
+        'Fitur Scanner & QR Check-in tidak aktif untuk paket Undangan Digital. Silakan upgrade ke paket Buku Tamu Digital.',
+      );
     }
 
     return event;

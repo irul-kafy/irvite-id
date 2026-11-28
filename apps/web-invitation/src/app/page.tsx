@@ -22,7 +22,11 @@ export const dynamic = 'force-dynamic';
  *    sehingga pengembang dapat menguji fitur e-tiket dan pendaftaran event tanpa memengaruhi publik.
  */
 export default async function LandingPage() {
-  if (!isTicketingEnabled()) {
+  const envVal = process.env.NEXT_PUBLIC_ENABLE_TICKETING;
+  if (
+    typeof envVal === 'string' &&
+    ['false', '0', 'no'].includes(envVal.trim().toLowerCase())
+  ) {
     return <UndanganLandingPage />;
   }
 

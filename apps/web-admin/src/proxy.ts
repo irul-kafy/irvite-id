@@ -30,13 +30,14 @@ export function proxy(request: NextRequest) {
   const hasSession = !!token && remainingSessionSeconds(token) > 0;
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
   
-  // Protect /dashboard, /events, /events/[eventId]/*, /templates, /templates/*, /staff, /staff/*, /orders, /orders/*, /activity-logs, /activity-logs/*
+  // Protect /dashboard, /events, /events/[eventId]/*, /templates, /templates/*, /staff, /staff/*, /orders, /orders/*, /pricing, /pricing/*, /activity-logs, /activity-logs/*
   const isProtectedPath = 
     request.nextUrl.pathname.startsWith('/dashboard') || 
     request.nextUrl.pathname.startsWith('/events') ||
     request.nextUrl.pathname.startsWith('/templates') ||
     request.nextUrl.pathname.startsWith('/staff') ||
     request.nextUrl.pathname.startsWith('/orders') ||
+    request.nextUrl.pathname.startsWith('/pricing') ||
     request.nextUrl.pathname.startsWith('/activity-logs');
 
   if (isProtectedPath && !hasSession) {
@@ -60,6 +61,7 @@ export const config = {
     '/templates/:path*',
     '/staff/:path*',
     '/orders/:path*',
+    '/pricing/:path*',
     '/activity-logs/:path*',
     '/login',
   ],

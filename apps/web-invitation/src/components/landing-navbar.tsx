@@ -45,6 +45,7 @@ export function LandingNavbar({
   const isTemplatesPage = activePath === '/templates' || activePath.startsWith('/templates');
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [servicesMenuOpen, setServicesMenuOpen] = useState(false);
   const contactUrl = getGeneralContactUrl(contactMessage);
 
   // Close mobile drawer when pressing Escape or scrolling on desktop
@@ -76,22 +77,220 @@ export function LandingNavbar({
       aria-label="Navigasi utama situs"
     >
       <div className={`site-header-inner ${isTemplatesPage ? 'cat-nav__inner' : ''}`}>
-        {isTemplatesPage ? (
-          <Link href="/" className="brand cat-nav__brand" aria-label="IRVITE beranda">
-            IRVITE
-          </Link>
-        ) : (
-          <a className="brand" href="#top" aria-label="IRVITE beranda">
-            IRVITE
-          </a>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {isTemplatesPage ? (
+            <Link href="/" className="brand cat-nav__brand" aria-label="IRVITE beranda">
+              IRVITE
+            </Link>
+          ) : (
+            <a className="brand" href="#top" aria-label="IRVITE beranda">
+              IRVITE
+            </a>
+          )}
+
+          {/* Dropdown Menu Layanan (Identik dengan /tiket) */}
+          <div className="irv-navbar-layanan-dropdown" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setServicesMenuOpen((prev) => !prev)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                background: servicesMenuOpen ? '#edf4f0' : 'transparent',
+                border: '1px solid #d8e5de',
+                padding: '0.38rem 0.65rem',
+                borderRadius: '8px',
+                color: '#13281e',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
+              }}
+              aria-expanded={servicesMenuOpen}
+              aria-label="Pilih Layanan IRVITE"
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#13281e"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+              <span>Layanan</span>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#13281e"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: servicesMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.18s ease',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            {servicesMenuOpen && (
+              <>
+                <div
+                  onClick={() => setServicesMenuOpen(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 990 }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: 0,
+                    minWidth: '240px',
+                    background: '#ffffff',
+                    borderRadius: '12px',
+                    boxShadow: '0 12px 32px rgba(15, 23, 42, 0.16)',
+                    border: '1px solid #e2e8f0',
+                    padding: '0.45rem',
+                    zIndex: 995,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      color: '#94a3b8',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '0.35rem 0.6rem 0.25rem',
+                    }}
+                  >
+                    Pilihan Layanan
+                  </div>
+
+                  {/* 1. Undangan Pernikahan (Current Active Page) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.6rem 0.7rem',
+                      borderRadius: '8px',
+                      background: '#edf4f0',
+                      color: '#1b3b2b',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                      marginBottom: '0.2rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#1b3b2b"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="m22 6-10 7L2 6" />
+                      </svg>
+                      <div>
+                        <div>Undangan Pernikahan</div>
+                        <div style={{ fontSize: '0.72rem', color: '#2d6a4f', fontWeight: 500 }}>
+                          Platform Undangan Digital
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 800,
+                        background: '#1b3b2b',
+                        color: '#ffffff',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      Aktif
+                    </span>
+                  </div>
+
+                  {/* 2. Tiket Event (Segera Hadir — Disabled) */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.6rem 0.7rem',
+                      borderRadius: '8px',
+                      color: '#64748b',
+                      fontWeight: 600,
+                      fontSize: '0.86rem',
+                      background: '#f8fafc',
+                      cursor: 'default',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#94a3b8"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                        <path d="M13 5v2" />
+                        <path d="M13 17v2" />
+                        <path d="M13 11v2" />
+                      </svg>
+                      <div>
+                        <div style={{ color: '#475569' }}>Tiket Event</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                          Katalog &amp; E-Ticket
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        background: '#e2e8f0',
+                        color: '#64748b',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      Segera
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
         <div className={`site-nav-group ${isTemplatesPage ? 'cat-nav__actions' : ''}`}>
           {/* Desktop Horizontal Navigation Links */}
           {isTemplatesPage ? (
             <nav className="cat-nav__links-group" aria-label="Navigasi Menu">
-              <Link href="/" className="cat-nav__link">
-                Beranda
+              <Link href="/undangan" className="cat-nav__link">
+                Beranda Undangan
               </Link>
               <Link
                 href="/templates"
@@ -100,10 +299,10 @@ export function LandingNavbar({
               >
                 Katalog
               </Link>
-              <Link href="/#cara-kerja" className="cat-nav__link">
+              <Link href="/undangan#cara-kerja" className="cat-nav__link">
                 Alur Pemesanan
               </Link>
-              <Link href="/#paket" className="cat-nav__link">
+              <Link href="/undangan#paket" className="cat-nav__link">
                 Paket
               </Link>
             </nav>
@@ -291,6 +490,82 @@ export function LandingNavbar({
                       ›
                     </span>
                   </a>
+                </li>
+                <li style={{ marginTop: '0.5rem', marginBottom: '0.25rem', padding: '0.35rem 0.5rem 0.15rem', fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Pilihan Layanan
+                </li>
+                <li style={{ marginBottom: '0.35rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.6rem 0.75rem',
+                      borderRadius: '10px',
+                      background: '#edf4f0',
+                      color: '#1b3b2b',
+                      fontWeight: 700,
+                      fontSize: '0.86rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1b3b2b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="m22 6-10 7L2 6" />
+                      </svg>
+                      <div>
+                        <div>Undangan Pernikahan</div>
+                        <div style={{ fontSize: '0.7rem', color: '#2d6a4f', fontWeight: 500 }}>Platform Undangan Digital</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#1b3b2b', color: '#ffffff', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                      Aktif
+                    </span>
+                  </div>
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.6rem 0.75rem',
+                      borderRadius: '10px',
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      color: '#64748b',
+                      fontWeight: 600,
+                      fontSize: '0.86rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+                        <path d="M13 5v2" />
+                        <path d="M13 17v2" />
+                        <path d="M13 11v2" />
+                      </svg>
+                      <div>
+                        <div style={{ color: '#475569' }}>Tiket Event</div>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 500 }}>Katalog &amp; E-Ticket</div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, background: '#e2e8f0', color: '#64748b', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                      Segera
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <Link
+                    href="/"
+                    className="mobile-nav-drawer__link"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span>Pilih Layanan (Beranda Utama)</span>
+                    <span className="mobile-nav-drawer__link-arrow" aria-hidden="true">
+                      ›
+                    </span>
+                  </Link>
                 </li>
               </>
             )}

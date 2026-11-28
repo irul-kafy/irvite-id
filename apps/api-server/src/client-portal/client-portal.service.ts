@@ -408,6 +408,8 @@ export class ClientPortalService {
       );
     }
 
+    const category = parseOrThrowGuestCategory(dto.category);
+
     const eventOrder =
       (
         event as {
@@ -426,17 +428,22 @@ export class ClientPortalService {
     const maxAllowedGuests =
       resolveOrderMaxGuests(eventOrder) ?? MAX_PORTAL_GUESTS_PER_EVENT;
 
-    const currentGuestsCount = await this.prisma.guest.count({
-      where: { eventId, isWalkIn: false },
-    });
-    if (currentGuestsCount >= maxAllowedGuests) {
-      throw new BadRequestException(
-        `Batas maksimum kuota hingga ${maxAllowedGuests} undangan (1 undangan bisa untuk keluarga) telah tercapai.`,
-      );
+    if (category !== 'CREW_VENDOR') {
+      const currentGuestsCount = await this.prisma.guest.count({
+        where: {
+          eventId,
+          isWalkIn: false,
+          category: { not: 'CREW_VENDOR' },
+        },
+      });
+      if (currentGuestsCount >= maxAllowedGuests) {
+        throw new BadRequestException(
+          `Batas maksimum kuota hingga ${maxAllowedGuests} undangan (1 undangan bisa untuk keluarga) telah tercapai.`,
+        );
+      }
     }
 
     const maxPax = dto.maxPax && dto.maxPax > 0 ? dto.maxPax : 1;
-    const category = parseOrThrowGuestCategory(dto.category);
     const phoneNumber = await this.resolveAndAssertUniquePortalPhone(
       eventId,
       dto.phoneNumber,

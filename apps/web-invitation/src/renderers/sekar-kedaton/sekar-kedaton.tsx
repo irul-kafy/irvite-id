@@ -10,7 +10,12 @@ import { QrisGiftCard } from '../../components/qris';
 import { CountdownSection } from '../shared/sections';
 import { getCanonicalInvitationUrl } from '../../utils/url';
 import { adaptSekarKedatonContent, adaptSekarKedatonMedia } from './sekar-kedaton.adapter';
-import { shouldRenderSereneGuest, shouldRenderSereneRsvp, shouldRenderRsvpAndQr } from '../mode-gating';
+import {
+  shouldRenderSereneGuest,
+  shouldRenderSereneRsvp,
+  shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
+} from '../mode-gating';
 import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import { formatCeremonyDate, formatCeremonyDateShort, formatCeremonyTimeRange, parseTargetEpoch } from '../datetime-formatter';
 import { Scene, Florals, Gunungan, Kawung, Petals } from './ornaments';
@@ -57,6 +62,12 @@ export default function SekarKedatonRenderer({
   const effectiveGuest = useEffectiveDisplayGuest(mode, data.guest);
   const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+  const showCheckInQr = shouldRenderCheckInQr(
+    mode,
+    uniqueCode,
+    isPreview,
+    data.event?.qrCheckInEnabled,
+  );
   const rsvpVisible = showRsvpAndQr && shouldRenderSereneRsvp(mode, data.guest, data.rsvp);
   void rsvpVisible;
   const audioSrc = mediaSrc(media.bgMusic?.src, isPreview);
@@ -420,20 +431,22 @@ export default function SekarKedatonRenderer({
                     variant="sekar-kedaton"
                   />
                 </div>
-                <div className={s.qrCardSlot}>
-                  <QRDisplay
-                    canonicalUrl={
-                      canonicalUrl ||
-                      (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
-                      'https://irvite.id/i/SIMULASI-TAMU'
-                    }
-                    guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
-                    maxPax={data.guest?.maxPax || 2}
-                    tableNumber={data.guest?.tableNumber}
-                    eventTitle={data.event?.title}
-                    variant="sekar-kedaton"
-                  />
-                </div>
+                {showCheckInQr && (
+                  <div className={s.qrCardSlot}>
+                    <QRDisplay
+                      canonicalUrl={
+                        canonicalUrl ||
+                        (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
+                        'https://irvite.id/i/SIMULASI-TAMU'
+                      }
+                      guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}
+                      maxPax={data.guest?.maxPax || 2}
+                      tableNumber={data.guest?.tableNumber}
+                      eventTitle={data.event?.title}
+                      variant="sekar-kedaton"
+                    />
+                  </div>
+                )}
               </div>
             </section>
           )}

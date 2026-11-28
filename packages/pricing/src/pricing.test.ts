@@ -15,8 +15,11 @@ import {
   WEDDING_PACKAGE_CATALOG,
   WEDDING_SERVICE_TABS,
   calculateOrderPrice,
+  createDefaultMasterPricingConfig,
   getPackageDisplayLabel,
   getPackageOriginalPrice,
+  isOrderQrCheckInEnabled,
+  normalizeMasterPricingConfig,
 } from './index';
 
 test('unit constants and active price tier match specification', () => {
@@ -35,6 +38,7 @@ test('unit constants and active price tier match specification', () => {
 
   assert.deepEqual(PACKAGE_PRICES.LAUNCH, {
     SACRED: 149_000,
+    SEWA_SISTEM: 229_000,
     INTIMATE: 299_000,
     SIGNATURE: 499_000,
     MAJESTIC: 899_000,
@@ -42,6 +46,7 @@ test('unit constants and active price tier match specification', () => {
 
   assert.deepEqual(PACKAGE_PRICES.NORMAL, {
     SACRED: 199_000,
+    SEWA_SISTEM: 299_000,
     INTIMATE: 399_000,
     SIGNATURE: 649_000,
     MAJESTIC: 1_149_000,
@@ -51,7 +56,7 @@ test('unit constants and active price tier match specification', () => {
 });
 
 test('each preset package base total matches exact constant in LAUNCH and NORMAL tiers', () => {
-  for (const code of ['SACRED', 'INTIMATE', 'SIGNATURE', 'MAJESTIC'] as const) {
+  for (const code of ['SACRED', 'SEWA_SISTEM', 'INTIMATE', 'SIGNATURE', 'MAJESTIC'] as const) {
     const launchRes = calculateOrderPrice({
       packageCode: code,
       priceTier: 'LAUNCH',
@@ -340,6 +345,7 @@ test('3-tab service structure (Undangan, Buku Tamu, Custom) and strikethrough or
     ['UNDANGAN', 'BUKU_TAMU', 'CUSTOM'],
   );
   assert.deepEqual(BUKU_TAMU_PACKAGE_CODES, [
+    'SEWA_SISTEM',
     'INTIMATE',
     'SIGNATURE',
     'MAJESTIC',
@@ -365,6 +371,37 @@ test('3-tab service structure (Undangan, Buku Tamu, Custom) and strikethrough or
     assert.equal(card.price, calc.total);
     assert.equal(card.originalPrice, CAPACITY_NORMAL_PRICES[card.capacityTier]);
     assert.ok(card.originalPrice > card.price);
+    assert.equal(
+      calc.entitlements.qrCheckIn,
+      false,
+      `Undangan Digital card ${card.id} must not enable QR check-in`,
+    );
+    assert.equal(
+      isOrderQrCheckInEnabled({
+        packageCode: calc.packageCode,
+        options: { entitlements: calc.entitlements },
+      }),
+      false,
+    );
+  }
+
+  for (const code of BUKU_TAMU_PACKAGE_CODES) {
+    const calc = calculateOrderPrice({
+      packageCode: code,
+      priceTier: 'LAUNCH',
+    });
+    assert.equal(
+      calc.entitlements.qrCheckIn,
+      true,
+      `Buku Tamu package ${code} must enable QR check-in`,
+    );
+    assert.equal(
+      isOrderQrCheckInEnabled({
+        packageCode: calc.packageCode,
+        options: { entitlements: calc.entitlements },
+      }),
+      true,
+    );
   }
 });
 
@@ -416,4 +453,71 @@ test('Super Admin custom package override supports arbitrary guests, per-service
   assert.equal(customDeal.entitlements.petugasCount, 6);
   assert.equal(customDeal.entitlements.googleSheetLive, true);
   assert.equal(customDeal.entitlements.postEventReport, true);
+});
+
+test('MasterPricingConfig normalizes safely and applies dynamic service rates, preset prices, and custom presets', () => {
+  const defaults = createDefaultMasterPricingConfig();
+  assert.equal(defaults.version, 1);
+  assert.equal(defaults.serviceRates.petugasUnit, PETUGAS_UNIT);
+  assert.equal(defaults.presetPackages.SIGNATURE.price, 499_000);
+  assert.equal(defaults.presetPackages.SIGNATURE.originalPrice, 649_000);
+
+  const customMaster = normalizeMasterPricingConfig({
+    serviceRates: {
+      petugasUnit: 95_000,
+      akrilik: 60_000,
+      capacityPrices: { 50: 175_000, 150: 225_000, 300: 350_000, 600: 500_000 },
+      capacityNormalPrices: {
+        50: 250_000,
+        150: 320_000,
+        300: 480_000,
+        600: 700_000,
+      },
+    },
+    presetPackages: {
+      SIGNATURE: {
+        name: 'Signature Promo',
+        price: 2_100_000,
+        originalPrice: 2_390_000,
+      },
+    },
+    customPresets: [
+      {
+        id: 'royal-ballroom',
+        name: 'Paket Royal Ballroom',
+        tagline: 'Eksklusif 1000 Tamu',
+        serviceCategory: 'BUKU_TAMU',
+        showOnLanding: true,
+        price: 2_100_000,
+        originalPrice: 2_390_000,
+        maxGuests: 1000,
+        petugasCount: 5,
+        supervisorCount: 1,
+        akrilikQris: true,
+        gladiH1: true,
+      },
+    ],
+  });
+
+  assert.equal(customMaster.serviceRates.petugasUnit, 95_000);
+  assert.equal(customMaster.serviceRates.supervisor, SUPERVISOR);
+  assert.equal(customMaster.customPresets.length, 1);
+  assert.equal(customMaster.customPresets[0].maxGuests, 1000);
+
+  const sigCalc = calculateOrderPrice({
+    packageCode: 'SIGNATURE',
+    options: { extraPetugas: 1 },
+    masterConfig: customMaster,
+  });
+  assert.equal(sigCalc.total, 2_100_000 + 95_000);
+  assert.equal(sigCalc.normalTotal, 2_390_000 + 95_000);
+
+  const customCalc = calculateOrderPrice({
+    packageCode: 'CUSTOM',
+    capacityTier: 150,
+    options: { extraPetugas: 2, akrilik: true },
+    masterConfig: customMaster,
+  });
+  assert.equal(customCalc.total, 225_000 + 2 * 95_000 + 60_000);
+  assert.equal(customCalc.normalTotal, 320_000 + 2 * 95_000 + 60_000);
 });

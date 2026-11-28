@@ -46,6 +46,8 @@ export interface PublicInvitationResponse {
     locationDetails: string | null;
     slug?: string;
     content?: Record<string, unknown> | null;
+    packageCode?: string | null;
+    qrCheckInEnabled?: boolean;
   };
   template: {
     themeCode: string;

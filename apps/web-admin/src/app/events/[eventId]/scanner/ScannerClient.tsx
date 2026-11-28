@@ -57,6 +57,17 @@ function checkIsVip(category?: string | null, tableNumber?: string | null): bool
   return false;
 }
 
+function checkIsFamily(category?: string | null, tableNumber?: string | null): boolean {
+  if (category && /family|keluarga/i.test(category)) return true;
+  if (tableNumber && /keluarga|family/i.test(tableNumber)) return true;
+  return false;
+}
+
+function checkIsCrewVendor(category?: string | null): boolean {
+  if (!category) return false;
+  return /crew|vendor|band|wo|panitia|catering|mua|fotografer|kru/i.test(category);
+}
+
 function triggerScanFeedback(isVip: boolean = false) {
   // 1. Haptic vibration feedback on mobile (longer pattern for VIP)
   try {
@@ -140,9 +151,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   REGULAR: 'Reguler',
   VIP: 'VIP',
   VVIP: 'VVIP',
-  FAMILY: 'Keluarga',
+  FAMILY: 'Keluarga Mempelai',
+  FAMILY_GROOM: 'Keluarga Mempelai Pria',
+  FAMILY_BRIDE: 'Keluarga Mempelai Wanita',
   FRIEND: 'Teman',
   COLLEAGUE: 'Rekan Kerja',
+  CREW_VENDOR: 'Kru / Vendor (E-Pass)',
+  ON_THE_SPOT: 'On-The-Spot (Dadakan)',
 };
 
 function formatCategory(category?: string | null): string | null {
@@ -1488,6 +1503,10 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         : 'Belum Konfirmasi';
     const rsvpTone = rsvpResponse === 'YES' ? 'yes' : rsvpResponse === 'NO' ? 'no' : 'pending';
 
+    const isVipGuest = checkIsVip(guest.category, guest.tableNumber);
+    const isFamilyGuest = !isVipGuest && checkIsFamily(guest.category, guest.tableNumber);
+    const isCrewVendorGuest = checkIsCrewVendor(guest.category);
+
     const guestHeader = (
       <div className="scan-guest">
         <div className="scan-guest__avatar" aria-hidden="true">
@@ -1495,13 +1514,43 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
         </div>
         <div className="scan-guest__info">
           <p className="scan-guest__label">
-            {guest.customGreeting ? guest.customGreeting : 'Tamu Undangan'}
+            {guest.customGreeting
+              ? guest.customGreeting
+              : isCrewVendorGuest
+                ? 'E-Pass Kru / Vendor & Konsumsi'
+                : isFamilyGuest
+                  ? 'Keluarga Besar Mempelai'
+                  : 'Tamu Undangan'}
           </p>
           <h2 className="scan-guest__name">{guest.name}</h2>
           <div className="scan-guest__tags">
-            {checkIsVip(guest.category, guest.tableNumber) && (
+            {isVipGuest && (
               <span className="scan-tag scan-tag--vip">
                 👑 TAMU KEHORMATAN (VIP)
+              </span>
+            )}
+            {isFamilyGuest && (
+              <span
+                className="scan-tag"
+                style={{
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                }}
+              >
+                👨‍👩‍👧‍👦 KELUARGA MEMPELAI
+              </span>
+            )}
+            {isCrewVendorGuest && (
+              <span
+                className="scan-tag"
+                style={{
+                  background: '#6d28d9',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                }}
+              >
+                🎸 CREW / VENDOR PASS &amp; KUPON MAKAN
               </span>
             )}
             {guest.tableNumber && (
@@ -1510,7 +1559,9 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               </span>
             )}
             {categoryLabel && <span className="scan-tag scan-tag--category">{categoryLabel}</span>}
-            <span className={`scan-tag scan-tag--rsvp-${rsvpTone}`}>RSVP: {rsvpLabel}</span>
+            {!isCrewVendorGuest && (
+              <span className={`scan-tag scan-tag--rsvp-${rsvpTone}`}>RSVP: {rsvpLabel}</span>
+            )}
           </div>
         </div>
       </div>
@@ -1584,6 +1635,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
       const result = lastCheckInResult;
       const isComplete = result?.status === 'COMPLETE' || result?.remainingPax === 0;
       const isVip = checkIsVip(guest.category, guest.tableNumber);
+      const isFamily = !isVip && checkIsFamily(guest.category, guest.tableNumber);
+      const isCrewVendor = checkIsCrewVendor(guest.category);
 
       return (
         <div
@@ -1598,19 +1651,79 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
             </div>
           )}
 
+          {isFamily && (
+            <div
+              aria-label="Status Keluarga Mempelai"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.2rem',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>👨‍👩‍👧‍👦</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em' }}>
+                KELUARGA BESAR MEMPELAI
+              </span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.95 }}>
+                Arahkan ke area kursi keluarga / meja depan
+              </span>
+            </div>
+          )}
+
+          {isCrewVendor && (
+            <div
+              aria-label="Status E-Pass Kru dan Vendor"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.2rem',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '999px',
+                background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                color: '#ffffff',
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>🎸</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.06em' }}>
+                CREW / VENDOR PASS &amp; KONSUMSI
+              </span>
+              <span style={{ fontSize: '0.68rem', opacity: 0.95 }}>
+                Jalur masuk personel &amp; klaim jatah kupon makan kru
+              </span>
+            </div>
+          )}
+
           <div
             className={`scan-result__icon ${isVip ? 'scan-result__icon--vip' : ''}`}
             aria-hidden="true"
           >
             {isVip ? (
               <span style={{ fontSize: '26px' }}>⭐</span>
+            ) : isCrewVendor ? (
+              <span style={{ fontSize: '24px' }}>🎫</span>
             ) : (
               <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             )}
           </div>
-          <h2>{isComplete ? 'Check-In Selesai!' : 'Check-In Berhasil!'}</h2>
+          <h2>
+            {isCrewVendor
+              ? 'Pass Kru & Kupon Makan Valid!'
+              : isComplete
+                ? 'Check-In Selesai!'
+                : 'Check-In Berhasil!'}
+          </h2>
           <p className="scan-result__name">{guest.name}</p>
 
           {isVip && (
@@ -1618,6 +1731,58 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
               <span>🌟</span>
               <span>
                 <strong>Panduan Usher/Petugas:</strong> Antarkan tamu kehormatan langsung ke Meja {guest.tableNumber || 'VIP / Meja Utama'}.
+              </span>
+            </div>
+          )}
+
+          {isFamily && (
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '10px',
+                background: 'rgba(2, 132, 199, 0.12)',
+                border: '1px dashed rgba(2, 132, 199, 0.45)',
+                color: '#0369a1',
+                fontSize: '0.8125rem',
+              }}
+            >
+              <span>👨‍👩‍👧‍👦</span>
+              <span>
+                <strong>Panduan Petugas:</strong> Silakan arahkan keluarga ke{' '}
+                <strong>Meja {guest.tableNumber || 'Khusus Keluarga'}</strong>.
+              </span>
+            </div>
+          )}
+
+          {isCrewVendor && (
+            <div
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.6rem 0.85rem',
+                borderRadius: '10px',
+                background: 'rgba(124, 58, 237, 0.12)',
+                border: '1px dashed rgba(124, 58, 237, 0.45)',
+                color: '#5b21b6',
+                fontSize: '0.8125rem',
+              }}
+            >
+              <span>🍱</span>
+              <span>
+                <strong>Jatah Personel &amp; Konsumsi:</strong> Tercatat{' '}
+                <strong>
+                  {result?.scannedPax ?? resolveData.attendance.scannedPax} dari{' '}
+                  {maxPax} personel/porsi
+                </strong>{' '}
+                (Tidak mengurangi kuota tamu pengantin).
               </span>
             </div>
           )}
@@ -2365,7 +2530,8 @@ export default function ScannerClient({ eventId, trustedOrigin }: ScannerClientP
                     <option value="ON_THE_SPOT">⚡ On-The-Spot (Dadakan)</option>
                     <option value="VIP">👑 VIP (Kehormatan)</option>
                     <option value="VVIP">🌟 VVIP (Tamu Utama)</option>
-                    <option value="FAMILY">👨‍👩‍👧‍👦 Keluarga</option>
+                    <option value="FAMILY">👨‍👩‍👧‍👦 Keluarga Mempelai</option>
+                    <option value="CREW_VENDOR">🎸 Kru / Vendor (Band, WO, MUA, Catering)</option>
                     <option value="REGULAR">🎫 Reguler</option>
                   </select>
                 </div>

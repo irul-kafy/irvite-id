@@ -11,7 +11,10 @@ import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { PrismaService } from '../database/prisma.service';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import { resolveOrderMaxGuests } from './packages';
+import {
+  resetMasterPricingCacheForTests,
+  resolveOrderMaxGuests,
+} from './packages';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -63,6 +66,7 @@ describe('OrdersService', () => {
   };
 
   beforeEach(async () => {
+    resetMasterPricingCacheForTests();
     prisma = {
       event: {
         findUnique: jest.fn(),
@@ -566,7 +570,89 @@ describe('OrdersService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
+      await expect(
+        service.updateOrder(
+          'ord-123',
+          {
+            packageCode: 'INTIMATE',
+          },
+          { id: 'adm-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
       expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Master Pricing Config (SUPER_ADMIN only)', () => {
+    it('allows SUPER_ADMIN to save master pricing config and applies updated rates to subsequent order calculations', async () => {
+      const saved = await service.saveMasterPricingConfig(
+        {
+          serviceRates: {
+            petugasUnit: 95_000,
+          },
+          presetPackages: {
+            SIGNATURE: {
+              name: 'Signature Spesial',
+              price: 2_100_000,
+              originalPrice: 2_390_000,
+            },
+          },
+        },
+        { id: 'super-1', role: Role.SUPER_ADMIN },
+      );
+
+      expect(saved.serviceRates.petugasUnit).toBe(95_000);
+      expect(saved.presetPackages.SIGNATURE.price).toBe(2_100_000);
+      expect(saved.presetPackages.SIGNATURE.originalPrice).toBe(2_390_000);
+
+      const loaded = await service.getMasterPricingConfig();
+      expect(loaded.presetPackages.SIGNATURE.price).toBe(2_100_000);
+
+      prisma.order.findFirst.mockResolvedValue({
+        ...mockOrder,
+        packageCode: 'UNSELECTED',
+        priceAmount: 0,
+      });
+      prisma.order.update.mockImplementation(
+        ({ data }: { data: Record<string, unknown> }) => ({
+          ...mockOrder,
+          ...data,
+        }),
+      );
+
+      const updatedOrder = await service.updateOrder(
+        'ord-123',
+        {
+          packageCode: 'SIGNATURE',
+          options: { extraPetugas: 1 },
+        },
+        { id: 'super-1', role: Role.SUPER_ADMIN },
+      );
+
+      expect(updatedOrder.priceAmount).toBe(2_100_000 + 95_000);
+    });
+
+    it('forbids regular ADMIN or STAFF from updating master pricing config', async () => {
+      await expect(
+        service.saveMasterPricingConfig(
+          { serviceRates: { petugasUnit: 50_000 } },
+          { id: 'adm-1', role: Role.ADMIN },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      await expect(
+        service.saveMasterPricingConfig(
+          { serviceRates: { petugasUnit: 50_000 } },
+          { id: 'staff-1', role: Role.STAFF },
+        ),
+      ).rejects.toThrow(ForbiddenException);
+
+      const putRoles = Reflect.getMetadata(
+        ROLES_KEY,
+        OrdersController.prototype.updatePricingConfig,
+      );
+      expect(putRoles).toEqual([Role.SUPER_ADMIN]);
     });
   });
 

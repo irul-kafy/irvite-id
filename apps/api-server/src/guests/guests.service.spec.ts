@@ -223,6 +223,16 @@ describe('GuestsService', () => {
         }),
       );
 
+      await service.create('event-id', 'user-id', Role.ADMIN, {
+        name: 'Band Akustik & Sound',
+        category: 'VENDOR',
+      });
+      expect(mockPrisma.guest.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'CREW_VENDOR' }),
+        }),
+      );
+
       await expect(
         service.create('event-id', 'user-id', Role.ADMIN, {
           name: 'Tamu Invalid',
@@ -274,7 +284,7 @@ describe('GuestsService', () => {
       expect(sql).toContain('PHONE_DEDUP_CLEARED');
     });
 
-    it('enforces maxGuests entitlement from event order in GuestsService.create', async () => {
+    it('enforces maxGuests entitlement from event order in GuestsService.create while exempting CREW_VENDOR pass', async () => {
       mockPrisma.event.findFirst.mockResolvedValue({ id: 'event-id' });
       mockPrisma.order.findUnique.mockResolvedValue({
         packageCode: 'SACRED',
@@ -290,6 +300,24 @@ describe('GuestsService', () => {
         }),
       ).rejects.toThrow(BadRequestException);
       expect(mockPrisma.guest.create).not.toHaveBeenCalled();
+
+      // CREW_VENDOR does not consume bride/groom guest quota
+      mockPrisma.guest.create.mockResolvedValue({
+        id: 'vendor-1',
+        eventId: 'event-id',
+        name: 'Tim Band & WO',
+        category: 'CREW_VENDOR',
+      });
+      const vendorCreated = await service.create(
+        'event-id',
+        'user-id',
+        Role.ADMIN,
+        {
+          name: 'Tim Band & WO',
+          category: 'CREW_VENDOR',
+        },
+      );
+      expect(vendorCreated.id).toBe('vendor-1');
     });
 
     it('does not restrict guest count for legacy GOLD order with 400 existing guests or orders without options', async () => {

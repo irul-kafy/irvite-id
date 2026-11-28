@@ -5,7 +5,11 @@ import type { RendererProps } from '../registry';
 import InvitationTemplate from './InvitationTemplate';
 import { adaptAetheriaData } from './aetheria.adapter';
 import type { Guest } from './types';
-import { shouldRenderSereneGuest, shouldRenderRsvpAndQr } from '../mode-gating';
+import {
+  shouldRenderSereneGuest,
+  shouldRenderRsvpAndQr,
+  shouldRenderCheckInQr,
+} from '../mode-gating';
 import { useEffectiveDisplayGuest } from '../use-effective-guest';
 import { RsvpForm } from '../../components/rsvp-form';
 import QRDisplay from '../../components/QRDisplay';
@@ -23,6 +27,12 @@ export default function AetheriaRenderer({
   const effectiveGuest = useEffectiveDisplayGuest(mode, data.guest);
   const guestVisible = shouldRenderSereneGuest(mode, effectiveGuest);
   const showRsvpAndQr = shouldRenderRsvpAndQr(mode, uniqueCode, isPreview);
+  const showCheckInQr = shouldRenderCheckInQr(
+    mode,
+    uniqueCode,
+    isPreview,
+    data.event?.qrCheckInEnabled,
+  );
 
   const guest: Guest = guestVisible && effectiveGuest
     ? {
@@ -62,7 +72,7 @@ export default function AetheriaRenderer({
     (uniqueCode ? getCanonicalInvitationUrl(uniqueCode) : null) ||
     'https://irvite.id/i/SIMULASI-TAMU';
 
-  const qrSlot = showRsvpAndQr ? (
+  const qrSlot = showCheckInQr ? (
     <QRDisplay
       canonicalUrl={effectiveCanonicalUrl}
       guestName={guestVisible && data.guest?.name ? data.guest.name : 'Bapak / Ibu / Saudara/i'}

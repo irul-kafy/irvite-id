@@ -60,6 +60,20 @@ function IconOrders({ className }: { className?: string }) {
   );
 }
 
+function IconPricing({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M3 9.4V4.5A1.5 1.5 0 0 1 4.5 3h4.9a1.5 1.5 0 0 1 1.06.44l6.1 6.1a1.5 1.5 0 0 1 0 2.12l-4.9 4.9a1.5 1.5 0 0 1-2.12 0l-6.1-6.1A1.5 1.5 0 0 1 3 9.4Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="6.75" cy="6.75" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
 function IconActivityLog({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -196,6 +210,12 @@ const NAV_ITEMS: readonly NavItem[] = [
     icon: IconOrders,
   },
   {
+    id: 'pricing',
+    label: 'Paket & Layanan',
+    href: '/pricing',
+    icon: IconPricing,
+  },
+  {
     id: 'activity-logs',
     label: 'Log Aktivitas',
     href: '/activity-logs',
@@ -304,11 +324,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   // Restore cached auth immediately on mount, then revalidate in background
   useEffect(() => {
     const cached = readCachedAuth();
-    const cacheTimer = setTimeout(() => {
-      if (cached.role) setUserRole(cached.role);
-      if (cached.email) setUserEmail(cached.email);
-    }, 0);
-    let isMounted = true;
+    const cacheTimer = setTimeout(() => {
+
+      if (cached.role) setUserRole(cached.role);
+
+      if (cached.email) setUserEmail(cached.email);
+
+    }, 0);
+
+    let isMounted = true;
+
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -324,7 +349,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         // ignore
       });
     return () => {
-      clearTimeout(cacheTimer);
+      clearTimeout(cacheTimer);
+
       isMounted = false;
     };
   }, []);
@@ -337,6 +363,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       return userRole === 'SUPER_ADMIN' || userRole === 'ADMIN';
     }
     if (item.id === 'system-check') {
+      return userRole === 'SUPER_ADMIN';
+    }
+    if (item.id === 'pricing') {
       return userRole === 'SUPER_ADMIN';
     }
     if (item.id === 'staff') {

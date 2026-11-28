@@ -302,11 +302,9 @@ export default function GuestCreatePage({
               >
                 Kategori Tamu
               </label>
-              <input
+              <select
                 id="guest-category"
-                type="text"
                 disabled={loading}
-                placeholder="REGULAR"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="admin-input"
@@ -320,9 +318,21 @@ export default function GuestCreatePage({
                   fontSize: '0.875rem',
                   outline: 'none',
                 }}
-              />
+              >
+                <option value="REGULAR">REGULAR — Tamu Reguler / Umum</option>
+                <option value="VIP">VIP — Tamu Kehormatan</option>
+                <option value="VVIP">VVIP — Tamu Utama</option>
+                <option value="FAMILY">FAMILY — Keluarga Besar Mempelai</option>
+                <option value="FAMILY_GROOM">FAMILY_GROOM — Keluarga Mempelai Pria</option>
+                <option value="FAMILY_BRIDE">FAMILY_BRIDE — Keluarga Mempelai Wanita</option>
+                <option value="FRIEND">FRIEND — Teman / Sahabat</option>
+                <option value="COLLEAGUE">COLLEAGUE — Rekan Kerja / Kantor</option>
+                <option value="CREW_VENDOR">CREW_VENDOR — E-Pass Kru / Vendor (Band, WO, MUA, Catering)</option>
+              </select>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', display: 'block' }}>
-                Default: REGULAR
+                {formData.category === 'CREW_VENDOR'
+                  ? '🎸 E-Pass Kru/Vendor & Kupon Makan (tidak mengurangi kuota tamu pengantin).'
+                  : 'Pilih kategori untuk pembeda warna & arahan meja di Scanner.'}
               </span>
             </div>
 

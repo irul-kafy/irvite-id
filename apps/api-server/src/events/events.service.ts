@@ -14,7 +14,11 @@ import { detectSignature } from '../media/media-signature';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreatePublicDraftDto } from './dto/create-public-draft.dto';
-import { buildOrderPricingSnapshot } from '../orders/packages';
+import {
+  buildOrderPricingSnapshot,
+  isOrderQrCheckInEnabled,
+  loadMasterPricingConfigFromPrisma,
+} from '../orders/packages';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventListQueryDto } from './dto/event-list-query.dto';
@@ -318,11 +322,34 @@ export class EventsService {
       safeContent = restContent as Prisma.JsonValue;
     }
 
+    let orderWithOpts: { packageCode?: string | null; options?: unknown } | null =
+      (event as { order?: { id?: string; packageCode?: string | null } | null })
+        .order ?? null;
+    const orderId = (event as { order?: { id?: string } | null }).order?.id;
+    if (
+      orderId &&
+      typeof (this.prisma as { order?: { findUnique?: unknown } }).order
+        ?.findUnique === 'function'
+    ) {
+      try {
+        const fetchedOrder = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          select: { packageCode: true, options: true },
+        });
+        if (fetchedOrder) {
+          orderWithOpts = fetchedOrder;
+        }
+      } catch {
+        // Fallback to event.order summary
+      }
+    }
+
     return {
       ...event,
       content: safeContent,
       clientKey,
       clientPortalEnabled,
+      qrCheckInEnabled: isOrderQrCheckInEnabled(orderWithOpts),
     };
   }
 
@@ -1416,9 +1443,16 @@ export class EventsService {
 
     let pricingSnapshot: ReturnType<typeof buildOrderPricingSnapshot>;
     try {
+      const masterConfig = await loadMasterPricingConfigFromPrisma(
+        this.prisma as unknown as Parameters<
+          typeof loadMasterPricingConfigFromPrisma
+        >[0],
+      );
       pricingSnapshot = buildOrderPricingSnapshot(
         dto.packageCode,
         dto.options,
+        null,
+        masterConfig,
       );
     } catch (pricingErr) {
       throw new BadRequestException(

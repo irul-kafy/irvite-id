@@ -5,15 +5,21 @@ import {
   PACKAGE_PRICES,
   WEDDING_PACKAGE_CATALOG,
   calculateOrderPrice,
+  createDefaultMasterPricingConfig,
   getPackageDisplayLabel,
+  isOrderQrCheckInEnabled,
   isPresetPackageCode,
   isSelectablePackageCode,
+  normalizeMasterPricingConfig,
+  type MasterPricingConfig,
   type OrderEntitlements,
   type OrderPackageCode,
   type OrderPriceLineItem,
   type OrderPricingOptionsInput,
   type SuperAdminPricingOverride,
 } from 'pricing';
+
+export { isOrderQrCheckInEnabled };
 
 export type PackageCode = OrderPackageCode;
 
@@ -39,6 +45,16 @@ export const PACKAGES: Record<PackageCode, PackageDefinition> = {
     maxStaff: WEDDING_PACKAGE_CATALOG.SACRED.includedPetugas,
     description: WEDDING_PACKAGE_CATALOG.SACRED.description,
     features: WEDDING_PACKAGE_CATALOG.SACRED.features,
+  },
+  SEWA_SISTEM: {
+    code: 'SEWA_SISTEM',
+    name: WEDDING_PACKAGE_CATALOG.SEWA_SISTEM.name,
+    priceAmount: PACKAGE_PRICES[ACTIVE_PRICE_TIER].SEWA_SISTEM,
+    durationDays: 180,
+    maxGuests: WEDDING_PACKAGE_CATALOG.SEWA_SISTEM.baseCapacity,
+    maxStaff: 5, // Self-operated by family committee accounts
+    description: WEDDING_PACKAGE_CATALOG.SEWA_SISTEM.description,
+    features: WEDDING_PACKAGE_CATALOG.SEWA_SISTEM.features,
   },
   INTIMATE: {
     code: 'INTIMATE',
@@ -176,10 +192,115 @@ export function calculateActiveUntil(
   return new Date(eventDate.getTime() + pkg.durationDays * 24 * 60 * 60 * 1000);
 }
 
+export const PRICING_MASTER_LOG_ACTION = 'PRICING_MASTER_CONFIG';
+export const PRICING_MASTER_ENTITY_TYPE = 'PricingCatalog';
+export const PRICING_MASTER_ENTITY_ID = 'MASTER_CONFIG_V1';
+
+let inMemoryMasterPricingCache: {
+  config: MasterPricingConfig;
+  fetchedAt: number;
+} | null = null;
+
+export function resetMasterPricingCacheForTests(): void {
+  inMemoryMasterPricingCache = null;
+}
+
+export async function loadMasterPricingConfigFromPrisma(prisma?: {
+  activityLog?: {
+    findFirst?: (args: unknown) => Promise<{
+      metadata?: unknown;
+      createdAt?: Date | string;
+    } | null>;
+  };
+}): Promise<MasterPricingConfig> {
+  const now = Date.now();
+  if (
+    inMemoryMasterPricingCache &&
+    now - inMemoryMasterPricingCache.fetchedAt < 5_000
+  ) {
+    return inMemoryMasterPricingCache.config;
+  }
+
+  if (prisma?.activityLog?.findFirst) {
+    try {
+      const latest = await prisma.activityLog.findFirst({
+        where: {
+          action: PRICING_MASTER_LOG_ACTION,
+          entityType: PRICING_MASTER_ENTITY_TYPE,
+          entityId: PRICING_MASTER_ENTITY_ID,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (latest?.metadata) {
+        const normalized = normalizeMasterPricingConfig(latest.metadata);
+        const withTs: MasterPricingConfig = {
+          ...normalized,
+          updatedAt:
+            normalized.updatedAt ||
+            (latest.createdAt instanceof Date
+              ? latest.createdAt.toISOString()
+              : typeof latest.createdAt === 'string'
+                ? latest.createdAt
+                : undefined),
+        };
+        inMemoryMasterPricingCache = { config: withTs, fetchedAt: now };
+        return withTs;
+      }
+    } catch {
+      // Fallback safely to cached or default config if DB is unavailable
+    }
+  }
+
+  return inMemoryMasterPricingCache?.config ?? createDefaultMasterPricingConfig();
+}
+
+export async function saveMasterPricingConfigToPrisma(
+  prisma:
+    | {
+        activityLog?: {
+          create?: (args: unknown) => Promise<unknown>;
+        };
+      }
+    | undefined,
+  rawConfig: unknown,
+  actor?: { userId?: string; id?: string; role?: unknown },
+): Promise<MasterPricingConfig> {
+  const normalized = normalizeMasterPricingConfig(rawConfig);
+  const saved: MasterPricingConfig = {
+    ...normalized,
+    updatedAt: new Date().toISOString(),
+  };
+
+  inMemoryMasterPricingCache = {
+    config: saved,
+    fetchedAt: Date.now(),
+  };
+
+  if (prisma?.activityLog?.create) {
+    try {
+      await prisma.activityLog.create({
+        data: {
+          actorUserId: actor?.userId ?? actor?.id ?? null,
+          actorRole: actor?.role ?? 'SUPER_ADMIN',
+          action: PRICING_MASTER_LOG_ACTION,
+          entityType: PRICING_MASTER_ENTITY_TYPE,
+          entityId: PRICING_MASTER_ENTITY_ID,
+          metadata: saved,
+        },
+      });
+    } catch {
+      // Ignore transient DB write failure in unit-test mocks without activityLog
+    }
+  }
+
+  return saved;
+}
+
 export function buildOrderPricingSnapshot(
   packageCode?: string | null,
   options?: OrderPricingOptionsInput | null,
   superAdminOverride?: SuperAdminPricingOverride | null,
+  masterConfig?: MasterPricingConfig | null,
 ): {
   packageCode: PackageCode;
   priceAmount: number;
@@ -219,6 +340,7 @@ export function buildOrderPricingSnapshot(
       capacityTier: options?.capacityTier,
       options: options ?? undefined,
       superAdminOverride: superAdminOverride ?? undefined,
+      masterConfig: masterConfig ?? undefined,
     });
     const resolvedOriginalPrice =
       superAdminOverride?.originalPriceAmount !== undefined

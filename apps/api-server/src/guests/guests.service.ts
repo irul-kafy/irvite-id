@@ -119,14 +119,23 @@ export class GuestsService {
   ) {
     await this.assertEventAccessible(eventId, currentUserId, role);
 
+    const resolvedCategory =
+      createGuestDto.category !== undefined
+        ? parseOrThrowGuestCategory(createGuestDto.category)
+        : 'REGULAR';
+
     const eventOrder = await this.prisma.order.findUnique({
       where: { eventId },
       select: { packageCode: true, options: true },
     });
     const maxGuests = resolveOrderMaxGuests(eventOrder);
-    if (maxGuests !== null) {
+    if (maxGuests !== null && resolvedCategory !== 'CREW_VENDOR') {
       const currentGuestCount = await this.prisma.guest.count({
-        where: { eventId, isWalkIn: false },
+        where: {
+          eventId,
+          isWalkIn: false,
+          category: { not: 'CREW_VENDOR' },
+        },
       });
       if (currentGuestCount >= maxGuests) {
         throw new BadRequestException(
@@ -153,7 +162,7 @@ export class GuestsService {
       );
     }
     if (createGuestDto.category !== undefined) {
-      data.category = parseOrThrowGuestCategory(createGuestDto.category);
+      data.category = resolvedCategory;
     }
     if (createGuestDto.maxPax !== undefined) {
       data.maxPax = createGuestDto.maxPax;
