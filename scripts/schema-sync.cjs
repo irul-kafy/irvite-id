@@ -314,7 +314,7 @@ async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
   let existingFk = null;
   try {
     const fks = await prisma.$queryRawUnsafe(
-      "SELECT CONSTRAINT_NAME, DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND CONSTRAINT_NAME = 'orders_event_id_fkey'"
+      "SELECT CONSTRAINT_NAME, DELETE_RULE, UPDATE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND CONSTRAINT_NAME = 'orders_event_id_fkey'"
     );
     if (Array.isArray(fks) && fks.length > 0) {
       existingFk = fks[0];
@@ -324,9 +324,59 @@ async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
   }
 
   const deleteRule = existingFk ? (existingFk.DELETE_RULE || existingFk.delete_rule) : null;
+  const updateRule = existingFk ? (existingFk.UPDATE_RULE || existingFk.update_rule || 'CASCADE') : 'CASCADE';
+
   if (existingFk && deleteRule === 'SET NULL') {
     logger.log('  [ALREADY EXIST] FK orders.event_id -> events.id ON DELETE SET NULL');
     return { status: 'SKIPPED', message: 'FK already ON DELETE SET NULL' };
+  }
+
+  // Before dropping or modifying FK, check for orphaned orders (event_id not in events)
+  let orphanOrders = [];
+  let orphanOrdersCount = 0;
+  try {
+    const rows = await prisma.$queryRawUnsafe(
+      'SELECT `id`, `reference_code`, `event_id` FROM `orders` WHERE `event_id` IS NOT NULL AND `event_id` NOT IN (SELECT `id` FROM `events`)'
+    );
+    if (Array.isArray(rows)) {
+      if (
+        rows.length === 1 &&
+        (rows[0].cnt !== undefined || rows[0].count !== undefined) &&
+        rows[0].id === undefined
+      ) {
+        orphanOrdersCount = Number(rows[0].cnt ?? rows[0].count ?? 0);
+      } else {
+        orphanOrders = rows;
+        orphanOrdersCount = rows.length;
+      }
+    }
+  } catch (err) {
+    logger.warn(`  [FK CHECK WARN] Could not query orphaned orders before FK sync: ${err.message}`);
+  }
+
+  if (orphanOrdersCount > 0) {
+    const guidance = apply
+      ? 'Please re-run schema-sync with --clean-orphans --apply first to set orphaned orders event_id = NULL.'
+      : 'Re-run with --clean-orphans first before applying FK.';
+    logger.warn(
+      `  [BLOCKED] Found ${orphanOrdersCount} orphaned order(s) (event_id not in events). Will NOT drop existing FK. ${guidance}`
+    );
+    for (const o of orphanOrders.slice(0, 10)) {
+      if (o && o.id) {
+        const ref = o.reference_code || o.referenceCode || '-';
+        const evId = o.event_id || o.eventId;
+        logger.warn(`    - Order ID: ${o.id} (ref: ${ref}, invalid event_id: ${evId})`);
+      }
+    }
+    if (orphanOrders.length > 10) {
+      logger.warn(`    ... and ${orphanOrders.length - 10} more orphaned order(s)`);
+    }
+    return {
+      status: 'BLOCKED',
+      orphanOrdersCount,
+      orphanOrderIds: orphanOrders.map((o) => o.id).filter(Boolean),
+      message: `Blocked by ${orphanOrdersCount} orphaned order(s). ${guidance}`,
+    };
   }
 
   if (!apply) {
@@ -334,12 +384,23 @@ async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
     return { status: 'WOULD_APPLY' };
   }
 
+  let droppedOldFk = false;
+  const previousDeleteRule = deleteRule || 'RESTRICT';
+  const previousUpdateRule = updateRule || 'CASCADE';
+
   if (existingFk && deleteRule !== 'SET NULL') {
     try {
       await prisma.$executeRawUnsafe('ALTER TABLE `orders` DROP FOREIGN KEY `orders_event_id_fkey`');
-      logger.log(`  [DROPPED] Existing FK orders_event_id_fkey with rule ${deleteRule}`);
+      droppedOldFk = true;
+      logger.log(`  [DROPPED] Existing FK orders_event_id_fkey (previous DELETE_RULE: ${previousDeleteRule})`);
     } catch (err) {
-      logger.warn(`  [DROP WARN] Failed to drop existing FK: ${err.message}`);
+      logger.error(`  [FAILED] Failed to drop existing FK orders_event_id_fkey: ${err.message}`);
+      return {
+        status: 'FAILED',
+        restored: false,
+        previousDeleteRule,
+        message: `Failed to drop existing FK: ${err.message}`,
+      };
     }
   }
 
@@ -354,8 +415,38 @@ async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
       logger.log('  [ALREADY EXIST] FK orders.event_id -> events.id already present');
       return { status: 'SKIPPED' };
     }
-    logger.error(`  [FAILED] FK orders_event_id_fkey: ${err.message}`);
-    throw err;
+    logger.error(`  [FAILED] FK orders_event_id_fkey ADD CONSTRAINT failed: ${err.message}`);
+
+    let restored = false;
+    if (droppedOldFk) {
+      const validRules = ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'];
+      const safeDeleteRule = validRules.includes(String(previousDeleteRule).toUpperCase())
+        ? String(previousDeleteRule).toUpperCase()
+        : 'RESTRICT';
+      const safeUpdateRule = validRules.includes(String(previousUpdateRule).toUpperCase())
+        ? String(previousUpdateRule).toUpperCase()
+        : 'CASCADE';
+      try {
+        await prisma.$executeRawUnsafe(
+          `ALTER TABLE \`orders\` ADD CONSTRAINT \`orders_event_id_fkey\` FOREIGN KEY (\`event_id\`) REFERENCES \`events\`(\`id\`) ON DELETE ${safeDeleteRule} ON UPDATE ${safeUpdateRule}`
+        );
+        restored = true;
+        logger.warn(
+          `  [RESTORED] Restored previous FK orders_event_id_fkey with ON DELETE ${safeDeleteRule} ON UPDATE ${safeUpdateRule}`
+        );
+      } catch (restoreErr) {
+        logger.error(
+          `  [RESTORE FAILED] Could not restore previous FK orders_event_id_fkey: ${restoreErr.message}`
+        );
+      }
+    }
+
+    return {
+      status: 'FAILED',
+      restored,
+      previousDeleteRule: droppedOldFk ? previousDeleteRule : null,
+      message: err.message,
+    };
   }
 }
 
@@ -697,7 +788,13 @@ async function runSchemaSync({
   let fkResult = null;
   try {
     fkResult = await syncOrdersForeignKey({ prisma, apply, logger });
+    if (fkResult && fkResult.status === 'FAILED') {
+      results.push({ name: 'orders_event_id_fkey', status: 'FAILED', message: fkResult.message });
+    } else if (fkResult && fkResult.status === 'BLOCKED') {
+      results.push({ name: 'orders_event_id_fkey', status: 'BLOCKED', message: fkResult.message });
+    }
   } catch (err) {
+    fkResult = { status: 'FAILED', message: err.message };
     results.push({ name: 'orders_event_id_fkey', status: 'FAILED', message: err.message });
   }
 

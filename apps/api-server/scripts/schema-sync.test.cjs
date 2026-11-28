@@ -354,7 +354,7 @@ test('syncOrdersForeignKey: skips when already SET NULL, applies drop & add when
   const resDry = await syncOrdersForeignKey({ prisma: mockPrismaDiff, apply: false, logger: silentLogger });
   assert.equal(resDry.status, 'WOULD_APPLY');
 
-  // Case C: apply when RESTRICT
+  // Case C: apply when RESTRICT and 0 orphan orders
   let executedSql = [];
   const mockPrismaApply = {
     $queryRawUnsafe: async (sql) => {
@@ -372,6 +372,72 @@ test('syncOrdersForeignKey: skips when already SET NULL, applies drop & add when
   assert.equal(resApply.status, 'APPLIED');
   assert.ok(executedSql.some((s) => s.includes('DROP FOREIGN KEY `orders_event_id_fkey`')));
   assert.ok(executedSql.some((s) => s.includes('ON DELETE SET NULL')));
+});
+
+test('syncOrdersForeignKey: blocks without dropping FK when orphaned orders exist', async () => {
+  let executedSql = [];
+  const mockPrismaOrphan = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'RESTRICT' }];
+      }
+      if (sql.includes('FROM `orders` WHERE `event_id` IS NOT NULL')) {
+        return [
+          { id: 'ord-orphan-1', reference_code: 'IRV-ORP1', event_id: 'deleted-ev-1' },
+        ];
+      }
+      return [];
+    },
+    $executeRawUnsafe: async (sql) => {
+      executedSql.push(sql);
+      return 1;
+    },
+  };
+
+  const resBlocked = await syncOrdersForeignKey({
+    prisma: mockPrismaOrphan,
+    apply: true,
+    logger: silentLogger,
+  });
+
+  assert.equal(resBlocked.status, 'BLOCKED');
+  assert.equal(resBlocked.orphanOrdersCount, 1);
+  assert.deepEqual(resBlocked.orphanOrderIds, ['ord-orphan-1']);
+  assert.ok(resBlocked.message.includes('--clean-orphans'));
+  assert.equal(executedSql.length, 0, 'Must NOT execute DROP FOREIGN KEY when orphaned orders exist');
+});
+
+test('syncOrdersForeignKey: restores previous FK with previous DELETE_RULE and marks FAILED if ADD CONSTRAINT fails after DROP', async () => {
+  let executedSql = [];
+  const mockPrismaAddFails = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'CASCADE', UPDATE_RULE: 'CASCADE' }];
+      }
+      return [];
+    },
+    $executeRawUnsafe: async (sql) => {
+      executedSql.push(sql);
+      if (sql.includes('ADD CONSTRAINT') && sql.includes('ON DELETE SET NULL')) {
+        throw new Error('Error 1452: Cannot add or update a child row');
+      }
+      return 1;
+    },
+  };
+
+  const resFailed = await syncOrdersForeignKey({
+    prisma: mockPrismaAddFails,
+    apply: true,
+    logger: silentLogger,
+  });
+
+  assert.equal(resFailed.status, 'FAILED');
+  assert.equal(resFailed.restored, true);
+  assert.equal(resFailed.previousDeleteRule, 'CASCADE');
+  assert.equal(executedSql.length, 3);
+  assert.ok(executedSql[0].includes('DROP FOREIGN KEY `orders_event_id_fkey`'));
+  assert.ok(executedSql[1].includes('ON DELETE SET NULL'));
+  assert.ok(executedSql[2].includes('ON DELETE CASCADE ON UPDATE CASCADE'));
 });
 
 test('syncGuestUniqueIndex: reports duplicates without deleting, applies index when 0 duplicates', async () => {
