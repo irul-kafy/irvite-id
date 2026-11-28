@@ -4,6 +4,8 @@ const path = require('node:path');
 const {
   SCHEMA_STATEMENTS,
   ORPHAN_CLEANUP_STEPS,
+  syncOrdersForeignKey,
+  syncGuestUniqueIndex,
   importLegacyMasterPricingConfig,
   cleanOrphansWithSafety,
   runSchemaSync,
@@ -30,6 +32,7 @@ test('schema-sync exports required idempotent DDL statements including master_pr
   assert.ok(statementNames.some((n) => n.includes('guests.is_walk_in')));
   assert.ok(statementNames.some((n) => n.includes('orders.options')));
   assert.ok(statementNames.some((n) => n.includes('orders.pricing_version')));
+  assert.ok(statementNames.some((n) => n.includes('orders.event_id nullability')));
   assert.ok(statementNames.some((n) => n.includes('master_pricing_configs table')));
 
   const masterConfigStep = SCHEMA_STATEMENTS.find((s) => s.id === 'master_pricing_configs_table');
@@ -103,7 +106,7 @@ test('runSchemaSync with apply=true executes statements', async () => {
   });
 
   assert.equal(outcome.mode, 'APPLY');
-  assert.equal(executedSql.length, SCHEMA_STATEMENTS.length);
+  assert.ok(executedSql.length >= SCHEMA_STATEMENTS.length);
   assert.ok(outcome.success);
 });
 
@@ -240,4 +243,91 @@ test('importLegacyMasterPricingConfig: Case B: skips import when table already c
   assert.equal(res.status, 'SKIPPED');
   assert.equal(res.reason, 'ALREADY_POPULATED');
   assert.equal(createdCount, 0);
+});
+
+test('syncOrdersForeignKey: skips when already SET NULL, applies drop & add when different', async () => {
+  // Case A: already SET NULL
+  const mockPrismaSetNull = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'SET NULL' }];
+      }
+      return [];
+    },
+  };
+  const resAlready = await syncOrdersForeignKey({ prisma: mockPrismaSetNull, apply: true, logger: silentLogger });
+  assert.equal(resAlready.status, 'SKIPPED');
+
+  // Case B: dry-run when not SET NULL
+  const mockPrismaDiff = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'RESTRICT' }];
+      }
+      return [];
+    },
+  };
+  const resDry = await syncOrdersForeignKey({ prisma: mockPrismaDiff, apply: false, logger: silentLogger });
+  assert.equal(resDry.status, 'WOULD_APPLY');
+
+  // Case C: apply when RESTRICT
+  let executedSql = [];
+  const mockPrismaApply = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('REFERENTIAL_CONSTRAINTS')) {
+        return [{ CONSTRAINT_NAME: 'orders_event_id_fkey', DELETE_RULE: 'RESTRICT' }];
+      }
+      return [];
+    },
+    $executeRawUnsafe: async (sql) => {
+      executedSql.push(sql);
+      return 1;
+    },
+  };
+  const resApply = await syncOrdersForeignKey({ prisma: mockPrismaApply, apply: true, logger: silentLogger });
+  assert.equal(resApply.status, 'APPLIED');
+  assert.ok(executedSql.some((s) => s.includes('DROP FOREIGN KEY `orders_event_id_fkey`')));
+  assert.ok(executedSql.some((s) => s.includes('ON DELETE SET NULL')));
+});
+
+test('syncGuestUniqueIndex: reports duplicates without deleting, applies index when 0 duplicates', async () => {
+  // Case A: duplicates found -> must reject and delete nothing
+  let deleteExecuted = false;
+  const mockPrismaDup = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('HAVING cnt > 1')) {
+        return [{ event_id: 'ev-1', phone_number: '08123456789', cnt: 2 }];
+      }
+      return [];
+    },
+    $executeRawUnsafe: async (sql) => {
+      if (sql.includes('DELETE')) deleteExecuted = true;
+      return 1;
+    },
+  };
+  const resDup = await syncGuestUniqueIndex({ prisma: mockPrismaDup, apply: true, logger: silentLogger });
+  assert.equal(resDup.status, 'REJECTED_DUPLICATES');
+  assert.equal(resDup.duplicatesCount, 1);
+  assert.equal(deleteExecuted, false, 'Must not delete any data');
+
+  // Case B: no duplicates, dry-run
+  const mockPrismaClean = {
+    $queryRawUnsafe: async (sql) => {
+      if (sql.includes('HAVING cnt > 1')) return [];
+      if (sql.includes('STATISTICS')) return [];
+      return [];
+    },
+    $executeRawUnsafe: async (sql) => {
+      executedSql.push(sql);
+      return 1;
+    },
+  };
+  const resCleanDry = await syncGuestUniqueIndex({ prisma: mockPrismaClean, apply: false, logger: silentLogger });
+  assert.equal(resCleanDry.status, 'WOULD_APPLY');
+
+  // Case C: no duplicates, apply
+  let executedSql = [];
+  const resCleanApply = await syncGuestUniqueIndex({ prisma: mockPrismaClean, apply: true, logger: silentLogger });
+  assert.equal(resCleanApply.status, 'APPLIED');
+  assert.ok(executedSql.some((s) => s.includes('CREATE UNIQUE INDEX `guests_event_id_phone_number_key`')));
 });

@@ -11,6 +11,7 @@
  * Pass --apply to execute changes.
  * Pass --clean-orphans to run orphaned data cleanup (guarded).
  * Pass --force to allow cleaning > 50 orphaned rows.
+ * Pass --with-guest-unique to check duplicates and create UNIQUE(event_id, phone_number) on guests.
  */
 
 const fs = require('node:fs');
@@ -122,7 +123,7 @@ const SCHEMA_STATEMENTS = [
     table: 'orders',
     sql: `CREATE TABLE IF NOT EXISTS \`orders\` (
       \`id\` VARCHAR(191) NOT NULL,
-      \`event_id\` VARCHAR(191) NOT NULL,
+      \`event_id\` VARCHAR(191) NULL,
       \`reference_code\` VARCHAR(191) NOT NULL,
       \`client_name\` VARCHAR(191) NOT NULL,
       \`client_whatsapp\` VARCHAR(191) NOT NULL,
@@ -140,6 +141,14 @@ const SCHEMA_STATEMENTS = [
       INDEX \`orders_reference_code_idx\`(\`reference_code\`),
       PRIMARY KEY (\`id\`)
     ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+  },
+  {
+    id: 'orders_event_id_nullable',
+    name: 'orders.event_id nullability (VARCHAR(191) NULL)',
+    table: 'orders',
+    column: 'event_id',
+    checkNullable: true,
+    sql: 'ALTER TABLE `orders` MODIFY `event_id` VARCHAR(191) NULL',
   },
   {
     id: 'activity_logs_table',
@@ -272,6 +281,7 @@ function isAlreadyAppliedError(err) {
 async function inspectSchemaState(prisma) {
   const existingTables = new Set();
   const existingColumns = new Set();
+  const columnNullability = new Map();
 
   try {
     const tableRows = await prisma.$queryRawUnsafe(
@@ -285,20 +295,137 @@ async function inspectSchemaState(prisma) {
     }
 
     const columnRows = await prisma.$queryRawUnsafe(
-      'SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()'
+      'SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()'
     );
     if (Array.isArray(columnRows)) {
       for (const r of columnRows) {
         const t = r.TABLE_NAME || r.table_name;
         const c = r.COLUMN_NAME || r.column_name;
-        if (t && c) existingColumns.add(`${String(t).toLowerCase()}.${String(c).toLowerCase()}`);
+        const isNull = (r.IS_NULLABLE || r.is_nullable) === 'YES';
+        if (t && c) {
+          const key = `${String(t).toLowerCase()}.${String(c).toLowerCase()}`;
+          existingColumns.add(key);
+          columnNullability.set(key, isNull);
+        }
       }
     }
   } catch {
     // If information_schema is not accessible, inspection set remains empty
   }
 
-  return { existingTables, existingColumns };
+  return { existingTables, existingColumns, columnNullability };
+}
+
+async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
+  let existingFk = null;
+  try {
+    const fks = await prisma.$queryRawUnsafe(
+      "SELECT CONSTRAINT_NAME, DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND CONSTRAINT_NAME = 'orders_event_id_fkey'"
+    );
+    if (Array.isArray(fks) && fks.length > 0) {
+      existingFk = fks[0];
+    }
+  } catch {
+    // If information_schema cannot be queried
+  }
+
+  const deleteRule = existingFk ? (existingFk.DELETE_RULE || existingFk.delete_rule) : null;
+  if (existingFk && deleteRule === 'SET NULL') {
+    logger.log('  [ALREADY EXIST] FK orders.event_id -> events.id ON DELETE SET NULL');
+    return { status: 'SKIPPED', message: 'FK already ON DELETE SET NULL' };
+  }
+
+  if (!apply) {
+    logger.log('  [DRY-RUN: WOULD APPLY] FK orders.event_id -> events.id ON DELETE SET NULL');
+    return { status: 'WOULD_APPLY' };
+  }
+
+  if (existingFk && deleteRule !== 'SET NULL') {
+    try {
+      await prisma.$executeRawUnsafe('ALTER TABLE `orders` DROP FOREIGN KEY `orders_event_id_fkey`');
+      logger.log(`  [DROPPED] Existing FK orders_event_id_fkey with rule ${deleteRule}`);
+    } catch (err) {
+      logger.warn(`  [DROP WARN] Failed to drop existing FK: ${err.message}`);
+    }
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE `orders` ADD CONSTRAINT `orders_event_id_fkey` FOREIGN KEY (`event_id`) REFERENCES `events`(`id`) ON DELETE SET NULL ON UPDATE CASCADE'
+    );
+    logger.log('  [APPLIED] FK orders.event_id -> events.id ON DELETE SET NULL added');
+    return { status: 'APPLIED' };
+  } catch (err) {
+    if (isAlreadyAppliedError(err)) {
+      logger.log('  [ALREADY EXIST] FK orders.event_id -> events.id already present');
+      return { status: 'SKIPPED' };
+    }
+    logger.error(`  [FAILED] FK orders_event_id_fkey: ${err.message}`);
+    throw err;
+  }
+}
+
+async function syncGuestUniqueIndex({ prisma, apply, logger = console }) {
+  let duplicates = [];
+  try {
+    duplicates = await prisma.$queryRawUnsafe(
+      "SELECT `event_id`, `phone_number`, COUNT(*) as cnt FROM `guests` WHERE `phone_number` IS NOT NULL AND `phone_number` != '' GROUP BY `event_id`, `phone_number` HAVING cnt > 1"
+    );
+  } catch (err) {
+    logger.warn(`  [GUEST UNIQUE] Duplicate check query failed: ${err.message}`);
+  }
+
+  if (Array.isArray(duplicates) && duplicates.length > 0) {
+    logger.warn(`  [GUEST UNIQUE DUPLICATES] Found ${duplicates.length} duplicate (event_id, phone_number) set(s):`);
+    for (const d of duplicates.slice(0, 10)) {
+      const eid = d.event_id || d.eventId;
+      const ph = d.phone_number || d.phoneNumber;
+      const c = d.cnt || d.count;
+      logger.warn(`    - Event ${eid}, Phone: ${ph} (${c} duplicates)`);
+    }
+    if (duplicates.length > 10) {
+      logger.warn(`    ... and ${duplicates.length - 10} more duplicate sets`);
+    }
+    logger.warn('  [GUEST UNIQUE REJECTED] Cannot create UNIQUE index while duplicate phone numbers exist. NO DATA WAS DELETED. Operators must resolve duplicates manually.');
+    return { status: 'REJECTED_DUPLICATES', duplicatesCount: duplicates.length, duplicates };
+  }
+
+  logger.log('  [GUEST UNIQUE] 0 duplicate phone numbers found across events.');
+
+  let indexExists = false;
+  try {
+    const idx = await prisma.$queryRawUnsafe(
+      "SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'guests' AND INDEX_NAME = 'guests_event_id_phone_number_key'"
+    );
+    indexExists = Array.isArray(idx) && idx.length > 0;
+  } catch {
+    // fallback
+  }
+
+  if (indexExists) {
+    logger.log('  [ALREADY EXIST] Unique index guests_event_id_phone_number_key');
+    return { status: 'SKIPPED', message: 'Index already exists' };
+  }
+
+  if (!apply) {
+    logger.log('  [DRY-RUN: WOULD APPLY] CREATE UNIQUE INDEX `guests_event_id_phone_number_key` ON `guests`(`event_id`, `phone_number`)');
+    return { status: 'WOULD_APPLY' };
+  }
+
+  try {
+    await prisma.$executeRawUnsafe(
+      'CREATE UNIQUE INDEX `guests_event_id_phone_number_key` ON `guests`(`event_id`, `phone_number`)'
+    );
+    logger.log('  [APPLIED] CREATE UNIQUE INDEX `guests_event_id_phone_number_key` ON `guests`(`event_id`, `phone_number`)');
+    return { status: 'APPLIED' };
+  } catch (err) {
+    if (isAlreadyAppliedError(err)) {
+      logger.log('  [ALREADY EXIST] Unique index guests_event_id_phone_number_key already present');
+      return { status: 'SKIPPED' };
+    }
+    logger.error(`  [FAILED] guests_event_id_phone_number_key: ${err.message}`);
+    throw err;
+  }
 }
 
 async function importLegacyMasterPricingConfig({ prisma, apply, logger = console }) {
@@ -456,6 +583,7 @@ async function runSchemaSync({
   apply = false,
   cleanOrphans = false,
   force = false,
+  withGuestUnique = false,
   logger = console,
 }) {
   const mode = apply ? 'APPLY' : 'DRY-RUN';
@@ -470,13 +598,17 @@ async function runSchemaSync({
   logger.log('====================================================\n');
 
   const results = [];
-  const { existingTables, existingColumns } = await inspectSchemaState(prisma);
+  const { existingTables, existingColumns, columnNullability } = await inspectSchemaState(prisma);
 
   for (const step of SCHEMA_STATEMENTS) {
     if (!apply) {
-      // In dry-run: check whether statement is already present
       let alreadyExists = false;
-      if (step.column && step.table) {
+      if (step.checkNullable && step.column && step.table) {
+        const isNull = columnNullability.get(`${step.table.toLowerCase()}.${step.column.toLowerCase()}`);
+        if (isNull === true) {
+          alreadyExists = true;
+        }
+      } else if (step.column && step.table) {
         alreadyExists = existingColumns.has(`${step.table.toLowerCase()}.${step.column.toLowerCase()}`);
       } else if (step.table && !step.column) {
         alreadyExists = existingTables.has(step.table.toLowerCase());
@@ -490,7 +622,6 @@ async function runSchemaSync({
         logger.log(`  [DRY-RUN: WOULD APPLY]   ${step.name}`);
       }
     } else {
-      // In apply mode: execute DDL
       try {
         await prisma.$executeRawUnsafe(step.sql);
         results.push({ name: step.name, status: 'APPLIED', message: 'Executed successfully' });
@@ -504,6 +635,23 @@ async function runSchemaSync({
           logger.error(`  [FAILED]        ${step.name}: ${err.message}`);
         }
       }
+    }
+  }
+
+  logger.log('\n--- Syncing orders foreign key (ON DELETE SET NULL) ---');
+  let fkResult = null;
+  try {
+    fkResult = await syncOrdersForeignKey({ prisma, apply, logger });
+  } catch (err) {
+    results.push({ name: 'orders_event_id_fkey', status: 'FAILED', message: err.message });
+  }
+
+  if (withGuestUnique) {
+    logger.log('\n--- Syncing guests(event_id, phone_number) unique index (--with-guest-unique) ---');
+    try {
+      await syncGuestUniqueIndex({ prisma, apply, logger });
+    } catch (err) {
+      results.push({ name: 'guests_event_id_phone_number_key', status: 'FAILED', message: err.message });
     }
   }
 
@@ -547,6 +695,7 @@ async function runSchemaSync({
   return {
     mode,
     results,
+    fkResult,
     pricingImportResult,
     orphanResult,
     success: failedCount === 0,
@@ -564,6 +713,7 @@ async function main(argv = process.argv.slice(2)) {
   const apply = argv.includes('--apply');
   const cleanOrphans = argv.includes('--clean-orphans');
   const force = argv.includes('--force');
+  const withGuestUnique = argv.includes('--with-guest-unique');
 
   const url = process.env.DATABASE_URL;
   const isLocalOrDirect =
@@ -590,6 +740,7 @@ async function main(argv = process.argv.slice(2)) {
       apply,
       cleanOrphans,
       force,
+      withGuestUnique,
       logger: console,
     });
 
@@ -612,6 +763,8 @@ module.exports = {
   SCHEMA_STATEMENTS,
   ORPHAN_CLEANUP_STEPS,
   inspectSchemaState,
+  syncOrdersForeignKey,
+  syncGuestUniqueIndex,
   importLegacyMasterPricingConfig,
   cleanOrphansWithSafety,
   runSchemaSync,
