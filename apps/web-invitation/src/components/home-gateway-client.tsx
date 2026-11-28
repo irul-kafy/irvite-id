@@ -61,12 +61,12 @@ export function HomeGatewayClient() {
             #F7FAF8 0%,
             rgba(237, 243, 239, 0) 70%
           );
-          padding: clamp(20px, 3.5vh, 40px) 24px clamp(12px, 2vh, 24px);
+          padding: clamp(16px, 2.8vh, 36px) clamp(16px, 3vw, 32px) clamp(10px, 1.8vh, 20px);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: clamp(16px, 2.6vh, 32px);
+          gap: clamp(12px, 2.2vh, 26px);
           font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
           color: #17251E;
           overflow: hidden;
@@ -76,15 +76,15 @@ export function HomeGatewayClient() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
+          gap: clamp(6px, 1vh, 12px);
           text-align: center;
-          max-width: 620px;
+          max-width: 640px;
         }
 
         .irv-landing-gateway__logo {
           font-family: 'Playfair Display', Georgia, serif;
           font-weight: 500;
-          font-size: clamp(44px, 6vw, 64px);
+          font-size: clamp(38px, 5.5vw, 64px);
           line-height: 1;
           letter-spacing: -0.03em;
           color: #1F1F1F;
@@ -95,8 +95,8 @@ export function HomeGatewayClient() {
         }
 
         .irv-landing-gateway__title {
-          margin: 4px 0 0;
-          font-size: clamp(24px, 3.2vw, 30px);
+          margin: 0;
+          font-size: clamp(20px, 2.8vw, 30px);
           line-height: 1.2;
           font-weight: 800;
           letter-spacing: -0.02em;
@@ -106,8 +106,8 @@ export function HomeGatewayClient() {
 
         .irv-landing-gateway__subtitle {
           margin: 0;
-          font-size: 16px;
-          line-height: 1.55;
+          font-size: clamp(13px, 1.6vw, 16px);
+          line-height: 1.5;
           color: #41574B;
           font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
           max-width: 580px;
@@ -117,26 +117,29 @@ export function HomeGatewayClient() {
           display: flex;
           flex-direction: row;
           justify-content: center;
-          gap: 20px;
+          align-items: center;
+          gap: clamp(14px, 2vw, 24px);
           width: 100%;
-          max-width: 800px;
+          max-width: 780px;
         }
 
         .irv-landing-gateway__card {
           position: relative;
           overflow: hidden;
           isolation: isolate;
-          flex: 1 1 340px;
+          flex: 1 1 0;
           min-width: 0;
-          height: clamp(300px, 44vh, 390px);
-          min-height: 280px;
+          max-width: 375px;
+          aspect-ratio: 1 / 1.08;
+          height: auto;
+          max-height: 48vh;
           box-sizing: border-box;
           border-radius: 24px;
-          padding: clamp(20px, 2.5vh, 26px);
+          padding: clamp(18px, 2.4vh, 26px);
           display: flex;
           flex-direction: column;
           justify-content: flex-end;
-          gap: clamp(12px, 1.8vh, 18px);
+          gap: clamp(8px, 1.5vh, 16px);
           color: #F4F1E8;
           box-shadow: 0 18px 40px -28px rgba(15, 36, 27, 0.6);
           transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -162,12 +165,7 @@ export function HomeGatewayClient() {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: 50% 100%;
-          transition: transform 0.6s ease;
-        }
-
-        .irv-landing-gateway__card:hover .irv-landing-gateway__bgimg {
-          transform: scale(1.05);
+          object-position: center center;
         }
 
         .irv-landing-gateway__overlay--etiket {
@@ -304,23 +302,25 @@ export function HomeGatewayClient() {
           text-align: center;
         }
 
-        @media (max-width: 680px), (max-height: 600px) {
+        @media (max-width: 560px) {
           .irv-landing-gateway {
             height: auto;
             min-height: 100vh;
             overflow-y: auto;
-            padding: 40px 16px 28px;
-            gap: 28px;
+            padding: 36px 16px 24px;
+            gap: 20px;
             justify-content: flex-start;
           }
           .irv-landing-gateway__cards {
             flex-direction: column;
-            max-width: 400px;
+            max-width: 380px;
+            gap: 16px;
           }
           .irv-landing-gateway__card {
             height: auto;
-            min-height: 340px;
-            padding: 22px;
+            min-height: 290px;
+            flex: none;
+            padding: 20px;
           }
         }
       `}</style>
