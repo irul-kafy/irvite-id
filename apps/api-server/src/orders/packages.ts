@@ -201,13 +201,10 @@ let inMemoryMasterPricingCache: {
   fetchedAt: number;
 } | null = null;
 
-export function resetMasterPricingCacheForTests(): void {
-  inMemoryMasterPricingCache = null;
-}
-
 export interface LoadMasterPricingOptions {
   strict?: boolean;
   bypassCache?: boolean;
+  resetCache?: boolean;
   logger?: {
     warn: (message: string, ...args: unknown[]) => void;
     error?: (message: string, ...args: unknown[]) => void;
@@ -241,6 +238,9 @@ export async function loadMasterPricingConfigWithSource(
   prisma?: PrismaPricingReader,
   options?: LoadMasterPricingOptions,
 ): Promise<MasterPricingLoadResult> {
+  if (options?.resetCache) {
+    inMemoryMasterPricingCache = null;
+  }
   const now = Date.now();
   const logger = options?.logger ?? console;
 

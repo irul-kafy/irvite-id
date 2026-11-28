@@ -34,6 +34,7 @@ describe('PrismaService.ensureSchemaCompatibility', () => {
           { TABLE_NAME: 'activity_logs' },
           { TABLE_NAME: 'wishes' },
           { TABLE_NAME: 'offline_sync_ops' },
+          { TABLE_NAME: 'master_pricing_configs' },
         ] as never;
       }
       if (sql.includes('information_schema.COLUMNS')) {
@@ -46,6 +47,7 @@ describe('PrismaService.ensureSchemaCompatibility', () => {
           { TABLE_NAME: 'invitations', COLUMN_NAME: 'open_count' },
           { TABLE_NAME: 'orders', COLUMN_NAME: 'options' },
           { TABLE_NAME: 'orders', COLUMN_NAME: 'pricing_version' },
+          { TABLE_NAME: 'orders', COLUMN_NAME: 'event_id', IS_NULLABLE: 'YES' },
         ] as never;
       }
       return [] as never;
@@ -105,10 +107,51 @@ describe('PrismaService.ensureSchemaCompatibility', () => {
     await service.onModuleInit();
 
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Missing essential table(s): wishes, offline_sync_ops'),
+      expect.stringContaining('Missing essential table(s): wishes, offline_sync_ops, master_pricing_configs'),
     );
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Missing essential column(s): orders.options'),
+    );
+  });
+
+  it('logs an advisory warning when orders.event_id is NOT NULL', async () => {
+    jest.spyOn(service, '$queryRawUnsafe').mockImplementation(async (sql: string, ..._params: unknown[]) => {
+      if (sql.includes('SELECT DATABASE()')) {
+        return [{ db: 'test_db' }] as never;
+      }
+      if (sql.includes('information_schema.TABLES')) {
+        return [
+          { TABLE_NAME: 'users' },
+          { TABLE_NAME: 'events' },
+          { TABLE_NAME: 'guests' },
+          { TABLE_NAME: 'invitations' },
+          { TABLE_NAME: 'orders' },
+          { TABLE_NAME: 'activity_logs' },
+          { TABLE_NAME: 'wishes' },
+          { TABLE_NAME: 'offline_sync_ops' },
+          { TABLE_NAME: 'master_pricing_configs' },
+        ] as never;
+      }
+      if (sql.includes('information_schema.COLUMNS')) {
+        return [
+          { TABLE_NAME: 'guests', COLUMN_NAME: 'table_number' },
+          { TABLE_NAME: 'guests', COLUMN_NAME: 'is_walk_in' },
+          { TABLE_NAME: 'events', COLUMN_NAME: 'active_until' },
+          { TABLE_NAME: 'invitations', COLUMN_NAME: 'first_opened_at' },
+          { TABLE_NAME: 'invitations', COLUMN_NAME: 'last_opened_at' },
+          { TABLE_NAME: 'invitations', COLUMN_NAME: 'open_count' },
+          { TABLE_NAME: 'orders', COLUMN_NAME: 'options' },
+          { TABLE_NAME: 'orders', COLUMN_NAME: 'pricing_version' },
+          { TABLE_NAME: 'orders', COLUMN_NAME: 'event_id', IS_NULLABLE: 'NO' },
+        ] as never;
+      }
+      return [] as never;
+    });
+
+    await service.onModuleInit();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Column "orders.event_id" is NOT NULL'),
     );
   });
 });

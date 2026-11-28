@@ -1,8 +1,8 @@
 import {
   loadMasterPricingConfigFromPrisma,
   loadMasterPricingConfigWithSource,
-  resetMasterPricingCacheForTests,
 } from './packages';
+import { resetMasterPricingCacheForTests } from '../../test/test-utils';
 
 describe('packages master pricing loader', () => {
   beforeEach(() => {

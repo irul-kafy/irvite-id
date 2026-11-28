@@ -11,10 +11,8 @@ import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { PrismaService } from '../database/prisma.service';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import {
-  resetMasterPricingCacheForTests,
-  resolveOrderMaxGuests,
-} from './packages';
+import { resolveOrderMaxGuests } from './packages';
+import { resetMasterPricingCacheForTests } from '../../test/test-utils';
 
 describe('OrdersService', () => {
   let service: OrdersService;

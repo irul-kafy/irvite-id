@@ -36,6 +36,7 @@ export class PrismaService
       'activity_logs',
       'wishes',
       'offline_sync_ops',
+      'master_pricing_configs',
     ];
 
     const requiredColumns: Record<string, string[]> = {
@@ -46,10 +47,6 @@ export class PrismaService
     };
 
     try {
-      if (typeof this.$queryRawUnsafe !== 'function') {
-        return;
-      }
-
       const dbRows = await this.$queryRawUnsafe<Array<{ db?: string; DATABASE?: string }>>(
         'SELECT DATABASE() AS db',
       );
@@ -74,9 +71,9 @@ export class PrismaService
       }
 
       const columnRows = await this.$queryRawUnsafe<
-        Array<{ TABLE_NAME: string; COLUMN_NAME: string }>
+        Array<{ TABLE_NAME: string; COLUMN_NAME: string; IS_NULLABLE?: string }>
       >(
-        'SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ?',
+        'SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ?',
         currentDb,
       );
       const existingColumns = new Set(
@@ -101,6 +98,22 @@ export class PrismaService
         this.logger.warn(
           `[SchemaCompatibility] Missing essential column(s): ${missingColumns.join(', ')}. Please run "node scripts/schema-sync.cjs" to synchronize the database schema.`,
         );
+      }
+
+      // Check nullability of orders.event_id (advisory warning only)
+      if (existingTables.has('orders')) {
+        const eventIdCol = Array.isArray(columnRows)
+          ? columnRows.find(
+              (r) =>
+                r.TABLE_NAME?.toLowerCase() === 'orders' &&
+                r.COLUMN_NAME?.toLowerCase() === 'event_id',
+            )
+          : null;
+        if (eventIdCol && (eventIdCol.IS_NULLABLE || '').toUpperCase() !== 'YES') {
+          this.logger.warn(
+            '[SchemaCompatibility] Column "orders.event_id" is NOT NULL. Expected nullable VARCHAR(191) NULL with ON DELETE SET NULL. Please run "node scripts/schema-sync.cjs --apply" to synchronize.',
+          );
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
