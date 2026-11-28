@@ -63,6 +63,14 @@ describe('EventsService', () => {
               findFirst: jest.fn(),
               delete: jest.fn(),
             },
+            masterPricingConfig: {
+              findFirst: jest.fn().mockResolvedValue(null),
+              create: jest.fn().mockResolvedValue({ id: 'mpc-1', version: 1 }),
+            },
+            activityLog: {
+              findFirst: jest.fn().mockResolvedValue(null),
+              create: jest.fn().mockResolvedValue({ id: 'log-1' }),
+            },
             $transaction: jest.fn(),
           },
         },
@@ -1470,6 +1478,43 @@ describe('EventsService', () => {
 
       // Because the transaction threw when order.create failed, no event was committed
       expect(persistedEvents).toHaveLength(0);
+    });
+
+    it('fails with BadRequestException when master pricing configuration cannot be read', async () => {
+      (
+        prisma as unknown as {
+          masterPricingConfig: { findFirst: jest.Mock };
+          activityLog: { findFirst: jest.Mock };
+        }
+      ).masterPricingConfig = {
+        findFirst: jest
+          .fn()
+          .mockRejectedValue(new Error('Master pricing unreachable')),
+      };
+      (
+        prisma as unknown as {
+          activityLog: { findFirst: jest.Mock };
+        }
+      ).activityLog = {
+        findFirst: jest
+          .fn()
+          .mockRejectedValue(new Error('Activity log unreachable')),
+      };
+
+      await expect(
+        service.createPublicDraft({
+          themeCode: 'IVORY_GARDEN',
+          clientName: 'Romeo',
+          clientWhatsapp: '081234567890',
+          packageCode: 'SACRED',
+          content: {
+            partnerOneName: 'Romeo',
+            partnerTwoName: 'Juliet',
+          },
+        }),
+      ).rejects.toThrow(
+        /Konfigurasi paket tidak valid: Gagal membaca konfigurasi harga master dari database: Master pricing unreachable/,
+      );
     });
 
     it('accepts special qris photo slot on any template and returns honest savedPhotosCount and droppedPhotosCount when invalid photos are dropped', async () => {

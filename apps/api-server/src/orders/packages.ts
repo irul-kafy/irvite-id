@@ -205,7 +205,21 @@ export function resetMasterPricingCacheForTests(): void {
   inMemoryMasterPricingCache = null;
 }
 
-export async function loadMasterPricingConfigFromPrisma(prisma?: {
+export interface LoadMasterPricingOptions {
+  strict?: boolean;
+  bypassCache?: boolean;
+  logger?: {
+    warn: (message: string, ...args: unknown[]) => void;
+    error?: (message: string, ...args: unknown[]) => void;
+  };
+}
+
+export interface MasterPricingLoadResult {
+  config: MasterPricingConfig;
+  source: 'database' | 'cache' | 'default';
+}
+
+export type PrismaPricingReader = {
   masterPricingConfig?: {
     findFirst?: (args: unknown) => Promise<{
       id?: string;
@@ -221,14 +235,28 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
       createdAt?: Date | string;
     } | null>;
   };
-}): Promise<MasterPricingConfig> {
+};
+
+export async function loadMasterPricingConfigWithSource(
+  prisma?: PrismaPricingReader,
+  options?: LoadMasterPricingOptions,
+): Promise<MasterPricingLoadResult> {
   const now = Date.now();
+  const logger = options?.logger ?? console;
+
   if (
+    !options?.bypassCache &&
+    !options?.strict &&
     inMemoryMasterPricingCache &&
     now - inMemoryMasterPricingCache.fetchedAt < 5_000
   ) {
-    return inMemoryMasterPricingCache.config;
+    return {
+      config: inMemoryMasterPricingCache.config,
+      source: 'cache',
+    };
   }
+
+  let dbReadError: Error | null = null;
 
   // 1. Primary storage: dedicated masterPricingConfig table
   if (prisma?.masterPricingConfig?.findFirst) {
@@ -240,6 +268,9 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
         const normalized = normalizeMasterPricingConfig(latest.config);
         const withTs: MasterPricingConfig = {
           ...normalized,
+          ...(typeof latest.version === 'number'
+            ? { version: latest.version }
+            : {}),
           updatedAt:
             normalized.updatedAt ||
             (latest.createdAt instanceof Date
@@ -249,10 +280,14 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
                 : undefined),
         };
         inMemoryMasterPricingCache = { config: withTs, fetchedAt: now };
-        return withTs;
+        return { config: withTs, source: 'database' };
       }
-    } catch {
-      // Fallback safely to legacy activity log or defaults if error
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `[MasterPricing] Gagal membaca konfigurasi dari tabel master_pricing_configs: ${errMsg}`,
+      );
+      dbReadError = err instanceof Error ? err : new Error(errMsg);
     }
   }
 
@@ -280,14 +315,53 @@ export async function loadMasterPricingConfigFromPrisma(prisma?: {
                 : undefined),
         };
         inMemoryMasterPricingCache = { config: withTs, fetchedAt: now };
-        return withTs;
+        return { config: withTs, source: 'database' };
       }
-    } catch {
-      // Fallback safely to cached or default config if DB is unavailable
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `[MasterPricing] Gagal membaca konfigurasi harga legacy dari activity_logs: ${errMsg}`,
+      );
+      if (!dbReadError) {
+        dbReadError = err instanceof Error ? err : new Error(errMsg);
+      }
     }
   }
 
-  return inMemoryMasterPricingCache?.config ?? createDefaultMasterPricingConfig();
+  // If reading threw an error and strict mode is requested, fail immediately
+  if (dbReadError) {
+    if (options?.strict) {
+      throw new Error(
+        `Gagal membaca konfigurasi harga master dari database: ${dbReadError.message}`,
+      );
+    }
+  }
+
+  // If strict mode is requested and neither database model is available
+  if (
+    options?.strict &&
+    !prisma?.masterPricingConfig?.findFirst &&
+    !prisma?.activityLog?.findFirst
+  ) {
+    throw new Error(
+      'Gagal membaca konfigurasi harga master: model database tidak tersedia',
+    );
+  }
+
+  // Fallback to cache if available, or default
+  if (inMemoryMasterPricingCache?.config) {
+    return { config: inMemoryMasterPricingCache.config, source: 'cache' };
+  }
+
+  return { config: createDefaultMasterPricingConfig(), source: 'default' };
+}
+
+export async function loadMasterPricingConfigFromPrisma(
+  prisma?: PrismaPricingReader,
+  options?: LoadMasterPricingOptions,
+): Promise<MasterPricingConfig> {
+  const result = await loadMasterPricingConfigWithSource(prisma, options);
+  return result.config;
 }
 
 export async function saveMasterPricingConfigToPrisma(

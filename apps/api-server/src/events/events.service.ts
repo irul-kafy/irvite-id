@@ -1447,6 +1447,7 @@ export class EventsService {
         this.prisma as unknown as Parameters<
           typeof loadMasterPricingConfigFromPrisma
         >[0],
+        { strict: true },
       );
       pricingSnapshot = buildOrderPricingSnapshot(
         dto.packageCode,

@@ -24,6 +24,8 @@ import {
   calculateActiveUntil,
   getPackageDefinition,
   loadMasterPricingConfigFromPrisma,
+  loadMasterPricingConfigWithSource,
+  type LoadMasterPricingOptions,
   resolveOrderMaxGuests,
   saveMasterPricingConfigToPrisma,
 } from './packages';
@@ -82,14 +84,30 @@ export class OrdersService {
   ) {}
 
   /**
+   * Read active Master Pricing Configuration with source info ('database' | 'cache' | 'default').
+   */
+  async getMasterPricingConfigWithSource(
+    options?: LoadMasterPricingOptions,
+  ): Promise<{
+    config: MasterPricingConfig;
+    source: 'database' | 'cache' | 'default';
+  }> {
+    return loadMasterPricingConfigWithSource(
+      this.prisma as unknown as Parameters<
+        typeof loadMasterPricingConfigWithSource
+      >[0],
+      options,
+    );
+  }
+
+  /**
    * Read active Master Pricing Configuration (service rates, strikethrough catalog prices, custom presets).
    */
-  async getMasterPricingConfig(): Promise<MasterPricingConfig> {
-    return loadMasterPricingConfigFromPrisma(
-      this.prisma as unknown as Parameters<
-        typeof loadMasterPricingConfigFromPrisma
-      >[0],
-    );
+  async getMasterPricingConfig(
+    options?: LoadMasterPricingOptions,
+  ): Promise<MasterPricingConfig> {
+    const { config } = await this.getMasterPricingConfigWithSource(options);
+    return config;
   }
 
   /**
@@ -286,6 +304,19 @@ export class OrdersService {
    * Create an order for an event.
    */
   async createOrder(dto: CreateOrderDto) {
+    try {
+      await loadMasterPricingConfigFromPrisma(
+        this.prisma as unknown as Parameters<
+          typeof loadMasterPricingConfigFromPrisma
+        >[0],
+        { strict: true },
+      );
+    } catch (pricingErr) {
+      throw new BadRequestException(
+        `Gagal memproses pesanan: konfigurasi harga master tidak dapat dibaca (${pricingErr instanceof Error ? pricingErr.message : String(pricingErr)})`,
+      );
+    }
+
     const event = await this.prisma.event.findUnique({
       where: { id: dto.eventId },
       include: { order: true },

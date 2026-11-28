@@ -173,6 +173,28 @@ describe('OrdersService', () => {
         }),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('fails clearly with BadRequestException when master pricing cannot be read', async () => {
+      prisma.masterPricingConfig.findFirst.mockRejectedValue(
+        new Error('Database cluster unavailable'),
+      );
+      prisma.activityLog.findFirst.mockRejectedValue(
+        new Error('Database cluster unavailable'),
+      );
+
+      await expect(
+        service.createOrder({
+          eventId: 'evt-123',
+          clientName: 'Test Client',
+          clientWhatsapp: '081234567890',
+          packageCode: 'GOLD',
+        }),
+      ).rejects.toThrow(
+        /konfigurasi harga master tidak dapat dibaca \(Gagal membaca konfigurasi harga master dari database: Database cluster unavailable\)/,
+      );
+
+      expect(prisma.order.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('getOrder', () => {
@@ -772,6 +794,44 @@ describe('OrdersService', () => {
           { id: 'super-1', role: Role.SUPER_ADMIN },
         ),
       ).rejects.toThrow('Database disk full or write failed');
+    });
+
+    it('getPublicPricingConfig sets X-Pricing-Source: default when falling back to default', async () => {
+      prisma.masterPricingConfig.findFirst.mockResolvedValue(null);
+      prisma.activityLog.findFirst.mockResolvedValue(null);
+
+      const controller = new OrdersController(service);
+      const headers: Record<string, string> = {};
+      const mockRes = {
+        setHeader: (name: string, val: string) => {
+          headers[name] = val;
+        },
+      } as any;
+
+      const result = await controller.getPublicPricingConfig(mockRes);
+      expect(result).toBeDefined();
+      expect(headers['X-Pricing-Source']).toBe('default');
+    });
+
+    it('getPublicPricingConfig sets X-Pricing-Source: database when config loaded from database', async () => {
+      prisma.masterPricingConfig.findFirst.mockResolvedValue({
+        id: 'mpc-1',
+        version: 1,
+        config: { rates: { petugasUnit: 70_000 } },
+        createdAt: new Date(),
+      });
+
+      const controller = new OrdersController(service);
+      const headers: Record<string, string> = {};
+      const mockRes = {
+        setHeader: (name: string, val: string) => {
+          headers[name] = val;
+        },
+      } as any;
+
+      const result = await controller.getPublicPricingConfig(mockRes);
+      expect(result).toBeDefined();
+      expect(headers['X-Pricing-Source']).toBe('database');
     });
   });
 

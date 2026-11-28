@@ -8,8 +8,10 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { Role } from 'database';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -28,14 +30,28 @@ export class OrdersController {
 
   @Public()
   @Get('public/pricing-config')
-  getPublicPricingConfig() {
-    return this.ordersService.getMasterPricingConfig();
+  async getPublicPricingConfig(@Res({ passthrough: true }) res: Response) {
+    const { config, source } =
+      await this.ordersService.getMasterPricingConfigWithSource();
+    if (source === 'default') {
+      res.setHeader('X-Pricing-Source', 'default');
+    } else {
+      res.setHeader('X-Pricing-Source', source);
+    }
+    return config;
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Get('pricing-config')
-  getPricingConfig() {
-    return this.ordersService.getMasterPricingConfig();
+  async getPricingConfig(@Res({ passthrough: true }) res: Response) {
+    const { config, source } =
+      await this.ordersService.getMasterPricingConfigWithSource();
+    if (source === 'default') {
+      res.setHeader('X-Pricing-Source', 'default');
+    } else {
+      res.setHeader('X-Pricing-Source', source);
+    }
+    return config;
   }
 
   @Roles(Role.SUPER_ADMIN)
