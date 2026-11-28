@@ -481,30 +481,43 @@ test('syncOrdersForeignKey: restores previous FK with previous DELETE_RULE and m
   assert.ok(executedSql[2].includes('ON DELETE CASCADE ON UPDATE CASCADE'));
 });
 
-test('syncGuestUniqueIndex: reports duplicates without deleting, applies index when 0 duplicates', async () => {
-  // Case A: duplicates found -> must reject and delete nothing
-  let deleteExecuted = false;
+test('syncGuestUniqueIndex: normalizes phone numbers on read side (0->62, +62->62, spaces/hyphens) and reports duplicates without modifying data', async () => {
+  // Case A: duplicates across different raw formats (0812-345-678 vs +62 812 345 678 vs 62812345678) -> must reject and not mutate anything
+  let mutationExecuted = false;
   const mockPrismaDup = {
     $queryRawUnsafe: async (sql) => {
-      if (sql.includes('HAVING cnt > 1')) {
-        return [{ event_id: 'ev-1', phone_number: '08123456789', cnt: 2 }];
+      if (sql.includes('FROM `guests`')) {
+        return [
+          { id: 'g-1', event_id: 'ev-1', phone_number: '0812-3456-7890' },
+          { id: 'g-2', event_id: 'ev-1', phone_number: '+62 812 3456 7890' },
+          { id: 'g-3', event_id: 'ev-1', phone_number: '089911112222' },
+        ];
       }
       return [];
     },
-    $executeRawUnsafe: async (sql) => {
-      if (sql.includes('DELETE')) deleteExecuted = true;
+    $executeRawUnsafe: async () => {
+      mutationExecuted = true;
       return 1;
     },
   };
   const resDup = await syncGuestUniqueIndex({ prisma: mockPrismaDup, apply: true, logger: silentLogger });
   assert.equal(resDup.status, 'REJECTED_DUPLICATES');
   assert.equal(resDup.duplicatesCount, 1);
-  assert.equal(deleteExecuted, false, 'Must not delete any data');
+  assert.equal(resDup.duplicates[0].normalizedPhone, '6281234567890');
+  assert.equal(resDup.duplicates[0].cnt, 2);
+  assert.deepEqual(resDup.duplicates[0].rawPhones, ['0812-3456-7890', '+62 812 3456 7890']);
+  assert.equal(mutationExecuted, false, 'Must not modify or delete any data');
 
-  // Case B: no duplicates, dry-run
+  // Case B: no duplicates after normalization, dry-run
+  let executedSql = [];
   const mockPrismaClean = {
     $queryRawUnsafe: async (sql) => {
-      if (sql.includes('HAVING cnt > 1')) return [];
+      if (sql.includes('FROM `guests`')) {
+        return [
+          { id: 'g-1', event_id: 'ev-1', phone_number: '0812-3456-7890' },
+          { id: 'g-2', event_id: 'ev-2', phone_number: '+62 812 3456 7890' }, // different event
+        ];
+      }
       if (sql.includes('STATISTICS')) return [];
       return [];
     },
@@ -515,9 +528,9 @@ test('syncGuestUniqueIndex: reports duplicates without deleting, applies index w
   };
   const resCleanDry = await syncGuestUniqueIndex({ prisma: mockPrismaClean, apply: false, logger: silentLogger });
   assert.equal(resCleanDry.status, 'WOULD_APPLY');
+  assert.equal(executedSql.length, 0);
 
   // Case C: no duplicates, apply
-  let executedSql = [];
   const resCleanApply = await syncGuestUniqueIndex({ prisma: mockPrismaClean, apply: true, logger: silentLogger });
   assert.equal(resCleanApply.status, 'APPLIED');
   assert.ok(executedSql.some((s) => s.includes('CREATE UNIQUE INDEX `guests_event_id_phone_number_key`')));

@@ -450,32 +450,82 @@ async function syncOrdersForeignKey({ prisma, apply, logger = console }) {
   }
 }
 
+function normalizePhoneForComparison(raw) {
+  if (raw === null || raw === undefined) return '';
+  let cleaned = String(raw).trim().replace(/[\s\-().]/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('+62')) {
+    cleaned = '62' + cleaned.slice(3);
+  } else if (cleaned.startsWith('+')) {
+    cleaned = cleaned.slice(1);
+  }
+  if (cleaned.startsWith('0')) {
+    cleaned = '62' + cleaned.slice(1);
+  }
+  return cleaned;
+}
+
 async function syncGuestUniqueIndex({ prisma, apply, logger = console }) {
-  let duplicates = [];
+  let guestRows = [];
   try {
-    duplicates = await prisma.$queryRawUnsafe(
-      "SELECT `event_id`, `phone_number`, COUNT(*) as cnt FROM `guests` WHERE `phone_number` IS NOT NULL AND `phone_number` != '' GROUP BY `event_id`, `phone_number` HAVING cnt > 1"
+    guestRows = await prisma.$queryRawUnsafe(
+      "SELECT `id`, `event_id`, `phone_number` FROM `guests` WHERE `phone_number` IS NOT NULL AND TRIM(`phone_number`) != ''"
     );
   } catch (err) {
     logger.warn(`  [GUEST UNIQUE] Duplicate check query failed: ${err.message}`);
   }
 
-  if (Array.isArray(duplicates) && duplicates.length > 0) {
-    logger.warn(`  [GUEST UNIQUE DUPLICATES] Found ${duplicates.length} duplicate (event_id, phone_number) set(s):`);
+  const groups = new Map();
+  if (Array.isArray(guestRows)) {
+    for (const row of guestRows) {
+      const eid = row.event_id || row.eventId;
+      const rawPhone = row.phone_number ?? row.phoneNumber ?? '';
+      const normalizedPhone = normalizePhoneForComparison(rawPhone);
+      if (!eid || !normalizedPhone) continue;
+
+      const rowWeight =
+        row.cnt !== undefined || row.count !== undefined
+          ? Number(row.cnt ?? row.count ?? 1)
+          : 1;
+
+      const key = `${eid}::${normalizedPhone}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          event_id: eid,
+          phone_number: normalizedPhone,
+          normalizedPhone,
+          rawPhones: [],
+          guestIds: [],
+          cnt: 0,
+        });
+      }
+      const entry = groups.get(key);
+      entry.cnt += rowWeight;
+      if (rawPhone && !entry.rawPhones.includes(String(rawPhone))) {
+        entry.rawPhones.push(String(rawPhone));
+      }
+      if (row.id && !entry.guestIds.includes(String(row.id))) {
+        entry.guestIds.push(String(row.id));
+      }
+    }
+  }
+
+  const duplicates = Array.from(groups.values()).filter((g) => g.cnt > 1);
+
+  if (duplicates.length > 0) {
+    logger.warn(`  [GUEST UNIQUE DUPLICATES] Found ${duplicates.length} duplicate (event_id, normalized phone_number) set(s):`);
     for (const d of duplicates.slice(0, 10)) {
-      const eid = d.event_id || d.eventId;
-      const ph = d.phone_number || d.phoneNumber;
-      const c = d.cnt || d.count;
-      logger.warn(`    - Event ${eid}, Phone: ${ph} (${c} duplicates)`);
+      const rawInfo = d.rawPhones.length > 0 ? ` [raw: ${d.rawPhones.join(', ')}]` : '';
+      logger.warn(`    - Event ${d.event_id}, Normalized Phone: ${d.normalizedPhone} (${d.cnt} duplicates)${rawInfo}`);
     }
     if (duplicates.length > 10) {
       logger.warn(`    ... and ${duplicates.length - 10} more duplicate sets`);
     }
-    logger.warn('  [GUEST UNIQUE REJECTED] Cannot create UNIQUE index while duplicate phone numbers exist. NO DATA WAS DELETED. Operators must resolve duplicates manually.');
+    logger.warn('  [GUEST UNIQUE REJECTED] Cannot create UNIQUE index while duplicate phone numbers exist. NO DATA WAS MODIFIED OR DELETED. Operators must resolve duplicates manually.');
     return { status: 'REJECTED_DUPLICATES', duplicatesCount: duplicates.length, duplicates };
   }
 
-  logger.log('  [GUEST UNIQUE] 0 duplicate phone numbers found across events.');
+  logger.log('  [GUEST UNIQUE] 0 duplicate phone numbers found across events (after read-side normalization).');
 
   let indexExists = false;
   try {
@@ -935,6 +985,7 @@ module.exports = {
   inspectSchemaState,
   syncOrdersForeignKey,
   syncGuestUniqueIndex,
+  normalizePhoneForComparison,
   importLegacyMasterPricingConfig,
   cleanOrphansWithSafety,
   runSchemaSync,
