@@ -1,4 +1,5 @@
 import {
+  buildOrderPricingSnapshot,
   loadMasterPricingConfigFromPrisma,
   loadMasterPricingConfigWithSource,
 } from './packages';
@@ -128,5 +129,60 @@ describe('packages master pricing loader', () => {
     const second = await loadMasterPricingConfigWithSource(mockPrisma);
     expect(second.source).toBe('cache');
     expect(mockPrisma.masterPricingConfig.findFirst).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('buildOrderPricingSnapshot pricingVersion resolution', () => {
+  it('resolves pricingVersion from active MasterPricingConfig version for selectable packages', () => {
+    const mockMasterConfig = {
+      version: 5,
+      serviceRates: {
+        petugasUnit: 85_000,
+        petugasExtraHour: 25_000,
+        supervisor: 150_000,
+        akrilik: 50_000,
+        gladi: 100_000,
+        capacityPrices: { 50: 199_000, 150: 249_000, 300: 299_000, 600: 349_000 },
+        capacityNormalPrices: { 50: 299_000, 150: 349_000, 300: 399_000, 600: 449_000 },
+      },
+      presetPackages: {} as any,
+      undanganShowcaseCards: [],
+      customPresets: [],
+    };
+
+    const snap = buildOrderPricingSnapshot(
+      'SACRED',
+      { capacityTier: 150 },
+      null,
+      mockMasterConfig,
+    );
+
+    expect(snap.pricingVersion).toBe(5);
+    expect(snap.packageCode).toBe('SACRED');
+  });
+
+  it('resolves pricingVersion from active MasterPricingConfig for UNSELECTED packages', () => {
+    const mockMasterConfig = {
+      version: 3,
+      serviceRates: {} as any,
+      presetPackages: {} as any,
+      undanganShowcaseCards: [],
+      customPresets: [],
+    };
+
+    const snap = buildOrderPricingSnapshot(
+      'UNSELECTED',
+      null,
+      null,
+      mockMasterConfig,
+    );
+
+    expect(snap.pricingVersion).toBe(3);
+    expect(snap.packageCode).toBe('UNSELECTED');
+  });
+
+  it('falls back to pricingVersion 1 when masterConfig is null or omitted', () => {
+    const snap = buildOrderPricingSnapshot('SACRED', { capacityTier: 50 });
+    expect(snap.pricingVersion).toBe(1);
   });
 });

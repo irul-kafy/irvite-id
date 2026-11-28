@@ -463,7 +463,7 @@ export interface CustomPackagePreset {
 }
 
 export interface MasterPricingConfig {
-  version: 1;
+  version: number;
   serviceRates: MasterServiceRates;
   presetPackages: Record<PresetPackageCode, MasterPresetPackageOverride>;
   undanganShowcaseCards: MasterUndanganCardOverride[];
@@ -730,8 +730,13 @@ export function normalizeMasterPricingConfig(raw: unknown): MasterPricingConfig 
     });
   });
 
+  const resolvedVersion =
+    typeof obj.version === 'number' && obj.version > 0
+      ? Math.floor(obj.version)
+      : 1;
+
   return {
-    version: 1,
+    version: resolvedVersion,
     serviceRates: {
       petugasUnit: safeNonNegativeInt(rawRates.petugasUnit, PETUGAS_UNIT),
       petugasExtraHour: safeNonNegativeInt(

@@ -454,12 +454,17 @@ export function buildOrderPricingSnapshot(
   pricingVersion: number;
   options: OrderOptionsSnapshot;
 } {
+  const resolvedPricingVersion =
+    typeof masterConfig?.version === 'number' && masterConfig.version > 0
+      ? masterConfig.version
+      : 1;
+
   const normalized = (packageCode || '').trim().toUpperCase();
   if (!normalized || normalized === 'UNSELECTED') {
     return {
       packageCode: 'UNSELECTED',
       priceAmount: 0,
-      pricingVersion: 1,
+      pricingVersion: resolvedPricingVersion,
       options: {
         input: options ?? {},
         lineItems: [],
@@ -496,7 +501,7 @@ export function buildOrderPricingSnapshot(
     return {
       packageCode: calculated.packageCode,
       priceAmount: calculated.total,
-      pricingVersion: 1,
+      pricingVersion: resolvedPricingVersion,
       options: {
         input: calculated.normalizedOptions,
         lineItems: calculated.lineItems,
@@ -517,7 +522,7 @@ export function buildOrderPricingSnapshot(
   return {
     packageCode: legacyDef.code,
     priceAmount: legacyDef.priceAmount,
-    pricingVersion: 1,
+    pricingVersion: resolvedPricingVersion,
     options: {
       input: options ?? {},
       lineItems: [
