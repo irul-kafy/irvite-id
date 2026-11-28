@@ -19,97 +19,94 @@ export class PrismaService
     this.logger.log('PrismaService connected to database.');
   }
 
+  /**
+   * Cold-start schema check:
+   * Only inspects existing essential tables and columns in read-only mode.
+   * Never executes DDL or destructive DELETE queries on startup.
+   * If any schema elements are missing, logs a clear warning directing the
+   * operator to run "node scripts/schema-sync.cjs".
+   */
   private async ensureSchemaCompatibility() {
-    const statements = [
-      'ALTER TABLE `guests` ADD COLUMN `table_number` VARCHAR(191) NULL',
-      `CREATE TABLE IF NOT EXISTS \`wishes\` (
-        \`id\` VARCHAR(191) NOT NULL,
-        \`event_id\` VARCHAR(191) NOT NULL,
-        \`name\` VARCHAR(120) NOT NULL,
-        \`message\` VARCHAR(500) NOT NULL,
-        \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        INDEX \`wishes_event_id_idx\`(\`event_id\`),
-        INDEX \`wishes_event_id_created_at_idx\`(\`event_id\`, \`created_at\`),
-        PRIMARY KEY (\`id\`)
-      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-      `CREATE TABLE IF NOT EXISTS \`offline_sync_ops\` (
-        \`id\` VARCHAR(191) NOT NULL,
-        \`event_id\` VARCHAR(191) NOT NULL,
-        \`op_type\` VARCHAR(191) NOT NULL,
-        \`status\` VARCHAR(191) NOT NULL,
-        \`device_id\` VARCHAR(191) NULL,
-        \`scanned_by_id\` VARCHAR(191) NULL,
-        \`client_timestamp\` DATETIME(3) NOT NULL,
-        \`details\` TEXT NULL,
-        \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        INDEX \`offline_sync_ops_event_id_idx\`(\`event_id\`),
-        INDEX \`offline_sync_ops_event_id_created_at_idx\`(\`event_id\`, \`created_at\`),
-        PRIMARY KEY (\`id\`)
-      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-      'ALTER TABLE `events` ADD COLUMN `active_until` DATETIME(3) NULL',
-      `CREATE TABLE IF NOT EXISTS \`orders\` (
-        \`id\` VARCHAR(191) NOT NULL,
-        \`event_id\` VARCHAR(191) NOT NULL,
-        \`reference_code\` VARCHAR(191) NOT NULL,
-        \`client_name\` VARCHAR(191) NOT NULL,
-        \`client_whatsapp\` VARCHAR(191) NOT NULL,
-        \`package_code\` VARCHAR(191) NOT NULL DEFAULT 'GOLD',
-        \`price_amount\` INTEGER NOT NULL DEFAULT 199000,
-        \`status\` ENUM('DRAFT', 'AWAITING_PAYMENT', 'PAID', 'IN_PROGRESS', 'LIVE', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
-        \`paid_at\` DATETIME(3) NULL,
-        \`payment_proof_media_id\` VARCHAR(191) NULL,
-        \`notes\` TEXT NULL,
-        \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        \`updated_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-        UNIQUE INDEX \`orders_event_id_key\`(\`event_id\`),
-        UNIQUE INDEX \`orders_reference_code_key\`(\`reference_code\`),
-        INDEX \`orders_status_idx\`(\`status\`),
-        INDEX \`orders_reference_code_idx\`(\`reference_code\`),
-        PRIMARY KEY (\`id\`)
-      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-      `CREATE TABLE IF NOT EXISTS \`activity_logs\` (
-        \`id\` VARCHAR(191) NOT NULL,
-        \`actor_user_id\` VARCHAR(191) NULL,
-        \`actor_role\` ENUM('SUPER_ADMIN', 'ADMIN', 'STAFF') NULL,
-        \`action\` VARCHAR(100) NOT NULL,
-        \`entity_type\` VARCHAR(60) NOT NULL,
-        \`entity_id\` VARCHAR(191) NOT NULL,
-        \`event_id\` VARCHAR(191) NULL,
-        \`metadata\` JSON NULL,
-        \`ip\` VARCHAR(64) NULL,
-        \`created_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        INDEX \`activity_logs_event_id_created_at_idx\`(\`event_id\`, \`created_at\`),
-        INDEX \`activity_logs_actor_user_id_created_at_idx\`(\`actor_user_id\`, \`created_at\`),
-        INDEX \`activity_logs_action_idx\`(\`action\`),
-        PRIMARY KEY (\`id\`)
-      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-      'ALTER TABLE `invitations` ADD COLUMN `first_opened_at` DATETIME(3) NULL',
-      'ALTER TABLE `invitations` ADD COLUMN `last_opened_at` DATETIME(3) NULL',
-      'ALTER TABLE `invitations` ADD COLUMN `open_count` INTEGER NOT NULL DEFAULT 0',
-      'ALTER TABLE `guests` ADD COLUMN `is_walk_in` BOOLEAN NOT NULL DEFAULT false',
-      'ALTER TABLE `orders` ADD COLUMN `options` JSON NULL',
-      'ALTER TABLE `orders` ADD COLUMN `pricing_version` INT NOT NULL DEFAULT 1',
-      `CREATE TABLE IF NOT EXISTS \`guests_migration_audit\` (
-        \`guest_id\` VARCHAR(191) NOT NULL,
-        \`event_id\` VARCHAR(191) NOT NULL,
-        \`old_category\` VARCHAR(191) NULL,
-        \`old_phone_number\` VARCHAR(191) NULL,
-        \`change_reason\` VARCHAR(191) NOT NULL,
-        \`captured_at\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        PRIMARY KEY (\`guest_id\`),
-        INDEX \`guests_migration_audit_event_id_idx\`(\`event_id\`)
-      ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-      'DELETE FROM `orders` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-      'DELETE FROM `wishes` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
-      'DELETE FROM `offline_sync_ops` WHERE `event_id` NOT IN (SELECT `id` FROM `events`)',
+    const requiredTables = [
+      'users',
+      'events',
+      'guests',
+      'invitations',
+      'orders',
+      'activity_logs',
+      'wishes',
+      'offline_sync_ops',
     ];
 
-    for (const sql of statements) {
-      try {
-        await this.$executeRawUnsafe(sql);
-      } catch {
-        // Column or table already exists or user has restricted DDL; fail open safely
+    const requiredColumns: Record<string, string[]> = {
+      guests: ['table_number', 'is_walk_in'],
+      events: ['active_until'],
+      invitations: ['first_opened_at', 'last_opened_at', 'open_count'],
+      orders: ['options', 'pricing_version'],
+    };
+
+    try {
+      if (typeof this.$queryRawUnsafe !== 'function') {
+        return;
       }
+
+      const dbRows = await this.$queryRawUnsafe<Array<{ db?: string; DATABASE?: string }>>(
+        'SELECT DATABASE() AS db',
+      );
+      const currentDb = dbRows?.[0]?.db || dbRows?.[0]?.DATABASE;
+      if (!currentDb) {
+        return;
+      }
+
+      const tableRows = await this.$queryRawUnsafe<Array<{ TABLE_NAME: string }>>(
+        'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?',
+        currentDb,
+      );
+      const existingTables = new Set(
+        Array.isArray(tableRows) ? tableRows.map((r) => r.TABLE_NAME) : [],
+      );
+
+      const missingTables = requiredTables.filter((t) => !existingTables.has(t));
+      if (missingTables.length > 0) {
+        this.logger.warn(
+          `[SchemaCompatibility] Missing essential table(s): ${missingTables.join(', ')}. Please run "node scripts/schema-sync.cjs" to synchronize the database schema.`,
+        );
+      }
+
+      const columnRows = await this.$queryRawUnsafe<
+        Array<{ TABLE_NAME: string; COLUMN_NAME: string }>
+      >(
+        'SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ?',
+        currentDb,
+      );
+      const existingColumns = new Set(
+        Array.isArray(columnRows)
+          ? columnRows.map((r) => `${r.TABLE_NAME}.${r.COLUMN_NAME}`)
+          : [],
+      );
+
+      const missingColumns: string[] = [];
+      for (const [table, cols] of Object.entries(requiredColumns)) {
+        if (!existingTables.has(table)) {
+          continue;
+        }
+        for (const col of cols) {
+          if (!existingColumns.has(`${table}.${col}`)) {
+            missingColumns.push(`${table}.${col}`);
+          }
+        }
+      }
+
+      if (missingColumns.length > 0) {
+        this.logger.warn(
+          `[SchemaCompatibility] Missing essential column(s): ${missingColumns.join(', ')}. Please run "node scripts/schema-sync.cjs" to synchronize the database schema.`,
+        );
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `[SchemaCompatibility] Read-only schema verification skipped or restricted: ${msg}`,
+      );
     }
   }
 
